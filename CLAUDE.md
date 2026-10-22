@@ -30,5 +30,6 @@ the UI walkthrough, check docs match behaviour); make decisions autonomously; ke
 
 ## Working conventions
 - Python 3.13, `uv` for env/deps (versions pinned in `pyproject.toml` / `uv.lock`).
-- Tests need PostgreSQL+pgvector: `docker compose up -d db` then `uv run pytest`.
+- Tests start their own embedded PostgreSQL: `uv run pytest -q` (no Docker). Model cache: `data/models`
+  (`uv run knowledge-search download-model` once).
 - Read `docs/HANDOFF.md` first when resuming.

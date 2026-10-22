@@ -33,6 +33,28 @@ evidence**. The right passage is often among them (especially for paraphrased qu
 Through the API (`POST /api/search`) each result additionally includes the full chunk text, `chunk_id`,
 `document_id`, `passage_url`, `source_url` and the ranking signals.
 
+## Connections (linked documents)
+
+**View passage** also shows how the document is connected to others you can access:
+
+- **Links from this document** — Markdown links, `[[wiki links]]` and front-matter relations
+  (`depends_on`, `related`, `calls`, `owned_by`, `part_of`, `see_also`); a link to `file.md#section`
+  opens that section.
+- **Linked from** — documents that link to or depend on this one.
+- **Depends on this (blast radius)** — documents that depend on it directly or via one more hop:
+  "what is affected if this changes?".
+
+Click any entry to open it. Documents you cannot access never appear; links whose target is not found in
+your accessible documents are listed by name only. Example front matter:
+
+```yaml
+---
+title: Orders Service
+depends_on: [payments-service, ledger-service]
+part_of: checkout-workflow
+---
+```
+
 ## Uploading documents
 
 **Documents** tab (needs write access to a collection): pick the collection, then drag files onto the drop

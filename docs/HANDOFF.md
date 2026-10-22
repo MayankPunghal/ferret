@@ -9,7 +9,7 @@ goal), `README.md`, and the docs listed there. Scope authority: `docs/brief/…m
 git clone https://github.com/MayankPunghal/knowledge-search && cd knowledge-search
 ./setup.sh --demo --no-start          # Windows: setup.bat -Demo -NoStart
 uv sync                               # adds dev tools
-uv run pytest -q                      # expect 31 passed (embedded PostgreSQL; no Docker)
+uv run pytest -q                      # expect 33 passed (embedded PostgreSQL; no Docker)
 uv run --group eval python eval/run_eval.py --reranker Xenova/ms-marco-MiniLM-L-6-v2
 ./start.sh                            # or start.bat → http://127.0.0.1:8000
 ```
@@ -28,14 +28,14 @@ Code map: `src/knowledge_search/` — `api.py` (routes), `admin.py` (admin route
 (retrieval + gate), `ingest.py` (versions, worker, progress), `parsing.py`, `embedder.py` (model
 registry + per-model thresholds), `runtime.py` (settings, model cache, reranker), `vectors.py`
 (in-memory vector search), `auth.py`, `db.py` (embedded PG, migrations, Windows DLL fix), `cli.py`,
-`static/` (UI), `migrations/0001-0003`. Tests in `tests/`, evaluation in `eval/`.
+`static/` (UI), `graph.py` (link graph), `migrations/0001-0004`. Tests in `tests/`, evaluation in `eval/`.
 
 ## 3. Verification status (what was actually run)
 
 | Item | Status | Evidence |
 |---|---|---|
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
-| Test suite | **verified** | `uv run pytest -q` → 31 passed (search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Test suite | **verified** | `uv run pytest -q` → 33 passed (search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **partially verified by the owner** on Windows 11: install, model download, DB init and indexing worked after the DLL fix; searches then crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93). **That fix is not yet verified on Windows.** | owner logs |
 | UI walkthrough | **verified** (Playwright/Chromium, `scripts/ui_check.py`): first-run admin, settings save + reindex, collections/grants/users, multi-file upload incl. rejection, clean state after sign-out/in, search outcomes, passage drawer, source open, mobile width | `docs/screenshots/` |
@@ -60,6 +60,14 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 - Fixtures (12 docs, 56 queries): hybrid ranking at ceiling; similarity gate test false-answer 1/12 at
   56–63% coverage; reranker gates 81% coverage with 2/12 false answers.
 
+## 4b. Graph navigation v1 (latest session)
+
+Implemented and verified (tests + Playwright walkthrough, screenshot `docs/screenshots/11-connections.png`):
+deterministic links from Markdown links, `[[wiki links]]` and front-matter relations → `doc_links`
+(migration 0004); `GET /api/documents/{id}/links` and `/impact?depth=1..3`; Connections panel in the
+passage drawer; permission filtering on every hop (tested); demo wiki `fixtures/corpus/platform-wiki/`.
+Details and what is still open: `docs/research-graph.md`. **Not evaluated yet** for answer quality.
+
 ## 5. Decisions made this session (details: docs/architecture.md)
 
 Embedded PostgreSQL + vendored Windows DLL; in-memory vector search for laptops; runtime-editable
@@ -79,7 +87,7 @@ auto-migrations on start; GraphRAG deferred in favour of a deterministic link-gr
 | Gate families: similarity, IDF-weighted, reranker, reranker+similarity | Calibration on real labelled data |
 | Concurrency (single/multi process) | Large corpora (10⁵+ chunks), HNSW |
 | — | Office formats, OCR, Docling for complex PDFs |
-| — | **Graph navigation for interlinked technical docs** — design in docs/research-graph.md |
+| Graph navigation v1 (deterministic links, impact, Connections UI) — implemented | Graph: multi-hop evaluation, link expansion in ranking, shared-identifier edges, MCP tools |
 | — | **Local LLM answers with citations ("second brain")** |
 
 ## 7. Next steps (highest value first)
@@ -88,9 +96,10 @@ auto-migrations on start; GraphRAG deferred in favour of a deterministic link-gr
 2. **Real-corpus evaluation:** index 200–1,000 real technical documents (e.g. a Graphify /
    codebase-documenter wiki + runbooks); write 50–100 labelled questions including unanswerable ones;
    run the gate tuning (`eval/gates.py`) on them; store per-model thresholds in `embedder.py`.
-3. **Graph navigation research** (docs/research-graph.md): deterministic `doc_links` from Markdown links,
-   front matter and shared identifiers; link expansion, related-docs panel, blast-radius traversal;
-   evaluate against hybrid on multi-hop questions.
+3. **Graph navigation, next increments** (docs/research-graph.md): build the multi-hop evaluation set on a
+   Graphify/codebase-documenter wiki; then add link expansion in search ranking (behind a setting, adopt
+   only if it improves multi-hop recall without hurting single-hop), shared-identifier edges, and
+   REST/MCP tools (`search`, `get_passage`, `get_links`, `impact`) for agent navigation.
 4. **Second brain:** local LLM (Ollama/llama.cpp via an OpenAI-compatible endpoint, opt-in) answering only
    from retrieved passages with checked citations; abstains on `no_adequate_evidence`; surfaces conflicts.
    Expose `search`/`get_passage`/`get_links` as REST/MCP tools for agent navigation.

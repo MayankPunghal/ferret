@@ -17,6 +17,8 @@ no cloud account, no GPU and no external AI provider are needed.
   the index is incomplete, or nothing adequate exists in the sources *you* can access. No invented
   confidence numbers.
 - **Traceable results** — passage, heading/page, neighbouring context and a link to the original file.
+- **Connections** — links between documents (Markdown/wiki links, `depends_on`-style front matter) with a
+  "what depends on this" blast-radius view, permission-filtered.
 - **Permissions** — collections with group-based read/write access, enforced inside every query.
 - **Admin UI** — upload by drag and drop, change models/chunking/reranking, manage users and access, reindex.
 - **One-click install** — embedded PostgreSQL + pgvector; nothing else to install.

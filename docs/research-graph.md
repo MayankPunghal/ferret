@@ -1,6 +1,23 @@
 # Research note: graph navigation for interlinked technical documentation
 
-Status: **design + evaluation plan, not implemented.** Highest-priority next research item (owner request).
+Status: **v1 implemented** (deterministic links, link/impact API, Connections panel — see "Implemented" below).
+Not yet done: link expansion inside search ranking, shared-identifier edges, agent/MCP tools, and the
+evaluation that decides whether graph features improve answers (owner priority).
+
+## Implemented (v1)
+
+- Extraction at indexing time (`parsing.extract_links`, `RELATION_KEYS`): Markdown links
+  `[x](path/file.md#anchor)`, `[[Page Title#anchor|label]]`, front matter `depends_on`, `related`, `calls`,
+  `owned_by`, `part_of`, `see_also` (list or comma string). External URLs and images are ignored.
+- Storage: `doc_links` (migration 0004), one row per link per chunk, rebuilt/deleted with the chunks.
+- Resolution at query time: target = file name (with/without extension) or document title,
+  case-insensitive; `#anchor` → the chunk with that heading anchor; unresolved targets are reported.
+- API (`graph.py`): `GET /api/documents/{id}/links` (outgoing, incoming, unresolved) and
+  `GET /api/documents/{id}/impact?depth=1..3&kinds=…` (breadth-first blast radius over incoming edges,
+  ≤200 nodes). Every query/hop is limited to the caller's readable collections.
+- UI: passage drawer → **Connections** (links from, linked from, depends on this) with click-through.
+- Tests: `tests/test_graph.py` (extraction, anchors, unresolved, incoming, 2-hop impact, kind filter,
+  restricted documents invisible, delete removes edges). Demo data: `fixtures/corpus/platform-wiki/`.
 
 ## Problem
 

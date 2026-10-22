@@ -8,6 +8,8 @@ src/knowledge_search/
   admin.py      admin routes (settings, reindex, collections/grants, users)
   deps.py       request dependencies (DB connection, authenticated principal)
   search.py     hybrid retrieval, RRF fusion, reranking, evidence gate, outcomes
+  graph.py      document link graph: links / blast-radius routes (docs/research-graph.md)
+  vectors.py    in-memory exact vector search (laptop profile)
   ingest.py     blob store, versioned submit, job worker, reindex, delete
   parsing.py    Markdown/text/PDF parsing, chunking, identifier extraction
   embedder.py   embedding model registry + ONNX adapter
@@ -37,6 +39,9 @@ To run against an external PostgreSQL set `KS_TEST_ADMIN_URL` and `KS_TEST_DATAB
 | `tests/test_search.py` | exact/conceptual queries, PDF page sources, inert source serving, abstention, conflicts, permission isolation and revocation, CSRF, no outbound network |
 | `tests/test_lifecycle.py` | upload → index, unchanged re-upload, versions replace old passages, delete, failures and retries, degraded states |
 | `tests/test_admin.py` | first-run setup, settings validation, chunking changes → outdated → reindex, reranker search path, admin-only access |
+| `tests/test_graph.py` | link extraction, anchor resolution, incoming links, blast radius, permission safety, delete |
+| `tests/test_vectors.py` | in-memory vs pgvector parity, index refresh on delete, database failure → 503 |
+| `tests/test_embedded_db.py` | Windows DLL placement, failed-init recovery |
 
 ## Evaluation scripts
 
