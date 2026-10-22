@@ -1,0 +1,47 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 555 >>
+stream
+BT /F1 11 Tf 14 TL 60 780 Td (Incident 2025-031 Postmortem: Checkout outage) Tj T* () Tj T* (Summary: On 14 March 2025 checkout was unavailable for 47 minutes. Customers saw) Tj T* (HTTP 503 errors when placing orders. The incident was classified SEV1.) Tj T* () Tj T* (Root cause: orders-svc v3.8.1 exhausted its database connection pool after a) Tj T* (change that held connections open while calling the payments service. The pool) Tj T* (maximum was 20 connections per pod, and slow payment authorizations kept every) Tj T* (connection busy.) Tj T* ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 521 >>
+stream
+BT /F1 11 Tf 14 TL 60 780 Td (Resolution and follow-up actions) Tj T* () Tj T* (The on-call engineer rolled back to v3.8.0, which restored checkout. The fix,) Tj T* (released in orders-svc v3.8.2, releases the connection before calling payments) Tj T* (and raises the pool maximum to 40 connections per pod.) Tj T* () Tj T* (Action items: add an alert on connection pool saturation above 80 percent;) Tj T* (add a load test for slow upstream dependencies; document pool sizing in the) Tj T* (deployment runbook.) Tj T* ET
+endstream
+endobj
+8 0 obj
+<< /Title (Incident 2025-031 Postmortem: Checkout outage) >>
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000191 00000 n 
+0000000317 00000 n 
+0000000923 00000 n 
+0000001049 00000 n 
+0000001621 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R /Info 8 0 R >>
+startxref
+1697
+%%EOF

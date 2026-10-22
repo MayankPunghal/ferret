@@ -1,0 +1,10 @@
+Ledger consumer configuration notes (platform team)
+
+ledger.retry_backoff_ms controls the initial delay between ledger write retries. The default is 250
+and the delay doubles on each attempt up to ledger.max_attempts, which defaults to 8.
+
+ledger.batch_size controls how many ledger entries are written per transaction. The default is 100.
+Raising it above 500 has caused lock contention during month-end close and is not recommended.
+
+Changes to these settings are made in config/ledger.properties and require a restart of the ledger
+consumer. They are reviewed by the payments team.
