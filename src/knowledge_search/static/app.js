@@ -32,6 +32,17 @@ async function boot() {
     return s.needs_admin ? only("#setup-view") : showLogin();
   }
   only("#app-view");
+  openTab("search");  // always start on Search; never show a previous user's tab or results
+  $("#drawer").hidden = true; $("#outcome").hidden = true; $("#weak").hidden = true; $("#q").value = "";
+  for (const id of ["#results", "#weak-results", "#upload-list", "#docs", "#status", "#d-body"]) $(id).replaceChildren();
+  $("#timing").textContent = "";
+  renderMe();
+}
+
+// Re-read the current user's collections/permissions without changing the visible tab.
+async function refreshMe() { me = await api("/api/me"); renderMe(); }
+
+function renderMe() {
   $("#who").textContent = me.username + (me.is_admin ? " (admin)" : "");
   $$(".admin-only").forEach((b) => { b.hidden = !me.is_admin; });
   const scope = $("#scope");
@@ -118,12 +129,14 @@ $("#search-form").addEventListener("submit", async (e) => {
   const ids = $$("#scope input:checked").map((c) => +c.value);
   const all = ids.length === me.collections.length;
   const out = $("#outcome");
-  out.hidden = false; out.className = "outcome"; out.textContent = "Searching…";
+  out.hidden = false; out.className = "outcome"; out.replaceChildren(el("span", { className: "spinner" }), " Searching…");
+  const slow = setTimeout(() => { if (out.textContent.includes("Searching")) out.append(el("span", { className: "meta", textContent: " — still working (the first search after a start or a model change loads the model)" })); }, 3000);
   $("#results").replaceChildren(); $("#weak").hidden = true; $("#timing").textContent = "";
   if (!ids.length) { out.textContent = "Select at least one collection."; return; }
   let res;
   try { res = await api("/api/search", { method: "POST", json: { query: $("#q").value, collection_ids: all ? null : ids } }); }
-  catch (err) { out.className = "outcome bad"; out.textContent = "Search failed: " + err.message; return; }
+  catch (err) { clearTimeout(slow); out.className = "outcome bad"; out.textContent = "Search failed: " + err.message; return; }
+  clearTimeout(slow);
   out.className = "outcome " + res.outcome;
   out.replaceChildren(el("strong", { textContent: res.message }));
   if (res.reason_codes?.length) out.append(el("div", { className: "meta", textContent: "Reason codes: " + res.reason_codes.join(", ") }));
@@ -198,6 +211,14 @@ async function loadDocs() {
       actions.append(" ", b);
     }
     const status = el("td", {}, el("span", { className: "badge st-" + d.status, textContent: d.status }));
+    if (d.status === "processing" && d.stage) {
+      const pct = d.progress_total ? Math.round((100 * d.progress_done) / d.progress_total) : null;
+      const label = d.stage === "embedding" && d.progress_total ? `embedding ${d.progress_done}/${d.progress_total} chunks` : d.stage;
+      const bar = el("div", { className: "progress" + (pct === null ? " indeterminate" : "") }, el("span", { style: pct === null ? "" : `width:${pct}%` }));
+      status.append(el("div", { className: "meta", textContent: label }), bar);
+    } else if (d.status === "pending") {
+      status.append(el("div", { className: "meta", textContent: d.queue_position ? `waiting — ${d.queue_position} ahead in queue` : "waiting to start" }));
+    }
     if (d.needs_reindex) status.append(" ", el("span", { className: "badge warn", textContent: "outdated settings" }));
     if (d.error_code) status.append(el("div", { className: "meta error", textContent: `${d.error_code}: ${d.error_detail || ""}` }));
     const ver = d.indexed_version && d.indexed_version !== d.latest_version ? `v${d.latest_version} (indexed v${d.indexed_version})` : `v${d.latest_version}`;
@@ -282,23 +303,23 @@ async function loadAdmin() {
     const grants = el("td");
     for (const g of c.grants) {
       const x = el("button", { className: "link danger", textContent: "×", title: "Remove access" });
-      x.addEventListener("click", async () => { await api(`/api/admin/collections/${c.id}/grants/${encodeURIComponent(g.group)}`, { method: "DELETE" }); loadAdmin(); boot(); });
+      x.addEventListener("click", async () => { await api(`/api/admin/collections/${c.id}/grants/${encodeURIComponent(g.group)}`, { method: "DELETE" }); loadAdmin(); refreshMe(); });
       grants.append(el("span", { className: "chip" }, `${g.group} (${g.can_write ? "read & write" : "read"}) `, x), " ");
     }
     if (!c.grants.length) grants.append(el("span", { className: "meta", textContent: "admins only" }));
-    const grp = el("input", { placeholder: "group", size: 10, "aria-label": "Group" });
+    const grp = el("input", { placeholder: "group", size: 10, ariaLabel: "Group" });
     const w = el("input", { type: "checkbox" });
     const add = el("button", { className: "secondary", textContent: "Grant" });
     add.addEventListener("click", async () => {
       if (!grp.value.trim()) return;
-      try { await api(`/api/admin/collections/${c.id}/grants`, { method: "PUT", json: { group: grp.value.trim(), can_write: w.checked } }); loadAdmin(); boot(); }
+      try { await api(`/api/admin/collections/${c.id}/grants`, { method: "PUT", json: { group: grp.value.trim(), can_write: w.checked } }); loadAdmin(); refreshMe(); }
       catch (err) { $("#admin-msg").textContent = err.message; }
     });
     return el("tr", {}, el("td", {}, el("strong", { textContent: c.name }), el("div", { className: "meta", textContent: c.description })),
       el("td", { textContent: c.documents }), grants, el("td", {}, grp, " ", el("label", { className: "check" }, w, " write"), " ", add));
   }));
   $("#user-rows").replaceChildren(...users.map((u) => {
-    const groups = el("input", { value: u.groups.join(", "), "aria-label": `Groups of ${u.username}` });
+    const groups = el("input", { value: u.groups.join(", "), ariaLabel: `Groups of ${u.username}` });
     const save = el("button", { className: "secondary", textContent: "Save groups" });
     save.addEventListener("click", async () => {
       try { await api(`/api/admin/users/${u.id}`, { method: "PATCH", json: { groups: groups.value.split(",").map((s) => s.trim()).filter(Boolean) } }); $("#admin-msg").textContent = `Updated ${u.username}.`; loadAdmin(); }
@@ -316,7 +337,7 @@ async function loadAdmin() {
 $("#col-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
-  try { await api("/api/admin/collections", { method: "POST", json: { name: f.get("name"), description: f.get("description") } }); e.target.reset(); loadAdmin(); boot(); }
+  try { await api("/api/admin/collections", { method: "POST", json: { name: f.get("name"), description: f.get("description") } }); e.target.reset(); loadAdmin(); refreshMe(); }
   catch (err) { $("#admin-msg").textContent = err.message; }
 });
 $("#user-form").addEventListener("submit", async (e) => {

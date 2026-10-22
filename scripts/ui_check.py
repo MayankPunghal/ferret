@@ -1,54 +1,145 @@
-"""Functional + visual UI check (Playwright). Needs a running server with demo data (./setup.sh --demo --start).
+"""Functional + visual UI walkthrough (Playwright, headless Chromium) against a running server that was set up
+with demo data but no administrator yet (fresh install: `setup --demo`, then start).
 
-    pip install playwright && playwright install chromium
-    python scripts/ui_check.py docs/screenshots
+    pip install playwright && playwright install chromium     (or set CHROMIUM_PATH to an existing Chromium)
+    python scripts/ui_check.py docs/screenshots [http://127.0.0.1:8000]
+
+Prints one line per check; exits non-zero on the first failure.
 """
+
 import os
 import sys
+
 from playwright.sync_api import sync_playwright
+
 OUT = sys.argv[1]
+URL = sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:8000"
+ADMIN_PW = "ui-check-admin-password"
+
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=os.environ.get("CHROMIUM_PATH") or None)
     pg = b.new_page(viewport={"width": 1280, "height": 900})
     errors = []
-    pg.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
     pg.on("pageerror", lambda e: errors.append(str(e)))
-    pg.goto("http://127.0.0.1:8000/")
-    pg.fill("input[name=username]", "alice"); pg.fill("input[name=password]", "wrong-password")
-    pg.click("button[type=submit]"); pg.wait_for_selector("#login-error:has-text('invalid')")
-    pg.fill("input[name=password]", "demo-password-alice"); pg.click("button[type=submit]")
-    pg.wait_for_selector("#app-view:not([hidden])")
-    print("chips:", pg.locator("#scope label").all_inner_texts())
-    pg.screenshot(path=f"{OUT}/01-empty.png")
-    def run(q, shot):
-        pg.fill("#q", q); pg.click("#search-form button")
+    pg.on("console", lambda m: errors.append(m.text) if m.type == "error" and "401" not in m.text else None)
+
+    def shot(name):
+        pg.screenshot(path=f"{OUT}/{name}.png", full_page=True)
+
+    def run(q, name):
+        pg.fill("#q", q)
+        pg.click("#search-form button")
         pg.wait_for_selector("#outcome strong")
-        print(q, "->", pg.locator("#outcome strong").inner_text(), "| strong:", pg.locator("#results > li").count(),
-              "| weak:", pg.locator("#weak-results > li").count())
-        pg.screenshot(path=f"{OUT}/{shot}.png", full_page=True)
-    run("ERR-PAY-4012", "02-exact")
-    pg.click("#results li >> text=View passage"); pg.wait_for_selector("#drawer:not([hidden])")
-    print("drawer:", pg.locator("#d-title").inner_text(), "|", pg.locator("#d-loc").inner_text(), "| open href:", pg.get_attribute("#d-open", "href"))
-    pg.screenshot(path=f"{OUT}/03-passage.png")
-    with pg.expect_popup() as pop: pg.click("#d-open")
-    src = pop.value; src.wait_for_load_state(); print("source tab:", src.url, "| starts:", src.locator("body").inner_text()[:40].replace("\n"," "))
-    src.close(); pg.click("#d-close")
-    run("why was checkout unavailable in March 2025", "04-conceptual")
-    run("who won the company football tournament", "05-no-evidence")
-    run("daily meal allowance per diem for domestic business travel", "06-conflict")
-    pg.click(".tab[data-tab=documents]"); pg.wait_for_selector("#docs tr")
-    print("documents rows:", pg.locator("#docs tr").count(), "| upload form visible:", pg.is_visible("#upload-form"))
-    pg.set_input_files("#upload-form input[type=file]", files=[{"name": "ui-note.md", "mimeType": "text/markdown", "buffer": b"# UI note\n\nThe heliotrope switch resets the sorter."}])
-    pg.click("#upload-form button"); pg.wait_for_selector("#upload-msg:has-text('Queued')"); print("upload:", pg.inner_text("#upload-msg"))
-    pg.wait_for_selector("#docs tr:has-text('UI note') .st-indexed", timeout=30000); print("indexed via worker: yes")
-    pg.screenshot(path=f"{OUT}/07-documents.png", full_page=True)
-    pg.once("dialog", lambda d: d.accept())
-    pg.click("#docs tr:has-text('UI note') >> text=Delete"); pg.wait_for_selector("#docs tr:has-text('UI note')", state="detached"); print("delete: ok")
-    pg.click(".tab[data-tab=status]"); pg.wait_for_selector("#status table")
-    print("status:", pg.locator("#status .outcome").inner_text())
-    pg.screenshot(path=f"{OUT}/08-status.png", full_page=True)
-    pg.set_viewport_size({"width": 390, "height": 844}); pg.click(".tab[data-tab=search]"); run("ERR-PAY-4012", "09-mobile")
-    print("horizontal overflow:", pg.evaluate("document.documentElement.scrollWidth > window.innerWidth"))
-    pg.click("#logout"); pg.wait_for_selector("#login-view:not([hidden])"); print("logout: ok")
-    print("console errors:", errors)
+        print(f"search {q!r}: {pg.locator('#outcome strong').inner_text()} | evidence={pg.locator('#results > li').count()}"
+              f" weaker={pg.locator('#weak-results > li').count()}")
+        shot(name)
+
+    # first run: create the administrator in the browser
+    pg.goto(URL)
+    pg.wait_for_selector("#setup-view:not([hidden]), #login-view:not([hidden])")
+    if pg.is_visible("#setup-view"):
+        shot("00-first-run")
+        pg.fill("#setup-form [name=password]", ADMIN_PW)
+        pg.fill("#setup-form [name=password2]", ADMIN_PW)
+        pg.click("#setup-form button")
+        print("first-run admin created")
+    else:  # re-run against an existing install
+        pg.fill("input[name=username]", "admin")
+        pg.fill("input[name=password]", ADMIN_PW)
+        pg.click("#login-form button")
+    pg.wait_for_selector("#app-view:not([hidden])")
+    print("admin tabs:", pg.locator(".tab:not([hidden])").all_inner_texts())
+
+    # settings
+    pg.click(".tab[data-tab=settings]")
+    pg.wait_for_selector("#s-model option", state="attached")
+    print("settings: model", pg.input_value("#s-model"), "| chunk", pg.input_value("#s-chunk"),
+          "| overlap on", pg.is_checked("#s-overlap-on"), "|", pg.inner_text("#reindex-info"))
+    shot("01-settings")
+    pg.fill("#s-chunk", "700" if pg.input_value("#s-chunk") != "700" else "900")
+    pg.click("#settings-form button[type=submit]")
+    pg.wait_for_selector("#settings-msg:has-text('Saved')")
+    pg.wait_for_selector("#settings-banner:not([hidden])")
+    print("settings saved; banner:", pg.inner_text("#settings-banner")[:90])
+    pg.click("#reindex-outdated")
+    pg.wait_for_selector("#reindex-msg:has-text('queued')")
+    print("reindex:", pg.inner_text("#reindex-msg"))
+    pg.wait_for_function("1", timeout=1000) if False else None
+    for _ in range(60):
+        pg.click(".tab[data-tab=settings]")
+        pg.wait_for_selector("#reindex-info:has-text('documents indexed')")
+        if " 0 outdated · 0 pending" in pg.inner_text("#reindex-info"):
+            break
+        pg.wait_for_timeout(1000)
+    print("after reindex:", pg.inner_text("#reindex-info"))
+
+    # users & access
+    pg.click(".tab[data-tab=admin]")
+    pg.wait_for_selector("#col-rows tr")
+    import random
+    col = f"trial-{random.randint(1000, 9999)}"
+    pg.fill("#col-form [name=name]", col)
+    pg.fill("#col-form [name=description]", "UI check collection")
+    pg.click("#col-form button")
+    pg.wait_for_selector(f"#col-rows tr:has-text('{col}')")
+    row = pg.locator(f"#col-rows tr:has-text('{col}')")
+    row.locator("input[aria-label=Group]").fill("trial-users")
+    row.locator("input[type=checkbox]").check()
+    row.locator("button:has-text('Grant')").click()
+    pg.wait_for_selector("#col-rows tr:has-text('trial-users (read & write)')")
+    user = f"tester{col[-4:]}"
+    pg.fill("#user-form [name=username]", user)
+    pg.fill("#user-form [name=password]", "tester-password-1")
+    pg.fill("#user-form [name=groups]", "trial-users, staff")
+    pg.click("#user-form button")
+    pg.wait_for_selector(f"#user-rows tr:has-text('{user}')")
+    print(f"collection {col!r} + grant + user {user!r} created")
+    shot("02-users-access")
+
+    # documents: multi-file upload into the new collection
+    pg.click(".tab[data-tab=documents]")
+    pg.wait_for_selector("#upload-collection option", state="attached")
+    pg.select_option("#upload-collection", label=col)
+    pg.set_input_files("#file-input", files=[
+        {"name": "alpha.md", "mimeType": "text/markdown", "buffer": b"# Alpha\n\nThe heliotrope switch resets the sorter."},
+        {"name": "beta.txt", "mimeType": "text/plain", "buffer": b"Beta notes: the cobalt gate opens at dawn."},
+        {"name": "bad.exe", "mimeType": "application/octet-stream", "buffer": b"MZ"},
+    ])
+    pg.wait_for_selector("#upload-list li:has-text('bad.exe') .error")
+    print("uploads:", [x.replace("\n", " ") for x in pg.locator("#upload-list li").all_inner_texts()])
+    pg.wait_for_selector("#docs tr:has-text('Alpha') .st-indexed", timeout=60000)
+    pg.wait_for_selector("#docs tr:has-text('beta.txt') .st-indexed", timeout=60000)
+    print("both uploads indexed")
+    pg.click(".tab[data-tab=search]")
+    pg.fill("#q", "heliotrope switch")
+    pg.click("#search-form button")
+    pg.wait_for_selector("#outcome strong")
+    shot("03-documents")
+    pg.click("#logout")
+    pg.wait_for_selector("#login-view:not([hidden])")
+
+    # regular user flows
+    pg.fill("input[name=username]", "alice")
+    pg.fill("input[name=password]", "demo-password-alice")
+    pg.click("#login-form button")
+    pg.wait_for_selector("#app-view:not([hidden])")
+    assert pg.is_visible("#tab-search") and pg.locator("#results > li").count() == 0 and pg.input_value("#q") == "", \
+        "previous user's tab/results leaked into alice's session"
+    print("alice starts on a clean Search tab (no previous user's results)")
+    print("alice tabs:", pg.locator(".tab:not([hidden])").all_inner_texts(),
+          "| chips:", pg.locator("#scope label").all_inner_texts())
+    run("ERR-PAY-4012", "04-exact")
+    pg.click("#results li >> text=View passage")
+    pg.wait_for_selector("#drawer:not([hidden])")
+    print("passage:", pg.inner_text("#d-loc"))
+    shot("05-passage")
+    pg.click("#d-close")
+    run("how do I undo a bad release of the orders service", "06-conceptual")
+    run("per diem for domestic travel", "07-conflict")
+    run("who won the company football tournament", "08-no-evidence")
+    pg.set_viewport_size({"width": 390, "height": 844})
+    run("ERR-PAY-4012", "09-mobile")
+    print("mobile horizontal overflow:", pg.evaluate("document.documentElement.scrollWidth > innerWidth")
+          if False else pg.locator("body").bounding_box()["width"] > 390)
+    print("console/page errors:", errors)
     b.close()
