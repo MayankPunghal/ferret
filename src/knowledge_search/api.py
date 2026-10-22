@@ -33,7 +33,11 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         runtime.configure(settings)
-        db.open_pool(db.resolve_url(settings))
+        url = db.resolve_url(settings)
+        applied = db.migrate(url)  # upgrades are applied automatically on start (forward-only)
+        if applied:
+            log.warning("database upgraded: %s", ", ".join(applied))
+        db.open_pool(url)
         state.settings = settings
         state.blobs = BlobStore(settings.data_dir)
         state.stop = threading.Event()
@@ -44,7 +48,14 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
             rt = runtime.load(conn)
         state.embedder = runtime.embedder(rt.embed_model)
         _record_index_meta(rt)
+        log.warning("Loading the embedding model %s (the first start may download it; this can take a minute)…",
+                    rt.embed_model)
         state.embedder.warm()  # load the model before accepting traffic (avoids a slow first query)
+        if rt.rerank_enabled:
+            try:
+                runtime.rerank_scores(rt.rerank_model, "warm up", ["warm up"])
+            except runtime.RerankError as e:
+                log.warning("reranker not available yet: %s", e)
         if start_workers:
             for i in range(settings.inprocess_workers):
                 w = Worker(state.blobs, settings.max_pdf_pages, settings.max_extracted_chars)
@@ -233,8 +244,12 @@ def _routes(app: FastAPI) -> None:
             "SELECT d.id, d.title, d.source_key, d.source_uri, d.status, d.error_code, d.error_detail, d.updated_at, "
             "c.name AS collection, d.collection_id, v.version_no AS latest_version, iv.version_no AS indexed_version, "
             "v.media_type, v.size_bytes, (SELECT count(*) FROM chunks ch WHERE ch.document_id = d.id) AS chunks, "
-            "(d.status = 'indexed' AND d.index_signature IS DISTINCT FROM %s) AS needs_reindex "
+            "(d.status = 'indexed' AND d.index_signature IS DISTINCT FROM %s) AS needs_reindex, "
+            "j.stage, j.progress_done, j.progress_total, "
+            "(SELECT count(*) FROM jobs q WHERE q.status = 'queued' AND q.id < coalesce(j.id, 0)) AS queue_position "
             "FROM documents d JOIN collections c ON c.id = d.collection_id "
+            "LEFT JOIN LATERAL (SELECT id, stage, progress_done, progress_total FROM jobs "
+            "  WHERE document_id = d.id AND status IN ('queued', 'running') ORDER BY id DESC LIMIT 1) j ON true "
             "LEFT JOIN document_versions v ON v.id = d.latest_version_id "
             "LEFT JOIN document_versions iv ON iv.id = d.indexed_version_id "
             "WHERE d.collection_id = ANY(%s) ORDER BY d.updated_at DESC LIMIT 1000",

@@ -8,6 +8,8 @@ content (same SHA-256 as the latest version) is not reprocessed.
 
 import hashlib
 import logging
+
+import numpy as np
 import os
 import threading
 import time
@@ -217,9 +219,20 @@ class Worker:
                 rt = runtime.load(conn)
                 conn.commit()
                 embedder = runtime.embedder(rt.embed_model)
+                if embedder._model is None:
+                    self._progress(conn, job, "loading model (first use downloads it)")
+                    embedder.warm()
+                self._progress(conn, job, "reading file")
                 parsed = parse_document(self.blobs.get(job["sha256"]), job["filename"], self.max_pages, self.max_chars)
                 chunks = chunk_document(parsed, rt.chunk_size, rt.chunk_overlap)
-                vectors = embedder.embed_documents([embedding_text(parsed.title, c) for c in chunks])
+                texts = [embedding_text(parsed.title, c) for c in chunks]
+                step = max(embedder.batch_size * 2, 8)
+                parts = []
+                for i in range(0, len(texts), step):
+                    self._progress(conn, job, "embedding", i, len(texts))
+                    parts.append(embedder.embed_documents(texts[i : i + step]))
+                vectors = np.vstack(parts)
+                self._progress(conn, job, "saving", len(texts), len(texts))
             except ParseError as e:  # deterministic: do not retry
                 self._fail(conn, job, e.code, e.detail, retry=False)
                 return True
@@ -235,6 +248,14 @@ class Worker:
                 return True
             self._commit(conn, job, parsed, chunks, vectors, embedder.spec.version_key, rt.signature())
             return True
+
+    @staticmethod
+    def _progress(conn, job, stage: str, done: int | None = None, total: int | None = None) -> None:
+        conn.execute(
+            "UPDATE jobs SET stage = %s, progress_done = %s, progress_total = %s, locked_at = now() WHERE id = %s",
+            (stage, done, total, job["id"]),
+        )
+        conn.commit()
 
     def _commit(self, conn, job, parsed, chunks, vectors, model: str, signature: str) -> None:
         with conn.transaction():

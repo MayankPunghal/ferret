@@ -110,6 +110,7 @@ def migrate(database_url: str) -> list[str]:
 
     applied: list[str] = []
     with psycopg.connect(database_url, autocommit=True) as conn:
+        conn.execute("SELECT pg_advisory_lock(727274)")  # serialize concurrent starters
         conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
         conn.execute(
             "CREATE TABLE IF NOT EXISTS schema_migrations "

@@ -139,3 +139,18 @@ def test_backend_failure_is_explicit(client, corpus, monkeypatch):
     r = client.post("/api/search", headers=token(client, "alice"), json={"query": "ERR-PAY-4012"})
     assert r.status_code == 503
     assert r.json()["outcome"] == "retrieval_failure" and "exploded" not in r.text
+
+
+def test_indexing_job_reports_progress(client, drain):
+    sam = token(client, "sam")
+    body = ("# Progress\n\n" + "\n\n".join(f"Paragraph {i} about the vermilion pipeline stage {i}." * 6
+                                         for i in range(30))).encode()
+    doc = upload(client, sam, "progress.md", body).json()["document_id"]
+    listed = next(d for d in client.get("/api/documents", headers=sam).json() if d["id"] == doc)
+    assert listed["status"] == "pending" and listed["queue_position"] == 0
+    drain()
+    with db.pool().connection() as c:
+        job = c.execute("SELECT stage, progress_done, progress_total FROM jobs WHERE document_id = %s", (doc,)).fetchone()
+        n = c.execute("SELECT count(*) AS n FROM chunks WHERE document_id = %s", (doc,)).fetchone()["n"]
+    assert job["stage"] == "saving" and job["progress_done"] == job["progress_total"] == n > 1
+    client.delete(f"/api/documents/{doc}", headers=sam)

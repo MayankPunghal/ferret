@@ -93,8 +93,9 @@ def main(argv: list[str] | None = None) -> None:
 
         from .api import create_app
 
-        if a.open:
-            _open_browser_when_ready(f"http://{'127.0.0.1' if a.host in ('0.0.0.0', '::') else a.host}:{a.port}")
+        print("Starting Knowledge Search - loading the AI model (the first start can take a minute).\n"
+              "Keep this window open while you use the app; close it to stop.", flush=True)
+        _announce_when_ready(f"http://{'127.0.0.1' if a.host in ('0.0.0.0', '::') else a.host}:{a.port}", a.open)
         if a.workers > 1:
             uvicorn.run("knowledge_search.api:create_app", factory=True, host=a.host, port=a.port,
                         proxy_headers=True, workers=a.workers, access_log=False)
@@ -118,16 +119,19 @@ def main(argv: list[str] | None = None) -> None:
         print("model cache:", s.model_cache)
 
 
-def _open_browser_when_ready(url: str) -> None:
+def _announce_when_ready(url: str, open_browser: bool) -> None:
+    """Print a clear 'ready' line (and open the browser) once the server answers health checks."""
     import time
     import urllib.request
     import webbrowser
 
     def run():
-        for _ in range(300):
+        for _ in range(600):
             try:
                 urllib.request.urlopen(url + "/healthz", timeout=1)
-                webbrowser.open(url)
+                print(f"\nReady: {url}" + (" (opening your browser)" if open_browser else ""), flush=True)
+                if open_browser:
+                    webbrowser.open(url)
                 return
             except OSError:
                 time.sleep(1)
