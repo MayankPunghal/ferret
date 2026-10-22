@@ -11,6 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
+QWEN3_QUERY_PREFIX = "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:"
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,7 @@ class ModelSpec:
     query_prefix: str = ""
     doc_prefix: str = ""
     license: str = ""
+    size_mb: int = 0
 
     @property
     def version_key(self) -> str:
@@ -27,14 +29,20 @@ class ModelSpec:
         return f"{self.name}|q={bool(self.query_prefix)}|d={bool(self.doc_prefix)}|l2"
 
 
+# Query/document prefixes follow each model card. Sizes are the ONNX files fastembed downloads.
 MODELS = {
-    "BAAI/bge-small-en-v1.5": ModelSpec("BAAI/bge-small-en-v1.5", 384, BGE_QUERY_PREFIX, "", "MIT"),
-    "snowflake/snowflake-arctic-embed-s": ModelSpec(
-        "snowflake/snowflake-arctic-embed-s", 384, BGE_QUERY_PREFIX, "", "Apache-2.0"
-    ),
-    "ibm-granite/granite-embedding-small-english-r2": ModelSpec(
-        "ibm-granite/granite-embedding-small-english-r2", 384, "", "", "Apache-2.0"
-    ),
+    m.name: m
+    for m in [
+        ModelSpec("BAAI/bge-small-en-v1.5", 384, BGE_QUERY_PREFIX, "", "MIT", 67),
+        ModelSpec("BAAI/bge-base-en-v1.5", 768, BGE_QUERY_PREFIX, "", "MIT", 210),
+        ModelSpec("BAAI/bge-large-en-v1.5", 1024, BGE_QUERY_PREFIX, "", "MIT", 1200),
+        ModelSpec("snowflake/snowflake-arctic-embed-s", 384, BGE_QUERY_PREFIX, "", "Apache-2.0", 130),
+        ModelSpec("snowflake/snowflake-arctic-embed-m", 768, BGE_QUERY_PREFIX, "", "Apache-2.0", 430),
+        ModelSpec("mixedbread-ai/mxbai-embed-large-v1", 1024, BGE_QUERY_PREFIX, "", "Apache-2.0", 640),
+        ModelSpec("nomic-ai/nomic-embed-text-v1.5", 768, "search_query: ", "search_document: ", "Apache-2.0", 520),
+        ModelSpec("ibm-granite/granite-embedding-small-english-r2", 384, "", "", "Apache-2.0", 180),
+        ModelSpec("Qwen/Qwen3-Embedding-0.6B-Q", 1024, QWEN3_QUERY_PREFIX, "", "Apache-2.0", 1120),
+    ]
 }
 
 

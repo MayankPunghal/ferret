@@ -14,12 +14,24 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="KS_", env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql://ks:devpass@127.0.0.1:55432/ks"
+    # Empty = embedded PostgreSQL under data_dir/pg (laptop). Set for an external server, e.g.
+    # postgresql://ks:secret@db:5432/ks (docker-compose server profile).
+    database_url: str = ""
     data_dir: Path = Path("./data")
     model_cache: Path = Path("./data/models")
     embed_model: str = "BAAI/bge-small-en-v1.5"
     embed_threads: int = 0  # 0 = onnxruntime default
     offline: bool = False
+
+    # Defaults for admin-editable runtime settings (Settings page / app_settings table override these).
+    chunk_size: int = 900
+    chunk_overlap: int = 150
+    rerank_enabled: bool = False
+    rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
+    rerank_candidates: int = 30
+    gate_mode: str = "similarity"  # similarity | rerank | rerank_and_similarity (needs reranker)
+    gate_lexical: str = "coverage"  # coverage | idf
+    gate_rerank_min: float = 0.0
 
     max_upload_mb: int = 25
     max_pdf_pages: int = 2000

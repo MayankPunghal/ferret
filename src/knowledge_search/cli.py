@@ -17,11 +17,12 @@ def _conn():
     import psycopg
     from psycopg.rows import dict_row
 
-    return psycopg.connect(get_settings().database_url, row_factory=dict_row)
+    return psycopg.connect(db.resolve_url(get_settings()), row_factory=dict_row)
 
 
 def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    logging.getLogger("pixeltable_pgserver").setLevel(logging.WARNING)  # embedded DB start/stop chatter
     ap = argparse.ArgumentParser(prog="knowledge-search")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate", help="apply database migrations")
@@ -50,13 +51,17 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8000)
     p.add_argument("--workers", type=int, default=1, help="HTTP worker processes (each loads the model)")
+    p.add_argument("--open", action="store_true", help="open the web UI in the default browser once ready")
+    sub.add_parser("demo", help="load the FICTIONAL sample corpus with demo users alice/bob/hannah (idempotent)")
     sub.add_parser("worker", help="run ingestion workers as a separate process")
-    sub.add_parser("download-model", help="fetch the configured embedding model into KS_MODEL_CACHE")
+    p = sub.add_parser("download-model", help="fetch the configured embedding model and reranker into KS_MODEL_CACHE")
+    p.add_argument("--model", help="a specific embedding model (default: KS_EMBED_MODEL)")
+    p.add_argument("--reranker", help="a specific reranker (default: KS_RERANK_MODEL)")
     a = ap.parse_args(argv)
     s = get_settings()
 
     if a.cmd == "migrate":
-        print("applied:", db.migrate(s.database_url) or "nothing (up to date)")
+        print("applied:", db.migrate(db.resolve_url(s)) or "nothing (up to date)")
     elif a.cmd == "create-user":
         pw = a.password
         if pw == "-":
@@ -87,18 +92,70 @@ def main(argv: list[str] | None = None) -> None:
 
         from .api import create_app
 
+        if a.open:
+            _open_browser_when_ready(f"http://{'127.0.0.1' if a.host in ('0.0.0.0', '::') else a.host}:{a.port}")
         if a.workers > 1:
             uvicorn.run("knowledge_search.api:create_app", factory=True, host=a.host, port=a.port,
                         proxy_headers=True, workers=a.workers)
         else:
             uvicorn.run(create_app(), host=a.host, port=a.port, proxy_headers=True)
+    elif a.cmd == "demo":
+        _demo(s)
     elif a.cmd == "worker":
         _worker(s)
     elif a.cmd == "download-model":
-        from .embedder import Embedder
+        from . import runtime
 
-        Embedder(s.embed_model, str(s.model_cache)).warm()
-        print("model ready in", s.model_cache)
+        models = [a.model] if a.model else [s.embed_model]
+        rerankers = [a.reranker] if a.reranker else ([s.rerank_model] if not a.model else [])
+        for m in models:
+            runtime.embedder(m).warm()
+            print("embedding model ready:", m)
+        for r in rerankers:
+            runtime.rerank_scores(r, "warm up", ["warm up"])
+            print("reranker ready:", r)
+        print("model cache:", s.model_cache)
+
+
+def _open_browser_when_ready(url: str) -> None:
+    import time
+    import urllib.request
+    import webbrowser
+
+    def run():
+        for _ in range(300):
+            try:
+                urllib.request.urlopen(url + "/healthz", timeout=1)
+                webbrowser.open(url)
+                return
+            except OSError:
+                time.sleep(1)
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+DEMO_USERS = {"alice": ["staff", "eng-writers"], "bob": ["staff"], "hannah": ["hr"]}
+
+
+def _demo(s) -> None:
+    """Fictional sample data: three collections with different access, three demo users."""
+    corpus = Path(__file__).resolve().parents[2] / "fixtures" / "corpus"
+    if not corpus.is_dir():
+        sys.exit(f"sample corpus not found at {corpus} (run from a source checkout)")
+    with _conn() as c:
+        for col, groups in {"engineering": ["staff", "hr"], "finance": ["staff", "hr"], "hr": ["hr"]}.items():
+            for g in groups:
+                auth.grant(c, col, g)
+        auth.grant(c, "engineering", "eng-writers", can_write=True)
+        for u, groups in DEMO_USERS.items():
+            if not c.execute("SELECT 1 FROM users WHERE username = %s", (u,)).fetchone():
+                auth.create_user(c, u, f"demo-password-{u}")
+            for g in groups:
+                auth.add_user_to_group(c, u, g)
+    for col in ("engineering", "finance", "hr"):
+        _ingest(argparse.Namespace(collection=col, path=corpus / col, wait=True), s)
+    print("\nDemo users (password = demo-password-<name>): alice (engineering+finance, can upload), "
+          "bob (read-only), hannah (also sees the confidential 'hr' collection)")
 
 
 def _ingest(a, s) -> None:
@@ -122,9 +179,8 @@ def _ingest(a, s) -> None:
         from .embedder import Embedder
         from .ingest import Worker
 
-        db.open_pool(s.database_url, max_size=2)
-        n = Worker(Embedder(s.embed_model, str(s.model_cache), s.embed_threads, s.offline), blobs,
-                   s.max_pdf_pages, s.max_extracted_chars).drain()
+        db.open_pool(db.resolve_url(s), max_size=2)
+        n = Worker(blobs, s.max_pdf_pages, s.max_extracted_chars).drain()
         db.close_pool()
         print(f"processed {n} job(s)")
 
@@ -133,12 +189,11 @@ def _worker(s) -> None:
     from .embedder import Embedder
     from .ingest import BlobStore, Worker
 
-    db.open_pool(s.database_url, max_size=2)
+    db.open_pool(db.resolve_url(s), max_size=2)
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     signal.signal(signal.SIGINT, lambda *_: stop.set())
-    w = Worker(Embedder(s.embed_model, str(s.model_cache), s.embed_threads, s.offline), BlobStore(s.data_dir),
-               s.max_pdf_pages, s.max_extracted_chars)
+    w = Worker(BlobStore(s.data_dir), s.max_pdf_pages, s.max_extracted_chars)
     w.loop(stop, s.worker_poll_seconds)
     db.close_pool()
     sys.exit(0)

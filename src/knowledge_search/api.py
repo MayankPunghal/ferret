@@ -5,36 +5,24 @@ import re
 import threading
 from contextlib import asynccontextmanager
 from importlib import resources
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import auth, db
+from . import admin, auth, db, runtime
 from .auth import Principal
 from .config import Settings, get_settings
+from .deps import COOKIE, Conn, User, state
 from .embedder import Embedder
 from .ingest import BlobStore, Worker, delete_document, retry_document, submit
 from .parsing import CHUNKER_VERSION, PARSER_VERSION, ParseError
-from .search import RETRIEVAL_FAILURE, GateConfig, MESSAGES, coverage_for, search
+from .search import MESSAGES, RETRIEVAL_FAILURE, coverage_for, search
 
 log = logging.getLogger(__name__)
-COOKIE = "ks_session"
-CSRF_HEADER = "x-ks-csrf"
-
-
-class AppState:
-    settings: Settings
-    embedder: Embedder
-    blobs: BlobStore
-    stop: threading.Event
-    threads: list[threading.Thread]
-
-
-state = AppState()
+LOOPBACK = {"127.0.0.1", "::1", "localhost", "testclient"}
 
 
 def create_app(settings: Settings | None = None, embedder: Embedder | None = None, start_workers: bool = True):
@@ -42,20 +30,22 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        db.open_pool(settings.database_url)
+        runtime.configure(settings)
+        db.open_pool(db.resolve_url(settings))
         state.settings = settings
-        state.embedder = embedder or Embedder(
-            settings.embed_model, str(settings.model_cache), settings.embed_threads, settings.offline
-        )
         state.blobs = BlobStore(settings.data_dir)
         state.stop = threading.Event()
         state.threads = []
-        _record_index_meta()
-        if embedder is None:
-            state.embedder.warm()  # load the model before accepting traffic (avoids a slow first query)
+        if embedder is not None:
+            runtime.register_embedder(embedder)
+        with db.pool().connection() as conn:
+            rt = runtime.load(conn)
+        state.embedder = runtime.embedder(rt.embed_model)
+        _record_index_meta(rt)
+        state.embedder.warm()  # load the model before accepting traffic (avoids a slow first query)
         if start_workers:
             for i in range(settings.inprocess_workers):
-                w = Worker(state.embedder, state.blobs, settings.max_pdf_pages, settings.max_extracted_chars)
+                w = Worker(state.blobs, settings.max_pdf_pages, settings.max_extracted_chars)
                 t = threading.Thread(
                     target=w.loop, args=(state.stop, settings.worker_poll_seconds), name=f"ingest-{i}", daemon=True
                 )
@@ -67,7 +57,7 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
             t.join(timeout=10)
         db.close_pool()
 
-    app = FastAPI(title="Knowledge Search", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Knowledge Search", version="0.2.0", lifespan=lifespan)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
@@ -83,16 +73,17 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
         return resp
 
     _routes(app)
+    app.include_router(admin.router)
     static = resources.files("knowledge_search") / "static"
     app.mount("/", StaticFiles(directory=str(static), html=True), name="ui")
     return app
 
 
-def _record_index_meta() -> None:
+def _record_index_meta(rt: "runtime.Runtime") -> None:
     with db.pool().connection() as conn:
         for k, v in {
-            "embedding_model": state.embedder.spec.name,
-            "vector_space": state.embedder.spec.version_key,
+            "embedding_model": rt.embed_model,
+            "index_signature": rt.signature(),
             "parser_version": PARSER_VERSION,
             "chunker_version": CHUNKER_VERSION,
         }.items():
@@ -103,45 +94,14 @@ def _record_index_meta() -> None:
         conn.commit()
 
 
-def get_conn():
-    with db.pool().connection() as conn:
-        yield conn
-
-
-Conn = Annotated[object, Depends(get_conn)]
-
-
-def current_principal(request: Request, conn: Conn) -> Principal:
-    token = None
-    via_cookie = False
-    authz = request.headers.get("authorization", "")
-    if authz.lower().startswith("bearer "):
-        token = authz[7:].strip()
-    elif COOKIE in request.cookies:
-        token, via_cookie = request.cookies[COOKIE], True
-    if not token:
-        raise HTTPException(401, "authentication required")
-    # Cookie-authenticated state changes must carry a custom header (blocked cross-site by CORS).
-    if via_cookie and request.method not in ("GET", "HEAD") and request.headers.get(CSRF_HEADER) != "1":
-        raise HTTPException(403, "missing CSRF header")
-    p = auth.load_principal(conn, token)
-    if not p:
-        raise HTTPException(401, "invalid or expired session")
-    return p
-
-
-User = Annotated[Principal, Depends(current_principal)]
-
-
-def require_admin(p: User) -> Principal:
-    if not p.is_admin:
-        raise HTTPException(404, "not found")
-    return p
-
-
 class LoginBody(BaseModel):
     username: str = Field(max_length=64)
     password: str = Field(max_length=256)
+
+
+class SetupBody(BaseModel):
+    username: str = Field(pattern=r"^[a-z0-9_.-]{2,64}$")
+    password: str = Field(min_length=10, max_length=256)
 
 
 class SearchBody(BaseModel):
@@ -163,6 +123,15 @@ def _doc_for(conn, p: Principal, document_id: UUID, write: bool = False):
     return row
 
 
+def _start_session(conn, response: Response, uid: int) -> dict:
+    token = auth.create_session(conn, uid, state.settings.session_hours)
+    response.set_cookie(
+        COOKIE, token, httponly=True, samesite="strict", secure=state.settings.cookie_secure,
+        max_age=state.settings.session_hours * 3600, path="/",
+    )
+    return {"token": token}
+
+
 def _routes(app: FastAPI) -> None:
     @app.get("/healthz", include_in_schema=False)
     def healthz():
@@ -171,7 +140,28 @@ def _routes(app: FastAPI) -> None:
     @app.get("/readyz")
     def readyz(conn: Conn):
         conn.execute("SELECT 1")
-        return {"status": "ready", "embedding_model": state.embedder.spec.name, "model_loaded": state.embedder._model is not None}
+        return {"status": "ready", "embedding_model": state.embedder.spec.name,
+                "model_loaded": state.embedder._model is not None}
+
+    @app.get("/api/setup")
+    def setup_status(conn: Conn):
+        return {"needs_admin": not conn.execute("SELECT 1 FROM users WHERE is_admin AND NOT disabled").fetchone()}
+
+    @app.post("/api/setup/admin")
+    def setup_admin(body: SetupBody, request: Request, response: Response, conn: Conn):
+        """First-run: create the administrator. Only while no admin exists, and only from this machine."""
+        if (request.client.host if request.client else "") not in LOOPBACK:
+            raise HTTPException(403, "first-run setup is only allowed from the machine running the server")
+        conn.execute("LOCK TABLE users IN EXCLUSIVE MODE")
+        if conn.execute("SELECT 1 FROM users WHERE is_admin AND NOT disabled").fetchone():
+            raise HTTPException(409, "setup already completed")
+        if conn.execute("SELECT 1 FROM users WHERE username = %s", (body.username,)).fetchone():
+            raise HTTPException(409, "that username is taken; choose another")
+        uid = auth.create_user(conn, body.username, body.password, is_admin=True)
+        auth.audit(conn, uid, "first_run_admin_created", body.username)
+        out = _start_session(conn, response, uid)
+        conn.commit()
+        return out
 
     @app.post("/api/auth/login")
     def login(body: LoginBody, response: Response, conn: Conn):
@@ -180,14 +170,10 @@ def _routes(app: FastAPI) -> None:
             auth.audit(conn, None, "login_failed", None)
             conn.commit()
             raise HTTPException(401, "invalid username or password")
-        token = auth.create_session(conn, uid, state.settings.session_hours)
+        out = _start_session(conn, response, uid)
         auth.audit(conn, uid, "login", None)
         conn.commit()
-        response.set_cookie(
-            COOKIE, token, httponly=True, samesite="strict", secure=state.settings.cookie_secure,
-            max_age=state.settings.session_hours * 3600, path="/",
-        )
-        return {"token": token}
+        return out
 
     @app.post("/api/auth/logout")
     def logout(request: Request, response: Response, conn: Conn, p: User):
@@ -210,10 +196,9 @@ def _routes(app: FastAPI) -> None:
 
     @app.post("/api/search")
     def do_search(body: SearchBody, p: User, conn: Conn):
-        s = state.settings
-        gate = GateConfig(s.gate_dense_high, s.gate_dense_min, s.gate_lex_coverage)
         try:
-            resp = search(conn, state.embedder, p, body.query, gate, body.collection_ids, body.limit)
+            rt = runtime.load(conn)
+            resp = search(conn, p, body.query, rt, body.collection_ids, body.limit)
         except Exception:  # noqa: BLE001 - explicit failure state, no internals leaked
             log.exception("search failed")
             conn.rollback()
@@ -229,15 +214,17 @@ def _routes(app: FastAPI) -> None:
     @app.get("/api/documents")
     def list_documents(p: User, conn: Conn, collection_id: int | None = None):
         scope = [c for c in p.readable if collection_id is None or c == collection_id]
+        sig = runtime.load(conn).signature()
         rows = conn.execute(
             "SELECT d.id, d.title, d.source_key, d.source_uri, d.status, d.error_code, d.error_detail, d.updated_at, "
             "c.name AS collection, d.collection_id, v.version_no AS latest_version, iv.version_no AS indexed_version, "
-            "v.media_type, v.size_bytes, (SELECT count(*) FROM chunks ch WHERE ch.document_id = d.id) AS chunks "
+            "v.media_type, v.size_bytes, (SELECT count(*) FROM chunks ch WHERE ch.document_id = d.id) AS chunks, "
+            "(d.status = 'indexed' AND d.index_signature IS DISTINCT FROM %s) AS needs_reindex "
             "FROM documents d JOIN collections c ON c.id = d.collection_id "
             "LEFT JOIN document_versions v ON v.id = d.latest_version_id "
             "LEFT JOIN document_versions iv ON iv.id = d.indexed_version_id "
-            "WHERE d.collection_id = ANY(%s) ORDER BY d.updated_at DESC LIMIT 500",
-            (scope,),
+            "WHERE d.collection_id = ANY(%s) ORDER BY d.updated_at DESC LIMIT 1000",
+            (sig, scope),
         ).fetchall()
         return [dict(r, id=str(r["id"]), can_write=r["collection_id"] in p.writable) for r in rows]
 
@@ -341,7 +328,8 @@ def _routes(app: FastAPI) -> None:
     @app.get("/api/status")
     def status(p: User, conn: Conn):
         """Index health for the caller's own scope (no information about other collections)."""
-        cov = coverage_for(conn, list(p.readable), state.embedder.spec.version_key)
+        rt = runtime.load(conn)
+        cov = coverage_for(conn, list(p.readable), rt.signature())
         per = conn.execute(
             "SELECT c.id, c.name, count(d.id) AS documents, "
             "count(d.id) FILTER (WHERE d.status = 'indexed') AS indexed, "
@@ -351,20 +339,8 @@ def _routes(app: FastAPI) -> None:
             "WHERE c.id = ANY(%s) GROUP BY c.id ORDER BY c.name",
             (list(p.readable),),
         ).fetchall()
-        meta = {r["key"]: r["value"] for r in conn.execute("SELECT key, value FROM app_meta")}
-        return {"coverage": cov, "collections": per, "index": meta}
-
-    @app.get("/api/admin/status")
-    def admin_status(p: Annotated[Principal, Depends(require_admin)], conn: Conn):
-        jobs = conn.execute("SELECT status, count(*) AS n FROM jobs GROUP BY status").fetchall()
-        oldest = conn.execute(
-            "SELECT extract(epoch FROM now() - min(created_at)) AS s FROM jobs WHERE status = 'queued'"
-        ).fetchone()["s"]
-        models = conn.execute("SELECT embedding_model, count(*) AS chunks FROM chunks GROUP BY 1").fetchall()
-        return {
-            "jobs": {r["status"]: r["n"] for r in jobs},
-            "oldest_queued_job_seconds": oldest,
-            "chunks_by_vector_space": models,
-            "active_vector_space": state.embedder.spec.version_key,
-            "workers_in_process": len(state.threads),
-        }
+        index = {"embedding_model": rt.embed_model, "chunk_size": rt.chunk_size, "chunk_overlap": rt.chunk_overlap,
+                 "reranker": rt.rerank_model if rt.rerank_enabled else "off",
+                 "evidence_gate": rt.gate_mode if rt.rerank_enabled else "similarity",
+                 "parser_version": PARSER_VERSION}
+        return {"coverage": cov, "collections": per, "index": index}

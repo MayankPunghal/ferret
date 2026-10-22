@@ -1,17 +1,20 @@
-"""Hybrid retrieval (lexical + dense + exact identifiers), RRF fusion and the evidence gate.
+"""Hybrid retrieval (lexical + dense + exact identifiers), RRF fusion, optional cross-encoder reranking,
+and the evidence gate.
 
-All branches are filtered to the principal's readable collections *inside* SQL, so restricted
-documents never enter candidate sets, ranks, counts, snippets or coverage computations.
+All branches are filtered to the principal's readable collections *inside* SQL, so restricted documents
+never enter candidate sets, ranks, counts, snippets, term statistics or coverage computations.
 
-Scores are ranking signals, not probabilities. The response exposes an ``outcome`` with stable
-reason codes instead of a confidence number.
+Scores are ranking signals, not probabilities. The response exposes an ``outcome`` with stable reason codes
+instead of a confidence number.
 """
 
+import math
 import time
 from dataclasses import asdict, dataclass, field
 
 from psycopg import Connection
 
+from . import runtime
 from .auth import Principal
 from .embedder import Embedder
 from .parsing import extract_idents
@@ -46,9 +49,22 @@ MESSAGES = {
 
 @dataclass
 class GateConfig:
-    dense_high: float
-    dense_min: float
-    lex_coverage: float
+    """Evidence gate. ``mode``: 'similarity' (cosine + lexical agreement), 'rerank' (cross-encoder score),
+    or 'rerank_and_similarity' (both must agree). ``lexical``: 'coverage' (share of query terms present) or
+    'idf' (share weighted by term rarity, so distinctive terms count more)."""
+
+    dense_high: float = 0.88
+    dense_min: float = 0.76
+    lex_coverage: float = 0.34
+    rerank_min: float = 0.0
+    mode: str = "similarity"
+    lexical: str = "coverage"
+
+    @classmethod
+    def from_runtime(cls, rt: "runtime.Runtime") -> "GateConfig":
+        mode = rt.gate_mode if rt.rerank_enabled else "similarity"
+        return cls(rt.gate_dense_high, rt.gate_dense_min, rt.gate_lex_coverage, rt.gate_rerank_min, mode,
+                   rt.gate_lexical)
 
 
 @dataclass
@@ -61,6 +77,7 @@ class Result:
     page: int | None
     anchor: str | None
     snippet: str
+    text: str
     rank: int
     supported: bool
     match_basis: list[str]
@@ -70,6 +87,8 @@ class Result:
     metadata: dict
     media_type: str
     source_uri: str | None
+    source_url: str
+    passage_url: str
 
 
 @dataclass
@@ -92,54 +111,94 @@ def _lexemes(conn: Connection, query: str) -> list[str]:
     return list(row["a"] or [])
 
 
+def _quote(lx: str) -> str:
+    return "'" + lx.replace("'", "''").replace("\\", "") + "'"
+
+
 def _or_tsquery(lexemes: list[str]) -> str:
-    return " | ".join("'" + lx.replace("'", "''").replace("\\", "") + "'" for lx in lexemes)
+    return " | ".join(_quote(lx) for lx in lexemes)
 
 
-def coverage_for(conn: Connection, scope: list[int], model_key: str) -> dict:
+def _idf(conn: Connection, scope: list[int], lexemes: list[str]) -> dict[str, float]:
+    """BM25-style IDF of each query lexeme, computed only over chunks the caller may read."""
+    if not lexemes:
+        return {}
+    row = conn.execute(
+        "SELECT count(*) AS n, " + ", ".join(
+            f"count(*) FILTER (WHERE tsv @@ to_tsquery('english', %s)) AS d{i}" for i in range(len(lexemes))
+        ) + " FROM chunks WHERE collection_id = ANY(%s)",
+        [_quote(lx) for lx in lexemes] + [scope],
+    ).fetchone()
+    n = row["n"]
+    return {lx: math.log(1 + (n - row[f"d{i}"] + 0.5) / (row[f"d{i}"] + 0.5)) for i, lx in enumerate(lexemes)}
+
+
+def coverage_for(conn: Connection, scope: list[int], signature: str) -> dict:
     row = conn.execute(
         "SELECT count(*) AS documents, "
-        "count(*) FILTER (WHERE status = 'indexed' AND indexed_version_id = latest_version_id) AS indexed, "
+        "count(*) FILTER (WHERE status = 'indexed' AND indexed_version_id = latest_version_id "
+        "                 AND index_signature = %s) AS indexed, "
         "count(*) FILTER (WHERE status IN ('pending', 'processing')) AS pending, "
         "count(*) FILTER (WHERE status = 'failed') AS failed, "
-        "count(*) FILTER (WHERE indexed_version_id IS DISTINCT FROM latest_version_id "
-        "                 AND indexed_version_id IS NOT NULL) AS outdated "
+        "count(*) FILTER (WHERE status = 'indexed' AND (indexed_version_id IS DISTINCT FROM latest_version_id "
+        "                 OR index_signature IS DISTINCT FROM %s)) AS outdated "
         "FROM documents WHERE collection_id = ANY(%s)",
-        (scope,),
+        (signature, signature, scope),
     ).fetchone()
-    mismatched = conn.execute(
-        "SELECT count(DISTINCT document_id) AS n FROM chunks WHERE collection_id = ANY(%s) AND embedding_model <> %s",
-        (scope, model_key),
-    ).fetchone()["n"]
     cov = dict(row)
-    cov["wrong_embedding_model"] = mismatched
-    cov["complete"] = cov["documents"] == cov["indexed"] and mismatched == 0
+    cov["complete"] = cov["documents"] == cov["indexed"]
     return cov
+
+
+def gate_basis(g: GateConfig, s: dict, query_has_idents: bool) -> list[str]:
+    """Evidence gate for one candidate. Empty list = not adequate evidence.
+
+    A query containing identifiers is only supported by a passage containing one of them. Otherwise the
+    configured mode decides; all thresholds are tuned on labelled validation data (eval/)."""
+    if s["identifier_matches"]:
+        return ["exact_identifier"]
+    if query_has_idents:
+        return []
+    sim, rr = s["cosine_similarity"], s.get("rerank_score")
+    lex = s["idf_coverage"] if g.lexical == "idf" else s["query_term_coverage"]
+    sim_strong = sim is not None and sim >= g.dense_high
+    sim_agree = sim is not None and sim >= g.dense_min and lex >= g.lex_coverage
+    if g.mode == "similarity":
+        return ["strong_semantic"] if sim_strong else ["semantic_and_lexical_agreement"] if sim_agree else []
+    rr_ok = rr is not None and rr >= g.rerank_min
+    if g.mode == "rerank":
+        return ["reranker_judged_relevant"] if rr_ok else []
+    # rerank_and_similarity: cross-encoder must agree with at least moderate similarity
+    return ["reranker_and_similarity_agree"] if rr_ok and sim is not None and sim >= g.dense_min else []
 
 
 def search(
     conn: Connection,
-    embedder: Embedder,
     principal: Principal,
     query: str,
-    gate: GateConfig,
+    rt: "runtime.Runtime",
     collection_ids: list[int] | None = None,
     limit: int = 10,
     branches: tuple[str, ...] = ("lexical", "dense", "exact"),
+    gate: GateConfig | None = None,
+    embedder: Embedder | None = None,
 ) -> SearchResponse:
     t0 = time.perf_counter()
     timings: dict[str, float] = {}
     reasons: list[str] = []
+    gate = gate or GateConfig.from_runtime(rt)
     query = " ".join(query.split())[:1000]
     scope = sorted(principal.readable if not collection_ids else principal.readable & set(collection_ids))
     if collection_ids:
         reasons.append("scope_filtered_by_user")
+    embedder = embedder or runtime.embedder(rt.embed_model)
     model_key = embedder.spec.version_key
-    index_info = {"embedding_model": embedder.spec.name, "vector_space": model_key}
+    index_info = {"embedding_model": embedder.spec.name, "vector_space": model_key,
+                  "reranker": rt.rerank_model if rt.rerank_enabled else None, "gate": gate.mode}
     if not scope:
         return SearchResponse(query, NO_SEARCHABLE_SCOPE, MESSAGES[NO_SEARCHABLE_SCOPE], reasons, [], {}, index_info)
 
-    cov = coverage_for(conn, scope, model_key)
+    cov = coverage_for(conn, scope, rt.signature())
     ranked: dict[str, list[int]] = {}
     failed: list[str] = []
     qvec = None
@@ -161,6 +220,7 @@ def search(
             timings["dense"] = (time.perf_counter() - t) * 1000
         except Exception:  # noqa: BLE001 - surfaced as an explicit degraded state
             conn.rollback()
+            qvec = None
             failed.append("dense")
             reasons.append("dense_branch_failed")
 
@@ -190,72 +250,74 @@ def search(
     for ids in ranked.values():
         for r, cid in enumerate(ids, start=1):
             fused[cid] = fused.get(cid, 0.0) + 1.0 / (RRF_K + r)
-    order = sorted(fused, key=lambda c: (-fused[c], c))[:limit]
+    pool = sorted(fused, key=lambda c: (-fused[c], c))[: max(limit, rt.rerank_candidates if rt.rerank_enabled else 0)]
 
-    results: list[Result] = []
-    if order:
+    rows_by_id: dict[int, dict] = {}
+    if pool:
         rows = conn.execute(
-            "SELECT c.id, c.document_id, c.doc_title, c.heading_path, c.page, c.anchor, c.idents, "
+            "SELECT c.id, c.document_id, c.doc_title, c.heading_path, c.page, c.anchor, c.idents, c.text, "
             "col.name AS collection, d.metadata, d.source_uri, v.version_no, v.media_type, "
             "(d.indexed_version_id IS DISTINCT FROM d.latest_version_id) AS outdated, "
-            "CASE WHEN %(qv)s::vector IS NULL THEN NULL ELSE 1 - (c.embedding <=> %(qv)s::vector) END AS sim, "
-            "cardinality(ARRAY(SELECT unnest(tsvector_to_array(c.tsv)) INTERSECT SELECT unnest(%(lx)s::text[]))) "
-            "  AS lex_hits, "
+            "CASE WHEN %(qv)s::vector IS NULL OR c.embedding_model <> %(mk)s THEN NULL "
+            "     ELSE 1 - (c.embedding <=> %(qv)s::vector) END AS sim, "
+            "ARRAY(SELECT unnest(tsvector_to_array(c.tsv)) INTERSECT SELECT unnest(%(lx)s::text[])) AS lex_hit, "
             "ts_headline('english', c.text, to_tsquery('english', %(tq)s), "
             "  'StartSel=\x02, StopSel=\x03, MaxFragments=2, MaxWords=40, MinWords=15, FragmentDelimiter=\" … \"') "
             "  AS snippet "
             "FROM chunks c JOIN documents d ON d.id = c.document_id "
             "JOIN document_versions v ON v.id = c.version_id JOIN collections col ON col.id = c.collection_id "
             "WHERE c.id = ANY(%(ids)s) AND c.collection_id = ANY(%(scope)s)",
-            {
-                "qv": qvec,
-                "lx": lexemes,
-                "tq": _or_tsquery(lexemes) if lexemes else "''",
-                "ids": order,
-                "scope": scope,
-            },
+            {"qv": qvec, "lx": lexemes, "tq": _or_tsquery(lexemes) if lexemes else "''", "ids": pool,
+             "scope": scope, "mk": model_key},
         ).fetchall()
-        by_id = {r["id"]: r for r in rows}
-        q_ident_set = set(q_idents)
-        for rank, cid in enumerate(order, start=1):
-            r = by_id.get(cid)
-            if r is None:
-                continue
-            sim = float(r["sim"]) if r["sim"] is not None else None
-            lex_cov = (r["lex_hits"] / len(lexemes)) if lexemes else 0.0
-            ident_hits = sorted(q_ident_set & set(r["idents"]))
-            basis = gate_basis(gate, sim, lex_cov, ident_hits, bool(q_idents))
-            branches_hit = [b for b, ids in ranked.items() if cid in ids]
-            results.append(
-                Result(
-                    chunk_id=cid,
-                    document_id=str(r["document_id"]),
-                    collection=r["collection"],
-                    title=r["doc_title"],
-                    heading_path=r["heading_path"],
-                    page=r["page"],
-                    anchor=r["anchor"],
-                    snippet=r["snippet"],
-                    rank=rank,
-                    supported=bool(basis),
-                    match_basis=basis,
-                    signals={
-                        "cosine_similarity": round(sim, 4) if sim is not None else None,
-                        "query_term_coverage": round(lex_cov, 3),
-                        "identifier_matches": ident_hits,
-                        "branches": branches_hit,
-                        "rrf_score": round(fused[cid], 5),
-                    },
-                    version_no=r["version_no"],
-                    outdated_version=r["outdated"],
-                    metadata=r["metadata"],
-                    media_type=r["media_type"],
-                    source_uri=r["source_uri"],
-                )
+        rows_by_id = {r["id"]: r for r in rows}
+    pool = [c for c in pool if c in rows_by_id]
+
+    rerank: dict[int, float] = {}
+    if rt.rerank_enabled and pool:
+        t = time.perf_counter()
+        try:
+            texts = [f"{rows_by_id[c]['doc_title']}\n{rows_by_id[c]['heading_path']}\n{rows_by_id[c]['text']}"
+                     for c in pool]
+            rerank = dict(zip(pool, runtime.rerank_scores(rt.rerank_model, query, texts), strict=True))
+            pool.sort(key=lambda c: -rerank[c])
+        except runtime.RerankError:
+            failed.append("rerank")
+            reasons.append("reranker_failed")
+        timings["rerank"] = (time.perf_counter() - t) * 1000
+
+    idf = _idf(conn, scope, lexemes) if lexemes else {}
+    idf_total = sum(idf.values()) or 1.0
+    q_ident_set = set(q_idents)
+    results: list[Result] = []
+    for rank, cid in enumerate(pool[:limit], start=1):
+        r = rows_by_id[cid]
+        hits = set(r["lex_hit"] or [])
+        signals = {
+            "cosine_similarity": round(float(r["sim"]), 4) if r["sim"] is not None else None,
+            "query_term_coverage": round(len(hits) / len(lexemes), 3) if lexemes else 0.0,
+            "idf_coverage": round(sum(idf.get(h, 0) for h in hits) / idf_total, 3) if lexemes else 0.0,
+            "identifier_matches": sorted(q_ident_set & set(r["idents"])),
+            "rerank_score": round(rerank[cid], 4) if cid in rerank else None,
+            "branches": [b for b, ids in ranked.items() if cid in ids],
+            "rrf_score": round(fused[cid], 5),
+        }
+        basis = gate_basis(gate, signals, bool(q_idents))
+        doc_id = str(r["document_id"])
+        results.append(
+            Result(
+                chunk_id=cid, document_id=doc_id, collection=r["collection"], title=r["doc_title"],
+                heading_path=r["heading_path"], page=r["page"], anchor=r["anchor"], snippet=r["snippet"],
+                text=r["text"], rank=rank, supported=bool(basis), match_basis=basis, signals=signals,
+                version_no=r["version_no"], outdated_version=r["outdated"], metadata=r["metadata"],
+                media_type=r["media_type"], source_uri=r["source_uri"],
+                source_url=f"/api/documents/{doc_id}/source" + (f"#page={r['page']}" if r["page"] else ""),
+                passage_url=f"/api/chunks/{cid}",
             )
+        )
 
     supported = [r for r in results if r.supported]
-    if failed and len(failed) == len([b for b in branches if b != "exact" or q_idents]):
+    if failed and not supported and "lexical" not in ranked and "exact" not in ranked:
         outcome = RETRIEVAL_FAILURE
     elif supported:
         outcome = CONFLICTING_EVIDENCE if _conflict(supported, reasons) else EVIDENCE_FOUND
@@ -273,44 +335,19 @@ def search(
         reasons.append("evidence_from_outdated_indexed_version")
     timings["total"] = (time.perf_counter() - t0) * 1000
     return SearchResponse(
-        query=query,
-        outcome=outcome,
-        message=MESSAGES[outcome],
-        reason_codes=reasons,
-        results=results,
-        coverage=cov,
-        index=index_info,
-        timings_ms={k: round(v, 2) for k, v in timings.items()},
+        query=query, outcome=outcome, message=MESSAGES[outcome], reason_codes=reasons, results=results,
+        coverage=cov, index=index_info, timings_ms={k: round(v, 2) for k, v in timings.items()},
     )
 
 
-def gate_basis(gate: GateConfig, sim: float | None, lex_cov: float, ident_hits: list[str], query_has_idents: bool) -> list[str]:
-    """Evidence gate for one candidate. Empty list = not adequate evidence.
-
-    Conservative by design: a query containing identifiers is only supported by a passage that
-    contains one of them; otherwise we need a very high similarity, or moderate similarity
-    *and* agreement with the lexical signal (query-term coverage).
-    """
-    if ident_hits:
-        return ["exact_identifier"]
-    if query_has_idents or sim is None:
-        return []
-    if sim >= gate.dense_high:
-        return ["strong_semantic"]
-    if sim >= gate.dense_min and lex_cov >= gate.lex_coverage:
-        return ["semantic_and_lexical_agreement"]
-    return []
-
-
-def _conflict(supported: list[Result], reasons: list[str]) -> bool:
+def _conflict(supported: list, reasons: list[str]) -> bool:
     """Same document series, different version/effective date among supported evidence."""
     series: dict[str, set[str]] = {}
     for r in supported:
-        s = r.metadata.get("series")
+        md = r.metadata if hasattr(r, "metadata") else r["metadata"]
+        s = md.get("series")
         if s:
-            series.setdefault(str(s), set()).add(
-                f"{r.metadata.get('version', '')}|{r.metadata.get('effective_date', '')}"
-            )
+            series.setdefault(str(s), set()).add(f"{md.get('version', '')}|{md.get('effective_date', '')}")
     conflicting = [s for s, vs in series.items() if len(vs) > 1]
     if conflicting:
         reasons.append("same_series_different_versions")

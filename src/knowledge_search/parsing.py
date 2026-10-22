@@ -13,13 +13,10 @@ import yaml
 from markdown_it import MarkdownIt
 
 PARSER_VERSION = "parse-v1"
-CHUNKER_VERSION = "chunk-v1-900c"
+CHUNKER_VERSION = "chunk-v2"  # size/overlap are runtime settings, recorded in the index signature
 
 MEDIA_TYPES = {".md": "text/markdown", ".txt": "text/plain", ".pdf": "application/pdf"}
 
-CHUNK_TARGET = 900
-CHUNK_MAX = 1400
-CHUNK_OVERLAP = 150
 
 
 class ParseError(Exception):
@@ -197,37 +194,40 @@ def extract_idents(text: str) -> list[str]:
     return sorted(out)
 
 
-def _windows(text: str) -> list[str]:
-    if len(text) <= CHUNK_MAX:
+def _windows(text: str, target: int, overlap: int) -> list[str]:
+    """Split a section into ~target-sized windows on paragraph/sentence boundaries, carrying ``overlap``
+    characters (rounded to a word boundary) from the end of one window into the next."""
+    max_len = int(target * 1.5)
+    if len(text) <= max_len:
         return [text]
     paras = re.split(r"(\n\s*\n)", text)
     pieces: list[str] = []
     for p in paras:
-        if len(p) > CHUNK_MAX:  # very long paragraph: split on sentences
+        if len(p) > max_len:  # very long paragraph: split on sentences
             pieces.extend(re.split(r"(?<=[.!?])\s+", p))
         else:
             pieces.append(p)
     out: list[str] = []
     cur = ""
     for p in pieces:
-        if cur and len(cur) + len(p) > CHUNK_TARGET:
+        if cur and len(cur) + len(p) > target:
             out.append(cur.strip())
-            cur = cur[-CHUNK_OVERLAP:] if CHUNK_OVERLAP else ""
+            cur = cur[-overlap:] if overlap else ""
             cut = cur.find(" ")
             cur = cur[cut + 1 :] if cut != -1 else cur
         cur += p
-        while len(cur) > CHUNK_MAX:  # pathological text without breaks
-            out.append(cur[:CHUNK_MAX])
-            cur = cur[CHUNK_MAX - CHUNK_OVERLAP :]
+        while len(cur) > max_len:  # pathological text without breaks
+            out.append(cur[:max_len])
+            cur = cur[max_len - overlap :] if overlap else cur[max_len:]
     if cur.strip():
         out.append(cur.strip())
     return [o for o in out if o]
 
 
-def chunk_document(doc: ParsedDocument) -> list[Chunk]:
+def chunk_document(doc: ParsedDocument, size: int = 900, overlap: int = 150) -> list[Chunk]:
     chunks: list[Chunk] = []
     for s in doc.sections:
-        for w in _windows(s.text):
+        for w in _windows(s.text, size, overlap):
             chunks.append(
                 Chunk(
                     ordinal=len(chunks),

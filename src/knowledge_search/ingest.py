@@ -18,8 +18,8 @@ from uuid import UUID
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
-from . import db
-from .embedder import Embedder, EmbeddingError
+from . import db, runtime
+from .embedder import EmbeddingError
 from .parsing import ParseError, chunk_document, embedding_text, media_type_for, parse_document
 
 log = logging.getLogger(__name__)
@@ -141,6 +141,20 @@ def delete_document(conn: Connection, blobs: BlobStore, document_id: UUID) -> bo
     return bool(n)
 
 
+def reindex(conn: Connection, signature: str, everything: bool = False) -> int:
+    """Queue indexed/failed documents whose chunks were built with a different configuration."""
+    with conn.transaction():
+        rows = conn.execute(
+            "SELECT id, latest_version_id FROM documents WHERE latest_version_id IS NOT NULL "
+            "AND status IN ('indexed', 'failed') AND (%s OR index_signature IS DISTINCT FROM %s) FOR UPDATE",
+            (everything, signature),
+        ).fetchall()
+        for r in rows:
+            conn.execute("INSERT INTO jobs(document_id, version_id) VALUES (%s, %s)", (r["id"], r["latest_version_id"]))
+            conn.execute("UPDATE documents SET status = 'pending', updated_at = now() WHERE id = %s", (r["id"],))
+    return len(rows)
+
+
 def retry_document(conn: Connection, document_id: UUID) -> bool:
     with conn.transaction():
         doc = conn.execute(
@@ -160,8 +174,9 @@ def retry_document(conn: Connection, document_id: UUID) -> bool:
 
 
 class Worker:
-    def __init__(self, embedder: Embedder, blobs: BlobStore, max_pages: int, max_chars: int):
-        self.embedder = embedder
+    """Indexes queued versions using the *current* runtime settings (model, chunk size/overlap)."""
+
+    def __init__(self, blobs: BlobStore, max_pages: int, max_chars: int):
         self.blobs = blobs
         self.max_pages = max_pages
         self.max_chars = max_chars
@@ -199,9 +214,12 @@ class Worker:
             if not job:
                 return False
             try:
+                rt = runtime.load(conn)
+                conn.commit()
+                embedder = runtime.embedder(rt.embed_model)
                 parsed = parse_document(self.blobs.get(job["sha256"]), job["filename"], self.max_pages, self.max_chars)
-                chunks = chunk_document(parsed)
-                vectors = self.embedder.embed_documents([embedding_text(parsed.title, c) for c in chunks])
+                chunks = chunk_document(parsed, rt.chunk_size, rt.chunk_overlap)
+                vectors = embedder.embed_documents([embedding_text(parsed.title, c) for c in chunks])
             except ParseError as e:  # deterministic: do not retry
                 self._fail(conn, job, e.code, e.detail, retry=False)
                 return True
@@ -215,11 +233,10 @@ class Worker:
                 log.exception("unexpected ingestion failure job=%s", job["id"])
                 self._fail(conn, job, "internal_error", type(e).__name__, retry=True)
                 return True
-            self._commit(conn, job, parsed, chunks, vectors)
+            self._commit(conn, job, parsed, chunks, vectors, embedder.spec.version_key, rt.signature())
             return True
 
-    def _commit(self, conn, job, parsed, chunks, vectors) -> None:
-        model = self.embedder.spec.version_key
+    def _commit(self, conn, job, parsed, chunks, vectors, model: str, signature: str) -> None:
         with conn.transaction():
             doc = conn.execute(
                 "SELECT latest_version_id FROM documents WHERE id = %s FOR UPDATE", (job["document_id"],)
@@ -245,8 +262,8 @@ class Worker:
                 )
             conn.execute(
                 "UPDATE documents SET indexed_version_id = %s, status = 'indexed', title = %s, metadata = %s, "
-                "error_code = NULL, error_detail = NULL, updated_at = now() WHERE id = %s",
-                (job["version_id"], parsed.title[:500], Jsonb(parsed.metadata), job["document_id"]),
+                "index_signature = %s, error_code = NULL, error_detail = NULL, updated_at = now() WHERE id = %s",
+                (job["version_id"], parsed.title[:500], Jsonb(parsed.metadata), signature, job["document_id"]),
             )
             conn.execute("UPDATE jobs SET status = 'done', updated_at = now() WHERE id = %s", (job["id"],))
 
