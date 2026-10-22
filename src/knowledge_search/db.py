@@ -17,12 +17,46 @@ _pool: ConnectionPool | None = None
 _embedded = None  # keeps the embedded server handle alive for this process
 
 
+WINPTHREAD_SHA256 = "817e5b2636f532666e8f255e225af75e9d0c41b141512fde45264070a65b1c92"
+
+
+def _ensure_windows_runtime(package_dir: Path | None = None, force: bool = False) -> None:
+    """Windows only: put the MinGW runtime DLL that postgres.exe needs (but the wheel lacks) next to it.
+    See vendor/win64/SOURCE.md. A DLL in the executable's folder wins over any copy on PATH."""
+    import hashlib
+    import os
+    import shutil
+
+    if os.name != "nt" and not force:
+        return
+    if package_dir is None:
+        import pixeltable_pgserver
+
+        package_dir = Path(pixeltable_pgserver.__file__).parent
+    src = Path(__file__).parent / "vendor" / "win64" / "libwinpthread-1.dll"
+    for bindir in package_dir.glob("pginstall*/bin"):
+        dst = bindir / "libwinpthread-1.dll"
+        if not dst.exists() or hashlib.sha256(dst.read_bytes()).hexdigest() != WINPTHREAD_SHA256:
+            shutil.copyfile(src, dst)
+
+
+def _discard_failed_init(pgdata: Path) -> None:
+    """A data directory without PG_VERSION holds no database (initdb failed midway); move it aside so
+    the next start can initialise cleanly instead of failing on a non-empty directory."""
+    import time
+
+    if pgdata.is_dir() and any(pgdata.iterdir()) and not (pgdata / "PG_VERSION").exists():
+        pgdata.rename(pgdata.with_name(f"{pgdata.name}.failed-init-{int(time.time())}"))
+
+
 def start_embedded(pgdata: Path, database: str = "ks", cleanup_mode: str = "stop") -> tuple[str, str]:
     """Start (or attach to) the embedded server; return (admin_url, database_url)."""
     import psycopg
     from pixeltable_pgserver import get_server
 
     global _embedded
+    _ensure_windows_runtime()
+    _discard_failed_init(pgdata)
     pgdata.mkdir(parents=True, exist_ok=True)
     _embedded = get_server(pgdata.resolve(), cleanup_mode=cleanup_mode)
     admin = _embedded.get_uri()

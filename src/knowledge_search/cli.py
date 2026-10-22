@@ -22,7 +22,8 @@ def _conn():
 
 def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    logging.getLogger("pixeltable_pgserver").setLevel(logging.WARNING)  # embedded DB start/stop chatter
+    for noisy in ("pixeltable_pgserver", "httpx", "huggingface_hub"):  # embedded DB and download chatter
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     ap = argparse.ArgumentParser(prog="knowledge-search")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate", help="apply database migrations")
