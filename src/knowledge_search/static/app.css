@@ -48,7 +48,7 @@ main { max-width: 980px; margin: 0 auto; padding: 20px 16px 80px; }
 .result { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
 .r-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .rank { color: var(--muted); font-size: 12px; min-width: 18px; }
-.snippet { margin: 6px 0; white-space: pre-line; }
+.snippet { margin: 6px 0; }
 mark { background: var(--mark); color: inherit; padding: 0 1px; }
 .r-actions { display: flex; gap: 16px; font-size: 13px; }
 .badges { display: inline-flex; gap: 4px; flex-wrap: wrap; }
