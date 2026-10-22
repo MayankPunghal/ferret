@@ -11,7 +11,7 @@
 | Document **failed** — `no_extractable_text` | Scanned PDF without a text layer; OCR is not supported. |
 | Document **failed** — `invalid_encoding` | Text file is not UTF-8; re-save it as UTF-8. |
 | Search says **indexing incomplete** | Some documents in your scope are pending, failed or outdated (settings changed). Admin: Settings → Reindex. |
-| Search says **no adequate evidence** but a lower-relevance match looks right | The evidence check is conservative by design. Admins can enable the reranker or adjust thresholds (Settings). |
+| Search says **no adequate evidence** but one of the closest matches looks right | The evidence check is conservative by design (it is tuned to avoid false answers). Admins can try the stronger `bge-reranker-base` or adjust thresholds in Settings; see docs/evaluation.md for the trade-off. |
 | Search says **retrieval degraded** | A model could not be loaded (e.g. just switched and still downloading). Check Settings → model status. |
 | Embedded database will not start after a crash | Stop all app windows, then delete `data/pg/postmaster.pid` if it exists and start again. |
 | Running as root on Linux | The embedded PostgreSQL refuses root; it creates and uses a `pgserver` system user automatically. |

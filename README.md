@@ -7,12 +7,12 @@ language or by exact terms (error codes, file names, API paths). Every answer po
 and the original file. Everything — database, AI models, search — runs on your own machine or server:
 no cloud account, no GPU and no external AI provider are needed.
 
-![Search results with evidence](docs/screenshots/06-conflict.png)
+![Search results with evidence](docs/screenshots/07-conflict.png)
 
 ## Features
 
 - **Hybrid search** — keyword + semantic (local embedding model) + exact-identifier matching, fused by rank.
-- **Offline reranker** (optional) — a local cross-encoder re-orders the top results for higher precision.
+- **Offline reranker** (on by default) — a local cross-encoder re-orders the top results for higher precision.
 - **Evidence-first answers** — each search states whether adequate evidence was found, sources conflict,
   the index is incomplete, or nothing adequate exists in the sources *you* can access. No invented
   confidence numbers.

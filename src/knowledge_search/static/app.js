@@ -146,7 +146,9 @@ $("#search-form").addEventListener("submit", async (e) => {
   $("#results").replaceChildren(...strong.map(resultItem));
   if (weak.length) {
     $("#weak").hidden = false; $("#weak").open = !strong.length;
-    $("#weak summary").textContent = `${weak.length} lower-relevance match${weak.length > 1 ? "es" : ""} (not adequate evidence)`;
+    $("#weak summary").textContent = strong.length
+      ? `${weak.length} more match${weak.length > 1 ? "es" : ""} (not confirmed as evidence)`
+      : `Closest matches — not confirmed as evidence (${weak.length})`;
     $("#weak-results").replaceChildren(...weak.map(resultItem));
   }
   if (res.timings_ms) $("#timing").textContent = `${Math.round(res.timings_ms.total)} ms · ${res.index.embedding_model}${res.index.reranker ? " · reranker " + res.index.reranker : ""}`;

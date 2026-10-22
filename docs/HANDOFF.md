@@ -34,6 +34,7 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 
 | Item | Status | Evidence |
 |---|---|---|
+| Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
 | Test suite | **verified** | `uv run pytest -q` → 31 passed (search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **partially verified by the owner** on Windows 11: install, model download, DB init and indexing worked after the DLL fix; searches then crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93). **That fix is not yet verified on Windows.** | owner logs |

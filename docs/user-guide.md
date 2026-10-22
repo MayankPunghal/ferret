@@ -20,8 +20,8 @@ Good queries:
 | **Indexing incomplete** | Some documents in your scope are still being indexed, failed, or were indexed with old settings, so absence cannot be established. |
 | **Retrieval degraded / failed** | A technical problem (e.g. a model could not be loaded). Not a statement about the documents. |
 
-Results that did not pass the evidence check are listed under **lower-relevance matches** — often still
-useful, but treat them with care.
+Results that did not pass the evidence check are listed as **closest matches — not confirmed as
+evidence**. The right passage is often among them (especially for paraphrased questions); read before relying on it.
 
 ## Each result shows
 

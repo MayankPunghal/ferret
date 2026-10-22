@@ -6,7 +6,7 @@ Administrators see two extra tabs: **Settings** and **Users & access**.
 
 | Setting | What it does | Trade-off |
 |---|---|---|
-| **Embedding model** | Turns passages and queries into vectors for semantic search. Options range from `bge-small` (fast, ~70 MB) to `Qwen3-Embedding-0.6B` (~1.1 GB); measured accuracy and speed per model are in [Evaluation](evaluation.md). | Larger = better retrieval, slower indexing and queries on CPU. Changing it requires a reindex. |
+| **Embedding model** | Turns passages and queries into vectors for semantic search. Default `bge-base-en-v1.5` (~210 MB) — best measured accuracy/speed trade-off; `bge-small` (~70 MB) is ~3× faster to index but less accurate; larger models are available but untested here. Measurements: [Evaluation](evaluation.md). | Larger = better retrieval, slower indexing and queries on CPU. Changing it requires a reindex. |
 | **Chunk size** | Target passage length in characters (200–4000). | Smaller = more precise passages; larger = more context per result. |
 | **Overlap** | Repeats the last N characters of a passage at the start of the next, so a sentence split at a boundary is still found. Untick to disable. | More overlap = slightly larger index. |
 | **Reranker** | A local cross-encoder re-reads the top candidates together with the query, re-orders them and (in the reranker gate modes) decides what counts as evidence. | Better precision/coverage; adds CPU time per query (see [Evaluation](evaluation.md)). |
