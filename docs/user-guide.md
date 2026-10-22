@@ -14,7 +14,7 @@ Good queries:
 
 | Banner | Meaning |
 |---|---|
-| **Supporting evidence found** | At least one passage passed the evidence check. Badges explain why (exact identifier, strong semantic match, keyword agreement, reranker judgement). |
+| **Relevant passages found** | At least one passage passed the evidence check (badges explain why: exact identifier, strong semantic match, keyword agreement, reranker judgement). The check establishes that a passage is on-topic and closely matching — read it before relying on a specific detail. |
 | **Evidence found, but sources disagree** | Supporting passages come from different versions of the same document series (e.g. 2024 vs 2025 policy). Check the effective dates. |
 | **No adequate supporting evidence** | Nothing passed the check *in the indexed sources you can access*. This is not a claim that the information does not exist anywhere. |
 | **Indexing incomplete** | Some documents in your scope are still being indexed, failed, or were indexed with old settings, so absence cannot be established. |

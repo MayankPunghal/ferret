@@ -17,6 +17,7 @@ those.
 | `KS_VECTOR_SEARCH` | `auto` | Where vector similarity is computed: `memory` (in the app process), `database` (pgvector in SQL), `auto` = memory with the embedded database, database with an external server. Memory mode avoids a crash in the Windows build of the embedded pgvector and is fast at laptop scale; servers with large corpora should use `database`. |
 | `KS_INPROCESS_WORKERS` | `1` | Indexing threads inside the web process. Use `0` plus `knowledge-search worker` processes on servers. |
 | `KS_WORKER_POLL_SECONDS` | `1.0` | Job queue poll interval. |
+| `KS_AUTO_REINDEX` | `true` | At startup, queue documents indexed with an older model/chunking for background re-indexing. |
 
 ## Limits and sessions
 

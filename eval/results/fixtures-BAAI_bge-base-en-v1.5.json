@@ -1,0 +1,142 @@
+{
+  "model": "BAAI/bge-base-en-v1.5",
+  "reranker": null,
+  "documents": 12,
+  "ingest_seconds": 6.49,
+  "retrieval": {
+    "lexical": {
+      "hit@1": 0.969,
+      "recall@5": 1.0,
+      "mrr@10": 0.984,
+      "ndcg@10": 0.988,
+      "passage_hit@1": 0.781
+    },
+    "dense": {
+      "hit@1": 1.0,
+      "recall@5": 1.0,
+      "mrr@10": 1.0,
+      "ndcg@10": 1.0,
+      "passage_hit@1": 0.969
+    },
+    "lexical+dense": {
+      "hit@1": 1.0,
+      "recall@5": 1.0,
+      "mrr@10": 1.0,
+      "ndcg@10": 1.0,
+      "passage_hit@1": 0.969
+    },
+    "full": {
+      "hit@1": 1.0,
+      "recall@5": 1.0,
+      "mrr@10": 1.0,
+      "ndcg@10": 1.0,
+      "passage_hit@1": 0.969
+    }
+  },
+  "latency_ms_full": {
+    "p50": 87.0,
+    "p95": 119.1
+  },
+  "gates": {
+    "similarity+coverage": {
+      "chosen": {
+        "dense_high": 0.78,
+        "dense_min": 0.72,
+        "lex_coverage": 0.2,
+        "rerank_min": 0,
+        "mode": "similarity",
+        "lexical": "coverage"
+      },
+      "val": {
+        "unanswerable_n": 12,
+        "answerable_n": 16,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.562,
+        "precision_among_answered": 1.0
+      },
+      "test": {
+        "unanswerable_n": 12,
+        "answerable_n": 16,
+        "false_answer_rate": 0.083,
+        "answer_coverage": 0.562,
+        "precision_among_answered": 0.9,
+        "false_answers": [
+          "q044"
+        ],
+        "abstained_answerable": [
+          "q012",
+          "q014",
+          "q016",
+          "q020",
+          "q022",
+          "q024",
+          "q030"
+        ]
+      }
+    },
+    "similarity+idf": {
+      "chosen": {
+        "dense_high": 0.78,
+        "dense_min": 0.72,
+        "lex_coverage": 0.2,
+        "rerank_min": 0,
+        "mode": "similarity",
+        "lexical": "idf"
+      },
+      "val": {
+        "unanswerable_n": 12,
+        "answerable_n": 16,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.562,
+        "precision_among_answered": 1.0
+      },
+      "test": {
+        "unanswerable_n": 12,
+        "answerable_n": 16,
+        "false_answer_rate": 0.083,
+        "answer_coverage": 0.562,
+        "precision_among_answered": 0.9,
+        "false_answers": [
+          "q044"
+        ],
+        "abstained_answerable": [
+          "q012",
+          "q014",
+          "q016",
+          "q020",
+          "q022",
+          "q024",
+          "q030"
+        ]
+      }
+    }
+  },
+  "shipped_gate_test": {
+    "gate": {
+      "dense_high": 0.88,
+      "dense_min": 0.76,
+      "lex_coverage": 0.34,
+      "rerank_min": 0.0,
+      "mode": "similarity",
+      "lexical": "coverage"
+    },
+    "unanswerable_n": 12,
+    "answerable_n": 16,
+    "false_answer_rate": 0.0,
+    "answer_coverage": 0.375,
+    "precision_among_answered": 1.0,
+    "false_answers": [],
+    "abstained_answerable": [
+      "q012",
+      "q014",
+      "q016",
+      "q018",
+      "q020",
+      "q022",
+      "q024",
+      "q028",
+      "q030",
+      "q056"
+    ]
+  }
+}

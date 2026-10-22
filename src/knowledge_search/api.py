@@ -19,7 +19,7 @@ from .auth import Principal
 from .config import Settings, get_settings
 from .deps import COOKIE, Conn, User, state
 from .embedder import Embedder
-from .ingest import BlobStore, Worker, delete_document, retry_document, submit
+from .ingest import BlobStore, Worker, delete_document, reindex, retry_document, submit
 from .parsing import CHUNKER_VERSION, PARSER_VERSION, ParseError
 from .search import MESSAGES, RETRIEVAL_FAILURE, coverage_for, search
 
@@ -46,6 +46,11 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
             runtime.register_embedder(embedder)
         with db.pool().connection() as conn:
             rt = runtime.load(conn)
+            if settings.auto_reindex:
+                n = reindex(conn, rt.signature())
+                if n:
+                    log.warning("search settings changed since these documents were indexed; re-indexing %d "
+                                "document(s) in the background", n)
         state.embedder = runtime.embedder(rt.embed_model)
         _record_index_meta(rt)
         log.warning("Loading the embedding model %s (the first start may download it; this can take a minute)…",

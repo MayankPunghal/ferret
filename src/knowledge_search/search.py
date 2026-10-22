@@ -35,7 +35,8 @@ RETRIEVAL_FAILURE = "retrieval_failure"
 ANSWERED_OUTCOMES = {EVIDENCE_FOUND, CONFLICTING_EVIDENCE}
 
 MESSAGES = {
-    EVIDENCE_FOUND: "Supporting evidence found in the indexed sources available to you.",
+    EVIDENCE_FOUND: "Relevant passages found in the indexed sources available to you. Check them before relying "
+    "on a specific detail.",
     CONFLICTING_EVIDENCE: "Evidence found, but sources from the same document series disagree "
     "(different versions or effective dates). Check which source applies.",
     NO_ADEQUATE_EVIDENCE: "I couldn't find adequate supporting evidence in the indexed sources available to you.",
@@ -254,10 +255,14 @@ def search(
         if not rows:
             reasons.append("query_identifier_not_found")
 
+    # Weighted RRF: the generic keyword branch is down-weighted (it adds weaker candidates for natural-language
+    # questions); dense and exact-identifier branches keep full weight. Weight is tuned in eval/.
+    weights = {"lexical": rt.fusion_lexical_weight}
     fused: dict[int, float] = {}
-    for ids in ranked.values():
+    for branch, ids in ranked.items():
+        w = weights.get(branch, 1.0)
         for r, cid in enumerate(ids, start=1):
-            fused[cid] = fused.get(cid, 0.0) + 1.0 / (RRF_K + r)
+            fused[cid] = fused.get(cid, 0.0) + w / (RRF_K + r)
     pool = sorted(fused, key=lambda c: (-fused[c], c))[: max(limit, rt.rerank_candidates if rt.rerank_enabled else 0)]
 
     rows_by_id: dict[int, dict] = {}

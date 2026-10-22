@@ -47,6 +47,9 @@ def main():
     ap.add_argument("--chunk-overlap", type=int, default=150)
     ap.add_argument("--max-far", type=float, default=0.05, help="val false-answer budget for choosing a gate")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--reuse", action="store_true", help="reuse the already-indexed ks_scale database (no ingestion)")
+    ap.add_argument("--branches", default="lexical,dense,exact", help="comma-separated retrieval branches")
+    ap.add_argument("--lexical-weight", type=float, default=1.0, help="keyword-branch weight in fusion")
     a = ap.parse_args()
 
     docs, qs, qrels = load(a.dataset, a.max_docs, a.seed)
@@ -65,29 +68,39 @@ def main():
 
     pg = ROOT / "data" / f"scale-pg-{a.model.replace('/', '_')}"
     admin_url, _ = db.start_embedded(pg, database="postgres")
-    with psycopg.connect(admin_url, autocommit=True) as c:
-        c.execute("DROP DATABASE IF EXISTS ks_scale WITH (FORCE)")
-        c.execute("CREATE DATABASE ks_scale")
+    if not a.reuse:
+        with psycopg.connect(admin_url, autocommit=True) as c:
+            c.execute("DROP DATABASE IF EXISTS ks_scale WITH (FORCE)")
+            c.execute("CREATE DATABASE ks_scale")
     url = db._embedded.get_uri("ks_scale")
     db.migrate(url)
     db.open_pool(url, max_size=2)
     with psycopg.connect(url, row_factory=dict_row) as c:
-        uid = auth.create_user(c, "evaluator", "evaluation-only-password", is_admin=True)
-        cid = auth.ensure_collection(c, a.dataset)
-        runtime.save(c, runtime.validate({
-            "embed_model": a.model, "chunk_size": a.chunk_size, "chunk_overlap": a.chunk_overlap,
-            "rerank_enabled": bool(a.reranker), "rerank_model": a.reranker or runtime.defaults().rerank_model,
-            "rerank_candidates": a.rerank_candidates}), uid)
-        blobs = BlobStore(ROOT / "data" / "scale-blobs")
-        for did, text in corpus:
-            title, _, body = text.partition("\n")
-            submit(c, blobs, collection_id=cid, filename=f"{did}.md", data=f"# {title or did}\n\n{body}\n".encode(),
-                   user_id=None, max_bytes=10_000_000)
+      if a.reuse:
+        uid = c.execute("SELECT id FROM users WHERE username = 'evaluator'").fetchone()["id"]
+        runtime.save(c, runtime.validate({"rerank_enabled": bool(a.reranker), "fusion_lexical_weight": a.lexical_weight,
+                                          **({"rerank_model": a.reranker} if a.reranker else {}),
+                                          "rerank_candidates": a.rerank_candidates}), uid)
         c.commit()
         principal = auth.principal_for(c, uid, "evaluator", True)
+        blobs = None
+      else:
+          uid = auth.create_user(c, "evaluator", "evaluation-only-password", is_admin=True)
+          cid = auth.ensure_collection(c, a.dataset)
+          runtime.save(c, runtime.validate({
+              "embed_model": a.model, "chunk_size": a.chunk_size, "chunk_overlap": a.chunk_overlap,
+              "rerank_enabled": bool(a.reranker), "rerank_model": a.reranker or runtime.defaults().rerank_model,
+              "rerank_candidates": a.rerank_candidates}), uid)
+          blobs = BlobStore(ROOT / "data" / "scale-blobs")
+          for did, text in corpus:
+              title, _, body = text.partition("\n")
+              submit(c, blobs, collection_id=cid, filename=f"{did}.md", data=f"# {title or did}\n\n{body}\n".encode(),
+                     user_id=None, max_bytes=10_000_000)
+          c.commit()
+          principal = auth.principal_for(c, uid, "evaluator", True)
 
     t = time.perf_counter()
-    n = Worker(blobs, 2000, 5_000_000).drain()
+    n = Worker(blobs, 2000, 5_000_000).drain() if blobs else 0
     ingest_s = time.perf_counter() - t
     with db.pool().connection() as conn:
         chunks = conn.execute("SELECT count(*) AS n FROM chunks").fetchone()["n"]
@@ -97,7 +110,7 @@ def main():
         loose = GateConfig(9, 9, 9, 99, "similarity")
         rows, lat, lat_embed, lat_rerank = [], [], [], []
         for qid, text in queries:
-            resp = search(conn, principal, text, rt, limit=10, gate=loose)
+            resp = search(conn, principal, text, rt, limit=10, gate=loose, branches=tuple(a.branches.split(",")))
             conn.commit()
             res = [vars(r) for r in resp.results]
             for r in res:
@@ -134,7 +147,8 @@ def main():
         "dataset": a.dataset, "model": a.model, "reranker": a.reranker or None,
         "rerank_candidates": a.rerank_candidates, "chunking": [a.chunk_size, a.chunk_overlap],
         "indexed_documents": n, "chunks": chunks, "not_indexed": failed,
-        "ingest_seconds": round(ingest_s, 1), "docs_per_second": round(n / ingest_s, 2),
+        "ingest_seconds": round(ingest_s, 1), "docs_per_second": round(n / ingest_s, 2) if n else None,
+        "branches": a.branches,
         "queries": {"answerable": sum(q["answerable"] for q, _ in rows), "unanswerable": len(unanswerable),
                     "val": len(val), "test": len(test)},
         "retrieval_answerable": {
@@ -143,21 +157,27 @@ def main():
         },
         "latency_ms": {"total_p50": pct(lat, 50), "total_p95": pct(lat, 95), "query_embed_p50": pct(lat_embed, 50),
                        "rerank_p50": pct(lat_rerank, 50), "rerank_p95": pct(lat_rerank, 95)},
-        "gates": choose(val, test, is_relevant, a.max_far),
+        "gates": {str(far): choose(val, test, is_relevant, far) for far in (a.max_far, 0.1, 0.2)},
         "max_far": a.max_far,
     }
+    # keep per-query signals for offline re-analysis (no document text)
+    keep = ("chunk_id", "doc", "rank", "signals")
+    (ROOT / "data" / f"scale-rows-{a.model.replace('/', '_')}-{a.branches.replace(',', '+')}"
+     f"{'-' + a.reranker.split('/')[-1] if a.reranker else ''}.json").write_text(
+        json.dumps([[q, [{k: r[k] for k in keep} for r in res]] for q, res in rows]))
     out = ROOT / "eval" / "results" / f"scale-{a.dataset}-{a.model.replace('/', '_')}-{int(time.time())}.json"
     out.write_text(json.dumps(result, indent=2))
     summary = {k: v for k, v in result.items() if k != "gates"}
     print(json.dumps(summary, indent=1))
-    for fam, g in result["gates"].items():
-        if g.get("chosen"):
-            t = g["test"]
-            print(f"gate {fam:22s} test: false-answer {t['false_answer_rate']:.3f} (n={t['unanswerable_n']}) "
-                  f"coverage {t['answer_coverage']:.3f} (n={t['answerable_n']}) precision {t['precision_among_answered']:.3f}"
-                  f"  | val {g['val']['false_answer_rate']:.3f}/{g['val']['answer_coverage']:.3f}")
-        else:
-            print(f"gate {fam:22s} {g['note']}")
+    for far, fams in result["gates"].items():
+        for fam, g in fams.items():
+            if g.get("chosen"):
+                t = g["test"]
+                print(f"budget {far:4s} gate {fam:20s} test: false-answer {t['false_answer_rate']:.3f} (n={t['unanswerable_n']}) "
+                      f"coverage {t['answer_coverage']:.3f} (n={t['answerable_n']}) precision {t['precision_among_answered']:.3f}"
+                      f" | val {g['val']['false_answer_rate']:.3f}/{g['val']['answer_coverage']:.3f}")
+            else:
+                print(f"budget {far:4s} gate {fam:20s} {g['note']}")
     print("wrote", out)
 
 

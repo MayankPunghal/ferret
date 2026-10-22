@@ -38,6 +38,7 @@ class Runtime:
     gate_rerank_min: float
     gate_mode: str
     gate_lexical: str
+    fusion_lexical_weight: float
 
     def signature(self) -> str:
         return f"{MODELS[self.embed_model].version_key}|{PARSER_VERSION}|chunk={self.chunk_size}/{self.chunk_overlap}"
@@ -56,7 +57,8 @@ def base() -> Settings:
     return _base or get_settings()
 
 
-LIMITS = {"chunk_size": (200, 4000), "chunk_overlap": (0, 1000), "rerank_candidates": (5, 100)}
+LIMITS = {"chunk_size": (200, 4000), "chunk_overlap": (0, 1000), "rerank_candidates": (5, 100),
+          "fusion_lexical_weight": (0.0, 2.0)}
 
 
 def defaults(model: str | None = None) -> Runtime:
@@ -66,12 +68,13 @@ def defaults(model: str | None = None) -> Runtime:
     spec = MODELS.get(model)
     high = spec.gate_high if spec and spec.gate_high is not None else s.gate_dense_high
     low = spec.gate_min if spec and spec.gate_min is not None else s.gate_dense_min
+    lex = spec.gate_lex if spec and spec.gate_lex is not None else s.gate_lex_coverage
     return Runtime(
         embed_model=model, chunk_size=s.chunk_size, chunk_overlap=s.chunk_overlap,
         rerank_enabled=s.rerank_enabled, rerank_model=s.rerank_model, rerank_candidates=s.rerank_candidates,
         gate_dense_high=high, gate_dense_min=low,
-        gate_lex_coverage=s.gate_lex_coverage, gate_rerank_min=s.gate_rerank_min,
-        gate_mode=s.gate_mode, gate_lexical=s.gate_lexical,
+        gate_lex_coverage=lex, gate_rerank_min=s.gate_rerank_min,
+        gate_mode=s.gate_mode, gate_lexical=s.gate_lexical, fusion_lexical_weight=s.fusion_lexical_weight,
     )
 
 

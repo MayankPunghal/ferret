@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     database_url: str = ""
     data_dir: Path = Path("./data")
     model_cache: Path = Path("./data/models")
-    embed_model: str = "BAAI/bge-small-en-v1.5"
+    embed_model: str = "BAAI/bge-base-en-v1.5"  # best measured accuracy/latency trade-off (docs/evaluation.md)
     embed_threads: int = 0  # 0 = onnxruntime default
     # Where vector similarity is computed: "memory" (numpy in the app process), "database" (pgvector in
     # SQL) or "auto" = memory with the embedded database (laptop), database with an external server.
@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     gate_mode: str = "similarity"  # similarity | rerank | rerank_and_similarity (needs reranker)
     gate_lexical: str = "coverage"  # coverage | idf
     gate_rerank_min: float = 0.0
+    fusion_lexical_weight: float = 0.1  # keyword-branch weight in rank fusion (dense/identifier = 1); see evaluation
 
     max_upload_mb: int = 25
     max_pdf_pages: int = 2000
@@ -44,6 +45,10 @@ class Settings(BaseSettings):
     # as a separate process instead (recommended on a server to protect query latency).
     inprocess_workers: int = 1
     worker_poll_seconds: float = 1.0
+
+    # Re-index documents built with an older model/chunking automatically at startup (e.g. after an upgrade
+    # changes the default model). Servers with large corpora may prefer false and reindex from Settings.
+    auto_reindex: bool = True
 
     session_hours: int = 12
     cookie_secure: bool = False  # set true behind TLS

@@ -66,6 +66,7 @@ def main():
     ap.add_argument("--model", default="BAAI/bge-small-en-v1.5")
     ap.add_argument("--reranker", default="", help="also record cross-encoder scores (enables rerank gate families)")
     ap.add_argument("--max-far", type=float, default=0.0)
+    ap.add_argument("--lexical-weight", type=float, default=1.0)
     a = ap.parse_args()
 
     admin_url, _ = db.start_embedded(ROOT / "data" / "eval-pg", database="postgres")
@@ -86,6 +87,7 @@ def main():
         for u, g in [("alice", "staff"), ("bob", "staff"), ("hannah", "hr")]:
             auth.add_user_to_group(c, u, g)
         runtime.save(c, runtime.validate({"embed_model": a.model, "rerank_enabled": bool(a.reranker),
+                                          "fusion_lexical_weight": a.lexical_weight,
                                           **({"rerank_model": a.reranker} if a.reranker else {})}), None)
         for col in sorted(CORPUS.iterdir()):
             cid = auth.ensure_collection(c, col.name)

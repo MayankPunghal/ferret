@@ -68,7 +68,7 @@ def put_settings(changes: dict, p: Admin, conn: Conn):
     before = runtime.load(conn)
     if "embed_model" in clean and not ({"gate_dense_high", "gate_dense_min"} & set(clean)):
         # switching models: drop threshold overrides so the new model's tuned values apply
-        conn.execute("DELETE FROM app_settings WHERE key IN ('gate_dense_high', 'gate_dense_min')")
+        conn.execute("DELETE FROM app_settings WHERE key IN ('gate_dense_high', 'gate_dense_min', 'gate_lex_coverage')")
     runtime.save(conn, clean, p.user_id)
     auth.audit(conn, p.user_id, "settings_changed", None, keys=sorted(clean))
     conn.commit()
