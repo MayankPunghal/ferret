@@ -1,0 +1,934 @@
+{
+  "model": "snowflake/snowflake-arctic-embed-s",
+  "license": "Apache-2.0",
+  "model_load_seconds": 0.33,
+  "ingestion": {
+    "documents": 12,
+    "chunks": 33,
+    "not_indexed": 0,
+    "seconds": 0.56
+  },
+  "queries": 56,
+  "retrieval": {
+    "lexical": {
+      "hit@1": 0.969,
+      "recall@5": 1.0,
+      "mrr@10": 0.984,
+      "ndcg@10": 0.988,
+      "passage_hit@1": 0.781
+    },
+    "dense": {
+      "hit@1": 1.0,
+      "recall@5": 1.0,
+      "mrr@10": 1.0,
+      "ndcg@10": 0.997,
+      "passage_hit@1": 0.969
+    },
+    "lexical+dense": {
+      "hit@1": 1.0,
+      "recall@5": 1.0,
+      "mrr@10": 1.0,
+      "ndcg@10": 1.0,
+      "passage_hit@1": 0.844
+    },
+    "full": {
+      "hit@1": 1.0,
+      "recall@5": 1.0,
+      "mrr@10": 1.0,
+      "ndcg@10": 1.0,
+      "passage_hit@1": 0.875
+    }
+  },
+  "latency_ms_warm_sequential": {
+    "total_p50": 9.4,
+    "total_p95": 12.5,
+    "query_embedding_p50": 5.5,
+    "query_embedding_p95": 7.0
+  },
+  "threshold_sweep_val": [
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.6,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.6,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.6,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.64,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.64,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.64,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.68,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.68,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.68,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.72,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.72,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.76,
+      "dense_min": 0.72,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.6,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.6,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.6,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.64,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.64,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.64,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.68,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.68,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.68,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.72,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.72,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.72,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.76,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.76,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.78,
+      "dense_min": 0.76,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.6,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.6,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.6,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.64,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.64,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.64,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.68,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.68,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.68,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.72,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.72,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.72,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.76,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.76,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.8,
+      "dense_min": 0.76,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.6,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.6,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.6,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.64,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.64,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.64,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.68,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.68,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.68,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.72,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.72,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.72,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.76,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.76,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.82,
+      "dense_min": 0.76,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.6,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.6,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.6,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.64,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.64,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.64,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.68,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.68,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.68,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.72,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.72,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.72,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.76,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.76,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.84,
+      "dense_min": 0.76,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.6,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.6,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.6,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.64,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.64,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.64,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.68,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.68,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.68,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.72,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.72,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.72,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.76,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.76,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.86,
+      "dense_min": 0.76,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.6,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.6,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.25,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.833
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.6,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.64,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.64,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.938,
+      "precision_among_answered": 0.938
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.64,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.083,
+      "answer_coverage": 0.625,
+      "precision_among_answered": 0.909
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.68,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.68,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.812,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.68,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.72,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.72,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.688,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.72,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.562,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.76,
+      "lex_coverage": 0.34,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.76,
+      "lex_coverage": 0.5,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    },
+    {
+      "dense_high": 0.88,
+      "dense_min": 0.76,
+      "lex_coverage": 0.67,
+      "false_answer_rate": 0.0,
+      "answer_coverage": 0.5,
+      "precision_among_answered": 1.0
+    }
+  ],
+  "chosen_on_val": {
+    "dense_high": 0.88,
+    "dense_min": 0.68,
+    "lex_coverage": 0.34,
+    "false_answer_rate": 0.0,
+    "answer_coverage": 0.812,
+    "precision_among_answered": 1.0
+  },
+  "abstention_val": {
+    "unanswerable_n": 12,
+    "false_answer_rate": 0.0,
+    "false_answers": [],
+    "answerable_n": 16,
+    "answer_coverage": 0.812,
+    "precision_among_answered": 1.0,
+    "conflict_detected": "1/1",
+    "missed_answerable": [
+      "q011:what should I do when the card processor is too slow to respond",
+      "q019:what follow-up actions came out of the checkout incident",
+      "q029:salary range for a senior engineer"
+    ]
+  },
+  "abstention_test": {
+    "unanswerable_n": 12,
+    "false_answer_rate": 0.167,
+    "false_answers": [
+      "q044:what is the rate limit of the orders API",
+      "q046:how do I roll back a database migration"
+    ],
+    "answerable_n": 16,
+    "answer_coverage": 0.688,
+    "precision_among_answered": 0.846,
+    "conflict_detected": "0/1",
+    "missed_answerable": [
+      "q012:how do I undo a bad release of the orders service",
+      "q020:can a paid invoice be cancelled",
+      "q022:is it safe to drop a database column in the same release",
+      "q024:how long does it take for a refund to reach the customer",
+      "q030:do engineers get time off after night-time incident work"
+    ]
+  },
+  "abstention_test_at_configured_gate": {
+    "gate": {
+      "dense_high": 0.88,
+      "dense_min": 0.76,
+      "lex_coverage": 0.34
+    },
+    "unanswerable_n": 12,
+    "false_answer_rate": 0.0,
+    "false_answers": [],
+    "answerable_n": 16,
+    "answer_coverage": 0.312,
+    "precision_among_answered": 1.0,
+    "conflict_detected": "0/1",
+    "missed_answerable": [
+      "q012:how do I undo a bad release of the orders service",
+      "q014:when does the on-call shift change hands",
+      "q016:who approves access to tables containing personal data",
+      "q018:what was the root cause of the checkout outage",
+      "q020:can a paid invoice be cancelled",
+      "q022:is it safe to drop a database column in the same release",
+      "q024:how long does it take for a refund to reach the customer",
+      "q026:deadline for submitting expense claims",
+      "q028:can I come back part time after having a baby",
+      "q030:do engineers get time off after night-time incident work",
+      "q056:per diem amount for international trips"
+    ]
+  }
+}

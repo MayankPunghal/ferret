@@ -1,0 +1,56 @@
+{"id": "q001", "split": "val", "category": "exact_id", "user": "alice", "query": "ERR-PAY-4012", "relevant": ["payments-error-codes.md#err-pay-4012-card-authorization-timeout"]}
+{"id": "q002", "split": "test", "category": "exact_id", "user": "alice", "query": "what does ERR-PAY-4020 mean", "relevant": ["payments-error-codes.md#err-pay-4020-duplicate-idempotency-key"]}
+{"id": "q003", "split": "val", "category": "exact_id", "user": "alice", "query": "ERR-PAY-5001 ledger write", "relevant": ["payments-error-codes.md#err-pay-5001-ledger-write-failed"]}
+{"id": "q004", "split": "test", "category": "exact_id", "user": "alice", "query": "POST /api/v2/invoices/{id}/void", "relevant": ["invoices-api.md#void-an-invoice"]}
+{"id": "q005", "split": "val", "category": "exact_id", "user": "alice", "query": "ledger.retry_backoff_ms default", "relevant": ["ledger-config.txt", "payments-error-codes.md#err-pay-5001-ledger-write-failed"]}
+{"id": "q006", "split": "test", "category": "exact_id", "user": "alice", "query": "ledger.batch_size", "relevant": ["ledger-config.txt"]}
+{"id": "q007", "split": "val", "category": "exact_id", "user": "alice", "query": "deploy-orders.yaml", "relevant": ["orders-deploy-runbook.md#prerequisites"]}
+{"id": "q008", "split": "test", "category": "exact_id", "user": "alice", "query": "orders-svc v3.8.2 fix", "relevant": ["incident-2025-031-postmortem.pdf#page=2", "orders-deploy-runbook.md#rolling-deployment"]}
+{"id": "q009", "split": "val", "category": "exact_id", "user": "alice", "query": "config/ledger.properties", "relevant": ["ledger-config.txt"]}
+{"id": "q010", "split": "test", "category": "exact_id", "user": "hannah", "query": "PROJECT-KESTREL-7", "relevant": ["compensation-bands.md"]}
+{"id": "q011", "split": "val", "category": "conceptual", "user": "alice", "query": "what should I do when the card processor is too slow to respond", "relevant": ["payments-error-codes.md#err-pay-4012-card-authorization-timeout"]}
+{"id": "q012", "split": "test", "category": "conceptual", "user": "alice", "query": "how do I undo a bad release of the orders service", "relevant": ["orders-deploy-runbook.md#rollback"]}
+{"id": "q013", "split": "val", "category": "conceptual", "user": "alice", "query": "how quickly must a critical page be acknowledged", "relevant": ["oncall-payments.md#response-targets"]}
+{"id": "q014", "split": "test", "category": "conceptual", "user": "alice", "query": "when does the on-call shift change hands", "relevant": ["oncall-payments.md#rotation"]}
+{"id": "q015", "split": "val", "category": "conceptual", "user": "alice", "query": "how long do we keep raw event data", "relevant": ["data-platform-overview.md#retention"]}
+{"id": "q016", "split": "test", "category": "conceptual", "user": "alice", "query": "who approves access to tables containing personal data", "relevant": ["data-platform-overview.md#access"]}
+{"id": "q017", "split": "val", "category": "conceptual", "user": "alice", "query": "why was checkout unavailable in March 2025", "relevant": ["incident-2025-031-postmortem.pdf#page=1"]}
+{"id": "q018", "split": "test", "category": "conceptual", "user": "alice", "query": "what was the root cause of the checkout outage", "relevant": ["incident-2025-031-postmortem.pdf#page=1"]}
+{"id": "q019", "split": "val", "category": "conceptual", "user": "alice", "query": "what follow-up actions came out of the checkout incident", "relevant": ["incident-2025-031-postmortem.pdf#page=2"]}
+{"id": "q020", "split": "test", "category": "conceptual", "user": "alice", "query": "can a paid invoice be cancelled", "relevant": ["invoices-api.md#void-an-invoice"]}
+{"id": "q021", "split": "val", "category": "conceptual", "user": "alice", "query": "what happens if a client sends too many requests to the invoices API", "relevant": ["invoices-api.md#rate-limits"]}
+{"id": "q022", "split": "test", "category": "conceptual", "user": "alice", "query": "is it safe to drop a database column in the same release", "relevant": ["orders-deploy-runbook.md#database-migrations"]}
+{"id": "q023", "split": "val", "category": "conceptual", "user": "alice", "query": "can a customer get their money back for an annual subscription after a month", "relevant": ["refund-policy-software.md#refund-window"]}
+{"id": "q024", "split": "test", "category": "conceptual", "user": "alice", "query": "how long does it take for a refund to reach the customer", "relevant": ["refund-policy-software.md#how-refunds-are-issued"]}
+{"id": "q025", "split": "val", "category": "conceptual", "user": "alice", "query": "what is the hotel price limit in capital cities", "relevant": ["expense-policy-2025.md#hotels", "expense-policy-2024.md#hotels"]}
+{"id": "q026", "split": "test", "category": "conceptual", "user": "alice", "query": "deadline for submitting expense claims", "relevant": ["expense-policy-2025.md#submitting-expenses", "expense-policy-2024.md#submitting-expenses"]}
+{"id": "q027", "split": "val", "category": "conceptual", "user": "hannah", "query": "how many weeks of paid parental leave do employees get", "relevant": ["parental-leave.md#entitlement"]}
+{"id": "q028", "split": "test", "category": "conceptual", "user": "hannah", "query": "can I come back part time after having a baby", "relevant": ["parental-leave.md#return-to-work"]}
+{"id": "q029", "split": "val", "category": "conceptual", "user": "hannah", "query": "salary range for a senior engineer", "relevant": ["compensation-bands.md"]}
+{"id": "q030", "split": "test", "category": "conceptual", "user": "alice", "query": "do engineers get time off after night-time incident work", "relevant": ["oncall-payments.md#compensation-for-on-call"]}
+{"id": "q031", "split": "val", "category": "unanswerable", "user": "alice", "query": "what is the budget for trade show booths next year", "relevant": []}
+{"id": "q032", "split": "test", "category": "unanswerable", "user": "alice", "query": "who won the company football tournament", "relevant": []}
+{"id": "q033", "split": "val", "category": "unanswerable", "user": "alice", "query": "how do I reset my VPN password", "relevant": []}
+{"id": "q034", "split": "test", "category": "unanswerable", "user": "alice", "query": "what is the office wifi password", "relevant": []}
+{"id": "q035", "split": "val", "category": "unanswerable", "user": "alice", "query": "when is the next all-hands meeting", "relevant": []}
+{"id": "q036", "split": "test", "category": "unanswerable", "user": "alice", "query": "what is the dress code for client visits", "relevant": []}
+{"id": "q037", "split": "val", "category": "unanswerable", "user": "alice", "query": "how do I order a new laptop", "relevant": []}
+{"id": "q038", "split": "test", "category": "unanswerable", "user": "alice", "query": "which cloud region hosts the mobile app backend", "relevant": []}
+{"id": "q039", "split": "val", "category": "hard_negative", "user": "alice", "query": "ERR-PAY-4013", "relevant": []}
+{"id": "q040", "split": "test", "category": "hard_negative", "user": "alice", "query": "what does ERR-PAY-5002 mean", "relevant": []}
+{"id": "q041", "split": "val", "category": "hard_negative", "user": "alice", "query": "refund window for hardware purchases", "relevant": []}
+{"id": "q042", "split": "test", "category": "hard_negative", "user": "alice", "query": "how do I get a refund for a defective robot arm", "relevant": []}
+{"id": "q043", "split": "val", "category": "hard_negative", "user": "alice", "query": "who is on call for the data platform team", "relevant": []}
+{"id": "q044", "split": "test", "category": "hard_negative", "user": "alice", "query": "what is the rate limit of the orders API", "relevant": []}
+{"id": "q045", "split": "val", "category": "hard_negative", "user": "alice", "query": "POST /api/v2/invoices/{id}/refund", "relevant": []}
+{"id": "q046", "split": "test", "category": "hard_negative", "user": "alice", "query": "how do I roll back a database migration", "relevant": []}
+{"id": "q047", "split": "val", "category": "hard_negative", "user": "alice", "query": "what is the per diem for travel to the moon office", "relevant": []}
+{"id": "q048", "split": "test", "category": "hard_negative", "user": "alice", "query": "orders-svc v4.0.0 release notes", "relevant": []}
+{"id": "q049", "split": "val", "category": "hard_negative", "user": "alice", "query": "what is the mileage reimbursement rate for using a private car", "relevant": []}
+{"id": "q050", "split": "test", "category": "hard_negative", "user": "alice", "query": "how many days of sick leave do employees get", "relevant": []}
+{"id": "q051", "split": "val", "category": "restricted", "user": "bob", "query": "how many weeks of paid parental leave do employees get", "relevant": []}
+{"id": "q052", "split": "test", "category": "restricted", "user": "bob", "query": "salary range for a senior engineer", "relevant": []}
+{"id": "q053", "split": "val", "category": "restricted", "user": "bob", "query": "PROJECT-KESTREL-7", "relevant": []}
+{"id": "q054", "split": "test", "category": "restricted", "user": "bob", "query": "can I come back part time after parental leave", "relevant": []}
+{"id": "q055", "split": "val", "category": "conflict", "user": "alice", "query": "daily meal allowance per diem for domestic business travel", "relevant": ["expense-policy-2025.md#meals-and-per-diem", "expense-policy-2024.md#meals-and-per-diem"]}
+{"id": "q056", "split": "test", "category": "conflict", "user": "alice", "query": "per diem amount for international trips", "relevant": ["expense-policy-2025.md#meals-and-per-diem", "expense-policy-2024.md#meals-and-per-diem"]}

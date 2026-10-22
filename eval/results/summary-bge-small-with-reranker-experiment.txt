@@ -1,0 +1,20 @@
+## BAAI/bge-small-en-v1.5 (MIT)
+ingest: {'documents': 12, 'chunks': 33, 'not_indexed': 0, 'seconds': 0.62}  model load: 0.51s  latency: {'total_p50': 8.7, 'total_p95': 10.0, 'query_embedding_p50': 5.3, 'query_embedding_p95': 6.6}
+| variant | hit@1 | recall@5 | mrr@10 | ndcg@10 | passage hit@1 |
+|---|---|---|---|---|---|
+| lexical | 0.969 | 1.0 | 0.984 | 0.988 | 0.781 |
+| dense | 1.0 | 1.0 | 1.0 | 1.0 | 0.938 |
+| lexical+dense | 1.0 | 1.0 | 1.0 | 1.0 | 0.812 |
+| full | 1.0 | 1.0 | 1.0 | 1.0 | 0.875 |
+chosen on val: {'dense_high': 0.88, 'dense_min': 0.76, 'lex_coverage': 0.34, 'false_answer_rate': 0.0, 'answer_coverage': 0.625, 'precision_among_answered': 1.0}
+abstention_val: FAR=0.0 (n=12) coverage=0.625 (n=16) precision=1.0 conflicts=1/1
+  abstained on answerable: ['q011:what should I do when the card processor is too slow to respond', 'q013:how quickly must a critical page be acknowledged', 'q017:why was checkout unavailable in March 2025', 'q019:what follow-up actions came out of the checkout incident', 'q025:what is the hotel price limit in capital cities', 'q029:salary range for a senior engineer']
+abstention_test: FAR=0.083 (n=12) coverage=0.562 (n=16) precision=0.9 conflicts=1/1
+  false answers: ['q044:what is the rate limit of the orders API']
+  abstained on answerable: ['q012:how do I undo a bad release of the orders service', 'q014:when does the on-call shift change hands', 'q018:what was the root cause of the checkout outage', 'q020:can a paid invoice be cancelled', 'q022:is it safe to drop a database column in the same release', 'q024:how long does it take for a refund to reach the customer', 'q030:do engineers get time off after night-time incident work']
+abstention_test_at_configured_gate: FAR=0.083 (n=12) coverage=0.562 (n=16) precision=0.9 conflicts=1/1
+  false answers: ['q044:what is the rate limit of the orders API']
+  abstained on answerable: ['q012:how do I undo a bad release of the orders service', 'q014:when does the on-call shift change hands', 'q018:what was the root cause of the checkout outage', 'q020:can a paid invoice be cancelled', 'q022:is it safe to drop a database column in the same release', 'q024:how long does it take for a refund to reach the customer', 'q030:do engineers get time off after night-time incident work']
+reranker gate Xenova/ms-marco-MiniLM-L-6-v2: load 0.17s, rerank top-10 p50/p95 106.0/147.4 ms; val choice {'threshold': 2.18, 'false_answer_rate': 0.0, 'answer_coverage': 0.938, 'precision_among_answered': 1.0, 'false_answers': []}; test {'threshold': 2.18, 'false_answer_rate': 0.167, 'answer_coverage': 0.812, 'precision_among_answered': 0.867, 'false_answers': ['q044', 'q046']}
+reranker gate BAAI/bge-reranker-base: load 8.3s, rerank top-10 p50/p95 658.0/852.5 ms; val choice {'threshold': 0.61, 'false_answer_rate': 0.0, 'answer_coverage': 0.938, 'precision_among_answered': 1.0, 'false_answers': []}; test {'threshold': 0.61, 'false_answer_rate': 0.167, 'answer_coverage': 0.875, 'precision_among_answered': 0.875, 'false_answers': ['q044', 'q046']} 
+
