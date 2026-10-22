@@ -33,11 +33,13 @@ class Settings(BaseSettings):
     session_hours: int = 12
     cookie_secure: bool = False  # set true behind TLS
 
-    # Evidence-gate thresholds (cosine similarity on normalized vectors). Tuned on the
-    # validation split of eval/queries.jsonl; see docs/EVALUATION.md before changing.
-    gate_dense_high: float = 0.80
-    gate_dense_min: float = 0.68
-    gate_lex_coverage: float = 0.5
+    # Evidence-gate thresholds (cosine similarity on L2-normalized vectors) for the default
+    # model BAAI/bge-small-en-v1.5, chosen on the *val* split of eval/queries.jsonl as the highest
+    # answer coverage with zero val false answers. They are model-specific: re-run
+    # eval/run_eval.py after changing KS_EMBED_MODEL. See docs/EVALUATION.md.
+    gate_dense_high: float = 0.88
+    gate_dense_min: float = 0.76
+    gate_lex_coverage: float = 0.34
 
 
 @lru_cache

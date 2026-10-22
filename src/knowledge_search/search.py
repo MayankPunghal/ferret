@@ -224,15 +224,7 @@ def search(
             sim = float(r["sim"]) if r["sim"] is not None else None
             lex_cov = (r["lex_hits"] / len(lexemes)) if lexemes else 0.0
             ident_hits = sorted(q_ident_set & set(r["idents"]))
-            basis = []
-            if ident_hits:
-                basis.append("exact_identifier")
-            if q_idents and not ident_hits:
-                pass  # identifier queries need an identifier match to be supported
-            elif sim is not None and sim >= gate.dense_high:
-                basis.append("strong_semantic")
-            elif sim is not None and sim >= gate.dense_min and lex_cov >= gate.lex_coverage:
-                basis.append("semantic_and_lexical_agreement")
+            basis = gate_basis(gate, sim, lex_cov, ident_hits, bool(q_idents))
             branches_hit = [b for b, ids in ranked.items() if cid in ids]
             results.append(
                 Result(
@@ -290,6 +282,24 @@ def search(
         index=index_info,
         timings_ms={k: round(v, 2) for k, v in timings.items()},
     )
+
+
+def gate_basis(gate: GateConfig, sim: float | None, lex_cov: float, ident_hits: list[str], query_has_idents: bool) -> list[str]:
+    """Evidence gate for one candidate. Empty list = not adequate evidence.
+
+    Conservative by design: a query containing identifiers is only supported by a passage that
+    contains one of them; otherwise we need a very high similarity, or moderate similarity
+    *and* agreement with the lexical signal (query-term coverage).
+    """
+    if ident_hits:
+        return ["exact_identifier"]
+    if query_has_idents or sim is None:
+        return []
+    if sim >= gate.dense_high:
+        return ["strong_semantic"]
+    if sim >= gate.dense_min and lex_cov >= gate.lex_coverage:
+        return ["semantic_and_lexical_agreement"]
+    return []
 
 
 def _conflict(supported: list[Result], reasons: list[str]) -> bool:
