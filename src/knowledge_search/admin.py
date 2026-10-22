@@ -40,7 +40,8 @@ def _settings_view(conn) -> dict:
     cov = coverage_for(conn, [r["id"] for r in conn.execute("SELECT id FROM collections")], rt.signature())
     return {
         "values": asdict(rt),
-        "defaults": asdict(runtime.defaults()),
+        "defaults": asdict(runtime.defaults(rt.embed_model)),
+        "thresholds_tuned": runtime.thresholds_tuned(rt.embed_model),
         "limits": runtime.LIMITS,
         "options": {
             "embed_models": [{"name": m.name, "dim": m.dim, "license": m.license, "size_mb": m.size_mb}
@@ -65,6 +66,9 @@ def put_settings(changes: dict, p: Admin, conn: Conn):
     except (ValueError, TypeError) as e:
         raise HTTPException(422, str(e)) from e
     before = runtime.load(conn)
+    if "embed_model" in clean and not ({"gate_dense_high", "gate_dense_min"} & set(clean)):
+        # switching models: drop threshold overrides so the new model's tuned values apply
+        conn.execute("DELETE FROM app_settings WHERE key IN ('gate_dense_high', 'gate_dense_min')")
     runtime.save(conn, clean, p.user_id)
     auth.audit(conn, p.user_id, "settings_changed", None, keys=sorted(clean))
     conn.commit()

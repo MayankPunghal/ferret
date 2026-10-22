@@ -15,6 +15,19 @@
   the best way — as long as the quality of the outcome is not compromised. Prefer deleting or
   simplifying code over adding abstractions, services or infrastructure.
 
+## End goal (owner, standing)
+A **production-grade, offline-first knowledge search (and later "second brain" Q&A) for technical/IT
+people** — PMs, BAs, developers, DBAs, DevOps; codebase docs, runbooks, business workflows. Must be:
+one-click install for a non-technical user on Windows/macOS/Linux, no external AI provider required,
+trustworthy (cites real passages, abstains instead of guessing, enforces permissions), and polished.
+Indexing speed may be traded for accuracy (background jobs); retrieval of 1–6 s with a visible loader is
+acceptable. Graph-style navigation of heavily interlinked technical docs (Graphify-like wikis:
+relationships, blast radius, from→to links) is a priority research direction.
+
+**Work like the lead architect:** keep going until satisfied with quality, look and functionality; audit
+your own work periodically against this goal and the brief's gates (re-read this file, run the tests and
+the UI walkthrough, check docs match behaviour); make decisions autonomously; keep the handoff current.
+
 ## Working conventions
 - Python 3.13, `uv` for env/deps (versions pinned in `pyproject.toml` / `uv.lock`).
 - Tests need PostgreSQL+pgvector: `docker compose up -d db` then `uv run pytest`.

@@ -22,6 +22,9 @@ class ModelSpec:
     doc_prefix: str = ""
     license: str = ""
     size_mb: int = 0
+    # Evidence-gate cosine thresholds tuned for this model (eval/); None = not tuned, use the global default.
+    gate_high: float | None = None
+    gate_min: float | None = None
 
     @property
     def version_key(self) -> str:
@@ -33,7 +36,7 @@ class ModelSpec:
 MODELS = {
     m.name: m
     for m in [
-        ModelSpec("BAAI/bge-small-en-v1.5", 384, BGE_QUERY_PREFIX, "", "MIT", 67),
+        ModelSpec("BAAI/bge-small-en-v1.5", 384, BGE_QUERY_PREFIX, "", "MIT", 67, 0.88, 0.76),
         ModelSpec("BAAI/bge-base-en-v1.5", 768, BGE_QUERY_PREFIX, "", "MIT", 210),
         ModelSpec("BAAI/bge-large-en-v1.5", 1024, BGE_QUERY_PREFIX, "", "MIT", 1200),
         ModelSpec("snowflake/snowflake-arctic-embed-s", 384, BGE_QUERY_PREFIX, "", "Apache-2.0", 130),

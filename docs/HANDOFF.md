@@ -1,127 +1,102 @@
-# Handoff — Knowledge Search (state at end of the cloud session, 2026-10-22)
+# Handoff — Knowledge Search
 
-Read this first, then `CLAUDE.md` (standing instructions), `README.md` (how to run),
-`docs/ARCHITECTURE.md` (decisions + sources), `docs/EVALUATION.md` (numbers).
-Authoritative scope: `docs/brief/…master_prompt.md` §11 (gates + acceptance criteria).
+State at the end of the cloud session (2026-10-22). Read with `CLAUDE.md` (owner instructions and end
+goal), `README.md`, and the docs listed there. Scope authority: `docs/brief/…master_prompt.md` §11.
 
 ## 1. Resume locally
 
 ```bash
 git clone https://github.com/MayankPunghal/knowledge-search && cd knowledge-search
-./setup.sh --demo                      # Windows: setup.bat -Demo
-uv run pytest -q                       # expect: 19 passed (needs the db container + model cache)
-uv run python eval/run_eval.py         # rebuilds database ks_eval, prints metrics
+./setup.sh --demo --no-start          # Windows: setup.bat -Demo -NoStart
+uv sync                               # adds dev tools
+uv run pytest -q                      # expect 31 passed (embedded PostgreSQL; no Docker)
+uv run --group eval python eval/run_eval.py --reranker Xenova/ms-marco-MiniLM-L-6-v2
+./start.sh                            # or start.bat → http://127.0.0.1:8000
 ```
 
-## 2. What exists (modular monolith, ~1.6k lines of Python + small static UI)
+## 2. What the product is now
 
-| Path | Role |
-|---|---|
-| `src/knowledge_search/migrations/0001_init.sql` | schema: users/groups/grants, documents/versions, chunks (tsvector, vector(384), idents[]), jobs, audit, app_meta |
-| `config.py` | all `KS_*` settings; **no generation/remote-AI settings exist** |
-| `parsing.py` | validation, Markdown (front matter, heading anchors), text, PDF (page anchors), chunker, identifier extractor |
-| `embedder.py` | fastembed/ONNX CPU adapter + pinned model registry (prefixes, dim, licence, vector-space key) |
-| `ingest.py` | blob store, idempotent `submit`, delete+GC, retry, `Worker` (SKIP LOCKED, backoff, atomic chunk swap, superseded jobs, stale-lock recovery) |
-| `search.py` | three permission-filtered branches, RRF, `gate_basis`, outcomes/reason codes, coverage, conflict detection |
-| `auth.py` | argon2id accounts, opaque sessions, principal → readable/writable collection ids, audit |
-| `api.py` | FastAPI routes (OpenAPI `/docs`), CSRF header for cookie sessions, 404-for-unauthorized, inert source serving, status |
-| `cli.py` | migrate, users/groups/collections/grants, ingest dir, serve (`--workers`), worker, download-model |
-| `static/` | search workspace UI (search, scope chips, outcome banner, evidence vs weaker matches, passage drawer, source open, uploads, retry/delete, status) |
-| `fixtures/` | FICTIONAL corpus (12 docs, md/txt/pdf) + PDF generator |
-| `tests/` | 19 integration tests on real Postgres + real model |
-| `eval/` | 56 labelled queries, `run_eval.py`, `bench_concurrency.py`, committed results |
-| `Dockerfile`, `docker-compose.yml`, `deploy/Caddyfile`, `.env.example` | laptop + server profiles |
+Offline knowledge search for technical teams: upload Markdown/text/PDF into permissioned collections;
+hybrid retrieval (PostgreSQL full-text + local embeddings + exact identifiers, RRF, optional local
+reranker); every search returns ranked passages with source links **and an explicit evidence outcome**
+(`evidence_found`, `conflicting_evidence`, `no_adequate_evidence`, `index_coverage_incomplete`,
+`no_searchable_scope`, `retrieval_degraded`, `retrieval_failure`). One-click setup with an embedded
+PostgreSQL (no Docker). Admin UI for models, chunking, reranker, thresholds, users and access.
+No LLM generation yet (deliberately — see §7).
 
-## 3. Gate / acceptance checklist (status as of handoff)
+Code map: `src/knowledge_search/` — `api.py` (routes), `admin.py` (admin routes), `search.py`
+(retrieval + gate), `ingest.py` (versions, worker, progress), `parsing.py`, `embedder.py` (model
+registry + per-model thresholds), `runtime.py` (settings, model cache, reranker), `vectors.py`
+(in-memory vector search), `auth.py`, `db.py` (embedded PG, migrations, Windows DLL fix), `cli.py`,
+`static/` (UI), `migrations/0001-0003`. Tests in `tests/`, evaluation in `eval/`.
 
-Legend: **verified** = command run and output inspected in this session; **implemented** = code exists,
-not independently verified; **blocked**; **not started**.
+## 3. Verification status (what was actually run)
 
-| Acceptance criterion (§11) | Status | Evidence |
+| Item | Status | Evidence |
 |---|---|---|
-| 1 Start from documented commands on laptop env | verified | native: `migrate`, `create-user`, `ingest --wait`, `serve`, `worker` all run (Linux 4 vCPU container) |
-| 2 CPU-only search, no generator/GPU/outbound AI | verified | `test_search_makes_no_outbound_network_calls` (sockets blocked during search; settings have no AI/provider fields); `KS_OFFLINE=1` used throughout |
-| 3 Ingest; real job status/errors; unchanged not reprocessed | verified | `test_ingest_update_unchanged_delete`, `test_rejected_and_failed_ingestion_are_explicit`; CLI re-ingest printed `unchanged`, 0 jobs |
-| 4 Exact-identifier + conceptual queries with real source refs | verified | `test_exact_identifier_query`, `test_api_path_query`, `test_conceptual_paraphrase_query`, `test_pdf_result_opens_real_source_page` (bytes equal original) |
-| 5 No-evidence vs incomplete indexing vs technical failure distinct | verified | tests for `no_adequate_evidence`, `index_coverage_incomplete` (pending + failed), `retrieval_degraded`, `retrieval_failure` (503) |
-| 6 Authorization prevents cross-scope access (endpoints + UI paths) | verified (API) | `test_restricted_collection_is_invisible`, `..._equals_nonexistent`, `..._revocation_applies_immediately`, `test_write_permission_required`, CSRF test. UI uses the same endpoints. |
-| 7 Update/delete/retry leave no stale or duplicate records | verified (exercised paths) | single version of chunks after update; old identifier unsearchable; delete removes chunks/blob; transient embedding failure retried |
-| 8 Repeatable labelled evaluation incl. false-answer rate + coverage | verified | `eval/run_eval.py`; results in `eval/results/`, summarized in EVALUATION.md |
-| 9 CPU server profile runnable with persistent storage + multi-user auth | partially verified | native server profile verified (separate API + worker processes, Postgres container volume, 4 users via HTTP, concurrency test 0 errors). **Docker image build blocked** (Docker Hub + ECR returned HTTP 429 on base-image pulls) → `docker compose build` unverified; Caddy/TLS unverified |
-| 10 UI checked functionally and visually | verified | `scripts/ui_check.py` (Playwright/Chromium) against the live server after `./setup.sh --demo`; screenshots in `docs/screenshots/` reviewed |
-| 11 No fabricated results | upheld | every number in docs comes from a command output in this session; unmeasured items are labelled |
+| Test suite | **verified** | `uv run pytest -q` → 31 passed (search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
+| Windows setup | **partially verified by the owner** on Windows 11: install, model download, DB init and indexing worked after the DLL fix; searches then crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93). **That fix is not yet verified on Windows.** | owner logs |
+| UI walkthrough | **verified** (Playwright/Chromium, `scripts/ui_check.py`): first-run admin, settings save + reindex, collections/grants/users, multi-file upload incl. rejection, clean state after sign-out/in, search outcomes, passage drawer, source open, mobile width | `docs/screenshots/` |
+| Server profile (web + separate worker, external PG, concurrency) | verified natively earlier (0 errors at c=16, ~60–75 req/s on 4 vCPU, bge-small). Docker image build **not verified** (registry rate limits) | docs/evaluation.md |
+| GPU | **not available, not implemented** | — |
+| Backup/restore | documented, **not rehearsed** | docs/deployment.md |
 
-Gate 2 items: incremental update/delete/dedup/retry — verified; failed/stale state + retry — verified;
-permission regression tests (search, snippets, passages, source/download, listing, status, admin) —
-verified (no cache exists, so cache leakage is N/A); evaluation set + metrics — verified; latency —
-measured on fixtures; backup/restore/reindex docs — written, **restore not rehearsed**; health checks —
-implemented and exercised (`/healthz`, `/readyz`, `/api/status`, `/api/admin/status`).
+## 4. Measured results (tables and caveats in docs/evaluation.md)
 
-## 4. Measured results (fictional corpus — smoke-level evidence only)
+- **Embedding models, BEIR SciFact subset (2,000 abstracts, 300 human-labelled queries), CPU:**
+  bge-small nDCG@10 0.779 (8.3 docs/s, query 6.6 ms) · **bge-base 0.818** (3.3 docs/s, 23 ms) ·
+  arctic-embed-m 0.814 (3.7 docs/s, 22 ms). nomic-v1.5 was OOM-killed (now bounded by batch/token caps;
+  not re-measured). Qwen3-Embedding-0.6B **not measured** (too slow for the session on this CPU).
+- **Rerankers on bge-base top-30:** ms-marco-MiniLM-L-6-v2 **hurts** technical/scientific ranking
+  (0.818 → 0.775, +1.6 s/query). bge-reranker-base: see evaluation.md.
+- **Abstention at scale** (`eval/scale_eval.py`): see evaluation.md.
+- Fixtures (12 docs, 56 queries): hybrid ranking at ceiling; similarity gate test false-answer 1/12 at
+  56–63% coverage; reranker gates 81% coverage with 2/12 false answers.
 
-* Retrieval (answerable, doc-level): Hit@1 1.0, Recall@5 1.0, MRR 1.0 for hybrid; lexical-only Hit@1
-  0.969. Passage Hit@1: dense-only 0.938 > full 0.875 (title weighting; see EVALUATION.md).
-* Abstention, held-out test: false-answer rate 1/12, answer coverage 9/16, precision among answered 0.9,
-  conflict detected 1/1, restricted leaks 0.
-* Latency: in-process warm p50 10 ms; HTTP single API process: c=1 p50 14.5 ms / p95 26.5 ms,
-  ~60–75 req/s saturating 4 shared vCPUs, c=16 p95 261 ms, 0 errors. `--workers 3` gave no gain on
-  this machine (CPU-bound). Full table in EVALUATION.md.
-* Model comparison and reranker experiment: EVALUATION.md.
+## 5. Decisions made this session (details: docs/architecture.md)
 
-## 5. UI verification and one-command setup
+Embedded PostgreSQL + vendored Windows DLL; in-memory vector search for laptops; runtime-editable
+settings with index signatures (outdated documents are reported, never silently mixed); per-model tuned
+thresholds; reranker optional and off unless it measurably helps; first-run admin in the browser;
+auto-migrations on start; GraphRAG deferred in favour of a deterministic link-graph research track.
 
-* `scripts/ui_check.py` (headless Chromium) passed every step: wrong password shows an error; login;
-  scope chips list only readable collections; exact search → *evidence found* (exact identifier badge);
-  passage drawer shows the cited section with context; **Open source** opens the original file in a new
-  tab; conceptual query about the PDF → abstains with the correct page as top lower-relevance match;
-  unrelated query → *no adequate evidence*; per-diem query → *conflicting evidence* with both versions;
-  upload → worker indexes it → delete; status tab; 390 px width has no horizontal overflow; logout.
-  Console errors: only the expected 401s (pre-login `/api/me`, wrong password) and a 404 (no favicon).
-  Screenshots reviewed visually: `docs/screenshots/`.
-* `./setup.sh --demo` verified from an empty database volume (15 s with model cached; idempotent re-run
-  reports all documents `unchanged`). Demo permissions verified (bob: no HR evidence; hannah: HR policy).
-* `setup.bat` → `setup.ps1` (Windows) written but **not run** (no Windows/PowerShell available).
+## 6. Explored vs unexplored
 
-## 6. Explored paths and their outcome
-
-| Path | Outcome |
+| Explored (outcome) | Unexplored / open |
 |---|---|
-| Existing products (Onyx, RAGFlow, R2R) as base | Rejected for v1 (operational surface, LLM-centric); Onyx remains the reference for connectors/permission sync |
-| .NET control plane + Python ML service | Deferred: no .NET SDK available; single Python process is simpler. Contract (JSON API) allows a later split |
-| Qdrant / OpenSearch vs PostgreSQL | PostgreSQL+pgvector chosen (one store, transactional ACL/versioning). Not benchmarked against Qdrant — only justified at larger scale |
-| Embedding models: bge-small, arctic-embed-s, granite-small-r2 | Measured; bge-small shipped. Qwen3-Embedding-0.6B (fastembed ONNX, 1.1 GB) **not tried** |
-| Cross-encoder rerankers (MiniLM-L6, bge-reranker-base) as evidence gate | Measured; +25–31 pts coverage, no false-answer gain, +106/+658 ms CPU → deferred |
-| ONNX thread setting (`KS_EMBED_THREADS=1` vs default) | Measured; no throughput gain |
-| Docker image build | Blocked by registry rate limit (429) in the cloud env |
-| GPU | Not available; nothing verified |
+| Existing products (Onyx/RAGFlow/R2R) — rejected for v1 | Connectors (Confluence, SharePoint, Git, Jira) |
+| Docker-based laptop install — replaced (failed on the owner's Windows) | OIDC / company SSO |
+| Embedded PG on Windows — two platform bugs found and fixed (DLL, pgvector distance) | Verify the Windows search fix; Windows service install (NSSM) |
+| 6 embedding models screened (3 measured on SciFact) | Qwen3-Embedding-0.6B, bge-large, mxbai-large; multilingual corpora |
+| 3 rerankers (MiniLM measured harmful on technical text) | Rerankers on the owner's real documents |
+| Gate families: similarity, IDF-weighted, reranker, reranker+similarity | Calibration on real labelled data |
+| Concurrency (single/multi process) | Large corpora (10⁵+ chunks), HNSW |
+| — | Office formats, OCR, Docling for complex PDFs |
+| — | **Graph navigation for interlinked technical docs** — design in docs/research-graph.md |
+| — | **Local LLM answers with citations ("second brain")** |
 
-## 7. Unexplored / next steps (highest value first)
+## 7. Next steps (highest value first)
 
-1. **Run on real documents** (even 50–200 files) and write 50+ real queries with labels; re-run
-   `eval/run_eval.py`; re-tune gate thresholds on a val split; keep a test split untouched.
-2. **Verify `docker compose build` / `up`** on the local machine; then rehearse backup → restore
-   (`pg_dump` + blobs) and record it.
-3. Abstention coverage: with real data, re-test the MiniLM reranker gate and a lower title weight in
-   the lexical branch (passage Hit@1 regression). Adopt only on measured gain.
-4. Formats demanded by the real corpus: Office (`python-docx`), then Docling for complex PDFs/tables/OCR.
-5. Identity: OIDC login mapping IdP groups → `groups` once the provider is known.
-6. Gate 3 (one at a time, only with a concrete use case): authenticated MCP tool or a thin REST
-   `/api/search` client for an external agent workflow (embedding → retrieval → rerank → LLM summary is
-   possible *outside* this app today by calling `/api/search`); optional local generation with citation
-   validation; graph retrieval only with labelled multi-hop queries.
-7. Scale: HNSW + iterative scans past ~10⁵–10⁶ chunks, measured against exact KNN recall.
+1. **Owner retry on Windows** (`git pull`, `start.bat`): confirm search works.
+2. **Real-corpus evaluation:** index 200–1,000 real technical documents (e.g. a Graphify /
+   codebase-documenter wiki + runbooks); write 50–100 labelled questions including unanswerable ones;
+   run the gate tuning (`eval/gates.py`) on them; store per-model thresholds in `embedder.py`.
+3. **Graph navigation research** (docs/research-graph.md): deterministic `doc_links` from Markdown links,
+   front matter and shared identifiers; link expansion, related-docs panel, blast-radius traversal;
+   evaluate against hybrid on multi-hop questions.
+4. **Second brain:** local LLM (Ollama/llama.cpp via an OpenAI-compatible endpoint, opt-in) answering only
+   from retrieved passages with checked citations; abstains on `no_adequate_evidence`; surfaces conflicts.
+   Expose `search`/`get_passage`/`get_links` as REST/MCP tools for agent navigation.
+5. Office/Docling parsing, OIDC, Docker build verification, backup/restore rehearsal.
 
-Not to do before the above (per brief): GraphRAG, generation, plugin system, agent harness, multiple
-search engines, Kubernetes, trajectory replay.
+## 8. Gotchas
 
-## 8. Useful commands / gotchas
-
-* Dev DB: `docker compose up -d db` (pgvector/pgvector:0.8.1-pg17 on 127.0.0.1:55432, user/pass `ks/devpass`).
-* Tests drop/recreate database `ks_test`; eval drops/recreates `ks_eval`. They never touch `ks`.
-* Model cache defaults to `./data/models`; tests and eval use offline mode against it.
-* Server restarts: don't `pkill -f "knowledge-search serve"` from a shell whose command line contains
-  that string (it kills itself).
-* UI check: `pip install playwright && playwright install chromium`, start the demo server, then
-  `python scripts/ui_check.py docs/screenshots` (set `CHROMIUM_PATH` to use a preinstalled Chromium).
-* Gate thresholds are **model-specific** (`KS_GATE_*`); changing `KS_EMBED_MODEL` requires reindex
-  **and** re-tuning.
+- `KS_DATABASE_URL` empty = embedded PG in `data/pg`; set it for external servers (vector search then runs
+  in pgvector unless `KS_VECTOR_SEARCH=memory`).
+- Changing the model or chunking marks documents outdated until reindexed (Settings → Reindex).
+- Thresholds are per model (`ModelSpec.gate_high/gate_min`); untuned models show a warning in Settings.
+- Never `pkill -f "knowledge-search serve"` from a shell command line that contains that text.
+- The cloud environment rewrote the literal `NUL` in shell commands; Windows scripts were written with the
+  editor tool and `.gitattributes` forces CRLF for `.bat/.ps1`.
+- The embedded PG refuses to run as root on Linux; the package creates a `pgserver` user automatically.

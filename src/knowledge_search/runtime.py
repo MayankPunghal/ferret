@@ -59,23 +59,34 @@ def base() -> Settings:
 LIMITS = {"chunk_size": (200, 4000), "chunk_overlap": (0, 1000), "rerank_candidates": (5, 100)}
 
 
-def defaults() -> Runtime:
+def defaults(model: str | None = None) -> Runtime:
+    """Defaults from KS_* settings; cosine thresholds come from the model's tuned values when it has them."""
     s = base()
+    model = model or s.embed_model
+    spec = MODELS.get(model)
+    high = spec.gate_high if spec and spec.gate_high is not None else s.gate_dense_high
+    low = spec.gate_min if spec and spec.gate_min is not None else s.gate_dense_min
     return Runtime(
-        embed_model=s.embed_model, chunk_size=s.chunk_size, chunk_overlap=s.chunk_overlap,
+        embed_model=model, chunk_size=s.chunk_size, chunk_overlap=s.chunk_overlap,
         rerank_enabled=s.rerank_enabled, rerank_model=s.rerank_model, rerank_candidates=s.rerank_candidates,
-        gate_dense_high=s.gate_dense_high, gate_dense_min=s.gate_dense_min,
+        gate_dense_high=high, gate_dense_min=low,
         gate_lex_coverage=s.gate_lex_coverage, gate_rerank_min=s.gate_rerank_min,
         gate_mode=s.gate_mode, gate_lexical=s.gate_lexical,
     )
 
 
 def load(conn: Connection) -> Runtime:
-    rt = defaults()
-    for r in conn.execute("SELECT key, value FROM app_settings"):
-        if r["key"] in {f.name for f in fields(Runtime)}:
-            setattr(rt, r["key"], r["value"])
+    names = {f.name for f in fields(Runtime)}
+    overrides = {r["key"]: r["value"] for r in conn.execute("SELECT key, value FROM app_settings") if r["key"] in names}
+    rt = defaults(overrides.get("embed_model"))
+    for k, v in overrides.items():
+        setattr(rt, k, v)
     return rt
+
+
+def thresholds_tuned(model: str) -> bool:
+    spec = MODELS.get(model)
+    return bool(spec and spec.gate_high is not None)
 
 
 def validate(changes: dict) -> dict:

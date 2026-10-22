@@ -265,7 +265,8 @@ function showSettings(s) {
   $("#s-rerank").replaceChildren(...s.options.rerankers.map((m) => el("option", { value: m.name, textContent: `${m.name} — ~${m.size_mb} MB, ${m.license}, ${m.note}` })));
   fillSettings(s.values);
   const st = Object.entries(s.model_status).map(([k, v]) => `${k}: ${v}`).join(" · ");
-  $("#s-model-status").textContent = st ? "Model downloads: " + st : "";
+  $("#s-model-status").textContent = (st ? "Model status: " + st + ". " : "") +
+    (s.thresholds_tuned ? "" : "Evidence thresholds have not been tuned for this model yet — results may be stricter or looser than intended; run the evaluation to tune them.");
   const ix = s.index;
   $("#reindex-info").textContent = `${ix.indexed}/${ix.documents} documents indexed with the current settings · ${ix.outdated} outdated · ${ix.pending} pending · ${ix.failed} failed`;
   const b = $("#settings-banner");

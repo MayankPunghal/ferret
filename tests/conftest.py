@@ -65,7 +65,7 @@ def embedder():
 def client(database, embedder, tmp_path_factory):
     # vector_search="memory": the laptop default (embedded DB); test_vectors also checks the pgvector path.
     settings = Settings(database_url=database, data_dir=tmp_path_factory.mktemp("data"), model_cache=Path(MODEL_CACHE),
-                        vector_search="memory",
+                        vector_search="memory", embed_model="BAAI/bge-small-en-v1.5",
                         inprocess_workers=0)
     with TestClient(create_app(settings, embedder, start_workers=False)) as c:
         yield c
