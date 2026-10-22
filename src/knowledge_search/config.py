@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     model_cache: Path = Path("./data/models")
     embed_model: str = "BAAI/bge-small-en-v1.5"
     embed_threads: int = 0  # 0 = onnxruntime default
+    # Where vector similarity is computed: "memory" (numpy in the app process), "database" (pgvector in
+    # SQL) or "auto" = memory with the embedded database (laptop), database with an external server.
+    vector_search: str = "auto"
     offline: bool = False
 
     # Defaults for admin-editable runtime settings (Settings page / app_settings table override these).
@@ -52,6 +55,10 @@ class Settings(BaseSettings):
     gate_dense_high: float = 0.88
     gate_dense_min: float = 0.76
     gate_lex_coverage: float = 0.34
+
+
+def memory_vectors(s: "Settings") -> bool:
+    return s.vector_search == "memory" or (s.vector_search == "auto" and not s.database_url)
 
 
 @lru_cache

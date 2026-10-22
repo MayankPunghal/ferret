@@ -48,7 +48,7 @@ def _settings_view(conn) -> dict:
             "rerankers": [{"name": k, "license": v[0], "size_mb": v[1], "note": v[2]}
                           for k, v in runtime.RERANKERS.items()],
         },
-        "model_status": dict(_loading),
+        "model_status": {**runtime.model_states(), **{f"download: {k}": v for k, v in _loading.items()}},
         "index": {"signature": rt.signature(), **cov},
     }
 

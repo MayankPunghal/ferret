@@ -179,6 +179,12 @@ async function uploadFiles(files) {
 
 async function loadDocs() {
   const docs = await api("/api/documents");
+  if (me.is_admin && docs.some((d) => d.status === "pending" || d.status === "processing")) {
+    const st = await api("/api/status").catch(() => ({}));
+    const busy = Object.entries(st.models || {}).filter(([, v]) => !v.startsWith("ready") && v !== "not loaded");
+    $("#model-banner").hidden = !busy.length;
+    $("#model-banner").textContent = busy.map(([k, v]) => `${k} — ${v}. Indexing continues automatically when the model is ready; large models can take several minutes to download.`).join(" ");
+  } else $("#model-banner").hidden = true;
   $("#docs").replaceChildren(...docs.map((d) => {
     const actions = el("td");
     if (d.can_write && d.status === "failed") {

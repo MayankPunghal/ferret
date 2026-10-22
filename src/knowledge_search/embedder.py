@@ -50,6 +50,9 @@ class EmbeddingError(Exception):
     pass
 
 
+MAX_TOKENS = 512  # chunks are ~900 chars (~250 tokens); the cap bounds memory for long-context models
+
+
 class Embedder:
     def __init__(self, model: str, cache_dir: str, threads: int = 0, offline: bool = False):
         if model not in MODELS:
@@ -60,6 +63,9 @@ class Embedder:
         self._offline = offline
         self._model = None
         self._lock = threading.Lock()
+        self.state = "not loaded"  # not loaded | loading | ready | error: ...
+        # Smaller batches for larger models keep peak RAM bounded on laptops.
+        self.batch_size = 32 if self.spec.size_mb < 200 else 8 if self.spec.size_mb < 600 else 4
 
     def _load(self):
         if self._model is None:
@@ -67,20 +73,27 @@ class Embedder:
                 if self._model is None:
                     from fastembed import TextEmbedding
 
+                    self.state = "loading (first use downloads the model)"
                     try:
-                        self._model = TextEmbedding(
+                        model = TextEmbedding(
                             self.spec.name,
                             cache_dir=self._cache_dir,
                             threads=self._threads,
                             local_files_only=self._offline,
                         )
                     except Exception as e:  # download / load failure
+                        self.state = f"error: {e}"[:300]
                         raise EmbeddingError(f"cannot load model {self.spec.name}: {e}") from e
+                    tok = getattr(getattr(model, "model", None), "tokenizer", None)
+                    if tok is not None:
+                        tok.enable_truncation(max_length=MAX_TOKENS)
+                    self._model = model
+                    self.state = "ready"
         return self._model
 
     def _embed(self, texts: list[str]) -> np.ndarray:
         try:
-            vecs = np.array(list(self._load().embed(texts, batch_size=32)), dtype=np.float32)
+            vecs = np.array(list(self._load().embed(texts, batch_size=self.batch_size)), dtype=np.float32)
         except EmbeddingError:
             raise
         except Exception as e:

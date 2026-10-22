@@ -97,9 +97,9 @@ def main(argv: list[str] | None = None) -> None:
             _open_browser_when_ready(f"http://{'127.0.0.1' if a.host in ('0.0.0.0', '::') else a.host}:{a.port}")
         if a.workers > 1:
             uvicorn.run("knowledge_search.api:create_app", factory=True, host=a.host, port=a.port,
-                        proxy_headers=True, workers=a.workers)
+                        proxy_headers=True, workers=a.workers, access_log=False)
         else:
-            uvicorn.run(create_app(), host=a.host, port=a.port, proxy_headers=True)
+            uvicorn.run(create_app(), host=a.host, port=a.port, proxy_headers=True, access_log=False)
     elif a.cmd == "demo":
         _demo(s)
     elif a.cmd == "worker":

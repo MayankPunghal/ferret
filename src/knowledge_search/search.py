@@ -14,8 +14,9 @@ from dataclasses import asdict, dataclass, field
 
 from psycopg import Connection
 
-from . import runtime
+from . import runtime, vectors
 from .auth import Principal
+from .config import memory_vectors
 from .embedder import Embedder
 from .parsing import extract_idents
 
@@ -193,6 +194,7 @@ def search(
         reasons.append("scope_filtered_by_user")
     embedder = embedder or runtime.embedder(rt.embed_model)
     model_key = embedder.spec.version_key
+    in_memory = memory_vectors(runtime.base())
     index_info = {"embedding_model": embedder.spec.name, "vector_space": model_key,
                   "reranker": rt.rerank_model if rt.rerank_enabled else None, "gate": gate.mode}
     if not scope:
@@ -211,15 +213,21 @@ def search(
             qvec = embedder.embed_query(query)
             timings["query_embedding"] = (time.perf_counter() - t) * 1000
             t = time.perf_counter()
-            rows = conn.execute(
-                "SELECT id FROM chunks WHERE collection_id = ANY(%s) AND embedding_model = %s "
-                "ORDER BY embedding <=> %s LIMIT %s",
-                (scope, model_key, qvec, BRANCH_LIMIT),
-            ).fetchall()
-            ranked["dense"] = [r["id"] for r in rows]
+            if in_memory:
+                ranked["dense"] = vectors.index.top_k(conn, model_key, qvec, scope, BRANCH_LIMIT)
+            else:
+                rows = conn.execute(
+                    "SELECT id FROM chunks WHERE collection_id = ANY(%s) AND embedding_model = %s "
+                    "ORDER BY embedding <=> %s LIMIT %s",
+                    (scope, model_key, qvec, BRANCH_LIMIT),
+                ).fetchall()
+                ranked["dense"] = [r["id"] for r in rows]
             timings["dense"] = (time.perf_counter() - t) * 1000
         except Exception:  # noqa: BLE001 - surfaced as an explicit degraded state
-            conn.rollback()
+            try:
+                conn.rollback()
+            except Exception:  # noqa: BLE001 - connection lost; later queries fail and are reported
+                pass
             qvec = None
             failed.append("dense")
             reasons.append("dense_branch_failed")
@@ -258,7 +266,7 @@ def search(
             "SELECT c.id, c.document_id, c.doc_title, c.heading_path, c.page, c.anchor, c.idents, c.text, "
             "col.name AS collection, d.metadata, d.source_uri, v.version_no, v.media_type, "
             "(d.indexed_version_id IS DISTINCT FROM d.latest_version_id) AS outdated, "
-            "CASE WHEN %(qv)s::vector IS NULL OR c.embedding_model <> %(mk)s THEN NULL "
+            "CASE WHEN %(qv)s::vector IS NULL OR %(mem)s OR c.embedding_model <> %(mk)s THEN NULL "
             "     ELSE 1 - (c.embedding <=> %(qv)s::vector) END AS sim, "
             "ARRAY(SELECT unnest(tsvector_to_array(c.tsv)) INTERSECT SELECT unnest(%(lx)s::text[])) AS lex_hit, "
             "ts_headline('english', c.text, to_tsquery('english', %(tq)s), "
@@ -268,9 +276,14 @@ def search(
             "JOIN document_versions v ON v.id = c.version_id JOIN collections col ON col.id = c.collection_id "
             "WHERE c.id = ANY(%(ids)s) AND c.collection_id = ANY(%(scope)s)",
             {"qv": qvec, "lx": lexemes, "tq": _or_tsquery(lexemes) if lexemes else "''", "ids": pool,
-             "scope": scope, "mk": model_key},
+             "scope": scope, "mk": model_key, "mem": in_memory},
         ).fetchall()
         rows_by_id = {r["id"]: r for r in rows}
+        if in_memory and qvec is not None:
+            sims = vectors.index.similarities(model_key, qvec, list(rows_by_id))
+            for cid, r in rows_by_id.items():
+                if cid in sims:
+                    r["sim"] = sims[cid]
     pool = [c for c in pool if c in rows_by_id]
 
     rerank: dict[int, float] = {}

@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from importlib import resources
 from uuid import UUID
 
+import psycopg
+import psycopg_pool
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -71,6 +73,15 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
         if request.url.path.startswith("/api/"):
             resp.headers.setdefault("Cache-Control", "no-store")
         return resp
+
+    @app.exception_handler(psycopg.OperationalError)
+    @app.exception_handler(psycopg_pool.PoolTimeout)
+    async def database_unavailable(request: Request, exc: Exception):
+        log.error("database unavailable: %s", type(exc).__name__)
+        body = {"detail": "The database is temporarily unavailable. Try again in a moment."}
+        if request.url.path == "/api/search":
+            body = {"outcome": RETRIEVAL_FAILURE, "message": MESSAGES[RETRIEVAL_FAILURE], "results": []}
+        return JSONResponse(status_code=503, content=body)
 
     _routes(app)
     app.include_router(admin.router)
@@ -201,7 +212,10 @@ def _routes(app: FastAPI) -> None:
             resp = search(conn, p, body.query, rt, body.collection_ids, body.limit)
         except Exception:  # noqa: BLE001 - explicit failure state, no internals leaked
             log.exception("search failed")
-            conn.rollback()
+            try:
+                conn.rollback()
+            except psycopg.Error:
+                pass  # connection is gone; the pool discards it
             return JSONResponse(
                 status_code=503,
                 content={"outcome": RETRIEVAL_FAILURE, "message": MESSAGES[RETRIEVAL_FAILURE], "results": []},
@@ -343,4 +357,7 @@ def _routes(app: FastAPI) -> None:
                  "reranker": rt.rerank_model if rt.rerank_enabled else "off",
                  "evidence_gate": rt.gate_mode if rt.rerank_enabled else "similarity",
                  "parser_version": PARSER_VERSION}
-        return {"coverage": cov, "collections": per, "index": index}
+        out = {"coverage": cov, "collections": per, "index": index}
+        if p.is_admin:
+            out["models"] = runtime.model_states()
+        return out

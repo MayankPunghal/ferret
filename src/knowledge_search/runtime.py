@@ -135,6 +135,13 @@ def embedder(name: str) -> Embedder:
         return _embedders[name]
 
 
+def model_states() -> dict[str, str]:
+    """Load state of every model this process has touched (shown in the UI)."""
+    out = {f"embedding: {k}": e.state for k, e in _embedders.items()}
+    out.update({f"reranker: {k}": "ready" for k in _rerankers})
+    return out
+
+
 class RerankError(Exception):
     pass
 
