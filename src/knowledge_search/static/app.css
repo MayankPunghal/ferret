@@ -1,0 +1,80 @@
+:root {
+  --bg: #f6f7f9; --panel: #fff; --text: #1d2330; --muted: #5d6677; --line: #dde1e8;
+  --accent: #1f5fbf; --ok-bg: #e7f4ec; --ok: #1d6b3d; --warn-bg: #fdf3dc; --warn: #7a5300;
+  --bad-bg: #fbe9e9; --bad: #9b1c1c; --mark: #fff0a8;
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #14171c; --panel: #1c2027; --text: #e4e7ec; --muted: #9aa3b2; --line: #2e343e;
+    --accent: #7aa7ff; --ok-bg: #16301f; --ok: #8fd6a8; --warn-bg: #352a10; --warn: #f0c76a;
+    --bad-bg: #3a1717; --bad: #f19c9c; --mark: #5a4d10; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); }
+[hidden] { display: none !important; }
+button { font: inherit; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 6px; padding: 6px 14px; }
+button.link { background: none; border: none; color: var(--accent); padding: 0; }
+button.danger { color: var(--bad); }
+input, select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); }
+a { color: var(--accent); }
+.meta { color: var(--muted); font-size: 13px; }
+.error { color: var(--bad); }
+
+.login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 28px; width: min(360px, 100%); display: grid; gap: 12px; }
+.login-card h1 { font-size: 20px; margin: 0 0 4px; }
+.login-card label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+
+.topbar { display: flex; align-items: center; gap: 24px; padding: 10px 24px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.topbar nav { display: flex; gap: 4px; }
+.tab { background: none; color: var(--muted); border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 10px; }
+.tab[aria-current] { color: var(--text); border-bottom-color: var(--accent); }
+.who { margin-left: auto; color: var(--muted); font-size: 13px; }
+main { max-width: 980px; margin: 0 auto; padding: 20px 16px 80px; }
+
+.searchbar { display: flex; gap: 8px; }
+.searchbar input { flex: 1; font-size: 16px; padding: 10px 12px; }
+.scope { border: none; padding: 0; margin: 10px 0 16px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.scope legend { float: left; margin-right: 8px; font-size: 13px; color: var(--muted); }
+.chip { border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-size: 13px; background: var(--panel); }
+
+.outcome { border-radius: 8px; padding: 10px 14px; margin: 0 0 14px; border: 1px solid var(--line); background: var(--panel); }
+.outcome.evidence_found { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+.outcome.conflicting_evidence, .outcome.index_coverage_incomplete, .outcome.retrieval_degraded { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.outcome.retrieval_failure, .outcome.bad { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+.outcome .meta { color: inherit; opacity: .85; }
+
+.results { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.result { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.r-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.rank { color: var(--muted); font-size: 12px; min-width: 18px; }
+.snippet { margin: 6px 0; white-space: pre-line; }
+mark { background: var(--mark); color: inherit; padding: 0 1px; }
+.r-actions { display: flex; gap: 16px; font-size: 13px; }
+.badges { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.badge { font-size: 11px; border-radius: 4px; padding: 1px 6px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+.badge.ok, .badge.st-indexed { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+.badge.warn, .badge.st-pending, .badge.st-processing { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.badge.st-failed { background: var(--bad-bg); color: var(--bad); border-color: transparent; }
+.weak { margin-top: 16px; }
+.weak summary { cursor: pointer; color: var(--muted); margin-bottom: 8px; }
+.weak .result { opacity: .8; }
+
+.upload { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+.upload label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.docs { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+.docs th, .docs td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.docs th { font-size: 12px; color: var(--muted); font-weight: 600; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-family: ui-monospace, monospace; font-size: 13px; word-break: break-all; }
+.pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow: auto; font-size: 12px; }
+
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%); background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; box-shadow: -4px 0 16px rgba(0,0,0,.08); }
+.drawer-head, .drawer-foot { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; }
+.drawer-foot { border-top: 1px solid var(--line); border-bottom: none; display: block; }
+.drawer-body { padding: 8px 16px; overflow: auto; flex: 1; }
+.drawer-body p { white-space: pre-wrap; margin: 8px 0; }
+.drawer-body .ctx { color: var(--muted); }
+.drawer-body .hit { background: var(--mark); padding: 6px 8px; border-radius: 6px; }
+@media (max-width: 640px) { .docs { font-size: 12px; } .topbar { padding: 10px 16px; gap: 10px; } }

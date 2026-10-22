@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Knowledge Search</title>
+  <link rel="stylesheet" href="/app.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div id="login-view" class="login" hidden>
+    <form id="login-form" class="login-card">
+      <h1>Knowledge Search</h1>
+      <label>Username <input name="username" autocomplete="username" required></label>
+      <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Sign in</button>
+      <p id="login-error" class="error" role="alert"></p>
+    </form>
+  </div>
+
+  <div id="app-view" hidden>
+    <header class="topbar">
+      <strong class="brand">Knowledge Search</strong>
+      <nav>
+        <button class="tab" data-tab="search" aria-current="page">Search</button>
+        <button class="tab" data-tab="documents">Documents</button>
+        <button class="tab" data-tab="status">Index status</button>
+      </nav>
+      <span class="who"><span id="who"></span> <button id="logout" class="link">Sign out</button></span>
+    </header>
+
+    <main>
+      <section id="tab-search">
+        <form id="search-form" class="searchbar">
+          <input id="q" type="search" placeholder="Search by question, phrase, error code, API path, filename…" aria-label="Search query" required maxlength="1000">
+          <button type="submit">Search</button>
+        </form>
+        <fieldset id="scope" class="scope"><legend>Collections</legend></fieldset>
+        <div id="outcome" class="outcome" hidden role="status"></div>
+        <ol id="results" class="results"></ol>
+        <details id="weak" class="weak" hidden>
+          <summary></summary>
+          <ol id="weak-results" class="results"></ol>
+        </details>
+        <p id="timing" class="meta"></p>
+      </section>
+
+      <section id="tab-documents" hidden>
+        <form id="upload-form" class="upload">
+          <label>File (.md, .txt, .pdf) <input type="file" name="file" accept=".md,.txt,.pdf" required></label>
+          <label>Collection <select name="collection_id" id="upload-collection" required></select></label>
+          <label>Original location (optional) <input name="source_uri" placeholder="https://wiki/… or \\share\…"></label>
+          <button type="submit">Upload &amp; index</button>
+          <span id="upload-msg" class="meta" role="status"></span>
+        </form>
+        <table class="docs">
+          <thead><tr><th>Document</th><th>Collection</th><th>Status</th><th>Version</th><th>Chunks</th><th>Updated</th><th></th></tr></thead>
+          <tbody id="docs"></tbody>
+        </table>
+      </section>
+
+      <section id="tab-status" hidden>
+        <div id="status"></div>
+      </section>
+    </main>
+
+    <aside id="drawer" class="drawer" hidden aria-label="Passage">
+      <div class="drawer-head">
+        <div><strong id="d-title"></strong><div id="d-loc" class="meta"></div></div>
+        <button id="d-close" class="link" aria-label="Close passage">Close</button>
+      </div>
+      <div id="d-body" class="drawer-body"></div>
+      <div class="drawer-foot"><a id="d-open" target="_blank" rel="noopener">Open original source</a> <span id="d-uri" class="meta"></span></div>
+    </aside>
+  </div>
+</body>
+</html>
