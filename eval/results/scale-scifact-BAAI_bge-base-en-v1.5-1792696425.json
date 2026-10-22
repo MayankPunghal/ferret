@@ -1,0 +1,47 @@
+{
+  "dataset": "scifact",
+  "model": "BAAI/bge-base-en-v1.5",
+  "reranker": null,
+  "rerank_candidates": 20,
+  "chunking": [
+    900,
+    150
+  ],
+  "indexed_documents": 1873,
+  "chunks": 3573,
+  "not_indexed": 0,
+  "ingest_seconds": 1506.4,
+  "docs_per_second": 1.24,
+  "queries": {
+    "answerable": 150,
+    "unanswerable": 122,
+    "val": 138,
+    "test": 134
+  },
+  "retrieval_answerable": {
+    "hybrid_rrf": {
+      "ndcg@10": 0.7463,
+      "recall@10": 0.8407,
+      "recall@100": 0.8407,
+      "mrr@10": 0.727
+    }
+  },
+  "latency_ms": {
+    "total_p50": 191.4,
+    "total_p95": 310.8,
+    "query_embed_p50": 91.1,
+    "rerank_p50": 0.0,
+    "rerank_p95": 0.0
+  },
+  "gates": {
+    "similarity+coverage": {
+      "chosen": null,
+      "note": "no config met val false-answer rate <= 0.05"
+    },
+    "similarity+idf": {
+      "chosen": null,
+      "note": "no config met val false-answer rate <= 0.05"
+    }
+  },
+  "max_far": 0.05
+}
