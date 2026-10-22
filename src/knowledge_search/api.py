@@ -51,6 +51,8 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
         state.stop = threading.Event()
         state.threads = []
         _record_index_meta()
+        if embedder is None:
+            state.embedder.warm()  # load the model before accepting traffic (avoids a slow first query)
         if start_workers:
             for i in range(settings.inprocess_workers):
                 w = Worker(state.embedder, state.blobs, settings.max_pdf_pages, settings.max_extracted_chars)

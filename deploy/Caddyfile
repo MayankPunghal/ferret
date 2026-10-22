@@ -1,0 +1,10 @@
+# TLS-terminating reverse proxy for the dedicated server profile.
+# KS_HOSTNAME=search.example.internal  -> automatic certificates (ACME) or use `tls internal`
+# for an internal CA. Set KS_COOKIE_SECURE=true for the app when serving over HTTPS.
+{$KS_HOSTNAME} {
+	encode gzip
+	request_body {
+		max_size 30MB
+	}
+	reverse_proxy app:8000
+}

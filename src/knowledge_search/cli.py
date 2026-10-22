@@ -49,6 +49,7 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("serve")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--workers", type=int, default=1, help="HTTP worker processes (each loads the model)")
     sub.add_parser("worker", help="run ingestion workers as a separate process")
     sub.add_parser("download-model", help="fetch the configured embedding model into KS_MODEL_CACHE")
     a = ap.parse_args(argv)
@@ -86,7 +87,11 @@ def main(argv: list[str] | None = None) -> None:
 
         from .api import create_app
 
-        uvicorn.run(create_app(), host=a.host, port=a.port, proxy_headers=True)
+        if a.workers > 1:
+            uvicorn.run("knowledge_search.api:create_app", factory=True, host=a.host, port=a.port,
+                        proxy_headers=True, workers=a.workers)
+        else:
+            uvicorn.run(create_app(), host=a.host, port=a.port, proxy_headers=True)
     elif a.cmd == "worker":
         _worker(s)
     elif a.cmd == "download-model":

@@ -1,0 +1,65 @@
+# Laptop:  docker compose up -d db                      (then run the app natively with uv)
+#          or  docker compose up -d --build            (db + app + worker, http://127.0.0.1:8000)
+# Server:  set KS_DB_PASSWORD in .env, then
+#          docker compose --profile tls up -d --build  (adds Caddy TLS reverse proxy; see deploy/Caddyfile)
+x-app: &app
+  build: .
+  image: knowledge-search:local
+  restart: unless-stopped
+  environment:
+    KS_DATABASE_URL: postgresql://ks:${KS_DB_PASSWORD:-devpass}@db:5432/ks
+    KS_COOKIE_SECURE: ${KS_COOKIE_SECURE:-false}
+  volumes:
+    - ks-data:/data
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.1-pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ks
+      POSTGRES_PASSWORD: ${KS_DB_PASSWORD:-devpass}
+      POSTGRES_DB: ks
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - ks-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ks -d ks"]
+      interval: 5s
+      retries: 20
+
+  app:
+    <<: *app
+    environment:
+      KS_DATABASE_URL: postgresql://ks:${KS_DB_PASSWORD:-devpass}@db:5432/ks
+      KS_COOKIE_SECURE: ${KS_COOKIE_SECURE:-false}
+      KS_INPROCESS_WORKERS: "0"   # ingestion runs in the worker service, protecting query latency
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  worker:
+    <<: *app
+    command: ["/app/.venv/bin/knowledge-search", "worker"]
+    healthcheck:
+      disable: true
+
+  caddy:
+    profiles: ["tls"]
+    image: caddy:2.10
+    restart: unless-stopped
+    ports: ["443:443", "80:80"]
+    environment:
+      KS_HOSTNAME: ${KS_HOSTNAME:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [app]
+
+volumes:
+  ks-pg:
+  ks-data:
+  caddy-data:
