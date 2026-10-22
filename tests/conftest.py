@@ -1,7 +1,7 @@
 """Integration test fixtures: a real PostgreSQL+pgvector database and the real local embedding model.
 
-Requires the dev database (``docker compose up -d db``). The test database ``ks_test`` is dropped
-and recreated on every run. Override with KS_TEST_ADMIN_URL / KS_TEST_DATABASE_URL.
+No external services needed: an embedded PostgreSQL+pgvector is started in a temp dir (or set
+KS_TEST_ADMIN_URL / KS_TEST_DATABASE_URL). The database ``ks_test`` is recreated on every run.
 """
 
 import os
@@ -19,14 +19,20 @@ from knowledge_search.ingest import Worker
 
 ROOT = Path(__file__).resolve().parent.parent
 CORPUS = ROOT / "fixtures" / "corpus"
-ADMIN_URL = os.environ.get("KS_TEST_ADMIN_URL", "postgresql://ks:devpass@127.0.0.1:55432/ks")
-TEST_URL = os.environ.get("KS_TEST_DATABASE_URL", "postgresql://ks:devpass@127.0.0.1:55432/ks_test")
+# Default: a throwaway embedded PostgreSQL per test session. Set KS_TEST_ADMIN_URL (and
+# KS_TEST_DATABASE_URL) to run against an external server instead, e.g. the docker compose db.
+ADMIN_URL = os.environ.get("KS_TEST_ADMIN_URL")
+TEST_URL = os.environ.get("KS_TEST_DATABASE_URL")
 MODEL_CACHE = os.environ.get("KS_MODEL_CACHE", str(ROOT / "data" / "models"))
 PASSWORD = "correct-horse-battery"
 
 
 @pytest.fixture(scope="session")
-def database():
+def database(tmp_path_factory):
+    global ADMIN_URL, TEST_URL
+    if not ADMIN_URL:
+        ADMIN_URL, _ = db.start_embedded(tmp_path_factory.mktemp("pg"), database="postgres", cleanup_mode="delete")
+        TEST_URL = db._embedded.get_uri("ks_test")
     with psycopg.connect(ADMIN_URL, autocommit=True) as c:
         c.execute("DROP DATABASE IF EXISTS ks_test WITH (FORCE)")
         c.execute("CREATE DATABASE ks_test")
@@ -67,7 +73,7 @@ def client(database, embedder, tmp_path_factory):
 def drain(client):
     def _drain() -> int:
         s = state.settings
-        return Worker(state.embedder, state.blobs, s.max_pdf_pages, s.max_extracted_chars).drain()
+        return Worker(state.blobs, s.max_pdf_pages, s.max_extracted_chars).drain()
 
     return _drain
 

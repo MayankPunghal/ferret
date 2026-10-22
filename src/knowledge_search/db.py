@@ -1,6 +1,12 @@
-"""PostgreSQL connection pool and forward-only SQL migrations."""
+"""PostgreSQL connection pool, embedded-server bootstrap and forward-only SQL migrations.
+
+With ``KS_DATABASE_URL`` unset, an embedded PostgreSQL (+pgvector) from the pip package
+``pixeltable-pgserver`` runs under ``KS_DATA_DIR/pg`` — no Docker or system install needed (laptop
+profile). Servers point ``KS_DATABASE_URL`` at an external PostgreSQL with pgvector instead.
+"""
 
 from importlib import resources
+from pathlib import Path
 
 from pgvector.psycopg import register_vector
 from psycopg import Connection
@@ -8,6 +14,29 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 _pool: ConnectionPool | None = None
+_embedded = None  # keeps the embedded server handle alive for this process
+
+
+def start_embedded(pgdata: Path, database: str = "ks", cleanup_mode: str = "stop") -> tuple[str, str]:
+    """Start (or attach to) the embedded server; return (admin_url, database_url)."""
+    import psycopg
+    from pixeltable_pgserver import get_server
+
+    global _embedded
+    pgdata.mkdir(parents=True, exist_ok=True)
+    _embedded = get_server(pgdata.resolve(), cleanup_mode=cleanup_mode)
+    admin = _embedded.get_uri()
+    with psycopg.connect(admin, autocommit=True) as c:
+        if not c.execute("SELECT 1 FROM pg_database WHERE datname = %s", (database,)).fetchone():
+            c.execute(f'CREATE DATABASE "{database}"')
+    return admin, _embedded.get_uri(database)
+
+
+def resolve_url(settings) -> str:
+    """The configured external database, or the embedded one (started on demand)."""
+    if settings.database_url:
+        return settings.database_url
+    return start_embedded(Path(settings.data_dir) / "pg")[1]
 
 
 def _configure(conn: Connection) -> None:

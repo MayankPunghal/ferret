@@ -1,6 +1,5 @@
 -- Initial schema: identity, permissions, documents/versions, chunks, jobs, audit.
 CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE users (
     id            bigserial PRIMARY KEY,
