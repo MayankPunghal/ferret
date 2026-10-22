@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin, auth, db, runtime
+from . import admin, auth, db, graph, runtime
 from .auth import Principal
 from .config import Settings, get_settings
 from .deps import COOKIE, Conn, User, state
@@ -101,6 +101,7 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
 
     _routes(app)
     app.include_router(admin.router)
+    app.include_router(graph.router)
     static = resources.files("knowledge_search") / "static"
     app.mount("/", StaticFiles(directory=str(static), html=True), name="ui")
     return app

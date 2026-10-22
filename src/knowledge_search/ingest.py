@@ -281,6 +281,14 @@ class Worker:
                         for c, v in zip(chunks, vectors, strict=True)
                     ],
                 )
+                ids = {r["ordinal"]: r["id"] for r in conn.execute(
+                    "SELECT id, ordinal FROM chunks WHERE version_id = %s", (job["version_id"],))}
+                links = [(job["document_id"], ids[c.ordinal], ln.kind, ln.target, ln.anchor, ln.label[:200])
+                         for c in chunks for ln in c.links]
+                if links:  # links are deleted with the old chunks (cascade) and rebuilt here
+                    cur.executemany(
+                        "INSERT INTO doc_links(document_id, chunk_id, kind, target, anchor, label) "
+                        "VALUES (%s, %s, %s, %s, %s, %s)", links)
             conn.execute(
                 "UPDATE documents SET indexed_version_id = %s, status = 'indexed', title = %s, metadata = %s, "
                 "index_signature = %s, error_code = NULL, error_detail = NULL, updated_at = now() WHERE id = %s",

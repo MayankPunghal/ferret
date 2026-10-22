@@ -41,6 +41,15 @@ class ParsedDocument:
     title: str
     metadata: dict
     sections: list[Section] = field(default_factory=list)
+    relations: list["Link"] = field(default_factory=list)  # typed links declared in front matter
+
+
+@dataclass
+class Link:
+    kind: str
+    target: str  # normalised (see normalize_target)
+    anchor: str | None = None
+    label: str = ""
 
 
 @dataclass
@@ -51,6 +60,7 @@ class Chunk:
     page: int | None
     anchor: str | None
     idents: list[str]
+    links: list[Link] = field(default_factory=list)
 
 
 def media_type_for(filename: str) -> str:
@@ -74,6 +84,44 @@ def _decode_text(data: bytes) -> str:
         raise ParseError("invalid_encoding", "text files must be UTF-8") from e
 
 
+RELATION_KEYS = ("depends_on", "related", "calls", "owned_by", "part_of", "see_also")
+_MD_LINK = re.compile(r"(?<!!)\[([^\]\n]{1,200})\]\(([^)\s]{1,500})(?:\s+\"[^\"]*\")?\)")
+_WIKI_LINK = re.compile(r"\[\[([^\]|#\n]{1,200})(?:#([^\]|\n]{1,200}))?(?:\|([^\]\n]{1,200}))?\]\]")
+
+
+def normalize_target(target: str) -> str:
+    """'../api/Orders.md' -> 'orders.md'; 'Payments Service' -> 'payments service'."""
+    t = target.strip().replace("\\", "/").split("/")[-1]
+    return t.lower()
+
+
+def extract_links(text: str) -> list[Link]:
+    """Internal Markdown links and [[wiki links]]; external URLs and images are ignored."""
+    out = []
+    for label, href in _MD_LINK.findall(text):
+        if re.match(r"^[a-z][a-z0-9+.-]*:", href, re.I):  # http:, mailto:, ...
+            continue
+        path, _, anchor = href.partition("#")
+        if path:
+            out.append(Link("links_to", normalize_target(path), slugify(anchor) if anchor else None, label.strip()))
+    for page, anchor, label in _WIKI_LINK.findall(text):
+        out.append(Link("links_to", normalize_target(page), slugify(anchor) if anchor else None,
+                        (label or page).strip()))
+    return out
+
+
+def _relations(meta: dict) -> list[Link]:
+    out = []
+    for key in RELATION_KEYS:
+        value = meta.get(key)
+        items = value if isinstance(value, list) else str(value).split(",") if value else []
+        for item in items:
+            if str(item).strip():
+                path, _, anchor = str(item).strip().partition("#")
+                out.append(Link(key, normalize_target(path), slugify(anchor) if anchor else None, str(item).strip()))
+    return out
+
+
 def _split_frontmatter(text: str) -> tuple[dict, str]:
     if text.startswith("---\n"):
         end = text.find("\n---", 4)
@@ -85,12 +133,14 @@ def _split_frontmatter(text: str) -> tuple[dict, str]:
             if not isinstance(meta, dict):
                 raise ParseError("invalid_frontmatter", "front matter must be a mapping")
             body = text[end + 4 :].lstrip("\n")
-            return {str(k): (v if isinstance(v, (str, int, float, bool)) else str(v)) for k, v in meta.items()}, body
+            return {str(k): v for k, v in meta.items()}, body
     return {}, text
 
 
 def parse_markdown(data: bytes, filename: str) -> ParsedDocument:
-    meta, body = _split_frontmatter(_decode_text(data))
+    raw_meta, body = _split_frontmatter(_decode_text(data))
+    relations = _relations(raw_meta)
+    meta = {k: (v if isinstance(v, (str, int, float, bool)) else str(v)) for k, v in raw_meta.items()}
     tokens = MarkdownIt("commonmark").enable("table").parse(body)
     lines = body.splitlines()
     # Heading positions from the token stream (avoids treating '#' in code blocks as headings).
@@ -118,7 +168,7 @@ def parse_markdown(data: bytes, filename: str) -> ParsedDocument:
         anchor = slug if n == 0 else f"{slug}-{n}"
         if text:
             sections.append(Section(heading_path=" > ".join(s[1] for s in stack), text=text, anchor=anchor))
-    return ParsedDocument(title=title, metadata=meta, sections=sections)
+    return ParsedDocument(title=title, metadata=meta, sections=sections, relations=relations)
 
 
 def parse_text(data: bytes, filename: str) -> ParsedDocument:
@@ -236,8 +286,11 @@ def chunk_document(doc: ParsedDocument, size: int = 900, overlap: int = 150) -> 
                     page=s.page,
                     anchor=s.anchor,
                     idents=extract_idents(w + " " + s.heading_path),
+                    links=extract_links(w),
                 )
             )
+    if chunks:
+        chunks[0].links = doc.relations + chunks[0].links
     return chunks
 
 
