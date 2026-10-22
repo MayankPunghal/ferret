@@ -29,9 +29,9 @@ class Settings(BaseSettings):
     # Defaults for admin-editable runtime settings (Settings page / app_settings table override these).
     chunk_size: int = 900
     chunk_overlap: int = 150
-    rerank_enabled: bool = False
+    rerank_enabled: bool = True  # measured: +1.4 nDCG@10 on SciFact for ~0.4 s (docs/evaluation.md)
     rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
-    rerank_candidates: int = 30
+    rerank_candidates: int = 10  # more candidates let the reranker promote wrong passages (measured)
     gate_mode: str = "similarity"  # similarity | rerank | rerank_and_similarity (needs reranker)
     gate_lexical: str = "coverage"  # coverage | idf
     gate_rerank_min: float = 0.0

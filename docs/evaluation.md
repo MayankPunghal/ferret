@@ -1,99 +1,118 @@
 # Evaluation
 
-**Scope warning.** All numbers come from a **12-document fictional corpus** (33 chunks) and **56 labelled
-queries** (28 val / 28 test). They show the pipeline behaves as designed; they do **not** validate
-quality on company data, and with 12 unanswerable test queries a single query moves the false-answer
-rate by 8 points. Nothing here is a calibrated probability.
+All numbers below were produced by the scripts in `eval/` on the development machine: **4 vCPU Intel
+Xeon @ 2.1 GHz, 16 GB RAM, no GPU**. Several runs shared the CPU with other jobs; latencies marked
+"contended" are pessimistic. Raw outputs: `eval/results/`.
 
-Reproduce: `uv run python eval/run_eval.py --models <model…> [--rerankers <model…>]`
-(raw outputs: `eval/results/*.json`, `eval/results/summary*.txt`). Hardware for all timings: dev
-container, 4 vCPU Intel Xeon @ 2.1 GHz, 15 GB RAM, no GPU.
+Two datasets, for two different questions:
 
-## Query set (`eval/queries.jsonl`, version 1)
+| Dataset | Size | Purpose | Caveat |
+|---|---|---|---|
+| **Fixtures** (`fixtures/corpus`, FICTIONAL technical docs) | 12 docs, 56 labelled queries (28 val / 28 test) incl. exact IDs, paraphrases, PDFs, conflicts, permission-restricted, unanswerable, hard negatives | behaviour on technical content (identifiers, runbooks, API docs); threshold tuning | tiny: one query moves a rate by 6–8 points |
+| **BEIR SciFact** (public, human-labelled) | 2,000-abstract subset (all relevant + random distractors), 300 queries | model comparison; scale and abstention | scientific claims, not IT docs; subset is easier than the full 5,183-doc corpus |
 
-| Category | n | Expected behaviour |
-|---|---|---|
-| exact_id (error codes, API paths, config keys, filenames, versions, restricted code name for HR user) | 10 | answer, right passage |
-| conceptual / paraphrase (incl. PDF pages, HR content for HR user) | 20 | answer, right document |
-| conflict (2024 vs 2025 expense policy) | 2 | `conflicting_evidence` |
-| unanswerable (off-topic) | 8 | abstain |
-| hard_negative (look-alike IDs, wrong subject, missing fact) | 12 | abstain |
-| restricted (answer exists only in a collection the user cannot read) | 4 | abstain, no leak |
+For abstention at scale (`eval/scale_eval.py`), half of the SciFact queries have **all their relevant
+abstracts removed** from the index → 122 realistic *unanswerable* queries whose topic is still covered by
+other papers (hard negatives), plus 150 answerable ones; thresholds are chosen on val (138) and reported
+on test (134).
 
-## Retrieval (answerable queries, doc-level unless noted; `full` = shipped pipeline)
+## 1. Embedding models (BEIR SciFact subset, exact search, `eval/beir_screen.py`)
 
-bge-small-en-v1.5:
+| Model | Licence | Dim | nDCG@10 | Recall@10 | Recall@100 | Index docs/s | Query embed p50 |
+|---|---|---|---|---|---|---|---|
+| BAAI/bge-small-en-v1.5 | MIT | 384 | 0.779 | 0.884 | 0.980 | 8.3 | 6.6 ms |
+| **BAAI/bge-base-en-v1.5** (default) | MIT | 768 | **0.818** | **0.924** | 0.980 | 3.3 | 23 ms |
+| snowflake/snowflake-arctic-embed-m | Apache-2.0 | 768 | 0.814 | 0.922 | 0.980 | 3.7 | 22 ms |
+| nomic-ai/nomic-embed-text-v1.5 | Apache-2.0 | 768 | — | — | — | — | killed (out of memory before batch/token caps were added; not re-run) |
+| Qwen/Qwen3-Embedding-0.6B (int8) | Apache-2.0 | 1024 | not measured (estimated >1 h to index 2,000 docs on this CPU) | | | | |
 
-| variant | Hit@1 | Recall@5 | MRR@10 | nDCG@10 | passage Hit@1 |
-|---|---|---|---|---|---|
-| lexical only | 0.969 | 1.0 | 0.984 | 0.988 | 0.781 |
-| dense only | 1.0 | 1.0 | 1.0 | 1.0 | 0.938 |
-| lexical + dense (RRF) | 1.0 | 1.0 | 1.0 | 1.0 | 0.812 |
-| full (+ exact identifiers) | 1.0 | 1.0 | 1.0 | 1.0 | 0.875 |
+Abstracts average ~1,500 characters; product chunks are ~900, so indexing is faster in practice.
 
-arctic-embed-s and granite-small-r2 give the same doc-level numbers (dense passage Hit@1 0.969). The
-corpus is too small for doc-level ranking to discriminate between variants. One real signal: **fusion
-lowers passage-level Hit@1 vs dense-only** (0.875 vs 0.938) — the title-weighted lexical branch favours
-a document's first section. Candidate fix to test on real data: lower the title weight or rank lexical on
-heading+body only.
+## 2. Retrieval branches and fusion (real pipeline, bge-base, 1,873 docs indexed, 150 answerable queries)
 
-## Abstention (shipped gate, thresholds chosen on val, reported on held-out test)
+| Branches | Keyword weight | nDCG@10 | Recall@10 |
+|---|---|---|---|
+| dense only | — | 0.815 | 0.894 |
+| keyword + identifier only | — | 0.593 | 0.700 |
+| hybrid | 1.0 (old equal-weight RRF) | 0.746 | 0.841 |
+| hybrid | 0.5 | 0.766 | 0.871 |
+| hybrid | 0.25 | 0.780 | 0.892 |
+| **hybrid (default)** | **0.1** | **0.794** | 0.887 |
+| hybrid | 0 (dense + identifiers) | 0.804 | 0.900 |
 
-Gate: supported if the passage contains a query identifier; identifier queries need such a match;
-otherwise cosine ≥ 0.88, or cosine ≥ 0.76 and ≥ 34% of query terms present.
+Fixtures (bge-base): document Hit@1 = 1.0 for every weight; passage Hit@1 0.969 at weights 0–0.25 vs
+0.875 at 1.0. Weight 0.1 keeps keyword-only matches as a fallback (rare internal terms) at a ~1-point cost.
+Ingestion through the pipeline: 1,873 docs / 3,573 chunks in 25 min (1.24 docs/s, contended).
+Query latency p50 ~180–190 ms, p95 ~310 ms (contended; query embedding ~90 ms of it).
 
-| model | split | false-answer rate (unanswerable+hard neg+restricted) | answer coverage (answerable) | precision among answered | conflicts detected |
-|---|---|---|---|---|---|
-| bge-small-en-v1.5 (shipped) | val | 0/12 | 10/16 = 0.625 | 1.0 | 1/1 |
-| bge-small-en-v1.5 (shipped) | **test** | **1/12 = 0.083** | **9/16 = 0.562** | 0.9 | 1/1 |
-| arctic-embed-s (own val-tuned gate) | test | 2/12 = 0.167 | 0.688 | 0.846 | 0/1 |
-| granite-small-r2 | val | no threshold gave 0 val false answers | — | — | — |
+## 3. Abstention (evidence gate)
 
-Restricted queries: 0/4 answered and no restricted passage ever appeared in candidates (also enforced by
-integration tests). Test false answer: *"what is the rate limit of the orders API"* (the Invoices API
-rate-limit section passes on semantic + lexical agreement). Typical abstentions on answerable queries are
-paraphrases with low lexical overlap (e.g. *"how do I undo a bad release of the orders service"*: the
-correct passage **is ranked #1** but is shown as a lower-relevance match, not as evidence).
+**Fixtures, held-out test (12 unanswerable incl. hard negatives and permission-restricted, 16 answerable):**
 
-Risk/coverage: the full val sweep is in `eval/results/BAAI_bge-small-en-v1.5.json` (`threshold_sweep_val`).
+| Model / gate (chosen on val) | False-answer rate | Answer coverage | Precision among answered |
+|---|---|---|---|
+| bge-small, similarity 0.88/0.76/0.34 | 1/12 | 0.56–0.63 | 0.90 |
+| **bge-base, similarity 0.78/0.72/0.20 (default)** | 1/12 | 0.56 | 0.90 |
+| bge-small + MiniLM reranker gate | 2/12 | 0.81 | 0.87 |
 
-## Reranker as evidence signal (experiment, not shipped)
+Permission-restricted queries: 0 answered, no restricted passage in any candidate list (also enforced by
+tests). IDF-weighted keyword coverage gave no improvement over plain coverage on either dataset.
 
-Same recorded candidates (top 10), gate = exact identifier OR cross-encoder score ≥ T (T chosen on val).
+**SciFact at scale (122 unanswerable hard negatives / 150 answerable), similarity gates, bge-base:**
 
-| reranker | test FAR | test coverage | test precision | added CPU latency (10 passages) p50 / p95 |
-|---|---|---|---|---|
-| none (shipped gate) | 1/12 | 0.562 | 0.9 | — |
-| Xenova/ms-marco-MiniLM-L-6-v2 (Apache-2.0) | 2/12 | 0.812 | 0.867 | 106 / 147 ms |
-| BAAI/bge-reranker-base (MIT) | 2/12 | 0.875 | 0.875 | 658 / 853 ms |
+| Gate | False-answer rate | Coverage | Precision |
+|---|---|---|---|
+| 0.78 / 0.72 / 0.20 (shipped) | 0.205 | 0.560 | 0.670 |
+| 0.88 / 0.76 / 0.34 | 0.164 | 0.427 | 0.655 |
+| 0.84 / 0.80 / 0.34 | 0.131 | 0.360 | 0.657 |
+| 0.88 / 0.84 / 0.50 | 0.115 | 0.260 | 0.585 |
 
-Rerankers answer many more answerable queries but do not reduce false answers on this set; the
-difference in false answers is one query (q046, arguably ambiguous). Decision: defer; repeat on real data.
+No similarity threshold reached ≤ 5% false answers on val. **Conclusion:** embedding similarity tells
+whether a passage is *on topic*, not whether it *answers* the question; when closely related documents
+exist, it cannot reliably detect that the specific answer is missing. The UI therefore says "Relevant
+passages found" (not "evidence found"), and a stronger judge is needed for trustworthy abstention:
+a cross-encoder (§4) or, in the planned answer-generation mode, an LLM/entailment check.
 
-## Latency and load
+## 4. Rerankers (offline cross-encoders)
 
-In-process, warm, sequential (eval script, bge-small): total p50 10.4 ms / p95 13.3 ms; query embedding
-p50 6.2 ms / p95 8.4 ms. Ingestion: 12 documents / 33 chunks in 0.64 s.
+Real pipeline (bge-base, keyword weight 0.1, 1,873 docs), rerank the top **10** fused passages:
 
-HTTP, server profile (API process + separate worker process + PostgreSQL container, client on the
-same 4 vCPUs with one keep-alive connection per client thread, 200 requests per level,
-`eval/bench_concurrency.py`):
-
-| API processes | concurrency | throughput | p50 | p95 | p99 | errors |
+| Reranker | Licence | Download | SciFact nDCG@10 | Recall@10 | Rerank p50 / p95 | Gate at scale (best, ≤20% val budget) |
 |---|---|---|---|---|---|---|
-| 1 | 1 | 60.2 req/s | 14.5 ms | 26.5 ms | 59.0 ms | 0 |
-| 1 | 4 | 74.9 req/s | 48.6 ms | 77.8 ms | 110.9 ms | 0 |
-| 1 | 8 | 64.8 req/s | 106.6 ms | 163.9 ms | 198.3 ms | 0 |
-| 1 | 16 | 65.5 req/s | 188.4 ms | 261.0 ms | 286.3 ms | 0 |
-| 3 (`serve --workers 3`) | 1 | 62.3 req/s | 14.8 ms | 21.4 ms | 34.3 ms | 0 |
-| 3 | 16 | 64.2 req/s | 173.4 ms | 312.8 ms | 660.6 ms | 0 |
+| none | — | — | 0.795 | 0.887 | — | FAR 0.148 / coverage 0.466 |
+| **Xenova/ms-marco-MiniLM-L-6-v2 (default)** | Apache-2.0 | ~80 MB | **0.809** | 0.887 | 373 ms / — (contended) | FAR 0.148 / coverage 0.507 |
+| BAAI/bge-reranker-base | MIT | ~1 GB | 0.812 | 0.887 | 1.9 s / 2.4 s (contended) | FAR 0.213 / coverage 0.562 |
 
-The machine is CPU-saturated at ~60–75 req/s (query embedding + the load generator share 4 vCPUs), so
-extra API processes do not help here; on a dedicated server with a separate load generator, re-measure.
-`KS_EMBED_THREADS=1` showed no gain. An earlier run that opened a new HTTP client per request measured
-only ~21 req/s — that was a benchmark artifact (fixed), not server capacity.
+Screen-only comparison on full abstracts with the top **30**: MiniLM *hurt* (0.818 → 0.775) — with many
+candidates it promotes wrong passages; hence the default of 10 candidates.
+
+Fixtures with the default (bge-base + MiniLM top-10): document Hit@1 1.0, passage Hit@1 0.969, evidence
+gate unchanged (1/12 false answers, 56% coverage, precision 0.90), query latency p50 176 ms / p95 233 ms.
+
+**Finding:** neither reranker makes abstention trustworthy on hard negatives — cross-encoders also judge
+*relevance*. Distinguishing "related paper" from "the paper that supports this claim" is a verification
+(entailment) problem; it belongs to the answer-generation stage (LLM/NLI check of each cited claim).
+Rerankers are therefore used for **ordering** (default), with the similarity gate deciding evidence.
+
+## 5. Load (earlier run, bge-small, single API process, client on the same 4 vCPUs)
+
+| Concurrency | Throughput | p50 | p95 | p99 | Errors |
+|---|---|---|---|---|---|
+| 1 | 60 req/s | 14.5 ms | 26.5 ms | 59 ms | 0 |
+| 16 | 65 req/s | 188 ms | 261 ms | 286 ms | 0 |
+
+Not re-measured with bge-base (expect query embedding ~3–4× slower).
 
 ## Not measured
 
-Real-corpus quality; corpora beyond 33 chunks (exact KNN scaling, filtered ANN); ingestion throughput on
-large PDFs; RAM per process under load; GPU anything; Docker image runtime.
+Real company corpus; corpora beyond ~4k chunks; Qwen3/large models; GPU; Windows performance; Docker
+image; multilingual content.
+
+## Reproduce
+
+```bash
+uv run --group eval python eval/run_eval.py --model BAAI/bge-base-en-v1.5 --lexical-weight 0.1
+uv run --group eval python eval/beir_screen.py --max-docs 2000 --models BAAI/bge-small-en-v1.5 BAAI/bge-base-en-v1.5
+uv run --group eval python eval/scale_eval.py --model BAAI/bge-base-en-v1.5 --reranker "" --lexical-weight 0.1
+uv run --group eval python eval/scale_eval.py --model BAAI/bge-base-en-v1.5 --reuse --reranker BAAI/bge-reranker-base --rerank-candidates 10
+```

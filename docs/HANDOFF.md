@@ -48,9 +48,14 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
   bge-small nDCG@10 0.779 (8.3 docs/s, query 6.6 ms) · **bge-base 0.818** (3.3 docs/s, 23 ms) ·
   arctic-embed-m 0.814 (3.7 docs/s, 22 ms). nomic-v1.5 was OOM-killed (now bounded by batch/token caps;
   not re-measured). Qwen3-Embedding-0.6B **not measured** (too slow for the session on this CPU).
-- **Rerankers on bge-base top-30:** ms-marco-MiniLM-L-6-v2 **hurts** technical/scientific ranking
-  (0.818 → 0.775, +1.6 s/query). bge-reranker-base: see evaluation.md.
-- **Abstention at scale** (`eval/scale_eval.py`): see evaluation.md.
+- **Fusion:** equal-weight RRF hurt natural-language retrieval (0.746 vs dense 0.815); keyword weight
+  0.1 restores 0.794 and keeps identifiers perfect on fixtures → default.
+- **Rerankers (top-10, real pipeline):** MiniLM 0.795 → 0.809 at ~0.4 s (default on); bge-reranker-base
+  0.812 at ~1.9 s (selectable). Neither improves abstention on hard negatives.
+- **Abstention at scale (SciFact, 122 hard-negative unanswerable / 150 answerable):** no gate reaches
+  ≤5–10% false answers; best trade-offs ≈ 15% false answers at ~47–51% coverage. Similarity/rerankers
+  measure relevance, not support → wording changed to "Relevant passages found"; real claim verification
+  is part of the planned answer-generation stage.
 - Fixtures (12 docs, 56 queries): hybrid ranking at ceiling; similarity gate test false-answer 1/12 at
   56–63% coverage; reranker gates 81% coverage with 2/12 false answers.
 
