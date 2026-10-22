@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Knowledge Search</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/app.css">
   <script type="module" src="/app.js"></script>
 </head>
@@ -18,6 +19,18 @@
     </form>
   </div>
 
+  <div id="setup-view" class="login" hidden>
+    <form id="setup-form" class="login-card">
+      <h1>Welcome to Knowledge Search</h1>
+      <p class="meta">Create the administrator account. You can add more users and collections afterwards.</p>
+      <label>Username <input name="username" value="admin" pattern="[a-z0-9_.\-]{2,64}" autocomplete="username" required></label>
+      <label>Password (at least 10 characters) <input name="password" type="password" minlength="10" autocomplete="new-password" required></label>
+      <label>Repeat password <input name="password2" type="password" minlength="10" autocomplete="new-password" required></label>
+      <button type="submit">Create account and start</button>
+      <p id="setup-error" class="error" role="alert"></p>
+    </form>
+  </div>
+
   <div id="app-view" hidden>
     <header class="topbar">
       <strong class="brand">Knowledge Search</strong>
@@ -25,6 +38,8 @@
         <button class="tab" data-tab="search" aria-current="page">Search</button>
         <button class="tab" data-tab="documents">Documents</button>
         <button class="tab" data-tab="status">Index status</button>
+        <button class="tab admin-only" data-tab="settings" hidden>Settings</button>
+        <button class="tab admin-only" data-tab="admin" hidden>Users &amp; access</button>
       </nav>
       <span class="who"><span id="who"></span> <button id="logout" class="link">Sign out</button></span>
     </header>
@@ -46,13 +61,19 @@
       </section>
 
       <section id="tab-documents" hidden>
+        <div id="no-writable" class="empty" hidden>You can read documents but cannot upload to any collection. Ask an administrator for write access.</div>
         <form id="upload-form" class="upload">
-          <label>File (.md, .txt, .pdf) <input type="file" name="file" accept=".md,.txt,.pdf" required></label>
-          <label>Collection <select name="collection_id" id="upload-collection" required></select></label>
-          <label>Original location (optional) <input name="source_uri" placeholder="https://wiki/… or \\share\…"></label>
-          <button type="submit">Upload &amp; index</button>
-          <span id="upload-msg" class="meta" role="status"></span>
+          <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose files to upload">
+            <strong>Drop files here</strong> or <span class="link-like">browse</span>
+            <div class="meta">.md, .txt, .pdf (text PDFs) · several files at once</div>
+            <input id="file-input" type="file" name="file" accept=".md,.txt,.pdf" multiple hidden>
+          </div>
+          <div class="upload-side">
+            <label>Collection <select name="collection_id" id="upload-collection" required></select></label>
+            <label>Original location (optional) <input name="source_uri" placeholder="https://wiki/… or \\share\…"></label>
+          </div>
         </form>
+        <ul id="upload-list" class="upload-list"></ul>
         <table class="docs">
           <thead><tr><th>Document</th><th>Collection</th><th>Status</th><th>Version</th><th>Chunks</th><th>Updated</th><th></th></tr></thead>
           <tbody id="docs"></tbody>
@@ -61,6 +82,92 @@
 
       <section id="tab-status" hidden>
         <div id="status"></div>
+      </section>
+
+      <section id="tab-settings" hidden>
+        <form id="settings-form" class="panel">
+          <h2>Search &amp; indexing settings</h2>
+          <div id="settings-banner" class="outcome" hidden></div>
+          <fieldset>
+            <legend>Embedding model</legend>
+            <label>Model <select name="embed_model" id="s-model"></select></label>
+            <p class="meta">Larger models retrieve more accurately but index and answer more slowly on CPU. Changing the
+              model requires reindexing every document (done in the background; search keeps working on the old index
+              for keyword matches meanwhile).</p>
+            <p class="meta" id="s-model-status"></p>
+          </fieldset>
+          <fieldset>
+            <legend>Chunking</legend>
+            <label>Chunk size (characters) <input type="number" name="chunk_size" id="s-chunk" min="200" max="4000" step="50"></label>
+            <label class="check"><input type="checkbox" id="s-overlap-on"> Overlap neighbouring chunks</label>
+            <label>Overlap (characters) <input type="number" name="chunk_overlap" id="s-overlap" min="0" max="1000" step="10"></label>
+            <p class="meta">Smaller chunks give more precise passages; larger chunks keep more context. Overlap repeats the end
+              of one chunk at the start of the next so sentences at a boundary are not lost.</p>
+          </fieldset>
+          <fieldset>
+            <legend>Reranker (offline cross-encoder)</legend>
+            <label class="check"><input type="checkbox" name="rerank_enabled" id="s-rerank-on"> Rerank top results and use the reranker to judge evidence</label>
+            <label>Reranker model <select name="rerank_model" id="s-rerank"></select></label>
+            <label>Candidates to rerank <input type="number" name="rerank_candidates" id="s-rerank-n" min="5" max="100"></label>
+          </fieldset>
+          <details>
+            <summary>Advanced: evidence thresholds</summary>
+            <p class="meta">Tuned on labelled validation queries. Raising them makes the system abstain more often (fewer
+              false answers); lowering them answers more often. Re-run the evaluation after changing the model.</p>
+            <div class="grid2">
+              <label>Strong similarity <input type="number" step="0.01" name="gate_dense_high" id="s-g-high"></label>
+              <label>Minimum similarity <input type="number" step="0.01" name="gate_dense_min" id="s-g-min"></label>
+              <label>Minimum keyword coverage <input type="number" step="0.01" name="gate_lex_coverage" id="s-g-cov"></label>
+              <label>Minimum reranker score <input type="number" step="0.1" name="gate_rerank_min" id="s-g-rr"></label>
+              <label>Gate mode <select name="gate_mode" id="s-g-mode">
+                <option value="similarity">similarity + keywords</option>
+                <option value="rerank">reranker only</option>
+                <option value="rerank_and_similarity">reranker and similarity</option></select></label>
+              <label>Keyword coverage weighting <select name="gate_lexical" id="s-g-lex">
+                <option value="coverage">all terms equal</option>
+                <option value="idf">distinctive terms weigh more</option></select></label>
+            </div>
+          </details>
+          <div class="actions">
+            <button type="submit">Save settings</button>
+            <button type="button" id="s-reset" class="secondary">Restore defaults</button>
+            <span id="settings-msg" class="meta" role="status"></span>
+          </div>
+        </form>
+        <div class="panel">
+          <h2>Index</h2>
+          <p id="reindex-info" class="meta"></p>
+          <button type="button" id="reindex-outdated">Reindex outdated documents</button>
+          <button type="button" id="reindex-all" class="secondary">Reindex everything</button>
+          <span id="reindex-msg" class="meta" role="status"></span>
+        </div>
+      </section>
+
+      <section id="tab-admin" hidden>
+        <div class="panel">
+          <h2>Collections</h2>
+          <p class="meta">A collection is a set of documents. Give groups read or write access; users in those groups inherit it.</p>
+          <form id="col-form" class="inline-form">
+            <input name="name" placeholder="new-collection-name" pattern="[a-z0-9_\-]{2,64}" required aria-label="Collection name">
+            <input name="description" placeholder="Description (optional)" aria-label="Description">
+            <button type="submit">Create collection</button>
+          </form>
+          <table class="docs"><thead><tr><th>Collection</th><th>Documents</th><th>Access</th><th>Grant access</th></tr></thead>
+            <tbody id="col-rows"></tbody></table>
+        </div>
+        <div class="panel">
+          <h2>Users</h2>
+          <form id="user-form" class="inline-form">
+            <input name="username" placeholder="username" pattern="[a-z0-9_.\-]{2,64}" required aria-label="Username">
+            <input name="password" type="password" placeholder="password (10+ chars)" minlength="10" required aria-label="Password" autocomplete="new-password">
+            <input name="groups" placeholder="groups, comma separated" aria-label="Groups">
+            <label class="check"><input type="checkbox" name="is_admin"> admin</label>
+            <button type="submit">Create user</button>
+          </form>
+          <table class="docs"><thead><tr><th>User</th><th>Groups</th><th>Role</th><th></th></tr></thead>
+            <tbody id="user-rows"></tbody></table>
+          <p id="admin-msg" class="meta" role="status"></p>
+        </div>
       </section>
     </main>
 

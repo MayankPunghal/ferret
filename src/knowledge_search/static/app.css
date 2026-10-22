@@ -78,3 +78,26 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; }
 .drawer-body .ctx { color: var(--muted); }
 .drawer-body .hit { background: var(--mark); padding: 6px 8px; border-radius: 6px; }
 @media (max-width: 640px) { .docs { font-size: 12px; } .topbar { padding: 10px 16px; gap: 10px; } }
+
+/* v0.2: setup, dropzone, settings and admin panels */
+button.secondary { background: var(--panel); color: var(--accent); }
+.empty { background: var(--panel); border: 1px dashed var(--line); border-radius: 8px; padding: 16px; color: var(--muted); margin-bottom: 16px; }
+.upload { align-items: stretch; }
+.dropzone { flex: 1 1 320px; border: 2px dashed var(--line); border-radius: 8px; padding: 18px; text-align: center; cursor: pointer; background: var(--bg); }
+.dropzone.over, .dropzone:focus { border-color: var(--accent); outline: none; }
+.link-like { color: var(--accent); text-decoration: underline; }
+.upload-side { display: grid; gap: 10px; flex: 1 1 240px; }
+.upload-list { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 4px; font-size: 14px; }
+.ok-text { color: var(--ok); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; margin-bottom: 16px; }
+.panel h2 { font-size: 17px; margin: 0 0 10px; }
+.panel fieldset { border: 1px solid var(--line); border-radius: 8px; margin: 0 0 12px; padding: 10px 14px; display: grid; gap: 8px; }
+.panel legend { font-weight: 600; padding: 0 4px; }
+.panel label { display: grid; gap: 4px; font-size: 14px; }
+.panel label.check, label.check { display: flex; gap: 6px; align-items: center; }
+.panel .meta { margin: 0; }
+.panel details { margin: 0 0 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 8px; }
+.actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.inline-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.docs input { max-width: 100%; }
