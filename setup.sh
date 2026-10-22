@@ -1,94 +1,65 @@
 #!/usr/bin/env bash
-# One-command setup for Linux/macOS (Windows: run setup.bat).
+# One-command setup for Linux/macOS. No Docker, no root: installs uv for the current user if missing,
+# then uv installs Python 3.13, all dependencies and an embedded PostgreSQL + pgvector; downloads the
+# offline AI models; initialises the database; optionally loads sample data; starts the app.
 #
-#   ./setup.sh            install deps, start PostgreSQL, download the model, migrate, create an admin
-#   ./setup.sh --demo     ...and load the FICTIONAL sample corpus with demo users (alice/bob/hannah)
-#   ./setup.sh --start    ...and start the server at http://127.0.0.1:8000 when done
+#   ./setup.sh               interactive (asks about sample data), then starts the app in your browser
+#   ./setup.sh --demo        load the FICTIONAL sample corpus without asking
+#   ./setup.sh --no-demo     skip sample data      ./setup.sh --no-start   do not start the app
 #
-# Safe to re-run: every step is idempotent (existing users/collections/documents are kept).
+# Safe to re-run. Server deployments with an external PostgreSQL: see docs/deployment.md.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-DEMO=0; START=0
+DEMO=ask; START=1
 for arg in "$@"; do
   case "$arg" in
-    --demo) DEMO=1 ;;
-    --start) START=1 ;;
-    -h|--help) sed -n '2,8p' "$0"; exit 0 ;;
+    --demo) DEMO=yes ;;
+    --no-demo) DEMO=no ;;
+    --no-start) START=0 ;;
+    -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
 
 step() { printf '\n==> %s\n' "$*"; }
-die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+die() { printf '\nSETUP FAILED: %s\nFix the problem and run ./setup.sh again (it is safe to re-run).\n' "$*" >&2; exit 1; }
 
-step "Checking prerequisites"
-command -v docker >/dev/null || die "Docker is required (https://docs.docker.com/get-docker/)."
-docker info >/dev/null 2>&1 || die "Docker is installed but not running. Start Docker Desktop / the docker service."
+step "Checking uv (Python package manager)"
+export PATH="$HOME/.local/bin:$PATH"
 if ! command -v uv >/dev/null; then
-  echo "uv not found - installing it (https://docs.astral.sh/uv/)"
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  export PATH="$HOME/.local/bin:$PATH"
+  command -v curl >/dev/null || die "curl is required to install uv"
+  echo "Installing uv for the current user from https://astral.sh/uv ..."
+  curl -LsSf https://astral.sh/uv/install.sh | sh || die "uv could not be installed (network/proxy?)"
 fi
 uv --version
 
-step "Starting PostgreSQL + pgvector (docker compose service 'db')"
-docker compose up -d db
-for _ in $(seq 1 60); do
-  docker compose exec -T db pg_isready -U ks -d ks >/dev/null 2>&1 && break
-  sleep 1
-done
-docker compose exec -T db pg_isready -U ks -d ks >/dev/null || die "database did not become ready"
+step "Installing Python 3.13, dependencies and the embedded database (first run downloads ~600 MB)"
+uv sync --no-dev || die "dependency installation failed"
 
-step "Installing Python dependencies (uv sync)"
-uv sync
+step "Downloading the offline AI models (embedding model + reranker; one-time)"
+uv run --no-dev knowledge-search download-model || die "model download failed (network/proxy?)"
 
-KS="uv run knowledge-search"
-step "Downloading the embedding model (one-time, ~70 MB)"
-$KS download-model
-step "Applying database migrations"
-$KS migrate
+step "Initialising the local database"
+uv run --no-dev knowledge-search migrate || die "database initialisation failed"
 
-user_exists() {
-  docker compose exec -T db psql -U ks -d ks -tAc "SELECT 1 FROM users WHERE username = '$1'" | grep -q 1
-}
-
-step "Creating the admin account"
-if user_exists admin; then
-  echo "user 'admin' already exists - keeping it"
-else
-  $KS create-user admin --admin --password - | tee .admin-password.txt
-  chmod 600 .admin-password.txt
-  echo "(saved to .admin-password.txt - delete it after you have stored the password)"
+if [ "$DEMO" = ask ]; then
+  if [ -t 0 ]; then
+    read -r -p "Load the FICTIONAL sample documents so you can try searching right away? [Y/n] " ans
+    case "${ans:-y}" in [Yy]*) DEMO=yes ;; *) DEMO=no ;; esac
+  else
+    DEMO=no
+  fi
+fi
+if [ "$DEMO" = yes ]; then
+  step "Loading fictional sample documents and demo users"
+  uv run --no-dev knowledge-search demo || die "loading sample data failed"
 fi
 
-if [ "$DEMO" = 1 ]; then
-  step "Loading the FICTIONAL demo corpus and demo users"
-  $KS grant engineering staff >/dev/null; $KS grant engineering hr >/dev/null
-  $KS grant finance staff >/dev/null;     $KS grant finance hr >/dev/null
-  $KS grant hr hr >/dev/null;             $KS grant engineering eng-writers --write >/dev/null
-  for u in alice bob hannah; do
-    user_exists "$u" || $KS create-user "$u" --password "demo-password-$u" >/dev/null
-  done
-  $KS add-to-group alice staff >/dev/null; $KS add-to-group alice eng-writers >/dev/null
-  $KS add-to-group bob staff >/dev/null;   $KS add-to-group hannah hr >/dev/null
-  for c in engineering finance hr; do
-    $KS ingest "$c" "fixtures/corpus/$c" --wait 2>/dev/null | grep -E "queued|unchanged|rejected|processed" || true
-  done
-  cat <<'EOF'
-
-Demo users (password = demo-password-<name>):
-  alice   reads engineering + finance, can upload to engineering
-  bob     reads engineering + finance (read-only)
-  hannah  reads everything including the confidential 'hr' collection
-Try: ERR-PAY-4012 | how do I undo a bad release of the orders service |
-     per diem for domestic travel (conflicting versions) | parental leave (as bob vs hannah)
-EOF
-fi
-
-step "Done"
-echo "Start the server:  uv run knowledge-search serve      ->  http://127.0.0.1:8000"
-echo "Run the tests:     uv run pytest -q"
+step "Setup complete"
+echo "Start the app any time with ./start.sh  ->  http://127.0.0.1:8000"
+echo "On first start the browser asks you to create the administrator account."
 if [ "$START" = 1 ]; then
-  exec uv run knowledge-search serve
+  echo "Starting now (Ctrl+C to stop)..."
+  exec uv run --no-dev knowledge-search serve --open
 fi
