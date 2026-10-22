@@ -43,7 +43,8 @@ def database(tmp_path_factory):
         c.row_factory = dict_row
         for u, admin in [("alice", False), ("bob", False), ("hannah", False), ("sam", False), ("root", True)]:
             auth.create_user(c, u, PASSWORD, admin)
-        for col, groups in {"engineering": ["staff", "hr"], "finance": ["staff", "hr"], "hr": ["hr"]}.items():
+        for col, groups in {"engineering": ["staff", "hr"], "finance": ["staff", "hr"], "hr": ["hr"],
+                            "platform-wiki": ["staff", "hr"]}.items():
             for g in groups:
                 auth.grant(c, col, g)
         auth.grant(c, "engineering", "eng-writers", can_write=True)

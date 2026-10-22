@@ -148,7 +148,8 @@ def _demo(s) -> None:
     if not corpus.is_dir():
         sys.exit(f"sample corpus not found at {corpus} (run from a source checkout)")
     with _conn() as c:
-        for col, groups in {"engineering": ["staff", "hr"], "finance": ["staff", "hr"], "hr": ["hr"]}.items():
+        for col, groups in {"engineering": ["staff", "hr"], "finance": ["staff", "hr"], "hr": ["hr"],
+                            "platform-wiki": ["staff", "hr"]}.items():
             for g in groups:
                 auth.grant(c, col, g)
         auth.grant(c, "engineering", "eng-writers", can_write=True)
@@ -157,7 +158,7 @@ def _demo(s) -> None:
                 auth.create_user(c, u, f"demo-password-{u}")
             for g in groups:
                 auth.add_user_to_group(c, u, g)
-    for col in ("engineering", "finance", "hr"):
+    for col in ("engineering", "finance", "hr", "platform-wiki"):
         _ingest(argparse.Namespace(collection=col, path=corpus / col, wait=True), s)
     print("\nDemo users (password = demo-password-<name>): alice (engineering+finance, can upload), "
           "bob (read-only), hannah (also sees the confidential 'hr' collection)")

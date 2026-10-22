@@ -89,7 +89,7 @@ def main():
         runtime.save(c, runtime.validate({"embed_model": a.model, "rerank_enabled": bool(a.reranker),
                                           "fusion_lexical_weight": a.lexical_weight,
                                           **({"rerank_model": a.reranker} if a.reranker else {})}), None)
-        for col in sorted(CORPUS.iterdir()):
+        for col in sorted(d for d in CORPUS.iterdir() if d.name != "platform-wiki"):  # wiki: graph demo only
             cid = auth.ensure_collection(c, col.name)
             for f in sorted(col.iterdir()):
                 submit(c, blobs, collection_id=cid, filename=f.name, data=f.read_bytes(), user_id=None,

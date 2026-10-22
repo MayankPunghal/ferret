@@ -163,6 +163,36 @@ async function openPassage(id) {
   $("#d-uri").textContent = p.source_uri ? "Recorded location: " + p.source_uri : "";
   $("#drawer").hidden = false;
   $("#d-body .hit")?.scrollIntoView({ block: "center" });
+  renderLinks(p.document_id);
+}
+
+const KIND = { links_to: "links to", depends_on: "depends on", related: "related", calls: "calls",
+  owned_by: "owned by", part_of: "part of", see_also: "see also" };
+
+async function renderLinks(docId) {
+  const box = $("#d-links");
+  box.hidden = true; box.replaceChildren();
+  const [links, imp] = await Promise.all([api(`/api/documents/${docId}/links`), api(`/api/documents/${docId}/impact?depth=2`)])
+    .catch(() => [null, null]);
+  if (!links) return;
+  const item = (title, meta, chunkId) => {
+    const b = el("button", { className: "link", textContent: title });
+    if (chunkId) b.addEventListener("click", () => openPassage(chunkId));
+    return el("li", {}, b, el("span", { className: "meta", textContent: " " + meta }));
+  };
+  const section = (heading, items) => items.length && box.append(el("h4", { textContent: heading }), el("ul", {}, ...items));
+  section("Links from this document", links.outgoing.map((o) => item(o.title, `${KIND[o.kind] || o.kind}${o.anchor ? " #" + o.anchor : ""} · ${o.collection}`, o.chunk_id)));
+  const byDoc = new Map();  // one line per linking document, listing all its link kinds
+  for (const i of links.incoming) {
+    const g = byDoc.get(i.document_id) || { ...i, kinds: [] };
+    g.kinds.push(KIND[i.kind] || i.kind); byDoc.set(i.document_id, g);
+  }
+  section("Linked from", [...byDoc.values()].map((g) => item(g.title, `${g.kinds.join(", ")} this · ${g.collection}`, g.chunk_id)));
+  section("Depends on this (blast radius, 2 hops)", imp.nodes.map((n) => item(n.title, `${n.depth === 1 ? "directly" : "indirectly"} · ${KIND[n.kind] || n.kind} · ${n.collection}`, n.chunk_id)));
+  if (links.unresolved.length)
+    box.append(el("p", { className: "meta", textContent: "Not found in documents you can access: " + links.unresolved.map((u) => u.label || u.target).join(", ") }));
+  box.hidden = !box.childElementCount;
+  if (!box.hidden) box.prepend(el("h3", { textContent: "Connections" }));
 }
 $("#d-close").addEventListener("click", () => { $("#drawer").hidden = true; });
 

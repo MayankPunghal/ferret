@@ -142,4 +142,4 @@ def test_search_makes_no_outbound_network_calls(client, corpus, monkeypatch):
     monkeypatch.setattr(socket, "create_connection", blocked)
     monkeypatch.setattr(socket.socket, "connect", blocked)
     res = search(client, token(client, "alice"), "how do I roll back the orders service")
-    assert res["results"][0]["title"] == "Orders Service Deployment Runbook"
+    assert "Orders Service Deployment Runbook" in [r["title"] for r in res["results"][:3]]

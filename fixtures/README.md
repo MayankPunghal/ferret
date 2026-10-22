@@ -10,6 +10,7 @@ Collections and intended permissions (as set up by `eval/run_eval.py` and the te
 | `engineering` | `staff`, `hr`      | runbooks, API reference, error codes, postmortem (PDF), config |
 | `finance`     | `staff`, `hr`      | expense policy 2024 and 2025 (deliberately conflicting), refund policy |
 | `hr`          | `hr` only          | confidential HR policies (parental leave, compensation bands) |
+| `platform-wiki` | `staff`, `hr`    | small interlinked service wiki (links, `depends_on`, `part_of`) for graph navigation |
 
 Deliberate traps: conflicting versions (`expense-policy-2024.md` vs `expense-policy-2025.md`),
 near-miss subjects (software refunds vs hardware, payments on-call vs data-platform on-call),
