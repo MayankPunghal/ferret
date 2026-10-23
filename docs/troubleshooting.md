@@ -15,5 +15,8 @@
 | Search says **retrieval degraded** | A model could not be loaded (e.g. just switched and still downloading). Check Settings → model status. |
 | Embedded database will not start after a crash | Stop all app windows, then delete `data/pg/postmaster.pid` if it exists and start again. |
 | Console shows `ConnectionResetError: [WinError 10054]` in `_call_connection_lost` (Windows) | Harmless: the browser closed an idle connection. Filtered since v0.2; nothing to fix. |
+| Index status says **no local language model installed** | The optional summary model was not installed or its download failed. Run `uv run knowledge-search download-llm` (needs `github.com` and `huggingface.co`), then restart the app. Search works without it. |
+| Index status says **the local language model could not start** | See `data/logs/llm-server.log`. Usual causes: antivirus blocked `llama-server.exe` (allow it), or too little free RAM (~1 GB needed). Fix, then restart the app; summaries resume where they stopped. |
+| Summaries stay at "waiting for indexing" | By design: summaries are written only while no files wait to be indexed. They start when the Documents tab shows nothing pending. |
 | Anything else / you need help | Admin → **Logs** → **Copy for support** and paste it into your report (contains versions, settings and errors with tracebacks; never document or search text). The same log is in `data/logs/knowledge-search.log`. |
 | Running as root on Linux | The embedded PostgreSQL refuses root; it creates and uses a `pgserver` system user automatically. |

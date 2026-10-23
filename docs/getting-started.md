@@ -7,8 +7,9 @@
 1. Get the code: `git clone https://github.com/MayankPunghal/knowledge-search` (or **Code → Download ZIP** on
    GitHub and extract it).
 2. In that folder run **`setup.bat --demo`** from Command Prompt — or double-click `setup.bat` and answer
-   **Y** when asked whether to load the fictional sample documents. Other options: `--no-demo`,
-   `--no-start`, `--no-shortcut` (the PowerShell-style `-Demo`, `-NoStart` also work).
+   **Y** when asked whether to load the fictional sample documents. It also asks whether to install the
+   optional summary model (answer **Y**, ~0.6 GB). Other options: `--no-demo`, `--summaries`,
+   `--no-summaries`, `--no-start`, `--no-shortcut` (the PowerShell-style `-Demo`, `-NoStart` also work).
 
 The setup window shows each step:
 
@@ -17,6 +18,7 @@ The setup window shows each step:
 | uv | Installs [uv](https://docs.astral.sh/uv/), a Python package manager, into your user profile | No |
 | Dependencies | uv downloads Python 3.13, the app's libraries and an embedded PostgreSQL + pgvector (~600 MB) | No |
 | Models | Downloads the offline embedding model and reranker (~300 MB) into `data/models`; network drops are retried, and re-running setup reuses finished files | No |
+| Summary model (optional) | Downloads llama.cpp's server (github.com) and a small language model (~0.5 GB, huggingface.co) into `data/models/llm`; if it fails, setup continues without it | No |
 | Database | Creates the local database in `data/pg` | No |
 | Sample data | Optional fictional documents and demo users | No |
 | Shortcut | Puts a **Knowledge Search** shortcut on the desktop | No |
@@ -29,7 +31,7 @@ Re-running `setup.bat` is safe (it skips what is already done).
 
 ```bash
 git clone https://github.com/MayankPunghal/knowledge-search && cd knowledge-search
-./setup.sh            # --demo to load sample data without asking, --no-start to not launch
+./setup.sh            # --demo: sample data without asking, --summaries: install the summary model, --no-start
 ```
 
 ### Behind a corporate proxy
@@ -69,6 +71,9 @@ Click **View passage** to see the passage in context and **Open source** to open
    - a question in your own words → expect the right passage at the top;
    - a question your documents cannot answer → expect *no adequate evidence*.
 5. Edit a file and drop it again: only that file is re-indexed; text you removed is no longer found.
+6. With the summary model installed: **Index status** shows "summaries by local model: N of M documents"
+   (about 5–15 s per document, after indexing has finished). Search again: results now show a summary and
+   topics, and file-name titles are replaced by clearer ones.
 
 A whole folder: **choose a folder** next to *browse* uploads every supported file in it and its subfolders.
 Command-line alternative: `uv run knowledge-search ingest trial path/to/folder --wait`.
