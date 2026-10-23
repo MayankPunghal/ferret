@@ -7,9 +7,9 @@ topics and, when the document's own title is vague ("Overview", "Home", a file n
 - Never in the way: one document at a time, only while no indexing job is waiting, so new files become
   searchable first; search never waits for it.
 - Trust: summaries and topics are labelled as written by the model and are never cited as evidence.
-  With the "document summary in each passage" setting on, a document without its own description gets the
-  summary in its passage embeddings (re-indexed once) — measured: Kubernetes pages without descriptions,
-  top result 96.4% -> 98.2% with Gemma 4 E2B summaries (eval/llm_summaries.py).
+  With "add a line about the whole document to every passage" on (context_chars), a document without its
+  own description is re-indexed once so that line is the summary — measured: Kubernetes pages without
+  descriptions, top result 96.4% -> 98.2% with Gemma 4 E2B summaries (eval/llm_summaries.py).
 - Cost is per document (its opening text and headings), not per page: ~10-20 s on a 4-core CPU.
 """
 
