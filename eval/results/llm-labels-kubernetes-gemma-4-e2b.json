@@ -1,0 +1,657 @@
+{
+ "llm": "gemma-4-e2b",
+ "pages": 42,
+ "exact": 0.643,
+ "compatible": 0.643,
+ "compatible_by_section": {
+  "tasks": 0.833,
+  "concepts": 0.75,
+  "reference": 0.333,
+  "tutorials": 0.667
+ },
+ "confusion": {
+  "how-to -> how-to": 14,
+  "concept -> concept": 9,
+  "reference -> concept": 8,
+  "reference -> reference": 4,
+  "how-to -> reference": 2,
+  "how-to -> concept": 2,
+  "concept -> how-to": 2,
+  "concept -> reference": 1
+ },
+ "rows": [
+  {
+   "file": "access-api-from-pod.md",
+   "site_path": "content/en/docs/tasks/run-application/access-api-from-pod.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes API",
+    "Client Libraries",
+    "Service Account",
+    "REST API",
+    "kubectl proxy"
+   ],
+   "seconds": 17.9
+  },
+  {
+   "file": "automated-tasks-with-cron-jobs.md",
+   "site_path": "content/en/docs/tasks/job/automated-tasks-with-cron-jobs.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes CronJob",
+    "kubectl",
+    "CronJob manifest",
+    "Jobs",
+    "Pods"
+   ],
+   "seconds": 18.1
+  },
+  {
+   "file": "configure-access-multiple-clusters.md",
+   "site_path": "content/en/docs/tasks/access-application-cluster/configure-access-multiple-clusters.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "kubectl",
+    "kubeconfig file",
+    "clusters",
+    "users",
+    "contexts",
+    "KUBECONFIG environment variable"
+   ],
+   "seconds": 19.1
+  },
+  {
+   "file": "configure-service-account.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/configure-service-account.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "ServiceAccount",
+    "API server",
+    "Pod",
+    "API credentials",
+    "ImagePullSecrets",
+    "ServiceAccount token volume projection"
+   ],
+   "seconds": 18.7
+  },
+  {
+   "file": "custom-resource-definitions.md",
+   "site_path": "content/en/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "reference",
+   "topics": [
+    "CustomResourceDefinition",
+    "API Server",
+    "Custom Objects",
+    "Schema",
+    "Validation",
+    "OpenAPI V2"
+   ],
+   "seconds": 21.0
+  },
+  {
+   "file": "define-interdependent-environment-variables.md",
+   "site_path": "content/en/docs/tasks/inject-data-application/define-interdependent-environment-variables.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes Pod",
+    "environment variables",
+    "kubectl",
+    "configuration file"
+   ],
+   "seconds": 17.9
+  },
+  {
+   "file": "extend-service-ip-ranges.md",
+   "site_path": "content/en/docs/tasks/network/extend-service-ip-ranges.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "ServiceCIDR",
+    "kube-apiserver",
+    "ClusterIP",
+    "ipaddress",
+    "Kubernetes Service CIDR Policies",
+    "Validating Admission Policy"
+   ],
+   "seconds": 20.7
+  },
+  {
+   "file": "indexed-parallel-processing-static.md",
+   "site_path": "content/en/docs/tasks/job/indexed-parallel-processing-static.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes Job",
+    "Pod index",
+    "Downward API",
+    "JOB_COMPLETION_INDEX environment variable",
+    "rev utility"
+   ],
+   "seconds": 18.7
+  },
+  {
+   "file": "kubelet-in-userns.md",
+   "site_path": "content/en/docs/tasks/administer-cluster/kubelet-in-userns.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "concept",
+   "topics": [
+    "kubelet",
+    "CRI",
+    "Usernetes",
+    "kind",
+    "minikube",
+    "sysbox"
+   ],
+   "seconds": 23.2
+  },
+  {
+   "file": "migrate-from-psp.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/migrate-from-psp.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "PodSecurityPolicy",
+    "Pod Security Admission",
+    "namespace permissions",
+    "Pod Security levels",
+    "mutating fields",
+    "Validating Admission Webhook"
+   ],
+   "seconds": 20.8
+  },
+  {
+   "file": "quota-pod-namespace.md",
+   "site_path": "content/en/docs/tasks/administer-cluster/manage-resources/quota-pod-namespace.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "ResourceQuota",
+    "Namespace",
+    "Pod",
+    "Deployment",
+    "kubectl"
+   ],
+   "seconds": 19.4
+  },
+  {
+   "file": "setup-konnectivity.md",
+   "site_path": "content/en/docs/tasks/extend-kubernetes/setup-konnectivity.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes cluster",
+    "kubectl",
+    "API Server",
+    "egress configuration",
+    "Service Account Token Volume Projection",
+    "UDS connection"
+   ],
+   "seconds": 19.4
+  },
+  {
+   "file": "admission-webhooks-good-practices.md",
+   "site_path": "content/en/docs/concepts/cluster-administration/admission-webhooks-good-practices.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "how-to",
+   "topics": [
+    "Admission controllers",
+    "Admission webhooks",
+    "CustomResourceDefinitions",
+    "Performance and latency",
+    "Load balancer",
+    "High-availability deployment model"
+   ],
+   "seconds": 23.1
+  },
+  {
+   "file": "cluster-administration.md",
+   "site_path": "content/en/docs/concepts/cluster-administration/_index.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "Kubernetes concepts",
+    "Distros",
+    "Google Kubernetes Engine",
+    "Networking model",
+    "Node autoscaling",
+    "Resource quota"
+   ],
+   "seconds": 18.5
+  },
+  {
+   "file": "cron-jobs.md",
+   "site_path": "content/en/docs/concepts/workloads/controllers/cron-jobs.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "Cron",
+    "Jobs",
+    "Pod",
+    "DNS subdomain names",
+    "DNS label names"
+   ],
+   "seconds": 20.9
+  },
+  {
+   "file": "dynamic-provisioning.md",
+   "site_path": "content/en/docs/concepts/storage/dynamic-provisioning.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "StorageClass",
+    "PersistentVolume",
+    "PersistentVolumeClaim",
+    "volume plugin",
+    "provisioner"
+   ],
+   "seconds": 16.9
+  },
+  {
+   "file": "images.md",
+   "site_path": "content/en/docs/concepts/containers/images.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "Container images",
+    "Image names",
+    "Tags",
+    "Digests",
+    "OCI Image Manifest Specification"
+   ],
+   "seconds": 19.5
+  },
+  {
+   "file": "manage-resources-containers.md",
+   "site_path": "content/en/docs/concepts/configuration/manage-resources-containers.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "CPU resource units",
+    "Memory resource units",
+    "Pod-level resource specification",
+    "How Pods with resource requests are scheduled",
+    "How Kubernetes applies resource requests and limits",
+    "Container resources example"
+   ],
+   "seconds": 21.9
+  },
+  {
+   "file": "object-management.md",
+   "site_path": "content/en/docs/concepts/overview/working-with-objects/object-management.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "reference",
+   "topics": [
+    "kubectl",
+    "Deployment object",
+    "YAML",
+    "JSON",
+    "LoadBalancer"
+   ],
+   "seconds": 16.2
+  },
+  {
+   "file": "pod-overhead.md",
+   "site_path": "content/en/docs/concepts/scheduling-eviction/pod-overhead.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "Pod Overhead",
+    "RuntimeClass",
+    "kubelet",
+    "Pod cgroup",
+    "admission controller"
+   ],
+   "seconds": 18.7
+  },
+  {
+   "file": "proxies.md",
+   "site_path": "content/en/docs/concepts/cluster-administration/proxies.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "kubectl proxy",
+    "apiserver proxy",
+    "kube proxy",
+    "Proxy/Load-balancer in front of apiserver(s)",
+    "Cloud Load Balancers"
+   ],
+   "seconds": 15.9
+  },
+  {
+   "file": "scheduler.md",
+   "site_path": "content/en/docs/concepts/security/hardening-guide/scheduler.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "how-to",
+   "topics": [
+    "kube-scheduler",
+    "authentication",
+    "networking",
+    "TLS",
+    "scheduling configurations",
+    "node labeling"
+   ],
+   "seconds": 16.7
+  },
+  {
+   "file": "static-pods.md",
+   "site_path": "content/en/docs/concepts/workloads/pods/static-pods.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "kubelet",
+    "control plane components",
+    "kubeadm",
+    "mirror Pods",
+    "DaemonSets"
+   ],
+   "seconds": 15.9
+  },
+  {
+   "file": "topology-aware-routing.md",
+   "site_path": "content/en/docs/concepts/services-networking/topology-aware-routing.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "EndpointSlice controller",
+    "kube-proxy",
+    "topology",
+    "Service annotations",
+    "traffic distribution"
+   ],
+   "seconds": 18.1
+  },
+  {
+   "file": "access-authn-authz.md",
+   "site_path": "content/en/docs/reference/access-authn-authz/_index.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes API",
+    "Authentication",
+    "Admission Controllers",
+    "Authorization",
+    "Service accounts",
+    "Kubelet Authentication & Authorization"
+   ],
+   "seconds": 14.9
+  },
+  {
+   "file": "cadvisor.md",
+   "site_path": "content/en/docs/reference/glossary/cadvisor.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "cAdvisor",
+    "containers",
+    "resource usage",
+    "performance characteristics",
+    "resource isolation parameters",
+    "network statistics"
+   ],
+   "seconds": 9.8
+  },
+  {
+   "file": "cncf.md",
+   "site_path": "content/en/docs/reference/glossary/cncf.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "Kubernetes",
+    "Linux Foundation",
+    "containers",
+    "microservices architecture"
+   ],
+   "seconds": 9.2
+  },
+  {
+   "file": "customresourcedefinition.md",
+   "site_path": "content/en/docs/reference/glossary/customresourcedefinition.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "Kubernetes API server",
+    "API objects",
+    "Custom API"
+   ],
+   "seconds": 9.4
+  },
+  {
+   "file": "duration.md",
+   "site_path": "content/en/docs/reference/glossary/duration.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes APIs",
+    "time.Duration",
+    "ns",
+    "\u00b5s",
+    "ms",
+    "s"
+   ],
+   "seconds": 10.4
+  },
+  {
+   "file": "flexvolume.md",
+   "site_path": "content/en/docs/reference/glossary/flexvolume.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "FlexVolume",
+    "Container Storage Interface (CSI)",
+    "Kubernetes",
+    "Volume Plugins"
+   ],
+   "seconds": 10.6
+  },
+  {
+   "file": "kernel-version-requirements.md",
+   "site_path": "content/en/docs/reference/node/kernel-version-requirements.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "sysctls",
+    "kube-proxy",
+    "cgroup v2",
+    "Pressure Stall Information (PSI)",
+    "Linux kernel long term maintenance"
+   ],
+   "seconds": 18.8
+  },
+  {
+   "file": "master.md",
+   "site_path": "content/en/docs/reference/glossary/master.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "nodes",
+    "control plane",
+    "kubeadm",
+    "managed services"
+   ],
+   "seconds": 10.0
+  },
+  {
+   "file": "persistent-volume.md",
+   "site_path": "content/en/docs/reference/glossary/persistent-volume.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "PersistentVolume",
+    "Pod",
+    "PersistentVolumeClaims (PVCs)"
+   ],
+   "seconds": 8.7
+  },
+  {
+   "file": "probe.md",
+   "site_path": "content/en/docs/reference/glossary/probe.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "kubelet",
+    "container",
+    "pod",
+    "container lifecycle"
+   ],
+   "seconds": 8.8
+  },
+  {
+   "file": "reviewer.md",
+   "site_path": "content/en/docs/reference/glossary/reviewer.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "codebase",
+    "software engineering principles"
+   ],
+   "seconds": 8.6
+  },
+  {
+   "file": "sysctl.md",
+   "site_path": "content/en/docs/reference/glossary/sysctl.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "Unix kernel",
+    "sysctl tool",
+    "sysctl system call",
+    "container runtimes",
+    "network plugins"
+   ],
+   "seconds": 10.5
+  },
+  {
+   "file": "admission-policies.md",
+   "site_path": "content/en/docs/tutorials/cluster-management/admission-policies.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "reference",
+   "topics": [
+    "ValidatingAdmissionPolicy",
+    "MutatingAdmissionPolicy",
+    "Common Expression Language (CEL)",
+    "Policy elements",
+    "API types for admission policies",
+    "Parameter resources"
+   ],
+   "seconds": 18.0
+  },
+  {
+   "file": "cassandra.md",
+   "site_path": "content/en/docs/tutorials/stateful-application/cassandra.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Apache Cassandra",
+    "StatefulSet",
+    "Pods",
+    "Services",
+    "Minikube"
+   ],
+   "seconds": 15.9
+  },
+  {
+   "file": "configure-redis-using-configmap.md",
+   "site_path": "content/en/docs/tutorials/configuration/configure-redis-using-configmap.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Redis",
+    "ConfigMap",
+    "kubectl",
+    "Pod",
+    "volumeMounts"
+   ],
+   "seconds": 18.3
+  },
+  {
+   "file": "hello-minikube.md",
+   "site_path": "content/en/docs/tutorials/hello-minikube.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "minikube",
+    "kubectl",
+    "Deployment",
+    "Service",
+    "Pod"
+   ],
+   "seconds": 16.4
+  },
+  {
+   "file": "ns-level-pss.md",
+   "site_path": "content/en/docs/tutorials/security/ns-level-pss.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Pod Security Admission",
+    "kind",
+    "kubectl",
+    "namespace",
+    "Pod Security Standards"
+   ],
+   "seconds": 16.9
+  },
+  {
+   "file": "source-ip.md",
+   "site_path": "content/en/docs/tutorials/services/source-ip.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "concept",
+   "topics": [
+    "NAT",
+    "Source NAT",
+    "Destination NAT",
+    "VIP",
+    "kube-proxy"
+   ],
+   "seconds": 17.8
+  }
+ ]
+}

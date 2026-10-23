@@ -100,6 +100,11 @@ its summary and topics, the progress (*N of M documents*) and each document's st
 after all indexing), *writing summary…*, *summarised*, or *summary could not be written*. The Documents page
 shows a summary being written, or one that failed, under the document. Clicking a topic anywhere shows only the documents with that topic. **Show all** clears it.
 
+The model also gives each document a **type** (runbook, how-to, reference, concept, policy, incident report,
+…). It is shown before a result's location and as a filter on the Documents page. It is often right but
+not always: on Kubernetes pages the default model (Gemma 4 E2B) picked the site's own category for 78% of
+them. Treat it as a hint for narrowing a list, not as a fact.
+
 Topics stay consistent across a collection: the model is shown the topics already used most in the
 collection and asked to reuse those names, and a topic that differs from a known one only in capitals,
 hyphens or a plural ("Payment-Services", "payment service") takes the known spelling. The topic filter

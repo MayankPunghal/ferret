@@ -320,6 +320,34 @@ Verified: every command run against a fresh demo app on Linux, covering:
   searching for the word. Searching "IT" (a stop word, never indexed as a keyword) could only match by
   meaning. The walkthrough checks it.
 
+## 4k. Labels by the local model: document type, consistent topics, overnight hours (owner request 2026-10-23)
+
+- Prompt v3 (`enrich.py`) adds a **document type** from a described list of 16 (runbook, how-to,
+  troubleshooting, reference, concept, design, decision record, policy, process, release notes, incident
+  report, meeting notes, org chart, onboarding, presentation, other). It is shown with results (labelled
+  as the model's) and as a Type column and filter on Documents and Summaries. It is **not** used in
+  ranking: no measurement says it helps.
+- **Consistent topics:** the model sees its collection's 40 most used topics and is asked to reuse
+  their names; spelling variants (case, hyphens, a plural) take the known spelling (`topic_key`), and the
+  topic filter matches the same way.
+- **Upgrade cost:** when only the prompt changed, the stored summary is kept, so documents whose passages
+  carry it (context_chars) are not re-indexed. Existing installs relabel every document once in the
+  background.
+- **Hours:** the setting `enrich_hours` ("22-6", local time; empty = any time). Outside it the job waits
+  and stops the model server to free its memory. Tested (window wrap, validation, the job waiting).
+- **Measured** (`eval/llm_labels.py`, gold `eval/k8s_doc_types.jsonl`: 451 Kubernetes pages labelled by
+  where kubernetes/website files them; the same 42-page stratified sample for each model):
+
+  | Model | Exact, all 42 | Without the 10 glossary entries |
+  |---|---|---|
+  | Gemma 4 E2B (default) | 64.3% | **78.1%** (25/32) |
+  | Qwen3.5-0.8B | 57.1% | 56.2% (18/32); never says "concept" |
+
+  Glossary entries (one-paragraph definitions filed under reference) are called "concept" by Gemma 8
+  times out of 10, which is defensible; the gold mapping is the weak point there. Unmeasured: business
+  types (policy, process, incident report) on a real company corpus; on the 16 demo documents Qwen
+  called all three policies "reference" (before the type descriptions were added).
+
 ## 4j. Relations between documents written by the local model: measured, not shipped (owner question 2026-10-23)
 
 Owner: "just based on content can we setup relation between docs? Using LLM." Tried with Gemma 4 E2B
