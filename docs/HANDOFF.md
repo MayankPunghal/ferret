@@ -320,6 +320,32 @@ Verified: every command run against a fresh demo app on Linux, covering:
   searching for the word. Searching "IT" (a stop word, never indexed as a keyword) could only match by
   meaning. The walkthrough checks it.
 
+## 4i. Redesign (owner: "use the impeccable and taste skill extensively", 2026-10-23)
+
+Designed from the taste skill's app-screen rules (dealt style **framed sheet**, `draw.mjs --app --kind devtools`)
+and impeccable's operate-mode and craft-floor rules; both repos were read as guidance, nothing from them runs.
+- Shell: a blue-grey frame holds the sidebar (product mark and name, labelled nav with 16 px outline icons,
+  an Administration group, the account at the bottom) and a 48 px top bar with the search box (on every page,
+  **/** focuses it). Pages sit on a white sheet with a 1 px edge and 16 px corners, no shadows at rest. On
+  narrow windows the sidebar folds behind a menu button.
+- Type: IBM Plex Sans, with Plex Mono for file names, keys and config values. Both are vendored under
+  `static/vendor/fonts` (Latin subset, OFL), so the app stays offline. The viewer pages use the same fonts
+  and colours. Dark theme by `prefers-color-scheme`.
+- Colour sits on data only: highlighted words, status pills, one green evidence mark per supported result.
+  The primary button is near-black; the teal accent is the logo, focus ring and graph.
+- Search: a collection menu in place of chips; results are ruled rows with the rank in a mono gutter; the
+  outcome is a line with a status dot (tinted only for conflicts, incomplete coverage and failures).
+- Documents: Upload files / Upload a folder buttons, or drop anywhere on the page (folders read through the
+  entries API). State tabs with counts (All, Indexing, Failed, Outdated settings) and a name filter. One row
+  menu (Open, Download original, Retry, Delete) in place of a red Delete on every row; relative times. Rows
+  become two-line items on a phone.
+- Index status: a KPI strip (documents, indexed, waiting, failed, outdated), a per-collection table and the
+  configuration. Settings: a label column beside a tinted panel per section, with a sticky save bar. Users &
+  access: grants as pills with a remove button.
+- Verified: `scripts/ui_check.py` passes end to end with no console errors; there were screenshot reviews
+  at 1440 px, 390 px and in dark; the phone width has no horizontal scroll. 99 tests pass. Screenshots in
+  `docs/screenshots/` are regenerated. **Not reviewed by the owner yet.**
+
 ## 5. Decisions made this session (details: docs/architecture.md)
 
 Embedded PostgreSQL + vendored Windows DLL; in-memory vector search for laptops; runtime-editable

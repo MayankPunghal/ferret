@@ -168,7 +168,7 @@ with sync_playwright() as p:
     print("search hint:", pg.inner_text("#hint-scope"))
     shot("00-search-start")
     print("alice tabs:", pg.locator(".tab:not([hidden])").all_inner_texts(),
-          "| chips:", pg.locator("#scope label").all_inner_texts())
+          "| chips:", pg.locator("#scope label").all_text_contents())
     run("ERR-PAY-4012", "04-exact")
     pg.click("#results li >> text=View passage")
     pg.wait_for_selector("#drawer:not([hidden])")

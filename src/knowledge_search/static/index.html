@@ -4,65 +4,102 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Knowledge Search</title>
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
-  <div id="login-view" class="login" hidden>
-    <form id="login-form" class="login-card">
-      <h1>Knowledge Search</h1>
+  <!-- outline icons (16px, one set) -->
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-docs" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+    <symbol id="i-summaries" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></symbol>
+    <symbol id="i-status" viewBox="0 0 24 24"><path d="M21 12h-4l-3 8-4-16-3 8H3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 5h-7M9 5H4M20 12h-9M7 12H4M20 19h-5M11 19H4M13 3v4M7 10v4M15 17v4"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5 5 0 0 1 3 4.6V20"/></symbol>
+    <symbol id="i-logs" viewBox="0 0 24 24"><path d="m5 8 4 4-4 4M12 17h7"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></g></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></symbol>
+    <symbol id="i-signout" viewBox="0 0 24 24"><path d="M10 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4M15 16l4-4-4-4M19 12H9"/></symbol>
+    <symbol id="i-mark" viewBox="0 0 24 24"><rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" stroke="none"/><g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6.5 7.5h8M6.5 11h4"/><circle cx="14.5" cy="14.5" r="3.2"/><path d="m17 17 2.4 2.4"/></g></symbol>
+  </svg>
+
+  <div id="login-view" class="entry" hidden>
+    <form id="login-form" class="entry-card">
+      <div class="brand"><svg class="mark"><use href="#i-mark"/></svg> Knowledge Search</div>
+      <h1>Sign in</h1>
       <label>Username <input name="username" autocomplete="username" required></label>
       <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
-      <button type="submit">Sign in</button>
+      <button type="submit" class="primary">Sign in</button>
       <p id="login-error" class="error" role="alert"></p>
     </form>
   </div>
 
-  <div id="setup-view" class="login" hidden>
-    <form id="setup-form" class="login-card">
-      <h1>Welcome to Knowledge Search</h1>
-      <p class="meta">Create the administrator account. You can add more users and collections afterwards.</p>
+  <div id="setup-view" class="entry" hidden>
+    <form id="setup-form" class="entry-card">
+      <div class="brand"><svg class="mark"><use href="#i-mark"/></svg> Knowledge Search</div>
+      <h1>Create the administrator</h1>
+      <p class="muted">You can add more users and collections afterwards. Everything stays on this computer.</p>
       <label>Username <input name="username" value="admin" pattern="[a-z0-9_.\-]{2,64}" autocomplete="username" required></label>
-      <label>Password (at least 10 characters) <input name="password" type="password" minlength="10" autocomplete="new-password" required></label>
+      <label><span>Password <span class="muted">at least 10 characters</span></span> <input name="password" type="password" minlength="10" autocomplete="new-password" required></label>
       <label>Repeat password <input name="password2" type="password" minlength="10" autocomplete="new-password" required></label>
-      <button type="submit">Create account and start</button>
+      <button type="submit" class="primary">Create account and start</button>
       <p id="setup-error" class="error" role="alert"></p>
     </form>
   </div>
 
-  <div id="app-view" hidden>
-    <header class="topbar">
-      <strong class="brand">Knowledge Search</strong>
+  <div id="app-view" class="shell" hidden>
+    <aside id="sidebar" class="sidebar" aria-label="Navigation">
+      <div class="brand"><svg class="mark"><use href="#i-mark"/></svg> Knowledge Search</div>
       <nav>
-        <button class="tab" data-tab="search" aria-current="page">Search</button>
-        <button class="tab" data-tab="documents">Documents</button>
-        <button class="tab" data-tab="summaries">Summaries</button>
-        <button class="tab" data-tab="status">Index status</button>
-        <button class="tab admin-only" data-tab="settings" hidden>Settings</button>
-        <button class="tab admin-only" data-tab="admin" hidden>Users &amp; access</button>
-        <button class="tab admin-only" data-tab="logs" hidden>Logs</button>
+        <button class="tab" data-tab="search" aria-current="page"><svg class="i"><use href="#i-search"/></svg>Search</button>
+        <button class="tab" data-tab="documents"><svg class="i"><use href="#i-docs"/></svg>Documents</button>
+        <button class="tab" data-tab="summaries"><svg class="i"><use href="#i-summaries"/></svg>Summaries</button>
+        <button class="tab" data-tab="status"><svg class="i"><use href="#i-status"/></svg>Index status</button>
+        <p class="nav-group admin-only" hidden>Administration</p>
+        <button class="tab admin-only" data-tab="settings" hidden><svg class="i"><use href="#i-settings"/></svg>Settings</button>
+        <button class="tab admin-only" data-tab="admin" hidden><svg class="i"><use href="#i-users"/></svg>Users &amp; access</button>
+        <button class="tab admin-only" data-tab="logs" hidden><svg class="i"><use href="#i-logs"/></svg>Logs</button>
       </nav>
-      <span class="who"><span id="who"></span> <button id="logout" class="link">Sign out</button></span>
+      <div class="account">
+        <span class="avatar" id="avatar" aria-hidden="true"></span>
+        <span class="who"><span id="who"></span><span id="role" class="muted"></span></span>
+        <button id="logout" class="icon" title="Sign out" aria-label="Sign out"><svg class="i"><use href="#i-signout"/></svg></button>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <button id="menu-button" class="icon menu-button" aria-label="Menu" aria-controls="sidebar" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
+      <form id="search-form" class="searchbar" role="search">
+        <svg class="i"><use href="#i-search"/></svg>
+        <input id="q" type="search" placeholder="Search by question, phrase, error code, API path, file name" aria-label="Search query" required maxlength="1000" autocomplete="off">
+        <kbd title="Press / to search from anywhere">/</kbd>
+        <button type="submit" class="primary">Search</button>
+      </form>
     </header>
 
-    <main>
+    <main class="sheet">
       <section id="tab-search">
-        <form id="search-form" class="searchbar">
-          <input id="q" type="search" placeholder="Search by question, phrase, error code, API path, filename…" aria-label="Search query" required maxlength="1000">
-          <button type="submit">Search</button>
-        </form>
-        <fieldset id="scope" class="scope"><legend>Collections</legend></fieldset>
+        <div class="title-row">
+          <h1 id="search-title">Search</h1>
+          <details id="scope-menu" class="dropdown">
+            <summary class="button"><span id="scope-label">All collections</span><svg class="i"><use href="#i-down"/></svg></summary>
+            <fieldset id="scope" class="dropdown-pop"><legend>Collections</legend></fieldset>
+          </details>
+        </div>
         <div id="search-hint" class="hint" hidden>
-          <p id="hint-scope" class="meta"></p>
-          <ul>
-            <li><strong>Exact terms</strong> find the passages that contain them: an error code, a config key, an API
-              path, a file or service name (<code>ERR-PAY-4012</code>, <code>/api/v2/invoices</code>).</li>
-            <li><strong>Questions in your own words</strong> are matched by meaning: <em>how do I roll back a release?</em></li>
-            <li><strong>Name a page</strong> to follow its links: <em>who owns the services the Orders Service depends on</em>.</li>
-          </ul>
-          <p class="meta">Results that pass the evidence check are listed first; others are marked as closest matches.
-            Press <kbd>/</kbd> to search from anywhere on this tab.</p>
+          <p id="hint-scope" class="muted"></p>
+          <dl class="ways">
+            <div><dt>Exact terms</dt><dd>An error code, a config key, an API path, a file or service name:
+              <code>ERR-PAY-4012</code>, <code>/api/v2/invoices</code>.</dd></div>
+            <div><dt>Questions in your own words</dt><dd>Matched by meaning: <em>how do I roll back a release?</em></dd></div>
+            <div><dt>Name a page</dt><dd>Its links are followed: <em>who owns the services the Orders Service depends on</em>.</dd></div>
+          </dl>
+          <p class="muted">Every result cites the passage it came from. When nothing in your documents supports an
+            answer, the search says so instead of guessing. Press <kbd>/</kbd> to search from anywhere.</p>
         </div>
         <div id="outcome" class="outcome" hidden role="status"></div>
         <ol id="results" class="results"></ol>
@@ -70,184 +107,233 @@
           <summary></summary>
           <ol id="weak-results" class="results"></ol>
         </details>
-        <p id="timing" class="meta"></p>
+        <p id="timing" class="muted small"></p>
       </section>
 
       <section id="tab-documents" hidden>
-        <div id="no-writable" class="empty" hidden>You can read documents but cannot upload to any collection. Ask an administrator for write access.</div>
+        <div class="title-row">
+          <h1>Documents</h1>
+          <div class="actions" id="upload-actions">
+            <button type="button" id="folder-button" class="button">Upload a folder</button>
+            <button type="button" id="files-button" class="primary"><svg class="i"><use href="#i-upload"/></svg>Upload files</button>
+          </div>
+        </div>
+        <div id="no-writable" class="notice" hidden>You can read documents but cannot upload to any collection. Ask an administrator for write access.</div>
         <form id="upload-form" class="upload">
-          <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Choose files to upload">
-            <strong>Drop files here</strong> or <span class="link-like">browse</span> ·
-            <button type="button" id="folder-button" class="link">choose a folder</button>
-            <div class="meta">.md, .txt, .html, .docx, .pptx, .pdf (text PDFs) · several files at once · a folder
-              (e.g. a site2md copy): every supported file in it and its subfolders</div>
-            <input id="file-input" type="file" name="file" accept=".md,.markdown,.txt,.html,.htm,.docx,.pptx,.pdf" multiple hidden>
-            <input id="folder-input" type="file" webkitdirectory multiple hidden>
-          </div>
-          <div class="upload-side">
-            <label>Collection <select name="collection_id" id="upload-collection" required></select></label>
-            <label>Original location (optional) <input name="source_uri" placeholder="https://wiki/… or \\share\…"></label>
-          </div>
+          <label class="inline">Into collection <select name="collection_id" id="upload-collection" required></select></label>
+          <label class="inline"><span>Original location <span class="muted">(optional)</span></span> <input name="source_uri" placeholder="https://wiki/… or \\share\…"></label>
+          <p class="muted small" id="dropzone-hint">Or drop files or a folder anywhere on this page. Markdown, text, HTML, Word,
+            PowerPoint and PDF; in a folder, every supported file in it and its subfolders.</p>
+          <input id="file-input" type="file" name="file" accept=".md,.markdown,.txt,.html,.htm,.docx,.pptx,.pdf" multiple hidden>
+          <input id="folder-input" type="file" webkitdirectory multiple hidden>
         </form>
-        <div id="model-banner" class="outcome index_coverage_incomplete" hidden role="status"></div>
+        <div id="dropzone" class="drop-overlay" hidden><span>Drop to upload into <strong id="drop-target"></strong></span></div>
+        <div id="model-banner" class="notice" hidden role="status"></div>
         <ul id="upload-list" class="upload-list"></ul>
-        <table class="docs">
-          <thead><tr><th>Document</th><th>Type</th><th>Collection</th><th>Status</th><th>Version</th><th>Chunks</th><th>Updated</th><th></th></tr></thead>
+        <div class="tabs-row">
+          <div class="subtabs" role="tablist" id="doc-filters"></div>
+          <input id="doc-filter" type="search" placeholder="Filter by name" aria-label="Filter documents by name">
+        </div>
+        <table class="data docs-table">
+          <thead><tr><th>Document</th><th class="wide">Type</th><th class="wide">Collection</th><th>Status</th><th class="num wide">Passages</th><th class="num wide">Updated</th><th><span class="sr">Actions</span></th></tr></thead>
           <tbody id="docs"></tbody>
         </table>
+        <p id="docs-empty" class="empty" hidden></p>
       </section>
 
       <section id="tab-summaries" hidden>
-        <p class="meta">Written in the background by the local language model, one document at a time after indexing.
-          Summaries help you find and judge documents; they are not evidence — always check the passage.</p>
+        <div class="title-row"><h1>Summaries</h1></div>
+        <p class="muted lede">Written in the background by the local language model, one document at a time after indexing.
+          Summaries help you find and judge documents; they are not evidence. Always check the passage.</p>
         <div id="summaries"></div>
       </section>
 
       <section id="tab-status" hidden>
+        <div class="title-row"><h1>Index status</h1><span id="status-fresh" class="muted small"></span></div>
         <div id="status"></div>
       </section>
 
       <section id="tab-settings" hidden>
-        <form id="settings-form" class="panel">
-          <h2>Search &amp; indexing settings</h2>
-          <div id="settings-banner" class="outcome" hidden></div>
-          <fieldset>
-            <legend>Embedding model</legend>
-            <label>Model <select name="embed_model" id="s-model"></select></label>
-            <p class="meta">Larger models retrieve more accurately but index and answer more slowly on CPU. Changing the
-              model requires reindexing every document (done in the background; search keeps working on the old index
-              for keyword matches meanwhile).</p>
-            <p class="meta" id="s-model-status"></p>
-          </fieldset>
-          <fieldset>
-            <legend>Chunking</legend>
-            <label>Chunk size (characters) <input type="number" name="chunk_size" id="s-chunk" min="200" max="4000" step="50"></label>
-            <label class="check"><input type="checkbox" id="s-overlap-on"> Overlap neighbouring chunks</label>
-            <label>Overlap (characters) <input type="number" name="chunk_overlap" id="s-overlap" min="0" max="1000" step="10"></label>
-            <p class="meta">Smaller chunks give more precise passages; larger chunks keep more context. Overlap repeats the end
-              of one chunk at the start of the next so sentences at a boundary are not lost.</p>
-            <label>Add a line about the whole document to every passage (characters, 0 = off) <input type="number" name="context_chars" id="s-ctx" min="0" max="1000" step="50"></label>
-            <p class="meta">Every passage is always embedded in full, under a header with the document title and section
-              heading. This adds one more header line describing the whole document (the same line on all its passages), so
-              a passage that never names its subject — "set the revision with --to-revision=2" — is still found for
-              "roll back a Deployment". The line is the document's own description if it has one, else the summary written
-              by the local language model (when installed), else the document's first paragraph, cut to this many
-              characters. Measured on 623 Kubernetes pages at 300 characters (right page first, 56 questions): with the authors'
-              descriptions 94.6% → 98.2% (100% with the MiniLM reranker); without descriptions, the first paragraph did not
-              help (96.4% → 96.4%), a summary by Gemma 4 E2B did (98.2%). Changing it requires reindexing.</p>
-          </fieldset>
-          <fieldset>
-            <legend>Reranker (offline cross-encoder)</legend>
-            <label class="check"><input type="checkbox" name="rerank_enabled" id="s-rerank-on"> Rerank top results and use the reranker to judge evidence</label>
-            <label>Reranker model <select name="rerank_model" id="s-rerank"></select></label>
-            <label>Candidates to rerank <input type="number" name="rerank_candidates" id="s-rerank-n" min="5" max="100"></label>
-          </fieldset>
-          <fieldset>
-            <legend>Linked documents</legend>
-            <label class="check"><input type="checkbox" name="graph_expansion" id="s-graph-on"> Follow links of pages named in the question</label>
-            <p class="meta">For questions like “who owns the services the Orders Service depends on”: results also include
-              passages from pages that link to or from the page you name (Markdown links, [[wiki links]], front-matter
-              relations such as depends_on). Up to half of the results come from linked pages; only pages you may read
-              are followed.</p>
-          </fieldset>
-          <fieldset>
-            <legend>Summaries by a local language model (optional)</legend>
-            <label class="check"><input type="checkbox" name="enrich_enabled" id="s-enrich-on"> Summarise each document in the background</label>
-            <p class="meta">When setup installed a local language model (<code>setup --summaries</code>), it writes a two-sentence
-              summary, up to six topics and — only when a document's own title is vague — a clearer title, one document at a
-              time while no files are waiting to be indexed. Nothing leaves this computer. Results show them labelled as written
-              by the model; they are never used as evidence. With “Add a line about the whole document” on, a document without its
-              own description is re-indexed once so that line becomes the model's summary. Progress: Index status tab.</p>
-          </fieldset>
-          <details>
-            <summary>Advanced: evidence thresholds</summary>
-            <p class="meta">Tuned on labelled validation queries. Raising them makes the system abstain more often (fewer
-              false answers); lowering them answers more often. Re-run the evaluation after changing the model.</p>
-            <div class="grid2">
-              <label>Strong similarity <input type="number" step="0.01" name="gate_dense_high" id="s-g-high"></label>
-              <label>Minimum similarity <input type="number" step="0.01" name="gate_dense_min" id="s-g-min"></label>
-              <label>Minimum keyword coverage <input type="number" step="0.01" name="gate_lex_coverage" id="s-g-cov"></label>
-              <label>Similarity when all words match <input type="number" step="0.01" name="gate_all_terms_min" id="s-g-all"></label>
-              <label>Minimum reranker score <input type="number" step="0.1" name="gate_rerank_min" id="s-g-rr"></label>
-              <label>Gate mode <select name="gate_mode" id="s-g-mode">
-                <option value="similarity">similarity + keywords</option>
-                <option value="rerank">reranker only</option>
-                <option value="rerank_and_similarity">reranker and similarity</option></select></label>
-              <label>Keyword coverage weighting <select name="gate_lexical" id="s-g-lex">
-                <option value="coverage">all terms equal</option>
-                <option value="idf">distinctive terms weigh more</option></select></label>
+        <div class="title-row"><h1>Settings</h1></div>
+        <div id="settings-banner" class="notice" hidden></div>
+        <form id="settings-form" class="settings">
+          <section class="setting">
+            <div class="setting-label">
+              <h2>Embedding model</h2>
+              <p>Larger models retrieve more accurately but index and answer more slowly on CPU. Changing the model
+                re-indexes every document in the background; keyword search keeps working meanwhile.</p>
             </div>
-          </details>
-          <div class="actions">
-            <button type="submit">Save settings</button>
-            <button type="button" id="s-reset" class="secondary">Restore defaults</button>
-            <span id="settings-msg" class="meta" role="status"></span>
+            <div class="setting-panel">
+              <label>Model <select name="embed_model" id="s-model"></select></label>
+              <p class="muted small" id="s-model-status"></p>
+            </div>
+          </section>
+          <section class="setting">
+            <div class="setting-label">
+              <h2>Passages</h2>
+              <p>Smaller passages are more precise; larger ones keep more context. Overlap repeats the end of one
+                passage at the start of the next so sentences at a boundary are not lost.</p>
+            </div>
+            <div class="setting-panel">
+              <label><span>Passage size <span class="muted">characters</span></span> <input type="number" name="chunk_size" id="s-chunk" min="200" max="4000" step="50"></label>
+              <label class="check"><input type="checkbox" id="s-overlap-on"> Overlap neighbouring passages</label>
+              <label><span>Overlap <span class="muted">characters</span></span> <input type="number" name="chunk_overlap" id="s-overlap" min="0" max="1000" step="10"></label>
+              <label><span>Line about the whole document on every passage <span class="muted">characters, 0 = off</span></span> <input type="number" name="context_chars" id="s-ctx" min="0" max="1000" step="50"></label>
+              <details class="more">
+                <summary>What this line does, and what it measured</summary>
+                <p class="muted small">Every passage is embedded under a header with the document title and section heading.
+                  This adds one more line describing the whole document, so a passage that never names its subject
+                  (“set the revision with --to-revision=2”) is still found for “roll back a Deployment”. The line is the
+                  document's own description if it has one, else the local model's summary (when installed), else its
+                  first paragraph. Measured on 623 Kubernetes pages at 300 characters (right page first, 56 questions):
+                  with the authors' descriptions 94.6% → 98.2% (100% with the MiniLM reranker); without descriptions the
+                  first paragraph did not help (96.4% → 96.4%), a Gemma 4 E2B summary did (98.2%). Changing it re-indexes.</p>
+              </details>
+            </div>
+          </section>
+          <section class="setting">
+            <div class="setting-label">
+              <h2>Reranker</h2>
+              <p>An offline cross-encoder reads the top candidates against the question, reorders them and judges
+                whether they are evidence.</p>
+            </div>
+            <div class="setting-panel">
+              <label class="check"><input type="checkbox" name="rerank_enabled" id="s-rerank-on"> Rerank top results and use the reranker to judge evidence</label>
+              <label>Reranker model <select name="rerank_model" id="s-rerank"></select></label>
+              <label>Candidates to rerank <input type="number" name="rerank_candidates" id="s-rerank-n" min="5" max="100"></label>
+            </div>
+          </section>
+          <section class="setting">
+            <div class="setting-label">
+              <h2>Linked documents</h2>
+              <p>For questions such as “who owns the services the Orders Service depends on”: results also include
+                pages that link to or from the page you name. Only pages you may read are followed.</p>
+            </div>
+            <div class="setting-panel">
+              <label class="check"><input type="checkbox" name="graph_expansion" id="s-graph-on"> Follow links of pages named in the question</label>
+              <p class="muted small">Markdown links, [[wiki links]] and front-matter relations such as depends_on. Up to half
+                of the results come from linked pages.</p>
+            </div>
+          </section>
+          <section class="setting">
+            <div class="setting-label">
+              <h2>Local language model</h2>
+              <p>Optional, installed with <code>setup --summaries</code>. Nothing leaves this computer. What it writes is
+                labelled as the model's and never used as evidence. Progress is on Index status.</p>
+            </div>
+            <div class="setting-panel">
+              <label class="check"><input type="checkbox" name="enrich_enabled" id="s-enrich-on"> Summarise each document in the background</label>
+              <p class="muted small">A two-sentence summary, up to six topics and, only when a document's own title is vague,
+                a clearer title; one document at a time while no files are waiting to be indexed. With the line about the
+                whole document on, a document without its own description is re-indexed once to use the summary.</p>
+            </div>
+          </section>
+          <section class="setting">
+            <div class="setting-label">
+              <h2>Evidence thresholds</h2>
+              <p>Tuned on labelled questions. Raising them makes search abstain more often (fewer false answers);
+                lowering them answers more often. Re-run the evaluation after changing the model.</p>
+            </div>
+            <div class="setting-panel">
+              <details class="more">
+                <summary>Show thresholds</summary>
+                <div class="grid2">
+                  <label>Strong similarity <input type="number" step="0.01" name="gate_dense_high" id="s-g-high"></label>
+                  <label>Minimum similarity <input type="number" step="0.01" name="gate_dense_min" id="s-g-min"></label>
+                  <label>Minimum keyword coverage <input type="number" step="0.01" name="gate_lex_coverage" id="s-g-cov"></label>
+                  <label>Similarity when all words match <input type="number" step="0.01" name="gate_all_terms_min" id="s-g-all"></label>
+                  <label>Minimum reranker score <input type="number" step="0.1" name="gate_rerank_min" id="s-g-rr"></label>
+                  <label>Gate mode <select name="gate_mode" id="s-g-mode">
+                    <option value="similarity">similarity + keywords</option>
+                    <option value="rerank">reranker only</option>
+                    <option value="rerank_and_similarity">reranker and similarity</option></select></label>
+                  <label>Keyword coverage weighting <select name="gate_lexical" id="s-g-lex">
+                    <option value="coverage">all terms equal</option>
+                    <option value="idf">distinctive terms weigh more</option></select></label>
+                </div>
+              </details>
+            </div>
+          </section>
+          <div class="save-bar">
+            <button type="submit" class="primary">Save settings</button>
+            <button type="button" id="s-reset" class="button">Restore defaults</button>
+            <span id="settings-msg" class="muted" role="status"></span>
           </div>
         </form>
-        <div class="panel">
-          <h2>Index</h2>
-          <p id="reindex-info" class="meta"></p>
-          <button type="button" id="reindex-outdated">Reindex outdated documents</button>
-          <button type="button" id="reindex-all" class="secondary">Reindex everything</button>
-          <span id="reindex-msg" class="meta" role="status"></span>
-        </div>
+        <section class="setting">
+          <div class="setting-label">
+            <h2>Index</h2>
+            <p>Documents indexed with older settings keep working until they are re-indexed.</p>
+          </div>
+          <div class="setting-panel">
+            <p id="reindex-info" class="figures"></p>
+            <div class="actions">
+              <button type="button" id="reindex-outdated" class="primary">Reindex outdated documents</button>
+              <button type="button" id="reindex-all" class="button">Reindex everything</button>
+            </div>
+            <span id="reindex-msg" class="muted small" role="status"></span>
+          </div>
+        </section>
       </section>
 
       <section id="tab-logs" hidden>
-        <div class="panel">
-          <h2>Logs</h2>
-          <p class="meta">Recent warnings and errors with technical details. Logs never contain document or search text,
-            so they are safe to share with support. Also written to the log file shown below.</p>
+        <div class="title-row">
+          <h1>Logs</h1>
           <div class="actions">
-            <label>Show <select id="log-level">
-              <option value="ERROR">errors</option><option value="WARNING" selected>warnings and errors</option>
-              <option value="INFO">everything</option></select></label>
-            <button type="button" id="log-refresh" class="secondary">Refresh</button>
-            <button type="button" id="log-copy">Copy for support</button>
-            <button type="button" id="log-download" class="secondary">Download .txt</button>
-            <span id="log-msg" class="meta" role="status"></span>
+            <button type="button" id="log-refresh" class="button">Refresh</button>
+            <button type="button" id="log-download" class="button">Download .txt</button>
+            <button type="button" id="log-copy" class="primary">Copy for support</button>
           </div>
-          <pre id="log-text" class="pre log-text" tabindex="0"></pre>
         </div>
+        <p class="muted lede">Recent warnings and errors with technical details. Logs never contain document or search text,
+          so they are safe to share with support. They are also written to the log file named below.</p>
+        <div class="toolbar">
+          <label class="inline">Show <select id="log-level">
+            <option value="ERROR">errors</option><option value="WARNING" selected>warnings and errors</option>
+            <option value="INFO">everything</option></select></label>
+          <span id="log-msg" class="muted small" role="status"></span>
+        </div>
+        <pre id="log-text" class="log-text" tabindex="0"></pre>
       </section>
 
       <section id="tab-admin" hidden>
-        <div class="panel">
-          <h2>Collections</h2>
-          <p class="meta">A collection is a set of documents. Give groups read or write access; users in those groups inherit it.</p>
+        <div class="title-row"><h1>Users &amp; access</h1></div>
+        <p id="admin-msg" class="muted" role="status"></p>
+        <section class="block">
+          <div class="block-head"><h2>Collections</h2>
+            <p class="muted">A collection is a set of documents. Give groups read or write access; users in those groups inherit it.</p></div>
           <form id="col-form" class="inline-form">
             <input name="name" placeholder="new-collection-name" pattern="[a-z0-9_\-]{2,64}" required aria-label="Collection name">
             <input name="description" placeholder="Description (optional)" aria-label="Description">
-            <button type="submit">Create collection</button>
+            <button type="submit" class="primary">Create collection</button>
           </form>
-          <table class="docs"><thead><tr><th>Collection</th><th>Documents</th><th>Access</th><th>Grant access</th></tr></thead>
+          <table class="data"><thead><tr><th>Collection</th><th class="num">Documents</th><th>Access</th><th>Grant access</th></tr></thead>
             <tbody id="col-rows"></tbody></table>
-        </div>
-        <div class="panel">
-          <h2>Users</h2>
+        </section>
+        <section class="block">
+          <div class="block-head"><h2>Users</h2></div>
           <form id="user-form" class="inline-form">
             <input name="username" placeholder="username" pattern="[a-z0-9_.\-]{2,64}" required aria-label="Username">
-            <input name="password" type="password" placeholder="password (10+ chars)" minlength="10" required aria-label="Password" autocomplete="new-password">
+            <input name="password" type="password" placeholder="password (10+ characters)" minlength="10" required aria-label="Password" autocomplete="new-password">
             <input name="groups" placeholder="groups, comma separated" aria-label="Groups">
-            <label class="check"><input type="checkbox" name="is_admin"> admin</label>
-            <button type="submit">Create user</button>
+            <label class="check"><input type="checkbox" name="is_admin"> Administrator</label>
+            <button type="submit" class="primary">Create user</button>
           </form>
-          <table class="docs"><thead><tr><th>User</th><th>Groups</th><th>Role</th><th></th></tr></thead>
+          <table class="data"><thead><tr><th>User</th><th>Groups</th><th>Role</th><th><span class="sr">Actions</span></th></tr></thead>
             <tbody id="user-rows"></tbody></table>
-          <p id="admin-msg" class="meta" role="status"></p>
-        </div>
+        </section>
       </section>
     </main>
 
     <div id="backdrop" class="backdrop" hidden></div>
     <aside id="drawer" class="drawer" hidden aria-label="Passage">
       <div class="drawer-head">
-        <div><div id="d-title" class="d-title"></div><div id="d-loc" class="meta"></div></div>
-        <button id="d-close" class="icon" aria-label="Close passage" title="Close (Esc)">×</button>
+        <div><h2 id="d-title" class="d-title"></h2><div id="d-loc" class="muted small"></div></div>
+        <button id="d-close" class="icon" aria-label="Close passage" title="Close (Esc)"><svg class="i"><use href="#i-close"/></svg></button>
       </div>
       <div class="d-actions">
-        <a id="d-open" class="button" target="_blank" rel="noopener">Open document</a>
-        <a id="d-download" class="button secondary">Download</a>
+        <a id="d-open" class="button primary" target="_blank" rel="noopener">Open document</a>
+        <a id="d-download" class="button">Download</a>
         <span id="d-uri"></span>
       </div>
       <div class="drawer-body">

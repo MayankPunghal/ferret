@@ -383,7 +383,7 @@ def _routes(app: FastAPI) -> None:
     def _viewer_response(page_html: str) -> Response:
         return Response(page_html, media_type="text/html; charset=utf-8", headers={
             # no scripts at all; styles inline; links work, so does the download link (no sandbox)
-            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'; "
                                        "frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
             "Cache-Control": "private, no-store"})
 

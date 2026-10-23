@@ -1,7 +1,10 @@
 /* PDF viewer page (pdfview.js). Text layer rules from PDF.js's pdf_viewer.css (Apache-2.0). */
-:root { color-scheme: light dark; --fg: #1d2330; --muted: #5b6475; --line: #d9dde5; --bg: #eceef2; --bar: #fff; --a: #1f5fbf; }
-@media (prefers-color-scheme: dark) { :root { --fg: #e6e9ef; --muted: #9aa3b2; --line: #343a46; --bg: #0f1115; --bar: #1a1d23; --a: #7fb0ff; } }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url(/vendor/fonts/plex-sans-400.woff2) format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url(/vendor/fonts/plex-sans-600.woff2) format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url(/vendor/fonts/plex-mono-400.woff2) format("woff2"); }
+:root { color-scheme: light dark; --fg: #131416; --muted: #5d5f63; --line: #e3e6e9; --bg: #f3f5f7; --bar: #fff; --a: #1b6c80; }
+@media (prefers-color-scheme: dark) { :root { --fg: #ececed; --muted: #a2a4a8; --line: #2a2c2f; --bg: #0f1011; --bar: #17181a; --a: #6cc0d4; } }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
 header { position: sticky; top: 0; z-index: 2; background: var(--bar); border-bottom: 1px solid var(--line); padding: 8px 16px;
          display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 header strong { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }

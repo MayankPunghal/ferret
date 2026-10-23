@@ -36,7 +36,7 @@ async function boot() {
   openTab("search");  // always start on Search; never show a previous user's tab or results
   closeDrawer(); $("#outcome").hidden = true; $("#weak").hidden = true; $("#q").value = "";
   for (const id of ["#results", "#weak-results", "#upload-list", "#docs", "#status", "#d-body"]) $(id).replaceChildren();
-  $("#timing").textContent = "";
+  $("#timing").textContent = ""; $("#search-title").textContent = "Search";
   renderMe();
   searchHint();
 }
@@ -53,20 +53,34 @@ async function searchHint() {
 async function refreshMe() { me = await api("/api/me"); renderMe(); }
 
 function renderMe() {
-  $("#who").textContent = me.username + (me.is_admin ? " (admin)" : "");
+  $("#who").textContent = me.username;
+  $("#role").textContent = me.is_admin ? "Administrator" : "Member";
+  $("#avatar").textContent = me.username.slice(0, 1);
   $$(".admin-only").forEach((b) => { b.hidden = !me.is_admin; });
   const scope = $("#scope");
-  scope.replaceChildren(el("legend", { textContent: "Collections" }));
+  scope.replaceChildren(el("legend", { textContent: "Search in" }));
   for (const c of me.collections) {
     const cb = el("input", { type: "checkbox", value: c.id, checked: true });
-    scope.append(el("label", { className: "chip", title: c.description }, cb, " " + c.name));
+    cb.addEventListener("change", scopeLabel);
+    scope.append(el("label", { title: c.description || "" }, cb, c.name));
   }
-  if (!me.collections.length) scope.append(el("span", { className: "meta", textContent: me.is_admin ? "No collections yet — create one under Users & access." : "You have no access to any collection yet." }));
+  if (!me.collections.length) scope.append(el("span", { className: "muted", textContent: me.is_admin ? "No collections yet. Create one under Users & access." : "You have no access to any collection yet." }));
+  scopeLabel();
   const sel = $("#upload-collection");
   sel.replaceChildren(...me.collections.filter((c) => c.can_write).map((c) => el("option", { value: c.id, textContent: c.name })));
-  $("#upload-form").hidden = sel.options.length === 0;
+  $("#upload-form").hidden = $("#upload-actions").hidden = sel.options.length === 0;
   $("#no-writable").hidden = sel.options.length > 0;
 }
+
+// The collection menu's button says what is searched: all collections, one by name, or "2 of 5".
+function scopeLabel() {
+  const boxes = $$("#scope input"), on = boxes.filter((b) => b.checked);
+  $("#scope-label").textContent = !boxes.length ? "No collections" : on.length === boxes.length ? "All collections"
+    : on.length === 1 ? on[0].parentElement.textContent : `${on.length} of ${boxes.length} collections`;
+}
+document.addEventListener("click", (e) => {  // close an open menu when clicking elsewhere
+  for (const d of $$("details.dropdown[open], details.menu[open]")) if (!d.contains(e.target)) d.open = false;
+});
 
 $("#login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -99,8 +113,17 @@ function openTab(name) {
   if (name === "settings") loadSettings();
   if (name === "admin") loadAdmin();
   if (name === "logs") loadLogs();
+  menu(false);
 }
 $$(".tab").forEach((b) => b.addEventListener("click", () => { topicFilter = null; openTab(b.dataset.tab); }));
+
+// Phone and tablet: the sidebar folds behind a menu button.
+function menu(open) {
+  $("#app-view").classList.toggle("menu-open", open);
+  $("#menu-button").setAttribute("aria-expanded", String(open));
+}
+$("#menu-button").addEventListener("click", (e) => { e.stopPropagation(); menu(!$("#app-view").classList.contains("menu-open")); });
+document.addEventListener("click", (e) => { if (!$("#sidebar").contains(e.target)) menu(false); });
 
 // ---------------------------------------------------------------- search
 // Snippets come back with \x02 / \x03 as highlight delimiters; render them as <mark> safely.
@@ -188,26 +211,32 @@ const location = (collection, path, title, page, version) => {
     page ? `page ${page}` : "", version > 1 ? `version ${version}` : ""].filter(Boolean).join(" · ");
 };
 
+// One result: rank, title and its one evidence mark, where the passage is, the passage itself with the
+// matched words marked, then what the local model wrote and the connected documents.
 function resultItem(r) {
   const loc = location(r.collection, r.heading_path, r.title, r.page, r.version_no);
   const badges = el("span", { className: "badges" });
-  for (const b of r.match_basis) badges.append(el("span", { className: "badge ok", textContent: BASIS[b] || b }));
+  if (r.supported && r.match_basis.length)
+    badges.append(el("span", { className: "badge ok", textContent: BASIS[r.match_basis[0]] || r.match_basis[0],
+      title: "Why this counts as evidence: " + r.match_basis.map((b) => BASIS[b] || b).join(", ") }));
   if (r.signals.linked_from) badges.append(el("span", { className: "badge", textContent: "linked from " + r.signals.linked_from }));
   if (r.outdated_version) badges.append(el("span", { className: "badge warn", textContent: "newer version not yet indexed" }));
   if (r.metadata?.version || r.metadata?.effective_date)
     badges.append(el("span", { className: "badge", textContent: [r.metadata.version && `version ${r.metadata.version}`, r.metadata.effective_date && `effective ${r.metadata.effective_date}`].filter(Boolean).join(", ") }));
-  const view = el("button", { className: "secondary small", textContent: "View passage" });
+  const view = el("button", { className: "small", type: "button", textContent: "View passage" });
   view.addEventListener("click", () => openPassage(r.chunk_id));
   const related = el("div", { className: "r-related", hidden: true });
   relatedDocs(related, r.document_id, r.chunk_id);
   return el("li", { className: "result" },
-    el("div", { className: "r-head" }, el("span", { className: "rank", textContent: r.rank }),
-      el("a", { className: "r-title", href: r.source_url, target: "_blank", rel: "noopener", title: "Open the document" }, docTitle(r.title, r.clearer_title)), badges),
-    el("div", { className: "meta", textContent: loc }),
-    el("p", { className: "snippet" }, inline(r.snippet.replace(/\s*\n\s*/g, " "))),
-    writtenSummary(r),
-    related,
-    el("div", { className: "r-actions" }, view, el("a", { href: r.source_url, target: "_blank", rel: "noopener", textContent: "Open document" })),
+    el("span", { className: "rank", textContent: r.rank }),
+    el("div", { className: "r-body" },
+      el("div", { className: "r-head" },
+        el("a", { className: "r-title", href: r.source_url, target: "_blank", rel: "noopener", title: "Open the document" }, docTitle(r.title, r.clearer_title)), badges),
+      el("div", { className: "meta", textContent: loc }),
+      el("p", { className: "snippet" }, inline(r.snippet.replace(/\s*\n\s*/g, " "))),
+      writtenSummary(r),
+      related,
+      el("div", { className: "r-actions" }, view, el("a", { href: r.source_url, target: "_blank", rel: "noopener", textContent: "Open document" }))),
   );
 }
 
@@ -217,15 +246,17 @@ function docTitle(title, clearer) {
   return clearer ? el("strong", { textContent: clearer, title: `Title written by the local model; the document's own title is “${title}”` })
     : el("strong", { textContent: title });
 }
-function writtenSummary(r) {
+function writtenSummary(r, labelled = true) {
   if (!r.summary) return "";
   const topics = r.topics.map((t) => {
     const b = el("button", { className: "chip topic", type: "button", textContent: t, title: "Documents with this topic" });
     b.addEventListener("click", () => { closeDrawer(); topicFilter = t; openTab("summaries"); });
     return b;
   });
+  if (!labelled) return el("div", { className: "r-summary" }, el("p", { textContent: r.summary }),
+    topics.length ? el("div", { className: "rel-row" }, ...topics) : "");
   return el("div", { className: "r-summary" },
-    el("p", { className: "rel-row" }, el("span", { className: "rel-label", textContent: "Summary (local model)", title: "Written by the local language model from the document; not evidence" }), el("span", { textContent: r.summary })),
+    el("p", { className: "rel-row" }, el("span", { className: "rel-label", textContent: "Summary by local model", title: "Written by the local language model from the document; not evidence" }), el("span", { textContent: r.summary })),
     topics.length ? el("div", { className: "rel-row" }, el("span", { className: "rel-label", textContent: "Topics" }), ...topics) : "");
 }
 
@@ -268,12 +299,15 @@ async function relatedDocs(box, docId, chunkId) {
 
 $("#search-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if ($("#tab-search").hidden) { topicFilter = null; openTab("search"); }
+  $("#scope-menu").open = false;
   const ids = $$("#scope input:checked").map((c) => +c.value);
   const all = ids.length === me.collections.length;
   const out = $("#outcome");
   $("#search-hint").hidden = true;
-  out.hidden = false; out.className = "outcome"; out.replaceChildren(el("span", { className: "spinner" }), " Searching…");
-  const slow = setTimeout(() => { if (out.textContent.includes("Searching")) out.append(el("span", { className: "meta", textContent: " — still working (the first search after a start or a model change loads the model)" })); }, 3000);
+  $("#search-title").textContent = "Results";
+  out.hidden = false; out.className = "outcome"; out.replaceChildren(el("span", { className: "spinner" }), el("span", { textContent: "Searching…" }));
+  const slow = setTimeout(() => { if (out.textContent.includes("Searching")) out.append(el("span", { className: "meta", textContent: "Still working: the first search after a start or a model change loads the model." })); }, 3000);
   $("#results").replaceChildren(); $("#weak").hidden = true; $("#timing").textContent = "";
   linksCache.clear();
   if (!ids.length) { out.textContent = "Select at least one collection."; return; }
@@ -442,22 +476,49 @@ $("#d-close").addEventListener("click", closeDrawer);
 $("#backdrop").addEventListener("click", closeDrawer);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !$("#drawer").hidden) closeDrawer();
-  else if (e.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && !$("#tab-search").hidden) {
+  else if (e.key === "Escape") { menu(false); for (const d of $$("details.dropdown[open], details.menu[open]")) d.open = false; }
+  else if (e.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && !$("#app-view").hidden) {
     e.preventDefault(); $("#q").focus(); $("#q").select();
   }
 });
 
 // ---------------------------------------------------------------- documents
-const dz = $("#dropzone"), fileInput = $("#file-input");
-dz.addEventListener("click", () => fileInput.click());
-dz.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
-["dragenter", "dragover"].forEach((t) => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add("over"); }));
-["dragleave", "drop"].forEach((t) => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.remove("over"); }));
-dz.addEventListener("drop", (e) => uploadFiles([...e.dataTransfer.files]));
+// Upload: the two buttons, or drop files or a folder anywhere on the Documents page.
+const fileInput = $("#file-input"), folderInput = $("#folder-input"), dropOverlay = $("#dropzone");
+$("#files-button").addEventListener("click", () => fileInput.click());
+$("#folder-button").addEventListener("click", () => folderInput.click());
 fileInput.addEventListener("change", () => { uploadFiles([...fileInput.files]); fileInput.value = ""; });
-const folderInput = $("#folder-input");
-$("#folder-button").addEventListener("click", (e) => { e.stopPropagation(); folderInput.click(); });
 folderInput.addEventListener("change", () => { uploadFiles([...folderInput.files]); folderInput.value = ""; });
+const canDrop = (e) => !$("#tab-documents").hidden && !$("#upload-form").hidden && e.dataTransfer?.types.includes("Files");
+let dragDepth = 0;
+document.addEventListener("dragenter", (e) => {
+  if (!canDrop(e)) return;
+  e.preventDefault(); dragDepth++;
+  $("#drop-target").textContent = $("#upload-collection").selectedOptions[0]?.textContent || "";
+  dropOverlay.hidden = false;
+});
+document.addEventListener("dragover", (e) => { if (canDrop(e)) e.preventDefault(); });
+document.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; dropOverlay.hidden = true; } });
+document.addEventListener("drop", async (e) => {
+  dragDepth = 0; dropOverlay.hidden = true;
+  if (!canDrop(e)) return;
+  e.preventDefault();
+  uploadFiles(await droppedFiles(e.dataTransfer));
+});
+// Files of a dropped folder (and its subfolders), read through the entries API; plain files as they are.
+async function droppedFiles(dt) {
+  const entries = [...dt.items].map((i) => i.webkitGetAsEntry?.()).filter(Boolean);
+  if (!entries.some((x) => x.isDirectory)) return [...dt.files];
+  const out = [];
+  const walk = async (entry) => {
+    if (entry.isFile) return out.push(await new Promise((ok, bad) => entry.file(ok, bad)));
+    const reader = entry.createReader();
+    for (let batch; (batch = await new Promise((ok, bad) => reader.readEntries(ok, bad))).length;)
+      for (const x of batch) await walk(x);
+  };
+  for (const x of entries) await walk(x);
+  return out;
+}
 const SUPPORTED = /\.(md|markdown|txt|html?|docx|pptx|pdf)$/i;
 
 // One line per upload (not per file): counts while it runs; only rejected files are listed by name.
@@ -491,52 +552,102 @@ async function uploadFiles(files) {
   loadDocs();
 }
 
+// Documents: state tabs (counts from the documents you can see), a name filter, one row per document with
+// its status and a row menu. Refreshed every 3 s while the tab is open, except while a row menu is open.
+let docFilter = "all";
+const DOC_FILTERS = [
+  ["all", "All", () => true],
+  ["indexing", "Indexing", (d) => d.status === "pending" || d.status === "processing"],
+  ["failed", "Failed", (d) => d.status === "failed"],
+  ["outdated", "Outdated settings", (d) => d.needs_reindex],
+];
+$("#doc-filter").addEventListener("input", () => loadDocs());
 async function loadDocs() {
+  if ($("#docs details.menu[open]")) return;
   const docs = await api("/api/documents");
   if (me.is_admin && docs.some((d) => d.status === "pending" || d.status === "processing")) {
     const st = await api("/api/status").catch(() => ({}));
     const busy = Object.entries(st.models || {}).filter(([, v]) => !v.startsWith("ready") && v !== "not loaded");
     $("#model-banner").hidden = !busy.length;
-    $("#model-banner").textContent = busy.map(([k, v]) => `${k} — ${v}. Indexing continues automatically when the model is ready; large models can take several minutes to download.`).join(" ");
+    $("#model-banner").textContent = busy.map(([k, v]) => `${k}: ${v}. Indexing continues automatically when the model is ready; large models can take several minutes to download.`).join(" ");
   } else $("#model-banner").hidden = true;
-  $("#docs").replaceChildren(...docs.map((d) => {
-    const actions = el("td");
-    if (d.can_write && d.status === "failed") {
-      const b = el("button", { className: "link", textContent: "Retry" });
-      b.addEventListener("click", async () => { await api(`/api/documents/${d.id}/retry`, { method: "POST" }); loadDocs(); });
-      actions.append(b);
-    }
-    actions.append(el("a", { href: `/api/documents/${d.id}/source?download=1&version=latest`, textContent: "Download", title: "The original file" }), " ");
-    if (d.can_write) {
-      const b = el("button", { className: "link danger", textContent: "Delete" });
-      b.addEventListener("click", async () => { if (confirm(`Delete "${d.title}" and all its versions?`)) { await api(`/api/documents/${d.id}`, { method: "DELETE" }); loadDocs(); } });
-      actions.append(" ", b);
-    }
-    const status = el("td", {}, el("span", { className: "badge st-" + d.status, textContent: d.status }));
+  const tabs = DOC_FILTERS.filter(([key, , f]) => key === "all" || key === docFilter || docs.some(f));
+  if (!tabs.some(([key]) => key === docFilter)) docFilter = "all";
+  $("#doc-filters").replaceChildren(...tabs.map(([key, label, f]) => {
+    const b = el("button", { className: "subtab", type: "button", role: "tab" }, label, el("span", { className: "count", textContent: docs.filter(f).length }));
+    b.setAttribute("aria-selected", String(key === docFilter));
+    b.addEventListener("click", () => { docFilter = key; loadDocs(); });
+    return b;
+  }));
+  const pass = DOC_FILTERS.find(([key]) => key === docFilter)[2];
+  const needle = $("#doc-filter").value.trim().toLowerCase();
+  const shown = docs.filter((d) => pass(d) && (!needle || `${d.clearer_title || ""} ${d.title} ${d.source_key}`.toLowerCase().includes(needle)));
+  const empty = $("#docs-empty");
+  empty.hidden = shown.length > 0;
+  empty.textContent = !docs.length ? "No documents yet. Upload files, or drop them on this page." : "No documents match.";
+  $("#docs").replaceChildren(...shown.map((d) => {
+    const status = el("td", {}, el("span", { className: "badge st-" + d.status, textContent: STATUS[d.status] || d.status }));
     const again = d.adding_summary ? "adding its summary to the passages · " : "";
     if (d.status === "processing" && d.stage) {
       const pct = d.progress_total ? Math.round((100 * d.progress_done) / d.progress_total) : null;
-      const label = again + (d.stage === "embedding" && d.progress_total ? `embedding ${d.progress_done}/${d.progress_total} chunks` : d.stage);
+      const label = again + (d.stage === "embedding" && d.progress_total ? `embedding ${d.progress_done}/${d.progress_total} passages` : d.stage);
       const bar = el("div", { className: "progress" + (pct === null ? " indeterminate" : "") }, el("span", { style: pct === null ? "" : `width:${pct}%` }));
       status.append(el("div", { className: "meta", textContent: label }), bar);
     } else if (d.status === "pending") {
-      status.append(el("div", { className: "meta", textContent: again + (d.queue_position ? `waiting — ${d.queue_position} ahead in queue` : "waiting to start") }));
-    } else if (d.summary_stage) status.append(...summaryStage(d));
-    if (d.needs_reindex) status.append(" ", el("span", { className: "badge warn", textContent: "outdated settings" }));
+      status.append(el("div", { className: "meta", textContent: again + (d.queue_position ? `waiting, ${d.queue_position} ahead in queue` : "waiting to start") }));
+    } else if (d.summary_stage === "writing" || d.summary_stage === "failed") status.append(...summaryStage(d));
+    if (d.needs_reindex) status.append(el("div", { className: "meta", textContent: "indexed with older settings" }));
     if (d.error_code) status.append(el("div", { className: "meta error", textContent: `${d.error_code}: ${d.error_detail || ""}` }));
     const ver = d.indexed_version && d.indexed_version !== d.latest_version ? `v${d.latest_version} (indexed v${d.indexed_version})` : `v${d.latest_version}`;
+    const updated = new Date(d.updated_at);
     return el("tr", {},
-      el("td", {}, sourceLink(d), el("div", { className: "meta", textContent: d.source_key })),
-      el("td", { textContent: fileType(d.media_type) }), el("td", { textContent: d.collection }), status, el("td", { textContent: ver }), el("td", { textContent: d.chunks }),
-      el("td", { textContent: new Date(d.updated_at).toLocaleString() }), actions);
+      el("td", {}, sourceLink(d), el("div", { className: "sub" }, el("span", { className: "phone", textContent: `${d.collection} · ${fileType(d.media_type)} · ` }), `${d.source_key} · ${ver}`)),
+      el("td", { className: "wide", textContent: fileType(d.media_type) }), el("td", { className: "wide", textContent: d.collection }), status,
+      el("td", { className: "num wide", textContent: d.chunks ?? "—" }),
+      el("td", { className: "num wide muted", textContent: ago(updated), title: updated.toLocaleString() }),
+      el("td", { className: "actions-cell" }, docMenu(d)));
   }));
+}
+
+const STATUS = { indexed: "Indexed", pending: "Waiting", processing: "Indexing", failed: "Failed" };
+function docMenu(d) {
+  const items = [el("a", { href: `/api/documents/${d.id}/view`, target: "_blank", rel: "noopener", textContent: "Open" }),
+    el("a", { href: `/api/documents/${d.id}/source?download=1&version=latest`, textContent: "Download original" })];
+  if (d.can_write && d.status === "failed") {
+    const b = el("button", { type: "button", textContent: "Retry" });
+    b.addEventListener("click", async () => { await api(`/api/documents/${d.id}/retry`, { method: "POST" }); b.closest("details").open = false; loadDocs(); });
+    items.push(b);
+  }
+  if (d.can_write) {
+    const b = el("button", { type: "button", className: "danger", textContent: "Delete" });
+    b.addEventListener("click", async () => {
+      b.closest("details").open = false;
+      if (confirm(`Delete "${d.title}" and all its versions?`)) { await api(`/api/documents/${d.id}`, { method: "DELETE" }); loadDocs(); }
+    });
+    items.push(b);
+  }
+  const summary = el("summary", { className: "button icon", title: "Actions" });
+  summary.setAttribute("aria-label", `Actions for ${d.title}`);
+  summary.append(icon("more"));
+  return el("details", { className: "menu" }, summary, el("div", { className: "menu-pop" }, ...items));
+}
+
+// "3 min ago", "yesterday", "12 Mar": a date that reads at a glance; the exact time is in the tooltip.
+function ago(t) {
+  const s = (Date.now() - t) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  if (s < 172800) return "yesterday";
+  return t.toLocaleDateString(undefined, { day: "numeric", month: "short", ...(s > 300 * 86400 ? { year: "numeric" } : {}) });
 }
 
 const TYPES = { "application/pdf": "PDF", "text/markdown": "Markdown", "text/plain": "Text", "text/html": "HTML",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation": "PowerPoint" };
 const fileType = (mt) => TYPES[mt] || mt || "";
-const sourceLink = (d) => el("a", { href: `/api/documents/${d.id}/view`, target: "_blank", rel: "noopener", textContent: d.clearer_title || d.title,
+const icon = (name) => sv("svg", { class: "i", "aria-hidden": "true" }, sv("use", { href: "#i-" + name }));
+const sourceLink = (d) => el("a", { className: "doc-name", href: `/api/documents/${d.id}/view`, target: "_blank", rel: "noopener", textContent: d.clearer_title || d.title,
   title: d.clearer_title ? `Title written by the local model; the document's own title is “${d.title}”` : "" });
 function summaryStage(d) {  // after indexing: the local model's summary (optional)
   const out = [el("div", { className: "meta" + (d.summary_stage === "failed" ? " error" : ""), textContent: {
@@ -554,10 +665,9 @@ async function loadSummaries() {
   const line = st.index?.summaries_by_local_model || "";
   const indexed = docs.filter((d) => d.status === "indexed");
   const done = indexed.filter((d) => d.summary_stage === "done").length;
-  const head = [el("p", { className: "meta", textContent: line })];
-  if (indexed.length && indexed.some((d) => d.summary_stage)) {
-    head.push(el("div", { className: "progress" }, el("span", { style: `width:${Math.round((100 * done) / indexed.length)}%` })));
-  }
+  const bar = indexed.length && indexed.some((d) => d.summary_stage)
+    ? el("div", { className: "progress" }, el("span", { style: `width:${Math.round((100 * done) / indexed.length)}%` })) : "";
+  const head = [el("div", { className: "summary-progress" }, bar, el("span", { className: "muted figures", textContent: line }))];
   const order = { writing: 0, failed: 1, waiting: 2, done: 3 };
   const topic = topicFilter?.toLowerCase();
   if (topic) {
@@ -567,37 +677,48 @@ async function loadSummaries() {
     find.addEventListener("click", () => { const q = topicFilter; topicFilter = null; openTab("search"); $("#q").value = q; $("#search-form").requestSubmit(); });
     const n = indexed.filter((d) => (d.topics || []).some((x) => x.toLowerCase() === topic)).length;
     head.unshift(el("div", { className: "topic-filter" }, el("strong", { textContent: `Topic “${topicFilter}”: ${n} document${n === 1 ? "" : "s"}` }),
-      " (topics are written by the local model) · ", all, " · ", find));
+      el("span", { className: "muted", textContent: "Topics are written by the local model." }), all, find));
   }
   const rows = indexed.filter((d) => (d.summary_stage || d.summary_text) && (!topic || (d.topics || []).some((x) => x.toLowerCase() === topic)))
     .sort((a, b) => (order[a.summary_stage] ?? 3) - (order[b.summary_stage] ?? 3) || a.title.localeCompare(b.title));
-  $("#summaries").replaceChildren(...head, rows.length ? el("table", { className: "docs summaries" },
-    el("thead", {}, el("tr", {}, ...["Document", "Type", "Summary and topics", "Status"].map((h) => el("th", { textContent: h })))),
+  $("#summaries").replaceChildren(...head, rows.length ? el("table", { className: "data summaries" },
+    el("thead", {}, el("tr", {}, ...["Document", "Type", "Summary and topics by the local model", ""].map((h, i) => el("th", { className: i === 1 ? "wide" : "", textContent: h })))),
     el("tbody", {}, ...rows.map((d) => el("tr", {},
-      el("td", {}, sourceLink(d), el("div", { className: "meta", textContent: d.collection })),
-      el("td", { textContent: fileType(d.media_type) }),
-      el("td", {}, writtenSummary({ summary: d.summary_text, topics: d.topics }) || el("span", { className: "meta", textContent: "—" })),
-      el("td", {}, ...(d.summary_stage ? summaryStage(d) : [])))))) : el("p", { className: "empty", textContent: "No summaries yet." }));
+      el("td", {}, sourceLink(d), el("div", { className: "sub", textContent: d.collection })),
+      el("td", { className: "wide", textContent: fileType(d.media_type) }),
+      el("td", {}, writtenSummary({ summary: d.summary_text, topics: d.topics }, false) || el("span", { className: "meta", textContent: "—" })),
+      el("td", {}, ...(d.summary_stage && d.summary_stage !== "done" ? summaryStage(d) : [])))))) : el("p", { className: "empty", textContent: "No summaries yet." }));
 }
 
 // ---------------------------------------------------------------- status
 async function loadStatus() {
   const s = await api("/api/status");
   const c = s.coverage;
+  const kpi = (label, value, note) => el("div", { className: "kpi" }, el("span", { className: "kpi-label", textContent: label }),
+    el("span", { className: "kpi-value" + (value ? "" : " zero"), textContent: value.toLocaleString() }), el("span", { className: "kpi-note", textContent: note }));
+  const section = (title, ...kids) => el("section", { className: "status-section" }, el("h2", { textContent: title }), ...kids);
+  const num = (v) => el("td", { className: "num", textContent: v.toLocaleString() });
+  $("#tab-status .title-row").replaceChildren(el("h1", { textContent: "Index status" }),
+    el("span", { className: "muted small", textContent: `Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` }));
   const box = $("#status");
   box.replaceChildren(
-    el("p", { className: c.complete ? "outcome evidence_found" : "outcome index_coverage_incomplete", textContent: c.complete ? "All documents in your scope are indexed with the current settings." : `Index coverage is incomplete in your scope (${c.pending} pending, ${c.failed} failed, ${c.outdated} outdated); searches cannot establish absence of information.` }),
-    el("table", { className: "docs" },
-      el("thead", {}, el("tr", {}, ...["Collection", "Documents", "Indexed", "Pending", "Failed"].map((h) => el("th", { textContent: h })))),
-      el("tbody", {}, ...s.collections.map((r) => el("tr", {}, ...[r.name, r.documents, r.indexed, r.pending, r.failed].map((v) => el("td", { textContent: v })))))),
-    el("h3", { textContent: "Active configuration" }),
-    el("dl", { className: "kv" }, ...Object.entries(s.index).flatMap(([k, v]) => [el("dt", { textContent: k.replaceAll("_", " ") }), el("dd", { textContent: v })])),
+    el("p", { className: "outcome " + (c.complete ? "evidence_found" : "index_coverage_incomplete") },
+      el("span", { textContent: c.complete ? "Every document you can read is indexed with the current settings."
+        : "Indexing is not complete, so a search cannot yet show that something is absent from your documents." })),
+    el("div", { className: "kpis" },
+      kpi("Documents", c.documents ?? c.indexed + c.pending + c.failed, `in ${s.collections.length} collection${s.collections.length === 1 ? "" : "s"}`),
+      kpi("Indexed", c.indexed, "searchable"), kpi("Waiting", c.pending, "queued or indexing"),
+      kpi("Failed", c.failed, c.failed ? "see Documents" : "none"), kpi("Outdated", c.outdated, "older settings")),
+    section("Collections", el("table", { className: "data" },
+      el("thead", {}, el("tr", {}, ...["Collection", "Documents", "Indexed", "Waiting", "Failed"].map((h, i) => el("th", { className: i ? "num" : "", textContent: h })))),
+      el("tbody", {}, ...s.collections.map((r) => el("tr", {}, el("td", { textContent: r.name }), num(r.documents), num(r.indexed), num(r.pending), num(r.failed)))))),
+    section("Active configuration", el("dl", { className: "kv" }, ...Object.entries(s.index).flatMap(([k, v]) => [el("dt", { textContent: k.replaceAll("_", " ") }), el("dd", { textContent: v })]))),
   );
   if (me.is_admin) {
     const a = await api("/api/admin/status");
-    box.append(el("h3", { textContent: "Job queue" }), el("dl", { className: "kv" },
+    box.append(section("Job queue", el("dl", { className: "kv" },
       ...Object.entries(a.jobs).flatMap(([k, v]) => [el("dt", { textContent: k }), el("dd", { textContent: v })]),
-      el("dt", { textContent: "oldest queued job" }), el("dd", { textContent: a.oldest_queued_job_seconds ? Math.round(a.oldest_queued_job_seconds) + " s" : "—" })));
+      el("dt", { textContent: "oldest queued job" }), el("dd", { textContent: a.oldest_queued_job_seconds ? Math.round(a.oldest_queued_job_seconds) + " s" : "—" }))));
   }
 }
 
@@ -685,36 +806,38 @@ async function loadAdmin() {
   $("#col-rows").replaceChildren(...cols.map((c) => {
     const grants = el("td");
     for (const g of c.grants) {
-      const x = el("button", { className: "link danger", textContent: "×", title: "Remove access" });
+      const x = el("button", { className: "icon", type: "button", title: `Remove access for ${g.group}` }, icon("close"));
+      x.setAttribute("aria-label", `Remove access for ${g.group}`);
       x.addEventListener("click", async () => { await api(`/api/admin/collections/${c.id}/grants/${encodeURIComponent(g.group)}`, { method: "DELETE" }); loadAdmin(); refreshMe(); });
-      grants.append(el("span", { className: "chip" }, `${g.group} (${g.can_write ? "read & write" : "read"}) `, x), " ");
+      grants.append(el("span", { className: "grant" }, `${g.group} (${g.can_write ? "read & write" : "read"})`, x));
     }
-    if (!c.grants.length) grants.append(el("span", { className: "meta", textContent: "admins only" }));
-    const grp = el("input", { placeholder: "group", size: 10, ariaLabel: "Group" });
+    if (!c.grants.length) grants.append(el("span", { className: "muted", textContent: "administrators only" }));
+    const grp = el("input", { placeholder: "group", ariaLabel: "Group" });
     const w = el("input", { type: "checkbox" });
-    const add = el("button", { className: "secondary", textContent: "Grant" });
+    const add = el("button", { className: "small", type: "button", textContent: "Grant" });
     add.addEventListener("click", async () => {
       if (!grp.value.trim()) return;
       try { await api(`/api/admin/collections/${c.id}/grants`, { method: "PUT", json: { group: grp.value.trim(), can_write: w.checked } }); loadAdmin(); refreshMe(); }
       catch (err) { $("#admin-msg").textContent = err.message; }
     });
-    return el("tr", {}, el("td", {}, el("strong", { textContent: c.name }), el("div", { className: "meta", textContent: c.description })),
-      el("td", { textContent: c.documents }), grants, el("td", {}, grp, " ", el("label", { className: "check" }, w, " write"), " ", add));
+    return el("tr", {}, el("td", {}, el("strong", { textContent: c.name }), el("div", { className: "muted small", textContent: c.description })),
+      el("td", { className: "num", textContent: c.documents }), grants, el("td", {}, el("div", { className: "grant-form" }, grp, el("label", { className: "check" }, w, "write"), add)));
   }));
   $("#user-rows").replaceChildren(...users.map((u) => {
     const groups = el("input", { value: u.groups.join(", "), ariaLabel: `Groups of ${u.username}` });
-    const save = el("button", { className: "secondary", textContent: "Save groups" });
+    const save = el("button", { className: "small", type: "button", textContent: "Save groups" });
     save.addEventListener("click", async () => {
       try { await api(`/api/admin/users/${u.id}`, { method: "PATCH", json: { groups: groups.value.split(",").map((s) => s.trim()).filter(Boolean) } }); $("#admin-msg").textContent = `Updated ${u.username}.`; loadAdmin(); }
       catch (err) { $("#admin-msg").textContent = err.message; }
     });
-    const toggle = el("button", { className: "link" + (u.disabled ? "" : " danger"), textContent: u.disabled ? "Enable" : "Disable" });
+    const toggle = el("button", { className: "link", type: "button", textContent: u.disabled ? "Enable" : "Disable" });
     toggle.addEventListener("click", async () => {
       try { await api(`/api/admin/users/${u.id}`, { method: "PATCH", json: { disabled: !u.disabled } }); loadAdmin(); }
       catch (err) { $("#admin-msg").textContent = err.message; }
     });
-    return el("tr", {}, el("td", { textContent: u.username + (u.disabled ? " (disabled)" : "") }), el("td", {}, groups, " ", save),
-      el("td", { textContent: u.is_admin ? "admin" : "user" }), el("td", {}, toggle));
+    return el("tr", {}, el("td", {}, el("strong", { textContent: u.username }), u.disabled ? el("span", { className: "badge", textContent: "disabled" }) : ""),
+      el("td", {}, el("div", { className: "grant-form" }, groups, save)),
+      el("td", { textContent: u.is_admin ? "Administrator" : "Member" }), el("td", { className: "actions-cell" }, toggle));
   }));
 }
 $("#col-form").addEventListener("submit", async (e) => {

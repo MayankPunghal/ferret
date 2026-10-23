@@ -3,19 +3,25 @@
 ## Searching
 
 Before the first search the page shows how many documents you can search and what kinds of queries work.
-Press **/** to jump to the search box. Type a question, a phrase or an exact term into the search box. Use the **Collections** chips to limit the
-search; you only ever see collections you have access to.
+The search box sits at the top of every page; press **/** to jump to it from anywhere. Type a question, a phrase
+or an exact term. The **All collections** menu next to the title limits the search to some collections; you only
+ever see collections you have access to. On a phone or a narrow window the navigation folds behind the menu
+button at the top left.
 
 Good queries:
 - exact identifiers: error codes (`ERR-PAY-4012`), API paths, configuration keys, file names, versions;
 - natural questions: "how do I roll back the orders service?";
 - key phrases: "parental leave entitlement".
 
-## Reading the result banner
+## Reading the result line
 
-| Banner | Meaning |
+The line above the results says what the search found; its dot is green when passages passed the evidence
+check. Each supported result carries one green mark naming why it counts as evidence (hover it for every
+reason).
+
+| Line | Meaning |
 |---|---|
-| **Relevant passages found** | At least one passage passed the evidence check (badges explain why: exact identifier, strong semantic match, keyword agreement, reranker judgement). The check establishes that a passage is on-topic and closely matching — read it before relying on a specific detail. |
+| **Relevant passages found** | At least one passage passed the evidence check (the mark explains why: exact identifier, strong semantic match, keyword agreement, reranker judgement). The check establishes that a passage is on-topic and closely matching — read it before relying on a specific detail. |
 | **Evidence found, but sources disagree** | Supporting passages come from different versions of the same document series (e.g. 2024 vs 2025 policy). Check the effective dates. |
 | **No adequate supporting evidence** | Nothing passed the check *in the indexed sources you can access*. This is not a claim that the information does not exist anywhere. |
 | **Indexing incomplete** | Some documents in your scope are still being indexed, failed, or were indexed with old settings, so absence cannot be established. |
@@ -91,13 +97,15 @@ part_of: checkout-workflow
 
 When the optional local language model runs, the **Summaries** tab lists every document you can read with
 its summary and topics, the progress (*N of M documents*) and each document's stage: *summary queued* (written
-after all indexing), *writing summary…*, *summarised*, or *summary could not be written*. The Documents tab
-shows the same stage under each indexed document. Clicking a topic anywhere shows only the documents with that topic. **Show all** clears it.
+after all indexing), *writing summary…*, *summarised*, or *summary could not be written*. The Documents page
+shows a summary being written, or one that failed, under the document. Clicking a topic anywhere shows only the documents with that topic. **Show all** clears it.
 
 ## Uploading documents
 
-**Documents** tab (needs write access to a collection): pick the collection, then drag files onto the drop
-zone or click it to browse. Several files can be uploaded at once.
+**Documents** page (needs write access to a collection): pick the collection under **Into collection**, then
+click **Upload files** or **Upload a folder**, or drop files or a folder anywhere on the page. Several files can be
+uploaded at once. The tabs above the list (All, Indexing, Failed, Outdated settings) and the name filter narrow
+the list.
 
 - Supported: `.md` (optional YAML front matter: `title`, `series`, `version`, `effective_date`), `.txt`
   (UTF-8), `.html`/`.htm` (doc-site and wiki exports: only the main content is indexed, menus are dropped;
@@ -106,12 +114,12 @@ zone or click it to browse. Several files can be uploaded at once.
   keep their hierarchy, e.g. "Chander Mohan, CFO (under Asha Rao, CEO)", so "who reports to …" finds them), `.pdf` with a text layer.
   Scanned PDFs without text are rejected (`no_extractable_text`); legacy `.doc` and `.ppt`, and `.xlsx`, are not
   supported yet. Click a document's title to read it in the browser (see **Open document** above);
-  **Download** gets the original file. The **Type** column says what each file is.
+  the row's menu (the three dots at the right) has **Open** and **Download original**. The **Type** column says what each file is.
 - An upload shows one line with its counts; only rejected files are listed by name.
 - Uploading an identical file again does nothing (`unchanged`). Uploading a changed file with the same name
   creates a new version and replaces the old passages once indexed.
-- Failed documents show the reason and a **Retry** button. **Delete** removes the document, its passages
-  and the stored file.
+- Failed documents show the reason; **Retry** is in the row's menu. **Delete** (also in the menu, after you
+  confirm) removes the document, its passages and the stored file.
 
 Markdown tip: front matter like
 

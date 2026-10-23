@@ -11,15 +11,18 @@ from .parsing import normalize_target, slugify
 _MD = MarkdownIt("commonmark", {"html": False, "linkify": False}).enable("table")
 
 STYLE = """
-:root { color-scheme: light dark; --fg: #1d2330; --muted: #5b6475; --line: #d9dde5; --bg: #fff; --code: #f3f4f7; --a: #1f5fbf; }
-@media (prefers-color-scheme: dark) { :root { --fg: #e6e9ef; --muted: #9aa3b2; --line: #343a46; --bg: #15181e; --code: #1f232b; --a: #7fb0ff; } }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 400; font-display: swap; src: url(/vendor/fonts/plex-sans-400.woff2) format("woff2"); }
+@font-face { font-family: "IBM Plex Sans"; font-weight: 600; font-display: swap; src: url(/vendor/fonts/plex-sans-600.woff2) format("woff2"); }
+@font-face { font-family: "IBM Plex Mono"; font-weight: 400; font-display: swap; src: url(/vendor/fonts/plex-mono-400.woff2) format("woff2"); }
+:root { color-scheme: light dark; --fg: #131416; --muted: #5d5f63; --line: #e3e6e9; --bg: #fff; --code: #f5f6f8; --a: #1b6c80; }
+@media (prefers-color-scheme: dark) { :root { --fg: #ececed; --muted: #a2a4a8; --line: #2a2c2f; --bg: #17181a; --code: #1e1f22; --a: #6cc0d4; } }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
 header { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 16px;
          display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
 header strong { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 header a, main a { color: var(--a); }
 main { max-width: 820px; margin: 0 auto; padding: 16px 16px 64px; overflow-wrap: anywhere; }
-pre, code { background: var(--code); border-radius: 4px; font: 14px/1.5 ui-monospace, Consolas, monospace; }
+pre, code { background: var(--code); border-radius: 4px; font: 14px/1.5 "IBM Plex Mono", ui-monospace, Consolas, monospace; }
 pre { padding: 10px 12px; overflow-x: auto; white-space: pre-wrap; } code { padding: 1px 4px; } pre code { padding: 0; }
 table { border-collapse: collapse; display: block; overflow-x: auto; } th, td { border: 1px solid var(--line); padding: 4px 8px; }
 blockquote { margin: 0; padding-left: 12px; border-left: 3px solid var(--line); color: var(--muted); }
@@ -78,6 +81,7 @@ def _heading_ids(content: str) -> str:
 def _page(filename: str, kind: str, content: str, links: str, main: str = "main") -> str:
     return (f"<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
             f"content=\"width=device-width, initial-scale=1\"><title>{html.escape(filename)}</title>"
+            "<link rel=\"icon\" href=\"/favicon.svg\" type=\"image/svg+xml\">"
             f"<style>{STYLE}</style></head><body><header><strong>{html.escape(filename)}</strong>"
             f"<span class=\"meta\">{kind}</span>{links}</header><{main}>{content}</{main.split()[0]}></body></html>")
 
@@ -111,7 +115,8 @@ def pdf_page(filename: str, source: str, download: str) -> str:
     zoom = ('<span class="zoom" role="group" aria-label="Zoom"><button id="zoom-out" title="Zoom out">&minus;</button>'
             '<button id="zoom-fit" title="Fit to width">Fit</button><button id="zoom-in" title="Zoom in">+</button></span>')
     return (f'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, '
-            f'initial-scale=1"><title>{name}</title><link rel="stylesheet" href="/pdfview.css"></head><body>'
+            f'initial-scale=1"><title>{name}</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">'
+            f'<link rel="stylesheet" href="/pdfview.css"></head><body>'
             f'<header><strong>{name}</strong><span id="pages" class="meta"></span>{zoom}{links}</header>'
             f'<main id="doc" data-src="{html.escape(source)}"><p id="status">Loading&hellip; '
             "<noscript>This viewer needs JavaScript: use the links above.</noscript></p></main>"
