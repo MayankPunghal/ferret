@@ -9,6 +9,7 @@ const el = (tag, props = {}, ...kids) => {
 };
 let me = null;
 let pollTimer = null;
+let topicFilter = null;  // Summaries tab: only the documents the local model gave this topic
 
 async function api(path, opts = {}) {
   const headers = { "x-ks-csrf": "1", ...(opts.json !== undefined ? { "content-type": "application/json" } : {}) };
@@ -99,7 +100,7 @@ function openTab(name) {
   if (name === "admin") loadAdmin();
   if (name === "logs") loadLogs();
 }
-$$(".tab").forEach((b) => b.addEventListener("click", () => openTab(b.dataset.tab)));
+$$(".tab").forEach((b) => b.addEventListener("click", () => { topicFilter = null; openTab(b.dataset.tab); }));
 
 // ---------------------------------------------------------------- search
 // Snippets come back with \x02 / \x03 as highlight delimiters; render them as <mark> safely.
@@ -210,8 +211,8 @@ function docTitle(title, clearer) {
 function writtenSummary(r) {
   if (!r.summary) return "";
   const topics = r.topics.map((t) => {
-    const b = el("button", { className: "chip topic", type: "button", textContent: t, title: "Search for " + t });
-    b.addEventListener("click", () => { closeDrawer(); openTab("search"); $("#q").value = t; $("#search-form").requestSubmit(); });
+    const b = el("button", { className: "chip topic", type: "button", textContent: t, title: "Documents with this topic" });
+    b.addEventListener("click", () => { closeDrawer(); topicFilter = t; openTab("summaries"); });
     return b;
   });
   return el("div", { className: "r-summary" },
@@ -549,7 +550,17 @@ async function loadSummaries() {
     head.push(el("div", { className: "progress" }, el("span", { style: `width:${Math.round((100 * done) / indexed.length)}%` })));
   }
   const order = { writing: 0, failed: 1, waiting: 2, done: 3 };
-  const rows = indexed.filter((d) => d.summary_stage || d.summary_text)
+  const topic = topicFilter?.toLowerCase();
+  if (topic) {
+    const all = el("button", { className: "link", type: "button", textContent: "Show all" });
+    all.addEventListener("click", () => { topicFilter = null; loadSummaries(); });
+    const find = el("button", { className: "link", type: "button", textContent: `Search the text for “${topicFilter}”` });
+    find.addEventListener("click", () => { const q = topicFilter; topicFilter = null; openTab("search"); $("#q").value = q; $("#search-form").requestSubmit(); });
+    const n = indexed.filter((d) => (d.topics || []).some((x) => x.toLowerCase() === topic)).length;
+    head.unshift(el("div", { className: "topic-filter" }, el("strong", { textContent: `Topic “${topicFilter}”: ${n} document${n === 1 ? "" : "s"}` }),
+      " (topics are written by the local model) · ", all, " · ", find));
+  }
+  const rows = indexed.filter((d) => (d.summary_stage || d.summary_text) && (!topic || (d.topics || []).some((x) => x.toLowerCase() === topic)))
     .sort((a, b) => (order[a.summary_stage] ?? 3) - (order[b.summary_stage] ?? 3) || a.title.localeCompare(b.title));
   $("#summaries").replaceChildren(...head, rows.length ? el("table", { className: "docs summaries" },
     el("thead", {}, el("tr", {}, ...["Document", "Type", "Summary and topics", "Status"].map((h) => el("th", { textContent: h })))),

@@ -299,6 +299,9 @@ Verified: every command run against a fresh demo app on Linux, covering:
   ("how to do it") has no lexemes. The snippet query then passed `''` to `to_tsquery`, a syntax error, and
   the result was a 503. It now passes an empty string, which gives an empty query. Regression test added;
   it failed before the fix.
+- Topic chips now list the documents with that topic (Summaries tab, case-insensitive exact match) instead of
+  searching for the word. Searching "IT" (a stop word, never indexed as a keyword) could only match by
+  meaning. The walkthrough checks it.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 

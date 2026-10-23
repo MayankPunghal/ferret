@@ -188,6 +188,16 @@ with sync_playwright() as p:
     summary = ledger.locator(".r-summary")  # only when the optional local language model is installed
     print("summary with the result:", summary.inner_text().replace("\n", " | ") if summary.count()
           else "none (no local language model installed)")
+    if summary.count():  # a topic lists the documents with that topic (Summaries tab), not a text search
+        topic = ledger.locator(".chip.topic").first
+        name = topic.inner_text()
+        topic.click()
+        pg.wait_for_selector("#tab-summaries:not([hidden]) .topic-filter")
+        rows = pg.locator("#summaries tbody tr")
+        assert rows.count() >= 1 and all(name.lower() in r.lower() for r in rows.all_inner_texts()), "topic filter"
+        print("topic:", pg.inner_text(".topic-filter").replace("\n", " "), "| rows", rows.count())
+        shot("19-topic")
+        pg.click(".tab[data-tab=search]")
     ledger.locator("text=View passage").click()
     pg.wait_for_selector("#d-links h3")
     print("connections:", [x.replace("\n", " ") for x in pg.locator("#d-links h4, #d-links li").all_inner_texts()])

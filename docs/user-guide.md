@@ -30,7 +30,7 @@ evidence**. The right passage is often among them (especially for paraphrased qu
   there is more than one;
 - a snippet with the matching words highlighted;
 - when the optional local language model is installed: **Summary (local model)** — two sentences on what the
-  document is about — and **Topics**; click a topic to search for it. A vague title ("Overview", a file name)
+  document is about — and **Topics**. Click a topic to list every document the model gave that topic, on the Summaries tab, with a link to search the text for it instead. A vague title ("Overview", a file name)
   is replaced by a clearer one written by the model; hover over it to see the document's own title. These
   are written by the model, so they can be wrong: the snippet and passage are the evidence, never the summary;
 - related documents in up to four rows — **Links to**, **Referenced by**, **Mentions** and **Related in
@@ -87,7 +87,7 @@ part_of: checkout-workflow
 When the optional local language model runs, the **Summaries** tab lists every document you can read with
 its summary and topics, the progress (*N of M documents*) and each document's stage: *summary queued* (written
 after all indexing), *writing summary…*, *summarised*, or *summary could not be written*. The Documents tab
-shows the same stage under each indexed document.
+shows the same stage under each indexed document. Clicking a topic anywhere shows only the documents with that topic. **Show all** clears it.
 
 ## Uploading documents
 

@@ -191,3 +191,4 @@ button.icon:hover { color: var(--text); }
 .hint { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px; font-size: 14px; }
 .hint ul { margin: 8px 0; padding-left: 20px; display: grid; gap: 4px; }
 .hint p { margin: 0; }
+.topic-filter { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; font-size: 14px; }
