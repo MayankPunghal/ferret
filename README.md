@@ -68,6 +68,7 @@ Start the app later with the **Knowledge Search** desktop shortcut or `start.bat
 | Guide | For |
 |---|---|
 | [Getting started](docs/getting-started.md) | Installing, first run, trying it with sample or your own documents |
+| [How it works](docs/how-it-works.md) | Plain-language explanation: embeddings, search, links, evidence check, why one database |
 | [User guide](docs/user-guide.md) | Searching, reading results and outcomes, uploading documents |
 | [Admin guide](docs/admin-guide.md) | Settings (models, chunking, reranker, evidence thresholds), users and access, reindexing |
 | [Configuration](docs/configuration.md) | All `KS_*` environment variables |

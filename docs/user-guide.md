@@ -53,7 +53,8 @@ this off (Settings → Linked documents).
 - **Depends on this (blast radius)** — documents that depend on it directly or via one more hop:
   "what is affected if this changes?".
 
-Click any entry to open it. Documents you cannot access never appear; links whose target is not found in
+The **graph** above the lists shows the same neighbourhood visually (1 or 2 hops; blue = depends on, grey =
+links to, dashed = related / part of); click a node to open that document. Click any entry to open it. Documents you cannot access never appear; links whose target is not found in
 your accessible documents are listed by name only. Example front matter:
 
 ```yaml

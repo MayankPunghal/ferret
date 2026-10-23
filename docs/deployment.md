@@ -51,6 +51,37 @@ and put a TLS reverse proxy in front.
 - Exact vector search is used (no ANN index): fine to roughly 10⁵–10⁶ passages per server. Beyond that,
   add an HNSW index with iterative scans and re-measure recall.
 
+## Large corpora
+
+Example: **40,000 PDFs of a few MB each** (an organisation's archive). Only the first two rows below are
+measured; the rest are **estimates** to be confirmed with a scale test before committing hardware.
+
+| Quantity | Estimate | Basis |
+|---|---|---|
+| Exact vector search, per query, 4 cores | 0.5 ms / 10k · 5 ms / 100k · 39 ms / 500k passages | **measured** (numpy, 768 dims) |
+| Embedding throughput, bge-base, 4 vCPU | ~2.4 passages/s (contended run) | **measured** (1,873 docs / 3,573 passages in 25 min) |
+| Passages | ~2–10 million (≈ 40 text pages × 3,000 characters per PDF → ~150 passages) | estimate; scanned PDFs have no text and need OCR (not supported) |
+| Vector memory | 6 M × 768 × 4 bytes ≈ 18 GB (≈ 9 GB at half precision) | arithmetic |
+| Exact search at 6 M passages | ~0.5 s per query on 4 cores | extrapolated from the measured row |
+| Initial indexing on CPU | ~2 weeks on 4 vCPU; ~2–3 days on a 32-core server | extrapolated |
+| Initial indexing on one GPU | hours | not measured (GPU not implemented yet) |
+| Keyword search over 6 M passages | unknown — common words match millions of rows | **must be measured** |
+
+What this means:
+
+- **A laptop is not the right machine** for this archive (memory and indexing time). A dedicated server
+  (≥ 64 GB RAM, many cores, ideally one GPU for the initial indexing) with external PostgreSQL is.
+- **Accuracy does not have to drop.** Exact search stays affordable to a few million passages (< 1 s).
+  Beyond that, an approximate index (pgvector HNSW in the same database, or a dedicated engine such as
+  Qdrant) is used only to collect a generous candidate set, which is then **re-scored exactly** with the
+  full-precision vectors and the reranker — near-exact recall at a fraction of the cost. Which engine is a
+  measured decision (recall@k vs exact, latency, memory, permission filtering, deletes), not a default.
+- **Indexing runs in the background** and searches work on what is already indexed (the outcome reports
+  incomplete coverage), so the archive can be loaded over days.
+- Required before such a rollout: GPU support for embedding, a scale test (1–10 M passages: vector index
+  recall/latency, keyword branch latency, ingestion throughput, memory), OCR for scanned PDFs if they
+  matter, and evidence-threshold calibration on real questions (a larger corpus has more near-misses).
+
 ## Backups and restore
 
 Back up **both** the database and the original files:
