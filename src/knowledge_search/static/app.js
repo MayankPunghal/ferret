@@ -172,8 +172,11 @@ const BASIS = {
 
 // "Title > Section > Sub" → "Section > Sub" (the title is shown above it)
 const section = (path, title) => (path === title ? "" : path.startsWith(title + " > ") ? path.slice(title.length + 3) : path);
-const location = (collection, path, title, page, version) =>
-  [collection, section(path || "", title), page ? `page ${page}` : "", version > 1 ? `version ${version}` : ""].filter(Boolean).join(" · ");
+const location = (collection, path, title, page, version) => {
+  const s = section(path || "", title);
+  return [collection, s.toLowerCase() === `page ${page}` ? "" : s,  // PDF sections are named "Page N"
+    page ? `page ${page}` : "", version > 1 ? `version ${version}` : ""].filter(Boolean).join(" · ");
+};
 
 function resultItem(r) {
   const loc = location(r.collection, r.heading_path, r.title, r.page, r.version_no);
