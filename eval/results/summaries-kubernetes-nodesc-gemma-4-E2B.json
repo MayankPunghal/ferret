@@ -6203,5 +6203,229 @@
    "W3C Trace Context"
   ],
   "seconds": 24.2
+ },
+ "systemd-watchdog.md": {
+  "summary": "This document explains how to integrate the Kubelet with systemd to use a watchdog mechanism for recovering a failed kubelet. It details configuration options for the watchdog timeout and service restart policies.",
+  "topics": [
+   "Kubelet",
+   "systemd",
+   "WatchdogSec",
+   "sd_notify()",
+   "service unit file"
+  ],
+  "seconds": 52.6
+ },
+ "taint-and-toleration.md": {
+  "summary": "Taints attract pods to specific nodes, while tolerations allow pods to be scheduled onto nodes with matching taints. This mechanism ensures pods are not placed on inappropriate nodes.",
+  "topics": [
+   "Pods",
+   "Nodes",
+   "Taints",
+   "Tolerations",
+   "Kubernetes Scheduler",
+   "Kubelet"
+  ],
+  "seconds": 51.5
+ },
+ "taint.md": {
+  "summary": "Taints are core objects with key, value, and effect properties used to prevent Pod scheduling on specific nodes or node groups. They work in conjunction with tolerations to ensure pods are only scheduled on nodes that have the matching tolerations.",
+  "topics": [
+   "Taints",
+   "Pods",
+   "Nodes",
+   "Node Groups",
+   "Tolerations"
+  ],
+  "seconds": 18.6
+ },
+ "tasks.md": {
+  "summary": "This section of the Kubernetes documentation provides pages that demonstrate how to perform individual tasks. Each task page outlines a single action through a short sequence of steps.",
+  "topics": [
+   "Kubernetes",
+   "Documentation"
+  ],
+  "seconds": 10.2
+ },
+ "toleration.md": {
+  "summary": "Tolerations are a core object with key, value, and effect properties used to allow pods to be scheduled on nodes or node groups that possess matching taints.",
+  "topics": [
+   "Tolerations",
+   "Taints",
+   "Pods",
+   "Nodes",
+   "Node Groups"
+  ],
+  "seconds": 14.5
+ },
+ "tools-tools.md": {
+  "summary": "This page discusses various methods and tools available for setting up production Kubernetes clusters. It highlights tools like kubeadm, Cluster API, kops, and kubespray for cluster provisioning and management.",
+  "topics": [
+   "kubeadm",
+   "Cluster API",
+   "kops",
+   "kubespray",
+   "Ansible",
+   "inventory"
+  ],
+  "seconds": 21.6
+ },
+ "tools.md": {
+  "summary": "This page provides instructions and information on installing essential tools for working with Kubernetes, including kubectl, kind, minikube, and kubeadm.",
+  "topics": [
+   "kubectl",
+   "kind",
+   "minikube",
+   "kubeadm",
+   "Docker",
+   "Podman"
+  ],
+  "seconds": 27.1
+ },
+ "topics-on-dockershim-and-cri-compatible-runtimes.md": {
+  "summary": "This page lists articles and documentation related to the deprecation and removal of dockershim in Kubernetes, and the use of CRI-compatible container runtimes.",
+  "topics": [
+   "Kubernetes",
+   "dockershim",
+   "CRI-compatible runtimes",
+   "Kubernetes blog",
+   "Amazon EKS",
+   "containerd"
+  ],
+  "seconds": 34.8
+ },
+ "topology-aware-routing.md": {
+  "summary": "Topology Aware Routing adjusts routing to keep traffic in its originating zone, potentially reducing costs or improving performance. This is achieved by the EndpointSlice controller allocating endpoints to zones based on node CPU cores.",
+  "topics": [
+   "Kubernetes clusters",
+   "EndpointSlice controller",
+   "kube-proxy",
+   "Service annotations",
+   "Topology Hints"
+  ],
+  "seconds": 34.2
+ },
+ "topology-aware-scheduling.md": {
+  "summary": "Topology-Aware Scheduling (TAS) is a placement algorithm that ensures all pods in a PodGroup are collocated within the same topology domain. Users can customize this behavior by configuring the weights and resource weights of various scheduling plugins.",
+  "topics": [
+   "Topology-Aware Scheduling (TAS)",
+   "PlacementSchedulingAlgorithm",
+   "TopologyPlacement",
+   "NodeResourcesFit",
+   "PodGroupPodsCount",
+   "KubeSchedulerConfiguration"
+  ],
+  "seconds": 30.8
+ },
+ "topology-manager.md": {
+  "summary": "The Topology Manager is a kubelet component that coordinates optimizations for CPU isolation, memory, and device locality in hybrid systems. It receives topology hints, applies node-level policies, and stores the resulting optimal hint for resource allocation decisions.",
+  "topics": [
+   "Topology Manager",
+   "kubelet",
+   "Hint Providers",
+   "NUMA Nodes",
+   "CPU isolation",
+   "Device locality"
+  ],
+  "seconds": 53.3
+ },
+ "topology-spread-constraints.md": {
+  "summary": "Pod topology spread constraints allow users to control how Pods are distributed across failure-domains like nodes or zones to enhance high availability and resource utilization.",
+  "topics": [
+   "Pod",
+   "topology spread constraints",
+   "failure-domains",
+   "cluster-level constraints",
+   "scheduling"
+  ],
+  "seconds": 49.9
+ },
+ "topology.md": {
+  "summary": "This page explains how to troubleshoot issues related to topology management in Kubernetes, focusing on pod placement and resource allocation constraints.",
+  "topics": [
+   "kubelet",
+   "NUMA domains",
+   "Pod status",
+   "system logs",
+   "kubelet state file",
+   "device plugin resource API"
+  ],
+  "seconds": 24.9
+ },
+ "translate-compose-kubernetes.md": {
+  "summary": "Kompose is a tool that converts Docker Compose files into Kubernetes resources. It allows users to translate their existing `docker-compose.yml` into deployable Kubernetes manifests.",
+  "topics": [
+   "Docker Compose",
+   "Kubernetes",
+   "Kompose",
+   "kubectl",
+   "docker-compose.yml",
+   "deployment"
+  ],
+  "seconds": 26.2
+ },
+ "troubleshoot-kubectl.md": {
+  "summary": "This documentation guides users on investigating and diagnosing common issues when accessing or connecting to a Kubernetes cluster using kubectl. It covers verifying the kubectl setup, checking the kubeconfig file, VPN connectivity, and authentication problems.",
+  "topics": [
+   "kubectl",
+   "Kubernetes cluster",
+   "kubeconfig",
+   "VPN connectivity",
+   "authentication and authorization"
+  ],
+  "seconds": 26.1
+ },
+ "troubleshooting-cni-plugin-related-errors.md": {
+  "summary": "This page explains how to troubleshoot CNI plugin-related errors, such as 'Incompatible CNI versions' and 'Failed to destroy network for sandbox,' which occur with specific containerd versions.",
+  "topics": [
+   "CNI plugins",
+   "containerd",
+   "CNI config files",
+   "pod CNI network setup",
+   "pod sandbox"
+  ],
+  "seconds": 27.8
+ },
+ "troubleshooting-kubeadm.md": {
+  "summary": "This page provides guidance on troubleshooting common failure scenarios encountered when installing or running kubeadm. It offers advice on reporting bugs and seeking help for unresolved issues.",
+  "topics": [
+   "kubeadm",
+   "RBAC",
+   "kubeadm join",
+   "ebtables",
+   "ethtool",
+   "network connection"
+  ],
+  "seconds": 26.5
+ },
+ "ttlafterfinished.md": {
+  "summary": "The TTL-after-finished controller in Kubernetes limits the lifetime of finished Job objects by setting a time-to-live (TTL). This allows for automatic cleanup of completed or failed Jobs after a specified duration.",
+  "topics": [
+   "Job",
+   "TTL-after-finished controller",
+   "cascading deletion",
+   "finalizers",
+   "mutating admission webhook"
+  ],
+  "seconds": 24.8
+ },
+ "tutorials.md": {
+  "summary": "This section of the Kubernetes documentation provides tutorials to help users accomplish larger goals within the system. Tutorials cover topics ranging from basic concepts to configuring applications, managing stateful workloads, and security.",
+  "topics": [
+   "Kubernetes",
+   "Redis",
+   "Pod Sidecar Containers",
+   "Stateless Applications",
+   "StatefulSet",
+   "Services"
+  ],
+  "seconds": 19.4
+ },
+ "uid.md": {
+  "summary": "The UID is a unique string generated by Kubernetes to identify objects. It serves to distinguish between different historical occurrences of similar entities within a cluster.",
+  "topics": [
+   "Kubernetes",
+   "objects"
+  ],
+  "seconds": 14.5
  }
 }
