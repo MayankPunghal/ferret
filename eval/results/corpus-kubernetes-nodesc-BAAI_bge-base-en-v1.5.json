@@ -4,7 +4,7 @@
   "reranker": null,
   "context_chars": 0,
   "documents": 623,
-  "ingest_seconds": 1589.8,
+  "ingest_seconds": 1698.5,
   "passages": 8514,
   "retrieval": {
     "n": 56,
@@ -13,8 +13,8 @@
     "mrr@10": 0.982
   },
   "latency_ms": {
-    "p50": 177.3,
-    "p95": 296.9
+    "p50": 190.6,
+    "p95": 334.9
   },
   "shipped_gate": {
     "gate": {

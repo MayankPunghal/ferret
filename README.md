@@ -119,7 +119,8 @@ internet access during setup only (to download the app's dependencies and models
 installed beforehand. After setup it runs offline.
 
 **Speed:** search answers in under a second. Indexing is limited by the embedding model on the CPU: on the
-4-core test machine about 6 passages per second (a 10-page PDF has ~30 passages), and faster on a modern
+4-core test machine about 5–7 passages per second (a 10-page PDF has ~30 passages; 623 Kubernetes
+docs pages took 28 minutes), and faster on a modern
 laptop. It runs in the background; documents become searchable one by one. Scanned PDFs without a text
 layer and text inside images are not indexed (no OCR).
 

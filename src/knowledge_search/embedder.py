@@ -71,9 +71,9 @@ class Embedder:
         self._model = None
         self._lock = threading.Lock()
         self.state = "not loaded"  # not loaded | loading | ready | error: ...
-        # Passages are short (chunk size), so 32 per batch stays well within laptop RAM; only the largest
-        # models use smaller batches. Measured on bge-base: 32 sorted by length embeds 2.9x faster than 8.
-        self.batch_size = 32 if self.spec.size_mb < 600 else 4
+        # Smaller batches for larger models keep peak RAM bounded on laptops. On bge-base (4 cores) 8 is also
+        # the fastest: 7.4 passages/s against 7.0 for 16 and 6.3 for 32 (larger batches are padded more).
+        self.batch_size = 32 if self.spec.size_mb < 200 else 8 if self.spec.size_mb < 600 else 4
 
     def _load(self):
         if self._model is None:

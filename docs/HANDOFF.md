@@ -151,9 +151,11 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   - The upload limit is 500 MB (was 25 MB, which rejected large manuals).
   - **Upload a folder** (Documents → choose a folder).
   - A crawled page's `source_url` becomes its original location, shown as a link.
-- **Indexing speed:** a document's passages are embedded sorted by length in batches of 32 (was 8). The
-  vectors are identical, and it is 2.9× faster on bge-base in a micro-benchmark (2.2 → 6.4 passages/s on
-  this 4-core VM). Kubernetes end to end: see `eval/results/corpus-kubernetes-nodesc-*`.
+- **Indexing speed:** a document's passages are embedded sorted by length (vectors identical), in batches
+  of 8 for bge-base. A first micro-benchmark claimed 2.9× for batches of 32; it was run while an LLM trial
+  loaded the CPU and was wrong. Re-measured on an idle 4-core VM: 7.4 passages/s sorted against 7.1
+  unsorted at batch 8, and 6.3 at batch 32. The Kubernetes ingest at batch 32 took 1,698 s for 8,514
+  passages (5.0/s) against 1,590 s before, so batch 32 was reverted.
 - **Local language models: trialled, none shipped.** Details and the resumable plan are in
   `docs/plan-images-and-models.md`. llama.cpp `llama-server`, eval scripts only:
   - **Gemma 4 E2B answers** (`eval/llm_answers.py`): it writes answers well, but is no better as an
