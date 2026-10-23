@@ -4,7 +4,7 @@ setting puts into passage embeddings).
 
     llama-server -m gemma-4-E2B-it-Q4_K_M.gguf -c 8192 -np 2 --jinja --port 8081     # or Ollama / LM Studio
     uv run --group eval python eval/llm_summaries.py --corpus data/corpora/kubernetes-nodesc --name gemma-4-E2B
-    uv run --group eval python eval/corpus_eval.py --corpus data/corpora/kubernetes-nodesc-gemma-4-E2B --context-chars 300
+    uv run --group eval python eval/corpus_eval.py --corpus data/corpora/kubernetes-nodesc-gemma-4-e2b --context-chars 300
 
 Any OpenAI-compatible endpoint works (--url). Results are cached in eval/results/summaries-<corpus>-<name>.json
 (resumable) with per-page seconds, so speed and output can be inspected. No data leaves the machine unless
@@ -88,7 +88,7 @@ def main():
           f"{sum(v.get('unparsed', False) for v in done.values())} unparsed -> {cache}")
     if a.limit:
         return
-    out_dir = corpus.with_name(f"{corpus.name}-{a.name}")
+    out_dir = corpus.with_name(f"{corpus.name}-{a.name}".lower())  # collection names are lowercase
     out_dir.mkdir(exist_ok=True)
     for f in files:
         fm, _, body = split(f.read_text(encoding="utf-8"))
