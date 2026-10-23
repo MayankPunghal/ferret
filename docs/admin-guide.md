@@ -46,8 +46,8 @@ uv run knowledge-search ingest policies ./policies --wait     # bulk import a fo
 ## Crawling a website or intranet
 
 The crawler is a separate, shareable package, **site2md** (`site2md/`, standard-library Python; see
-`site2md/README.md`). It saves a website as Markdown, one file per page, next to the original PDF and Word
-files the site links to or embeds, ready to ingest. It needs no database or models and sends requests only to the site.
+`site2md/README.md`). It saves a website as Markdown, one file per page, next to the original PDF, Word and
+PowerPoint files the site links to or embeds, ready to ingest. It needs no database or models and sends requests only to the site.
 `knowledge-search crawl …` runs the same tool.
 
 ```bash
@@ -73,11 +73,13 @@ Later runs drop `--login`. Browser mode also renders pages that build their cont
   `--allow-host` adds hosts.
 - **Never followed:** logout, delete, edit, print and feed links. robots.txt is respected unless
   `--ignore-robots` is given.
-- **Embedded documents:** Google Drive files, Docs and Slides that a page embeds or links to are
-  downloaded with the same sign-in (Docs as Word, Slides as PDF). They are linked from the page under
-  "Attached documents". They are saved as they are and read by ingest (PDF page by page), so a search finds
-  the page and its documents, connected in the graph. Only PDF and Word files are kept: videos, uploaded slide
-  decks and spreadsheets, and files over 50 MB are skipped without downloading them.
+- **Embedded documents:** Google Drive files, Docs and Slides that a page embeds or links to, and the
+  files in an embedded Drive folder (and its subfolders), are downloaded with the same sign-in (Docs as Word,
+  Slides as PDF). They are linked from the page under "Attached documents". They are saved as they are and
+  read by ingest (PDF page by page, PowerPoint slide by slide with the speaker notes), so a search finds the
+  page and its documents, connected in the graph. Only PDF, Word and PowerPoint files are kept, up to 500 MB:
+  videos and spreadsheets are recognised by name and skipped without downloading them. For files over 100 MB
+  the crawler answers Google's "Download anyway" prompt itself.
 - **Duplicates:** a page reached under several URLs (`index.html`, tracking parameters) is saved once.
 - **Links and titles:** links between crawled pages are rewritten to the local files, so the **graph works
   after ingest**. A site-wide title suffix (" | Company Wiki") is removed from titles.
@@ -85,7 +87,9 @@ Later runs drop `--login`. Browser mode also renders pages that build their cont
   run once with `--browser --login`) and the skips. `--resume` continues an interrupted crawl and retries the failures.
 - **Limits:**
   - Without `--browser`, JavaScript-built pages come out empty (marked `empty` in the manifest).
-  - Embedded Google Sheets, videos and Drive files whose owner disabled downloads are not saved.
+  - Embedded Google Sheets and Calendars, forms, videos, pictures and Drive files whose owner disabled
+    downloads are not saved. Embeds from other sites are listed in the manifest's skips ("embedded
+    calendar.google.com/calendar not saved (on …)"), so a page with little text can be explained.
   - Access rights are not copied: put pages with different audiences into different collections and grant
     them as usual.
 - **Sharing the crawler:** zip the `site2md/` folder. People who are not technical double-click

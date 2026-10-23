@@ -53,12 +53,13 @@ USER_AGENT = "site2md/1 (documentation crawler)"
 NO_FOLLOW = re.compile(
     r"log-?out|sign-?out|log-?off|/delete|[?&](action|do)=(edit|delete|remove|logout|diff|history|revision)"
     r"|/edit\b|/print\b|[?&]print=|/feed\b|/rss\b|\.rss$|/calendar/|[?&]replytocom=|[?&]share=", re.IGNORECASE)
-FILE_TYPES = {".pdf": "pdf", ".docx": "docx", ".md": "md", ".markdown": "md", ".txt": "txt"}
+FILE_TYPES = {".pdf": "pdf", ".docx": "docx", ".pptx": "pptx", ".md": "md", ".markdown": "md", ".txt": "txt"}
+KEEP = (".pdf", ".docx", ".pptx")  # embedded Drive files that are kept
 SKIP_TYPES = re.compile(r"\.(png|jpe?g|gif|svg|webp|ico|css|js|mjs|json|xml|zip|gz|tgz|tar|exe|msi|dmg|iso|mp4|"
                         r"mp3|wav|avi|mov|woff2?|ttf|eot|pptx?|xlsx?|csv)$", re.IGNORECASE)
 TRACKING = re.compile(r"^(utm_\w+|fbclid|gclid|mc_cid|mc_eid|_ga|ref|sessionid|jsessionid|phpsessid|sid|authuser)$",
                       re.IGNORECASE)  # authuser: Google's account selector, same page
-MAX_BYTES = 50_000_000
+MAX_BYTES = 500_000_000  # the same limit as knowledge-search uploads
 DOCUMENT = re.compile(r"pdf|wordprocessingml|octet-stream|html", re.IGNORECASE)  # worth downloading (html: an
 # answer such as "download disabled", recorded as such)
 # Google Drive / Docs / Slides files embedded in a page (Google Sites viewers, iframes, links): downloaded
@@ -67,6 +68,11 @@ EMBED = re.compile(r"https://(?:drive|docs)\.google\.com/(?:a/[\w.-]+/)?(file|do
 EXPORT = {"file": "https://drive.google.com/uc?export=download&id={}",
           "document": "https://docs.google.com/document/d/{}/export?format=docx",
           "presentation": "https://docs.google.com/presentation/d/{}/export/pdf"}
+# an embedded Drive folder: the files in it (and in its subfolders) are downloaded like embedded files
+FOLDER = re.compile(r"https://drive\.google\.com/(?:a/[\w.-]+/)?(?:embeddedfolderview\?(?:[^\"'\s<>]*?&(?:amp;)?)?id="
+                    r"|drive/(?:u/\d+/)?folders/)([\w-]{20,})")
+FOLDER_VIEW = "https://drive.google.com/embeddedfolderview?id={}"
+IFRAME = re.compile(r"<iframe\b[^>]*?\ssrc=[\"']([^\"']+)", re.IGNORECASE)
 LOGIN = re.compile(r"^(accounts\.google\.com|login\.microsoftonline\.com)|/(login|signin|sign-in|sso)\b", re.IGNORECASE)
 
 
@@ -145,7 +151,7 @@ class BrowserFetcher:
         if r.status >= 400:
             raise urllib.error.HTTPError(url, r.status, r.status_text, None, None)
         if len(r.body()) > MAX_BYTES:
-            raise ValueError("larger than 50 MB")
+            raise ValueError(f"larger than {MAX_BYTES // 1_000_000} MB")
         return r.body(), r.headers.get("content-type", ""), r.url, _filename(r.headers.get("content-disposition", ""))
 
     def head(self, url: str) -> tuple[str, int, str]:
@@ -172,6 +178,48 @@ def _filename(content_disposition: str) -> str:
 def embedded_documents(html: str) -> list[str]:
     """Download URLs of the Google Drive files, Docs and Slides a page embeds or links to."""
     return list(dict.fromkeys(EXPORT[kind].format(doc_id) for kind, doc_id in EMBED.findall(html.replace("\\/", "/"))))
+
+
+class _Form(HTMLParser):
+    """Drive's virus-scan warning: the "Download anyway" form and the file name shown above it."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.action, self.fields, self.name, self._in_name = "", {}, "", 0
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "form" and a.get("id") == "download-form":
+            self.action = a.get("action") or ""
+        elif tag == "input" and a.get("type") == "hidden" and a.get("name") and self.action:
+            self.fields[a["name"]] = a.get("value") or ""
+        elif tag == "span" and "uc-name-size" in (a.get("class") or ""):
+            self._in_name = 1
+        elif tag == "a" and self._in_name == 1:
+            self._in_name = 2
+
+    def handle_data(self, data):
+        if self._in_name == 2:
+            self.name += data
+
+    def handle_endtag(self, tag):
+        if tag == "a" and self._in_name == 2:
+            self._in_name = 3
+
+
+def virus_scan_confirm(html: str) -> tuple[str, str] | None:
+    """(download URL behind "Download anyway", file name) on Drive's "can't scan for viruses" page."""
+    if "download-form" not in html:
+        return None
+    f = _Form()
+    f.feed(html)
+    if not f.action.startswith(("https://drive.google.com/", "https://drive.usercontent.google.com/")):
+        return None
+    return f.action + "?" + urlencode(f.fields), f.name.strip()
+
+
+def embedded_folders(html: str) -> list[str]:
+    return list(dict.fromkeys(FOLDER.findall(html.replace("\\/", "/"))))
 
 
 def _front(title: str, source_url: str) -> str:
@@ -330,7 +378,7 @@ class Crawler:
         with urllib.request.urlopen(req, timeout=self.timeout) as r:  # http(s) only (in_scope)
             data = r.read(MAX_BYTES + 1)
             if len(data) > MAX_BYTES:
-                raise ValueError("larger than 50 MB")
+                raise ValueError(f"larger than {MAX_BYTES // 1_000_000} MB")
             return data, r.headers.get("Content-Type", ""), r.geturl(), r.headers.get_filename() or ""
 
     def _head(self, url: str) -> tuple[str, int, str]:
@@ -391,7 +439,8 @@ class Crawler:
                 self.manifest["skipped"][url] = f"redirects out of scope: {final}"
             return []
         ext = Path(urlsplit(final).path).suffix.lower()
-        kind = FILE_TYPES.get(ext) or ("pdf" if "pdf" in ctype else "docx" if "wordprocessingml" in ctype else None)
+        kind = FILE_TYPES.get(ext) or ("pdf" if "pdf" in ctype else "docx" if "wordprocessingml" in ctype else
+                                       "pptx" if "presentationml" in ctype else None)
         if kind and "html" not in ctype:
             if self.files:
                 self._save_file(final, data, kind)
@@ -402,9 +451,46 @@ class Crawler:
             return []
         html = _decode(data, ctype)
         links = page_links(html, final)
-        attached = [self._embedded(u) for u in embedded_documents(html)] if self.files else []
+        attached = []
+        if self.files:
+            docs = embedded_documents(html) + self._folder_documents(embedded_folders(html))
+            attached = [self._embedded(u) for u in dict.fromkeys(docs)]
+            self._unsaved_frames(html, final)
         self._save_page(final, html, [a for a in attached if a])
         return links
+
+    def _folder_documents(self, folders: list[str], depth: int = 0) -> list[str]:
+        """Download URLs of the files in embedded Drive folders (Drive's folder view lists them as links),
+        with subfolders up to three levels down."""
+        docs = []
+        for folder_id in folders:
+            url = FOLDER_VIEW.format(folder_id)
+            with self.lock:
+                if url in self.seen:
+                    continue
+                self.seen.add(url)
+            try:
+                listing = _decode(*self._get(url)[:2])
+            except Exception as e:  # noqa: BLE001 - e.g. folder not shared with this account
+                with self.lock:
+                    self.manifest["failed"][url] = f"embedded Drive folder: {str(e)[:150]}"
+                continue
+            docs += embedded_documents(listing)
+            if depth < 3:
+                docs += self._folder_documents(embedded_folders(listing), depth + 1)
+        return docs
+
+    def _unsaved_frames(self, html: str, page_url: str) -> None:
+        """Record what else the page embeds from other sites (calendars, forms, videos, published sheets): it is
+        not saved, so the manifest says what the page shows beyond its text."""
+        for src in dict.fromkeys(IFRAME.findall(html)):
+            src = urljoin(page_url, src.replace("&amp;", "&"))
+            p = urlsplit(src)
+            if p.scheme not in ("http", "https") or p.netloc in self.hosts or EMBED.search(src) or FOLDER.search(src):
+                continue
+            with self.lock:
+                self.manifest["skipped"].setdefault(
+                    src, f"embedded {p.netloc}/{p.path.strip('/').split('/')[0]} not saved (on {page_url})")
 
     def _embedded(self, url: str) -> tuple | None:
         """Download a Drive/Docs file the page embeds (another host, so outside the crawl scope; robots.txt does
@@ -416,38 +502,52 @@ class Crawler:
             if url in self.seen:
                 return None
             self.seen.add(url)
-        # decided before downloading: only PDF and Word files are kept (videos, slide decks and spreadsheets
-        # uploaded to Drive are skipped), and nothing over 50 MB
+        # decided before downloading: only PDF, Word and PowerPoint files are kept (videos and spreadsheets
+        # uploaded to Drive are skipped; Google Docs and Slides are exported as Word and PDF), up to 500 MB
         ctype, size, filename = self._head(url)
-        ext = Path(filename).suffix.lower()
-        reason = (f"embedded {ext[1:].upper() or 'file'} is not a PDF or Word file: {filename}"
-                  if filename and ext not in (".pdf", ".docx") else
+        ext = (Path(filename).suffix.lower().split() or [""])[0]  # "Deck.pptx UPDATED" -> .pptx
+        reason = (f"embedded {ext[1:].upper() or 'file'} is not a PDF, Word or PowerPoint file: {filename}"
+                  if filename and ext not in KEEP else
                   f"embedded file of type {ctype}" if ctype and not DOCUMENT.search(ctype) else
-                  f"embedded file larger than 50 MB ({size // 1_000_000} MB)" if size > MAX_BYTES else "")
+                  f"embedded file larger than {MAX_BYTES // 1_000_000} MB ({size // 1_000_000} MB)"
+                  if size > MAX_BYTES else "")
         if reason:
             with self.lock:
                 self.manifest["skipped"][url] = reason
             return None
         try:
             data, ctype, _, filename = self._get(url)
+            if "html" in ctype and (confirm := virus_scan_confirm(data.decode("utf-8", "replace"))):
+                # Drive's "can't scan this file for viruses" page (files over 100 MB): "Download anyway" for the
+                # files that are kept
+                confirm_url, filename = confirm
+                ext = (Path(filename).suffix.lower().split() or [""])[0]
+                if filename and ext not in KEEP:  # no name shown: downloaded, then decided by content
+                    with self.lock:
+                        self.manifest["skipped"][url] = (f"embedded {ext[1:].upper() or 'file'} is not a PDF, Word "
+                                                         f"or PowerPoint file: {filename}")
+                    return None
+                data, ctype, _, name = self._get(confirm_url)
+                filename = name or filename
         except Exception as e:  # noqa: BLE001 - e.g. download disabled by the owner
             with self.lock:
                 self.manifest["failed"][url] = f"embedded file: {str(e)[:150]}"
             return None
-        kind = "pdf" if "pdf" in ctype or data[:5] == b"%PDF-" else "docx" if "wordprocessingml" in ctype else None
+        ext = (Path(filename).suffix.lower().split() or [""])[0]
+        kind = ("pdf" if "pdf" in ctype or data[:5] == b"%PDF-" else "docx" if "wordprocessingml" in ctype else
+                "pptx" if "presentationml" in ctype else
+                ext[1:] if ext in KEEP and data[:2] == b"PK" else None)  # Drive: octet-stream, named .docx/.pptx
         if not kind:
-            scan = "html" in ctype and b"virus" in data[:50_000].lower()  # Drive: "too large to scan for viruses"
             with self.lock:
                 self.manifest["skipped"][url] = (
-                    "embedded file too large for Google's virus scan (over 100 MB, usually a video): not downloaded"
-                    if scan else "embedded file not downloadable (sign-in, or download disabled)" if "html" in ctype
-                    else f"embedded {Path(filename).suffix[1:].upper() or 'file'} is not a PDF or Word file: "
+                    "embedded file not downloadable (sign-in, or download disabled)" if "html" in ctype
+                    else f"embedded {ext[1:].upper() or 'file'} is not a PDF, Word or PowerPoint file: "
                          f"{filename or ctype or 'unknown type'}")
             return None
         return url, data, kind, filename
 
     def _save_file(self, url: str, data: bytes, kind: str, filename: str = "") -> str:
-        """Save a linked or embedded document as it is (the indexer reads PDF and Word files itself)."""
+        """Save a linked or embedded document as it is (the indexer reads PDF, Word and PowerPoint itself)."""
         digest = hashlib.sha256(data).hexdigest()
         stem = re.sub(r"(?i)(\.(pdf|docx?|pptx?|xlsx?))+$", "", filename).strip()
         with self.lock:

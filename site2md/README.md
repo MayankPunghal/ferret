@@ -11,8 +11,8 @@ an LLM tool or an offline copy. Standard-library Python; a real browser is optio
 3. Paste the website address and give the copy a name. The first time, a browser window opens: sign in if
    the site asks you to (company intranet), then press Enter in the black window.
 
-The pages are saved in `output/<name>/`, one Markdown file per page, next to the original PDF and Word
-files the pages link to or embed. The first run installs what it needs (uv, Python, about 1–2 minutes; the
+The pages are saved in `output/<name>/`, one Markdown file per page, next to the original PDF, Word and
+PowerPoint files the pages link to or embed. The first run installs what it needs (uv, Python, about 1–2 minutes; the
 internet is needed for that). Running it again with the same name continues the copy and retries failed pages.
 
 You choose the browser: Chrome or Edge (already installed), or Firefox or Chromium (downloaded once). The
@@ -55,12 +55,13 @@ site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --brows
   text (menus and footers dropped; when the page's `<main>` element misses part of its text, as on Google
   Sites, the whole page is used). Scrolls through each page first, so text drawn when it comes into view is
   included.
-- Saves linked PDF and Word files **as they are**, under their own names ("Leave Policy (1).pdf") — nothing
+- Saves linked PDF, Word and PowerPoint files **as they are**, under their own names ("Leave Policy (1).pdf") — nothing
   is converted, so nothing can be lost; a search index reads them itself (knowledge-search does, page by page).
 - Downloads the Google Drive files, Docs (as Word) and Slides (as PDF) a page embeds or links to — the PDF
-  viewers on Google Sites pages — with the same sign-in, and links them from the page ("Attached documents").
-  Only PDF and Word files are kept: videos, slide decks and spreadsheets uploaded to Drive, and files over
-  50 MB, are recognised by name before downloading and skipped (listed in the manifest).
+  viewers on Google Sites pages — and the files in embedded Drive folders, with the same sign-in, and links
+  them from the page ("Attached documents"). Only PDF, Word and PowerPoint files are kept, up to 500 MB:
+  videos and spreadsheets uploaded to Drive are recognised by name before downloading and skipped (listed in
+  the manifest). For files over 100 MB it answers Google's "Download anyway" prompt itself.
 - `--save-html` also keeps the HTML each page was converted from (in `<out>-html/`), to check what a page
   held.
 - Saves a page reached under several URLs once; rewrites links between crawled pages to the local files;
@@ -69,5 +70,5 @@ site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --brows
   `--resume` continues an interrupted crawl. Ctrl+C stops a crawl cleanly (links fixed, manifest saved).
 
 Without `--browser`, pages that build their content with JavaScript come out empty (marked `empty` in the
-manifest). `--resume` also retries the URLs that failed. Embedded Google Sheets, videos and files whose owner
-disabled downloads are listed in the manifest but not saved. The copy has no access control: keep it where only the intended readers can open it.
+manifest). `--resume` also retries the URLs that failed. Embedded Google Sheets and Calendars, forms,
+videos and files whose owner disabled downloads are not saved; the manifest lists them. The copy has no access control: keep it where only the intended readers can open it.
