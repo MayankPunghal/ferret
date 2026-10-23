@@ -34,7 +34,16 @@ from datetime import UTC, datetime
 from email.message import Message
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import parse_qsl, urldefrag, urlencode, urljoin, urlsplit, urlunsplit
+from urllib.parse import (
+    parse_qsl,
+    quote,
+    unquote,
+    urldefrag,
+    urlencode,
+    urljoin,
+    urlsplit,
+    urlunsplit,
+)
 
 from .html import html_to_markdown
 
@@ -245,6 +254,22 @@ def slug_for(url: str, used: set[str], root: str = "") -> str:
     return name
 
 
+WINDOWS_RESERVED = {"con", "prn", "aux", "nul", *(f"com{i}" for i in range(1, 10)), *(f"lpt{i}" for i in range(1, 10))}
+
+
+def file_name_for(filename: str, used: set[str]) -> str:
+    """A document's own name, kept readable ("Leave Policy (1)"): only characters Windows, macOS or a Markdown
+    link cannot carry are replaced; unique ignoring case (Windows and macOS file systems)."""
+    stem = re.sub(r'[<>:"/\\|?*#%\x00-\x1f\[\]]', "-", filename).strip(" .")[:120].strip(" .")
+    if stem.lower() in WINDOWS_RESERVED:
+        stem += "_"
+    name, n = stem, 2
+    while name.lower() in used:
+        name, n = f"{stem} ({n})", n + 1
+    used.add(name.lower())
+    return name
+
+
 class Crawler:
     def __init__(self, start: str, out: Path, *, prefixes: list[str] | None = None, allow_hosts: list[str] | None = None,
                  max_pages: int = 10_000, workers: int = 4, delay: float = 0.2, headers: dict | None = None,
@@ -415,8 +440,7 @@ class Crawler:
             if digest in self.hashes:
                 self.manifest["files"].setdefault(url, self.hashes[digest])
                 return self.hashes[digest]
-            name = slug_for("/" + re.sub(r"[?#]", " ", stem), self.used) if stem else slug_for(url, self.used, self.root)
-            name += "." + kind
+            name = (file_name_for(stem, self.used) if stem else slug_for(url, self.used, self.root)) + "." + kind
             self.hashes[digest] = name
             self.manifest["files"][url] = name
         (self.out / name).write_bytes(data)
@@ -427,12 +451,12 @@ class Crawler:
         docs = []  # (label, url, local file)
         for doc_url, data, kind, filename in attached:
             if data is None:  # saved from an earlier page: filename is the local file
-                docs.append((filename, doc_url, filename))
+                docs.append((filename.rsplit(".", 1)[0], doc_url, filename))
             else:
                 name = self._save_file(doc_url, data, kind, filename)
-                docs.append((filename or name, doc_url, name))
-        if docs:  # embedded documents: linked, so they are connected to this page after ingest
-            md += "\n\n## Attached documents\n\n" + "\n".join(f"- [{label}]({u})" for label, u, _ in docs)
+                docs.append((name.rsplit(".", 1)[0], doc_url, name))
+        if docs:  # embedded documents: linked (to the local file), so they are connected to this page after ingest
+            md += "\n\n## Attached documents\n\n" + "\n".join(f"- [{label}]({quote(name)})" for label, _, name in docs)
         digest = hashlib.sha256(md.encode()).hexdigest()
         with self.lock:
             if digest in self.hashes:  # same page under another URL
@@ -466,7 +490,7 @@ class Crawler:
                 self.used.add(v["file"].removesuffix(".md"))
                 self.hashes[hashlib.sha256((self.out / v["file"]).read_bytes()).hexdigest()] = v["file"]
             for name in self.manifest["files"].values():
-                self.used.add(name.rsplit(".", 1)[0])
+                self.used.add(name.rsplit(".", 1)[0].lower())
             retry, self.manifest["failed"] = list(self.manifest["failed"]), {}  # failures are tried again
             self.seen = set(self.manifest["pages"]) | set(self.manifest["files"]) | set(self.manifest["skipped"])
             add(retry + self.manifest["queue"])
@@ -474,25 +498,31 @@ class Crawler:
             add([self.start])
         self.allowed(self.start)  # loads robots.txt (and its sitemap list)
         add(self.sitemap_urls())
-        t0, last_save, done = time.time(), time.time(), 0
+        t0, last_save, done, url = time.time(), time.time(), 0, ""
         with _Inline() if self.browser else ThreadPoolExecutor(self.workers) as pool:  # browser: its own thread only
             running = {}
-            while queue or running:
-                while queue and len(running) < self.workers and self._count() < self.max_pages:
-                    url, started = queue.popleft(), time.time()  # (browser mode runs fetch inside submit)
-                    running[pool.submit(self.fetch, url)] = url, started
-                if not running:
-                    break
-                finished, _ = wait(running, return_when=FIRST_COMPLETED)
-                for fut in finished:
-                    url, started = running.pop(fut)
-                    add(fut.result())
-                    done += 1
-                    self.log(f"[{done}/{done + len(queue) + len(running)}] {time.time() - started:4.1f} s  "
-                             f"{url}  {self._outcome(url)}")
-                if time.time() - last_save > 30:
-                    self._save_manifest(mpath, queue)
-                    last_save = time.time()
+            try:
+                while queue or running:
+                    while queue and len(running) < self.workers and self._count() < self.max_pages:
+                        url, started = queue.popleft(), time.time()  # (browser mode runs fetch inside submit)
+                        running[pool.submit(self.fetch, url)] = url, started
+                    if not running:
+                        break
+                    finished, _ = wait(running, return_when=FIRST_COMPLETED)
+                    for fut in finished:
+                        url, started = running.pop(fut)
+                        add(fut.result())
+                        done += 1
+                        self.log(f"[{done}/{done + len(queue) + len(running)}] {time.time() - started:4.1f} s  "
+                                 f"{url}  {self._outcome(url)}")
+                    if time.time() - last_save > 30:
+                        self._save_manifest(mpath, queue)
+                        last_save = time.time()
+            except KeyboardInterrupt:  # stopped by the person: keep what was saved, continue later with --resume
+                m = self.manifest
+                unfinished = [u for u, _ in running.values()] + ([url] if url else [])
+                queue.extendleft(u for u in unfinished if not any(u in m[k] for k in ("pages", "files", "skipped")))
+                self.log("stopped - saving what was crawled; run again with --resume to continue")
         self.rewrite_links()
         self._save_manifest(mpath, queue)
         m = self.manifest
@@ -537,6 +567,9 @@ class Crawler:
 
         def fix(page_url: str, href: str) -> str:
             if re.match(r"^(mailto|tel|data|javascript):", href, re.IGNORECASE):
+                return href
+            if not re.match(r"^[a-z][a-z0-9+.-]*:|/", href, re.IGNORECASE) and \
+                    (self.out / unquote(href.split("#")[0])).is_file():  # already a local file (attachments)
                 return href
             absolute = urljoin(page_url, href)
             frag = urldefrag(absolute)[1]

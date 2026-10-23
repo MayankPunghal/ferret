@@ -55,8 +55,8 @@ site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --brows
   text (menus and footers dropped; when the page's `<main>` element misses part of its text, as on Google
   Sites, the whole page is used). Scrolls through each page first, so text drawn when it comes into view is
   included.
-- Saves linked PDF and Word files **as they are** — nothing is converted, so nothing can be lost; a search
-  index reads them itself (knowledge-search does, page by page).
+- Saves linked PDF and Word files **as they are**, under their own names ("Leave Policy (1).pdf") — nothing
+  is converted, so nothing can be lost; a search index reads them itself (knowledge-search does, page by page).
 - Downloads the Google Drive files, Docs (as Word) and Slides (as PDF) a page embeds or links to — the PDF
   viewers on Google Sites pages — with the same sign-in, and links them from the page ("Attached documents").
   Embedded videos and files over 50 MB are recognised before downloading and skipped.
@@ -65,7 +65,7 @@ site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --brows
 - Saves a page reached under several URLs once; rewrites links between crawled pages to the local files;
   removes a title suffix shared by most pages (" | Company Wiki").
 - `manifest.json`: every URL → file, failures (e.g. "sign-in page"), skips and the remaining queue;
-  `--resume` continues an interrupted crawl.
+  `--resume` continues an interrupted crawl. Ctrl+C stops a crawl cleanly (links fixed, manifest saved).
 
 Without `--browser`, pages that build their content with JavaScript come out empty (marked `empty` in the
 manifest). `--resume` also retries the URLs that failed. Embedded Google Sheets, videos and files whose owner

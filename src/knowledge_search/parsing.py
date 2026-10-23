@@ -9,6 +9,7 @@ rather than silently indexed as empty (OCR is out of scope).
 import re
 import threading
 from dataclasses import dataclass, field
+from urllib.parse import unquote
 
 import yaml
 from markdown_it import MarkdownIt
@@ -96,9 +97,9 @@ _WIKI_LINK = re.compile(r"\[\[([^\]|#\n]{1,200})(?:#([^\]|\n]{1,200}))?(?:\|([^\
 
 
 def normalize_target(target: str) -> str:
-    """'../api/Orders.md' -> 'orders.md'; 'Payments Service' -> 'payments service';
+    """'../api/Orders.md' -> 'orders.md'; 'Payments Service' or 'Payments%20Service' -> 'payments service';
     doc-site style '../orders/' or 'orders/index.html' -> 'orders'; '?query' is dropped."""
-    parts = [x for x in target.strip().split("?")[0].replace("\\", "/").replace("%20", " ").split("/")
+    parts = [x for x in unquote(target.strip().split("?")[0]).replace("\\", "/").split("/")
              if x not in ("", ".", "..")]
     if len(parts) > 1 and re.fullmatch(r"(?i)index\.html?", parts[-1]):
         parts.pop()

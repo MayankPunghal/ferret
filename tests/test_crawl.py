@@ -9,7 +9,7 @@ import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from site2md.crawl import EXPORT, Crawler, normalize
+from site2md.crawl import EXPORT, Crawler, file_name_for, normalize
 from site2md.html import html_to_markdown
 
 from knowledge_search.parsing import chunk_document, parse_document
@@ -110,6 +110,26 @@ def test_crawl_resume_and_page_limit(tmp_path):
     assert len(done["pages"]) == 5 and not done["queue"]
 
 
+def test_stopping_with_ctrl_c_keeps_the_crawl_and_resume_finishes_it(tmp_path):
+    srv, _ = serve()
+    base = f"http://127.0.0.1:{srv.server_port}"
+
+    class Stopped(Crawler):
+        def fetch(self, url):
+            if self._count() == 2:
+                raise KeyboardInterrupt
+            return super().fetch(url)
+
+    try:
+        first = Stopped(base + "/", tmp_path, delay=0, workers=1, log=lambda *_: None).run()
+        assert len(first["pages"]) + len(first["files"]) == 2 and first["queue"]
+        assert json.loads((tmp_path / "manifest.json").read_text())["queue"]
+        done = Crawler(base + "/", tmp_path, delay=0, log=lambda *_: None).run(resume=True)
+    finally:
+        srv.shutdown()
+    assert len(done["pages"]) == 5 and not done["queue"]
+
+
 def _docx(text: str) -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w") as z:
@@ -147,17 +167,21 @@ def test_embedded_google_drive_documents_are_saved_and_linked(tmp_path):
 
     m = Intranet("https://intranet.example/hr", tmp_path, delay=0, robots=False, log=lambda *_: None).run()
     # documents are saved as they are (the indexer reads PDF and Word itself), named after the file
-    assert m["files"] == {EXPORT["file"].format(pdf_id): "sf-pip-policy.pdf",
-                          EXPORT["document"].format(doc_id): "leave-policy.docx"}
-    assert (tmp_path / "sf-pip-policy.pdf").read_bytes() == pdf
+    assert m["files"] == {EXPORT["file"].format(pdf_id): "SF PIP Policy.pdf",
+                          EXPORT["document"].format(doc_id): "Leave Policy.docx"}
+    assert (tmp_path / "SF PIP Policy.pdf").read_bytes() == pdf
     # a video is recognised before downloading and skipped
     assert EXPORT["file"].format(video_id) not in downloaded
     assert "video/mp4" in m["skipped"][EXPORT["file"].format(video_id)]
     # every page keeps its own text and links its documents, so search finds both and they are connected
     assert sorted(p.name for p in tmp_path.glob("*.md")) == ["hr-pip.md", "hr.md"]
-    assert "- [SF PIP Policy.docx.pdf](sf-pip-policy.pdf)" in (tmp_path / "hr-pip.md").read_text()
+    pip_md = (tmp_path / "hr-pip.md").read_text()
+    assert "- [SF PIP Policy](SF%20PIP%20Policy.pdf)" in pip_md
     md = (tmp_path / "hr.md").read_text()
-    assert "[PIP policy](hr-pip.md)" in md and "- [Leave Policy.docx](leave-policy.docx)" in md
+    assert "[PIP policy](hr-pip.md)" in md and "- [Leave Policy](Leave%20Policy.docx)" in md
+    # the indexer resolves the link to the document's file name
+    links = [ln.target for c in chunk_document(parse_document(pip_md.encode(), "hr-pip.md"), 900, 0) for ln in c.links]
+    assert links == ["sf pip policy.pdf"]
 
 
 def test_page_text_outside_the_main_element_is_kept():
@@ -179,3 +203,11 @@ def test_page_text_outside_the_main_element_is_kept():
     # a docs page: the text outside <main> is only a footer note, so <main> alone is kept
     _, md = html_to_markdown(f"<body><main><h1>Runbook</h1><p>{body}</p></main><div>Built with MkDocs</div></body>")
     assert "Built with MkDocs" not in md
+
+
+def test_document_names_stay_readable_and_safe():
+    used = set()
+    assert file_name_for("Leave Policy (1)", used) == "Leave Policy (1)"
+    assert file_name_for("leave policy (1)", used) == "leave policy (1) (2)"  # same name ignoring case
+    assert file_name_for('Q3: plan? "v2" / final', used) == "Q3- plan- -v2- - final"
+    assert file_name_for("CON", used) == "CON_"
