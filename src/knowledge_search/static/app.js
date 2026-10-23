@@ -163,7 +163,9 @@ async function openPassage(id) {
   $("#d-loc").textContent = [p.collection, p.heading_path, p.page ? `page ${p.page}` : "", `version ${p.version_no}`].filter(Boolean).join(" · ");
   $("#d-body").replaceChildren(...p.context.map((c) => el("p", { className: c.id === p.id ? "hit" : "ctx", textContent: c.text })));
   $("#d-open").href = `/api/documents/${p.document_id}/source` + (p.page ? `#page=${p.page}` : "");
-  $("#d-uri").textContent = p.source_uri ? "Recorded location: " + p.source_uri : "";
+  $("#d-uri").replaceChildren(...(!p.source_uri ? [] : /^https?:\/\//.test(p.source_uri)
+    ? ["Original: ", el("a", { href: p.source_uri, target: "_blank", rel: "noopener noreferrer", textContent: p.source_uri })]
+    : ["Recorded location: " + p.source_uri]));
   $("#drawer").hidden = false;
   $("#d-body .hit")?.scrollIntoView({ block: "center" });
   renderLinks(p.document_id);
@@ -296,9 +298,16 @@ dz.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") 
 ["dragleave", "drop"].forEach((t) => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.remove("over"); }));
 dz.addEventListener("drop", (e) => uploadFiles([...e.dataTransfer.files]));
 fileInput.addEventListener("change", () => { uploadFiles([...fileInput.files]); fileInput.value = ""; });
+const folderInput = $("#folder-input");
+$("#folder-button").addEventListener("click", (e) => { e.stopPropagation(); folderInput.click(); });
+folderInput.addEventListener("change", () => { uploadFiles([...folderInput.files]); folderInput.value = ""; });
+const SUPPORTED = /\.(md|markdown|txt|html?|docx|pptx|pdf)$/i;
 
 async function uploadFiles(files) {
   const list = $("#upload-list");
+  const other = files.filter((f) => !SUPPORTED.test(f.name));
+  files = files.filter((f) => SUPPORTED.test(f.name));
+  if (other.length) list.prepend(el("li", { className: "meta", textContent: `skipped ${other.length} file(s) of other types (${[...new Set(other.map((f) => (f.name.split(".").pop() || "").toLowerCase()))].join(", ")})` }));
   for (const f of files) {
     const status = el("span", { className: "meta", textContent: "uploading…" });
     list.prepend(el("li", {}, el("strong", { textContent: f.name }), " ", status));

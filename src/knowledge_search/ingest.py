@@ -228,11 +228,14 @@ class Worker:
                 summary = doc_summary(parsed, rt.context_chars)
                 texts = [embedding_text(parsed.title, c, summary) for c in chunks]
                 step = max(embedder.batch_size * 2, 8)
+                order = sorted(range(len(texts)), key=lambda i: len(texts[i]))  # similar lengths batched together
                 parts = []
                 for i in range(0, len(texts), step):
                     self._progress(conn, job, "embedding", i, len(texts))
-                    parts.append(embedder.embed_documents(texts[i : i + step]))
-                vectors = np.vstack(parts)
+                    parts.append(embedder.embed_documents([texts[j] for j in order[i : i + step]]))
+                vectors = np.empty((len(texts), embedder.spec.dim), dtype=np.float32)
+                if texts:
+                    vectors[order] = np.vstack(parts)
                 self._progress(conn, job, "saving", len(texts), len(texts))
             except ParseError as e:  # deterministic: do not retry
                 self._fail(conn, job, e.code, e.detail, retry=False)
@@ -290,12 +293,17 @@ class Worker:
                     cur.executemany(
                         "INSERT INTO doc_links(document_id, chunk_id, kind, target, anchor, label) "
                         "VALUES (%s, %s, %s, %s, %s, %s)", links)
+            # a page saved by a crawler names its web address (site2md: source_url): the original location,
+            # unless the uploader gave one (a file:// path from folder ingest is replaced)
+            url = str(parsed.metadata.get("source_url") or "")
+            url = url[:2000] if url.startswith(("https://", "http://")) else None
             conn.execute(
                 "UPDATE documents SET indexed_version_id = %s, status = 'indexed', title = %s, metadata = %s, "
                 "index_signature = %s, error_code = NULL, error_detail = NULL, updated_at = now(), "
-                "embedding = %s, embedding_model = %s WHERE id = %s",
+                "embedding = %s, embedding_model = %s, source_uri = coalesce(CASE WHEN source_uri LIKE 'file://%%' "
+                "THEN NULL ELSE source_uri END, %s, source_uri) WHERE id = %s",
                 (job["version_id"], parsed.title[:500], Jsonb(parsed.metadata), signature,
-                 np.mean(vectors, axis=0) if len(vectors) else None, model, job["document_id"]),
+                 np.mean(vectors, axis=0) if len(vectors) else None, model, url, job["document_id"]),
             )
             conn.execute("UPDATE jobs SET status = 'done', updated_at = now() WHERE id = %s", (job["id"],))
 

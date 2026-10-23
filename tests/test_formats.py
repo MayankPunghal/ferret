@@ -185,3 +185,32 @@ def test_document_summary_in_passage_embeddings_is_a_setting():
     plain = rt.signature()
     rt.context_chars = 300
     assert rt.signature() != plain  # changing it marks documents outdated until reindexed
+
+
+def test_crawled_page_and_its_deck_are_searchable_and_connected(client, drain):
+    """A site2md copy: the page keeps its web address, the attached deck is searched slide by slide and
+    linked from the page."""
+    sam = token(client, "sam")
+    page = ("---\ntitle: IT Induction\nsource_url: https://sites.google.com/acme.com/intranet/it/induction\n"
+            "crawled_at: 2026-10-23T10:00:00+00:00\n---\n\n# IT Induction\n\nEverything new joiners need.\n\n"
+            "## Attached documents\n\n- [IT Induction deck](IT%20Induction%20deck.pptx)\n").encode()
+    deck = _pptx([("IT Induction", ["Welcome"], ""), ("VPN access", ["Install FortiClient on day one"], "")])
+    ids = {}
+    for name, data in [("it-induction.md", page), ("IT Induction deck.pptx", deck)]:
+        r = client.post("/api/documents", headers=sam, data={"collection_id": collection_id("scratch")},
+                        files={"file": (name, data)})
+        assert r.status_code == 202, r.text
+        ids[name] = r.json()["document_id"]
+    drain()
+    try:
+        doc = client.get(f"/api/documents/{ids['it-induction.md']}", headers=sam).json()
+        assert doc["source_uri"] == "https://sites.google.com/acme.com/intranet/it/induction"
+        hit = search(client, sam, "FortiClient")["results"][0]
+        assert hit["document_id"] == ids["IT Induction deck.pptx"] and hit["heading_path"] == "Slide 2: VPN access"
+        links = client.get(f"/api/documents/{ids['it-induction.md']}/links", headers=sam).json()
+        assert [o["document_id"] for o in links["outgoing"]] == [ids["IT Induction deck.pptx"]]
+        src = client.get(f"/api/documents/{ids['IT Induction deck.pptx']}/source", headers=sam)
+        assert src.headers["content-disposition"].startswith("attachment")
+    finally:
+        for d in ids.values():
+            client.delete(f"/api/documents/{d}", headers=sam)
