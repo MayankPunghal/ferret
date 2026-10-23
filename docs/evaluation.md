@@ -215,7 +215,7 @@ bge-base + MiniLM reranker (top 10), shipped gate, parser parse-v3 (3 pages fail
 | top supported result is a labelled page | 0.86 (lower bound: labels list the main pages; e.g. *hello-minikube* for "expose a deployment outside the cluster" does show `kubectl expose`) |
 | query latency p50 / p95 | 1.2 s / 1.7 s (contended with a reranker benchmark) |
 
-Problems this corpus exposed, fixed in parse-v4 (re-measurement pending):
+Problems this corpus exposed, fixed in parse-v4 (re-measured below):
 1. The false answer came from treating "2.0" as an exact identifier (an exact identifier match counts as
    evidence by itself). Bare `x.y` numbers are no longer identifiers; `v3.8.2` and `1.29.3` still are.
 2. Hugo/Pandoc custom heading anchors (`## Title {#id}`) leaked into heading paths; now stripped and used
@@ -225,9 +225,43 @@ Problems this corpus exposed, fixed in parse-v4 (re-measurement pending):
 4. Hand-written front matter that is not strict YAML (`title: Example: Deploying X`) rejected the whole
    page; it is now read as `key: value` lines.
 
+**parse-v4, final labels** (six queries gained a second page that also answers them, found by auditing the
+per-query tables; 8,524 passages, all 623 pages indexed). Same shipped gate for every row:
+
+| Reranker (top 10) | rank 1 | MRR@10 | top 5 | false answers | answered (keyword / identifier / question) | precision | p50 / p95 |
+|---|---|---|---|---|---|---|---|
+| none | 0.946 | 0.973 | 56/56 | **0/16** | 0.893 (1.00 / 0.83 / 0.71) | 0.98 | **0.24 s** / 0.38 s |
+| ms-marco-MiniLM-L-6 | 0.946 | 0.973 | 56/56 | 0/16 | 0.893 | 0.98 | 1.2 s / 1.7 s |
+| jina-reranker-v1-turbo | **0.964** | 0.979 | 56/56 | 0/16 | 0.893 | 0.98 | 1.3 s / 1.8 s |
+| bge-reranker-base | **0.964** | 0.978 | 56/56 | 0/16 | 0.893 | 0.98 | 4.3 s / 5.8 s |
+
+Reading: on real technical docs the hybrid retrieval already finds a right page in the top 5 for every
+query; a reranker moves one more query to rank 1 (1 of 56 — within noise) and costs 1–4 s. All four refuse
+every off-topic and near-miss query. The remaining misses are *abstentions*, not wrong answers: natural
+questions whose wording differs from the page ("how do I run a job every night at 2am" → CronJob page;
+"where should I store a database password" → Secrets), plus `OOMKilled` (passage similarity 0.59). Gates
+re-chosen on the val half (n=28 each split, so indicative only): similarity 0.78 / 0.55 / coverage 0.67 →
+test answered 0.93, false answers 0, precision 1.0 — slightly looser than shipped, not adopted on this n.
+One wrong answer: "taints and tolerations" answers from *device-taints* (it does cover taints) ahead of the
+main *taint-and-toleration* page, which is ranked 2.
+
+**Contextual passages** (research item 3: the document's description, else its first paragraph, up to 300
+characters, added to every passage's *embedding* text; `--context-chars 300`; bge-base, parse-v4):
+
+| Corpus | Setting | rank 1 | MRR@10 | passage at rank 1 | false answers | answered |
+|---|---|---|---|---|---|---|
+| Kubernetes (56 / 16) | off → on, no reranker | 0.946 → **0.982** | 0.973 → 0.991 | — | 0/16 → 0/16 | 0.893 → 0.893 |
+| Kubernetes | off → on, MiniLM | 0.946 → **1.000** | 0.973 → 1.000 | — | 0/16 → 0/16 | 0.893 → 0.893 |
+| Fixtures (56 / 20, test half for the gate) | off → on, no reranker | 1.000 → 0.982 | 1.000 → 0.991 | 0.982 → 0.946 | 3/20 → 3/20 | 0.679 → 0.571 |
+
+Not adopted as the default yet: it helps the real corpus (whose pages carry curated one-line descriptions)
+and slightly hurts the small fixture corpus, where one short summary dominates every passage of a short
+document and blurs which passage answers; the gate thresholds were tuned without it (answered share fell on
+fixtures). Next: re-tune the gate with it on both label sets pooled, and test on pages without descriptions.
+
 ## Not measured
 
-Real company corpus; corpora beyond ~4k chunks; Qwen3/large models; GPU; Windows performance; Docker
+Real company corpus; corpora beyond ~8.5k chunks; large embedding models (bge-large, Qwen3 on the Kubernetes corpus: pending); GPU; Windows performance; Docker
 image; multilingual content.
 
 ## Reproduce

@@ -1,0 +1,174 @@
+{
+  "corpus": "kubernetes",
+  "model": "BAAI/bge-base-en-v1.5",
+  "reranker": "Xenova/ms-marco-MiniLM-L-6-v2",
+  "context_chars": 300,
+  "documents": 623,
+  "ingest_seconds": 2207.7,
+  "passages": 8524,
+  "retrieval": {
+    "n": 56,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0
+  },
+  "latency_ms": {
+    "p50": 490.9,
+    "p95": 752.4
+  },
+  "shipped_gate": {
+    "gate": {
+      "dense_high": 0.78,
+      "dense_min": 0.72,
+      "lex_coverage": 0.2,
+      "rerank_min": 0.0,
+      "mode": "similarity",
+      "lexical": "coverage",
+      "all_terms_min": 0.6
+    },
+    "unanswerable_n": 16,
+    "answerable_n": 56,
+    "false_answer_rate": 0.0,
+    "answer_coverage": 0.893,
+    "precision_among_answered": 0.98,
+    "false_answers": [],
+    "abstained_answerable": [
+      "p007",
+      "p013",
+      "p022",
+      "p023",
+      "p034",
+      "p048"
+    ],
+    "answered_by_category": {
+      "identifier": 0.83,
+      "keyword": 1.0,
+      "near_negative": 0.0,
+      "negative": 0.0,
+      "question": 0.71
+    }
+  },
+  "gates_chosen_on_val": {
+    "similarity+coverage": {
+      "chosen": {
+        "dense_high": 0.78,
+        "dense_min": 0.68,
+        "lex_coverage": 0.2,
+        "rerank_min": 0,
+        "mode": "similarity",
+        "lexical": "coverage",
+        "all_terms_min": 9.0
+      },
+      "val": {
+        "unanswerable_n": 8,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.929,
+        "precision_among_answered": 1.0
+      },
+      "test": {
+        "unanswerable_n": 8,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.929,
+        "precision_among_answered": 1.0,
+        "false_answers": [],
+        "abstained_answerable": [
+          "p008",
+          "p022"
+        ]
+      }
+    },
+    "similarity+idf": {
+      "chosen": {
+        "dense_high": 0.78,
+        "dense_min": 0.55,
+        "lex_coverage": 0.67,
+        "rerank_min": 0,
+        "mode": "similarity",
+        "lexical": "idf",
+        "all_terms_min": 9.0
+      },
+      "val": {
+        "unanswerable_n": 8,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.929,
+        "precision_among_answered": 1.0
+      },
+      "test": {
+        "unanswerable_n": 8,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.893,
+        "precision_among_answered": 0.96,
+        "false_answers": [],
+        "abstained_answerable": [
+          "p016",
+          "p022",
+          "p034"
+        ]
+      }
+    },
+    "rerank": {
+      "chosen": {
+        "dense_high": 9,
+        "dense_min": 9,
+        "lex_coverage": 9,
+        "rerank_min": 3.651,
+        "mode": "rerank",
+        "lexical": "coverage",
+        "all_terms_min": 9.0
+      },
+      "val": {
+        "unanswerable_n": 8,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.893,
+        "precision_among_answered": 1.0
+      },
+      "test": {
+        "unanswerable_n": 8,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.929,
+        "precision_among_answered": 1.0,
+        "false_answers": [],
+        "abstained_answerable": [
+          "p016",
+          "p034"
+        ]
+      }
+    },
+    "rerank+similarity": {
+      "chosen": {
+        "dense_high": 9,
+        "dense_min": 0.644,
+        "lex_coverage": 9,
+        "rerank_min": -11.264,
+        "mode": "rerank_and_similarity",
+        "lexical": "coverage",
+        "all_terms_min": 9.0
+      },
+      "val": {
+        "unanswerable_n": 8,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.929,
+        "precision_among_answered": 1.0
+      },
+      "test": {
+        "unanswerable_n": 8,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.929,
+        "precision_among_answered": 1.0,
+        "false_answers": [],
+        "abstained_answerable": [
+          "p008",
+          "p022"
+        ]
+      }
+    }
+  }
+}

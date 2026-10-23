@@ -19,7 +19,7 @@ import psycopg
 from gates import choose, evaluate
 from psycopg.rows import dict_row
 
-from knowledge_search import auth, db, runtime
+from knowledge_search import auth, db, parsing, runtime
 from knowledge_search.ingest import BlobStore, Worker, submit
 from knowledge_search.search import GateConfig, gate_basis, search
 
@@ -67,7 +67,10 @@ def main():
     ap.add_argument("--max-far", type=float, default=0.0)
     ap.add_argument("--lexical-weight", type=float, default=1.0)
     ap.add_argument("--graph", action="store_true", help="enable link expansion (graph_expansion)")
+    ap.add_argument("--context-chars", type=int, default=None, help="document summary added to each passage's embedding")
     a = ap.parse_args()
+    if a.context_chars is not None:
+        parsing.CONTEXT_CHARS = a.context_chars
 
     admin_url, _ = db.start_embedded(ROOT / "data" / "eval-pg", database="postgres")
     with psycopg.connect(admin_url, autocommit=True) as c:
@@ -142,7 +145,7 @@ def main():
             fam["test_answered_by_category"] = {c: round(sum(v) / len(v), 2) for c, v in sorted(cats.items())}
     shipped = GateConfig.from_runtime(rt)
     out["shipped_gate_test"] = {"gate": vars(shipped), **evaluate(test, shipped, is_relevant)}
-    path = ROOT / "eval" / "results" / f"fixtures-{a.model.replace('/', '_')}{'-rr' if a.reranker else ''}{'-graph' if a.graph else ''}.json"
+    path = ROOT / "eval" / "results" / f"fixtures-{a.model.replace('/', '_')}{'-rr' if a.reranker else ''}{'-graph' if a.graph else ''}{f'-ctx{a.context_chars}' if a.context_chars else ''}.json"
     path.write_text(json.dumps(out, indent=2))
     print(json.dumps({k: v for k, v in out.items() if k not in ("gates",)}, indent=1))
     for fam, g in out["gates"].items():
