@@ -6427,5 +6427,232 @@
    "objects"
   ],
   "seconds": 14.5
+ },
+ "update-api-object-kubectl-patch.md": {
+  "summary": "This page demonstrates how to use `kubectl patch` with strategic merge patches to update an existing Deployment, specifically to add a new container to the Pod template.",
+  "topics": [
+   "kubectl patch",
+   "Deployment",
+   "Pod",
+   "strategic merge patch",
+   "JSON merge patch"
+  ],
+  "seconds": 23.6
+ },
+ "update-daemon-set.md": {
+  "summary": "This page explains how to perform a rolling update on a Kubernetes DaemonSet. It details the two update strategies, OnDelete and RollingUpdate, and how to configure and trigger a rolling update.",
+  "topics": [
+   "DaemonSet",
+   "RollingUpdate",
+   "kubectl"
+  ],
+  "seconds": 27.4
+ },
+ "update-deployment-rolling.md": {
+  "summary": "This page explains how to perform a rolling update on a Kubernetes Deployment to gradually replace old Pods with new ones, ensuring application availability.",
+  "topics": [
+   "Deployment",
+   "kubectl",
+   "rolling update",
+   "Pod",
+   "manifests"
+  ],
+  "seconds": 33.3
+ },
+ "update-intro.md": {
+  "summary": "This page explains how to perform a rolling update using kubectl to update applications with zero downtime. It details how rolling updates incrementally replace Pods, ensuring continuous application availability.",
+  "topics": [
+   "kubectl",
+   "Deployments",
+   "Pods",
+   "Service",
+   "container image updates",
+   "rollback"
+  ],
+  "seconds": 30.8
+ },
+ "updating-configuration-via-a-configmap.md": {
+  "summary": "This page provides a step-by-step guide on updating application configuration within a Pod by mounting a ConfigMap as a volume or updating environment variables.",
+  "topics": [
+   "ConfigMap",
+   "Pod",
+   "Deployment",
+   "Volume",
+   "Environment Variables",
+   "Sidecar Container"
+  ],
+  "seconds": 25.7
+ },
+ "upgrading-linux-nodes.md": {
+  "summary": "This page explains the process for upgrading Linux Worker Nodes created with kubeadm. It details steps for changing package repositories, upgrading kubeadm and kubectl, calling \"kubeadm upgrade\", draining the node, and upgrading the kubelet.",
+  "topics": [
+   "kubeadm",
+   "kubectl",
+   "kubelet",
+   "package repository",
+   "kubeadm upgrade",
+   "kubectl drain"
+  ],
+  "seconds": 28.9
+ },
+ "upgrading-windows-nodes.md": {
+  "summary": "This page details the steps required to upgrade a Windows node created with kubeadm. It covers upgrading kubeadm, draining the node, upgrading kubelet and kube-proxy, and uncordoning the node.",
+  "topics": [
+   "kubeadm",
+   "kubectl",
+   "kubelet",
+   "kube-proxy",
+   "Windows node"
+  ],
+  "seconds": 21.7
+ },
+ "upstream.md": {
+  "summary": "This page clarifies the meaning of 'upstream' in the context of Kubernetes and Git. It explains that 'upstream' can refer to the core Kubernetes codebase or the original source repository from which a fork was made.",
+  "topics": [
+   "Kubernetes",
+   "core Kubernetes codebase",
+   "GitHub",
+   "git"
+  ],
+  "seconds": 21.6
+ },
+ "use-cascading-deletion.md": {
+  "summary": "This page explains how to specify cascading deletion types, specifically foreground and background, for garbage collection in a Kubernetes cluster. It provides methods using kubectl and the Kubernetes API to trigger these deletion behaviors.",
+  "topics": [
+   "cascading deletion",
+   "garbage collection",
+   "kubectl",
+   "Kubernetes API",
+   "Deployment",
+   "ownerReferences"
+  ],
+  "seconds": 28.1
+ },
+ "use-pod-level-resource-managers.md": {
+  "summary": "This tutorial demonstrates how to configure kubelet resource managers to support pod-level resource specifications, enabling hybrid allocation models where some containers get exclusive resources and others share a pod-level pool.",
+  "topics": [
+   "kubelet resource managers",
+   "pod-level resource managers",
+   "CPU allocation",
+   "memory allocation",
+   "topology manager scope",
+   "NUMA topology"
+  ],
+  "seconds": 27.2
+ },
+ "user-guide.md": {
+  "summary": "This guide explains how to run Windows containers within a Kubernetes environment. It provides a walkthrough and an example YAML manifest to deploy a simple web server inside a Windows container on a Windows node.",
+  "topics": [
+   "Windows containers",
+   "Kubernetes",
+   "kubectl commands",
+   "Windows Server",
+   "Deployment",
+   "Windows container image"
+  ],
+  "seconds": 27.5
+ },
+ "user-impersonation.md": {
+  "summary": "User impersonation allows authenticated users to act as another user, group, or service account via HTTP headers. This enables debugging authorization policies by temporarily assuming another user's identity.",
+  "topics": [
+   "HTTP headers",
+   "User impersonation",
+   "API calls",
+   "Authorization policy",
+   "Impersonate-User header",
+   "Impersonate-Group header"
+  ],
+  "seconds": 29.9
+ },
+ "user-namespaces.md": {
+  "summary": "User namespaces allow a process inside a container to run as a different, unprivileged user on the host. This feature enhances security by limiting the damage a compromised container can inflict on the host system.",
+  "topics": [
+   "Kubernetes pods",
+   "Linux idmap mounts",
+   "crun",
+   "runc",
+   "containerd",
+   "CRI-O"
+  ],
+  "seconds": 20.0
+ },
+ "userns.md": {
+  "summary": "User namespaces are a Linux kernel feature that enables a non-root user to emulate root privileges. This is primarily used for running rootless containers and mitigating potential container break-out attacks.",
+  "topics": [
+   "Linux kernel",
+   "rootless containers",
+   "user namespaces",
+   "root privileges"
+  ],
+  "seconds": 19.3
+ },
+ "validate-dual-stack.md": {
+  "summary": "This document explains how to validate that Kubernetes clusters are correctly configured for IPv4/IPv6 dual-stack networking. It details checks for node and Pod addressing to ensure both IPv4 and IPv6 are properly allocated and reachable.",
+  "topics": [
+   "Provider support for dual-stack networking",
+   "Network plugin",
+   "Dual-stack enabled cluster",
+   "Node addressing",
+   "Pod addressing"
+  ],
+  "seconds": 26.0
+ },
+ "validating-admission-policy.md": {
+  "summary": "This page describes Validating Admission Policies, a declarative, in-process alternative to webhooks for validating admission rules using CEL. It details the resources required to define and scope these policies.",
+  "topics": [
+   "ValidatingAdmissionPolicy",
+   "Common Expression Language (CEL)",
+   "parameter resource",
+   "ValidatingAdmissionPolicyBinding",
+   "cluster control-plane"
+  ],
+  "seconds": 21.3
+ },
+ "verify-kubectl.md": {
+  "summary": "This page explains how to verify that kubectl is correctly configured to access a Kubernetes cluster using the `kubectl cluster-info` command. It also provides troubleshooting steps for connection errors and 'No Auth Provider Found' messages.",
+  "topics": [
+   "kubeconfig file",
+   "kubectl",
+   "kube-up.sh",
+   "Minikube",
+   "Azure AKS",
+   "Google Kubernetes Engine"
+  ],
+  "seconds": 24.5
+ },
+ "verify-signed-artifacts.md": {
+  "summary": "This page explains how to verify the digital signatures for Kubernetes binary artifacts and container images using the `cosign` tool. It provides specific commands for verifying binaries and images.",
+  "topics": [
+   "cosign",
+   "binary signatures",
+   "image signatures",
+   "Keyless Signing",
+   "Kubernetes artifacts",
+   "Pod manifests"
+  ],
+  "seconds": 24.4
+ },
+ "vertical-pod-autoscale.md": {
+  "summary": "Vertical Pod Autoscaling automatically adjusts resource requests and limits for workloads in Kubernetes to match actual usage, optimizing resource allocation. It works by analyzing historical and real-time usage to recommend and apply changes.",
+  "topics": [
+   "VerticalPodAutoscaler",
+   "Deployment",
+   "StatefulSet",
+   "resource requests and limits",
+   "recommender",
+   "updater"
+  ],
+  "seconds": 24.3
+ },
+ "virtual-ips.md": {
+  "summary": "kube-proxy implements a virtual IP mechanism for Kubernetes Services. It watches the control plane for Service and EndpointSlice changes to configure node rules that redirect traffic to the correct backend.",
+  "topics": [
+   "kube-proxy",
+   "Virtual IP",
+   "Service",
+   "EndpointSlice",
+   "iptables"
+  ],
+  "seconds": 22.8
  }
 }
