@@ -122,12 +122,31 @@ function resultItem(r) {
   const related = el("div", { className: "r-related", hidden: true });
   relatedDocs(related, r.document_id, r.chunk_id);
   return el("li", { className: "result" },
-    el("div", { className: "r-head" }, el("span", { className: "rank", textContent: r.rank }), el("strong", { textContent: r.title }), badges),
+    el("div", { className: "r-head" }, el("span", { className: "rank", textContent: r.rank }), docTitle(r.title, r.clearer_title), badges),
     el("div", { className: "meta", textContent: loc }),
     el("p", { className: "snippet" }, highlighted(r.snippet)),
+    writtenSummary(r),
     related,
     el("div", { className: "r-actions" }, view, el("a", { href: r.source_url, target: "_blank", rel: "noopener", textContent: "Open source" })),
   );
+}
+
+// Title, summary and topics written by the local language model (enrich.py): labelled as such and never
+// shown as evidence. A clearer title is only written for vague ones ("Overview", a file name).
+function docTitle(title, clearer) {
+  return clearer ? el("strong", { textContent: clearer, title: `Title written by the local model; the document's own title is “${title}”` })
+    : el("strong", { textContent: title });
+}
+function writtenSummary(r) {
+  if (!r.summary) return "";
+  const topics = r.topics.map((t) => {
+    const b = el("button", { className: "chip topic", type: "button", textContent: t, title: "Search for " + t });
+    b.addEventListener("click", () => { $("#drawer").hidden = true; $("#q").value = t; $("#search-form").requestSubmit(); });
+    return b;
+  });
+  return el("div", { className: "r-summary" },
+    el("p", { className: "rel-row" }, el("span", { className: "rel-label", textContent: "Summary (local model)", title: "Written by the local language model from the document; not evidence" }), el("span", { textContent: r.summary })),
+    topics.length ? el("div", { className: "rel-row" }, el("span", { className: "rel-label", textContent: "Topics" }), ...topics) : "");
 }
 
 // The documents connected to a result, shown with it: what it links to, what refers to it, and what is
@@ -200,7 +219,8 @@ $("#search-form").addEventListener("submit", async (e) => {
 
 async function openPassage(id) {
   const p = await api(`/api/chunks/${id}`);
-  $("#d-title").textContent = p.doc_title;
+  $("#d-title").replaceChildren(docTitle(p.doc_title, p.clearer_title));
+  $("#d-summary").replaceChildren(writtenSummary(p));
   $("#d-loc").textContent = [p.collection, p.heading_path, p.page ? `page ${p.page}` : "", `version ${p.version_no}`].filter(Boolean).join(" · ");
   $("#d-body").replaceChildren(...p.context.map((c) => el("p", { className: c.id === p.id ? "hit" : "ctx", textContent: c.text })));
   $("#d-open").href = `/api/documents/${p.document_id}/source` + (p.page ? `#page=${p.page}` : "");
@@ -434,6 +454,7 @@ function fillSettings(v) {
   $("#s-ctx").value = v.context_chars;
   $("#s-rerank-on").checked = v.rerank_enabled; $("#s-rerank").value = v.rerank_model; $("#s-rerank-n").value = v.rerank_candidates;
   $("#s-graph-on").checked = v.graph_expansion;
+  $("#s-enrich-on").checked = v.enrich_enabled;
   $("#s-g-high").value = v.gate_dense_high; $("#s-g-min").value = v.gate_dense_min; $("#s-g-cov").value = v.gate_lex_coverage;
   $("#s-g-all").value = v.gate_all_terms_min;
   $("#s-g-rr").value = v.gate_rerank_min; $("#s-g-mode").value = v.gate_mode; $("#s-g-lex").value = v.gate_lexical;
@@ -460,7 +481,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
     embed_model: $("#s-model").value, chunk_size: +$("#s-chunk").value,
     chunk_overlap: $("#s-overlap-on").checked ? +$("#s-overlap").value : 0, context_chars: +$("#s-ctx").value,
     rerank_enabled: $("#s-rerank-on").checked, rerank_model: $("#s-rerank").value, rerank_candidates: +$("#s-rerank-n").value,
-    graph_expansion: $("#s-graph-on").checked,
+    graph_expansion: $("#s-graph-on").checked, enrich_enabled: $("#s-enrich-on").checked,
     gate_dense_high: +$("#s-g-high").value, gate_dense_min: +$("#s-g-min").value, gate_lex_coverage: +$("#s-g-cov").value, gate_all_terms_min: +$("#s-g-all").value,
     gate_rerank_min: +$("#s-g-rr").value, gate_mode: $("#s-g-mode").value, gate_lexical: $("#s-g-lex").value,
   };

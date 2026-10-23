@@ -56,6 +56,11 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; }
 .rel-label { color: var(--muted); font-size: 12px; min-width: 120px; }
 .chip.rel { color: var(--accent); max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .chip.rel:hover { border-color: var(--accent); }
+.r-summary { margin: 4px 0 6px; font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+.r-summary p { margin: 0; }
+.chip.topic { color: var(--text); font-size: 12px; }
+.chip.topic:hover { border-color: var(--accent); color: var(--accent); }
+#d-summary .r-summary { margin-top: 6px; }
 .graph-box summary { cursor: pointer; color: var(--muted); margin: 8px 0; }
 .badges { display: inline-flex; gap: 4px; flex-wrap: wrap; }
 .badge { font-size: 11px; border-radius: 4px; padding: 1px 6px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }

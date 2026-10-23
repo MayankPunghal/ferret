@@ -128,6 +128,15 @@
               relations such as depends_on). Up to half of the results come from linked pages; only pages you may read
               are followed.</p>
           </fieldset>
+          <fieldset>
+            <legend>Summaries by a local language model (optional)</legend>
+            <label class="check"><input type="checkbox" name="enrich_enabled" id="s-enrich-on"> Summarise each document in the background</label>
+            <p class="meta">When setup installed a local language model (<code>setup --summaries</code>), it writes a two-sentence
+              summary, up to six topics and — only when a document's own title is vague — a clearer title, one document at a
+              time while no files are waiting to be indexed. Nothing leaves this computer. Results show them labelled as written
+              by the model; they are never used as evidence. With “Document summary in each passage” on, a document without its
+              own description is re-indexed once with the summary. Progress: Index status tab.</p>
+          </fieldset>
           <details>
             <summary>Advanced: evidence thresholds</summary>
             <p class="meta">Tuned on labelled validation queries. Raising them makes the system abstain more often (fewer
@@ -210,7 +219,7 @@
 
     <aside id="drawer" class="drawer" hidden aria-label="Passage">
       <div class="drawer-head">
-        <div><strong id="d-title"></strong><div id="d-loc" class="meta"></div></div>
+        <div><div id="d-title"></div><div id="d-loc" class="meta"></div><div id="d-summary"></div></div>
         <button id="d-close" class="link" aria-label="Close passage">Close</button>
       </div>
       <div id="d-body" class="drawer-body"></div>
