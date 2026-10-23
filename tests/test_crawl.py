@@ -3,9 +3,10 @@ rewritten to local files, never follows logout/robots-disallowed links, saves li
 
 import json
 import threading
+import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from site2md.crawl import Crawler, normalize
+from site2md.crawl import EXPORT, Crawler, normalize
 
 from knowledge_search.parsing import chunk_document, parse_document
 
@@ -103,3 +104,28 @@ def test_crawl_resume_and_page_limit(tmp_path):
     finally:
         srv.shutdown()
     assert len(done["pages"]) == 5 and not done["queue"]
+
+
+def test_embedded_google_drive_files_are_downloaded_and_linked(tmp_path):
+    pdf_id, doc_id = "1" + "a" * 30, "1" + "b" * 30
+    page = ("<html><head><title>HR Corner</title></head><body><main><h1>HR Corner</h1><p>Read the manuals.</p>"
+            f'<iframe src="https://drive.google.com/file/d/{pdf_id}/preview"></iframe>'
+            f'<div data-url="https://docs.google.com/document/d/{doc_id}/edit"></div></main></body></html>')
+    docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    served = {"https://intranet.example/hr": (page.encode(), "text/html", ""),
+              EXPORT["file"].format(pdf_id): (b"%PDF-1.4 manual", "application/pdf", "HRIS User Manual.pdf"),
+              EXPORT["document"].format(doc_id): (b"PK docx", docx, "Leave Policy.docx")}
+
+    class Intranet(Crawler):
+        def _get(self, url, page=False):
+            if url not in served:
+                raise urllib.error.HTTPError(url, 404, "not found", None, None)
+            data, ctype, filename = served[url]
+            return data, ctype, url, filename
+
+    m = Intranet("https://intranet.example/hr", tmp_path, delay=0, robots=False, log=lambda *_: None).run()
+    assert m["files"] == {EXPORT["file"].format(pdf_id): "hris-user-manual.pdf",
+                          EXPORT["document"].format(doc_id): "leave-policy.docx"}
+    md = (tmp_path / m["pages"]["https://intranet.example/hr"]["file"]).read_text()
+    assert "- [HRIS User Manual.pdf](hris-user-manual.pdf)" in md and "(leave-policy.docx)" in md
+    assert (tmp_path / "hris-user-manual.pdf").read_bytes().startswith(b"%PDF")

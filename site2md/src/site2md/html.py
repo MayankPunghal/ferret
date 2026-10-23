@@ -122,6 +122,10 @@ def html_to_markdown(html: str) -> tuple[str, str]:
     md = "".join(p.out)
     md = re.sub(r"[\ue000-\uf8ff¶]", "", md)  # icon-font glyphs and pilcrow permalinks
     md = re.sub(r"\[\s*\]\([^)]*\)", "", md)  # links without text (icons)
+    # a heading or list item whose text sits in a nested block (<h3><div><p>…, <li><p>…: Google Sites,
+    # Confluence) has its marker alone on a line: join it to the text; a marker with no text is dropped
+    md = re.sub(r"(?m)^(#{1,6}|-)[ \t]*\n(?:[ \t]*\n)*(?=[^\s#-])", r"\1 ", md)
+    md = re.sub(r"(?m)^(#{1,6}|-)[ \t]*$", "", md)
     md = re.sub(r"[ \t]+\n", "\n", md)
     md = re.sub(r"\n[ \t]+(?=\S)", "\n", md)
     md = re.sub(r"\n{3,}", "\n\n", md).strip()

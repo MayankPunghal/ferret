@@ -38,10 +38,13 @@ site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --brows
 - Never follows logout, delete, edit, print or feed links; respects robots.txt unless `--ignore-robots`.
 - Writes `<page>.md` with front matter (`title`, `source_url`, `crawled_at`) and the page's main content
   (menus and footers dropped); saves linked PDF / Word / text files as they are.
+- Downloads the Google Drive files, Docs (as Word) and Slides (as PDF) a page embeds or links to — the PDF
+  viewers on Google Sites pages — with the same sign-in, and links them from the page ("Attached documents").
 - Saves a page reached under several URLs once; rewrites links between crawled pages to the local files;
   removes a title suffix shared by most pages (" | Company Wiki").
 - `manifest.json`: every URL → file, failures (e.g. "sign-in page"), skips and the remaining queue;
   `--resume` continues an interrupted crawl.
 
 Without `--browser`, pages that build their content with JavaScript come out empty (marked `empty` in the
-manifest). The copy has no access control: keep it where only the intended readers can open it.
+manifest). `--resume` also retries the URLs that failed. Embedded Google Sheets, videos and files whose owner
+disabled downloads are listed in the manifest but not saved. The copy has no access control: keep it where only the intended readers can open it.

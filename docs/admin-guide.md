@@ -73,14 +73,17 @@ Later runs drop `--login`. Browser mode also renders pages that build their cont
   `--allow-host` adds hosts.
 - **Never followed:** logout, delete, edit, print and feed links. robots.txt is respected unless
   `--ignore-robots` is given.
+- **Embedded documents:** Google Drive files, Docs and Slides that a page embeds or links to are
+  downloaded with the same sign-in (Docs as Word, Slides as PDF). They are linked from the page under
+  "Attached documents", so a page that is only a title and a PDF viewer is searchable through its PDF.
 - **Duplicates:** a page reached under several URLs (`index.html`, tracking parameters) is saved once.
 - **Links and titles:** links between crawled pages are rewritten to the local files, so the **graph works
   after ingest**. A site-wide title suffix (" | Company Wiki") is removed from titles.
 - **Manifest:** `manifest.json` lists every URL → file, the failures (for example "sign-in page", which means
-  run once with `--browser --login`) and the skips. `--resume` continues an interrupted crawl.
+  run once with `--browser --login`) and the skips. `--resume` continues an interrupted crawl and retries the failures.
 - **Limits:**
   - Without `--browser`, JavaScript-built pages come out empty (marked `empty` in the manifest).
-  - Embedded Google Docs and Drive frames are not captured; export those files instead.
+  - Embedded Google Sheets, videos and Drive files whose owner disabled downloads are not saved.
   - Access rights are not copied: put pages with different audiences into different collections and grant
     them as usual.
 - **Sharing the crawler:** `uv build --package site2md -o dist` builds a wheel. Others install it with

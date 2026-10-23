@@ -31,6 +31,7 @@ import urllib.robotparser
 from collections import deque
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from datetime import UTC, datetime
+from email.message import Message
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import parse_qsl, urldefrag, urlencode, urljoin, urlsplit, urlunsplit
@@ -49,6 +50,12 @@ SKIP_TYPES = re.compile(r"\.(png|jpe?g|gif|svg|webp|ico|css|js|mjs|json|xml|zip|
 TRACKING = re.compile(r"^(utm_\w+|fbclid|gclid|mc_cid|mc_eid|_ga|ref|sessionid|jsessionid|phpsessid|sid|authuser)$",
                       re.IGNORECASE)  # authuser: Google's account selector, same page
 MAX_BYTES = 50_000_000
+# Google Drive / Docs / Slides files embedded in a page (Google Sites viewers, iframes, links): downloaded
+# with the same sign-in, saved next to the page and linked from it
+EMBED = re.compile(r"https://(?:drive|docs)\.google\.com/(?:a/[\w.-]+/)?(file|document|presentation)/d/([\w-]{20,})")
+EXPORT = {"file": "https://drive.google.com/uc?export=download&id={}",
+          "document": "https://docs.google.com/document/d/{}/export?format=docx",
+          "presentation": "https://docs.google.com/presentation/d/{}/export/pdf"}
 LOGIN = re.compile(r"^(accounts\.google\.com|login\.microsoftonline\.com)|/(login|signin|sign-in|sso)\b", re.IGNORECASE)
 
 
@@ -91,20 +98,37 @@ class BrowserFetcher:
         self.page.goto(url)
         input("Sign in in the browser window until you see the site, then press Enter here... ")
 
-    def get(self, url: str, render: bool) -> tuple[bytes, str, str]:
+    def get(self, url: str, render: bool) -> tuple[bytes, str, str, str]:
         if render:
-            resp = self.page.goto(url, wait_until="networkidle", timeout=60_000)
+            resp = self.page.goto(url, wait_until="domcontentloaded", timeout=60_000)
             ctype = (resp.headers.get("content-type", "") if resp else "") or "text/html"
             if "html" in ctype:
-                return self.page.content().encode("utf-8"), "text/html; charset=utf-8", self.page.url
-        r = self.ctx.request.get(url, timeout=60_000)  # files and non-HTML: same cookies, no rendering
+                try:  # let scripts fill the page; embedded viewers (Drive, video) keep the network busy forever
+                    self.page.wait_for_load_state("networkidle", timeout=15_000)
+                except Exception:  # noqa: BLE001, S110 - still busy: take the page as it is
+                    pass
+                return self.page.content().encode("utf-8"), "text/html; charset=utf-8", self.page.url, ""
+        r = self.ctx.request.get(url, timeout=120_000)  # files and non-HTML: same cookies, no rendering
         if r.status >= 400:
             raise urllib.error.HTTPError(url, r.status, r.status_text, None, None)
-        return r.body(), r.headers.get("content-type", ""), r.url
+        return r.body(), r.headers.get("content-type", ""), r.url, _filename(r.headers.get("content-disposition", ""))
 
     def close(self) -> None:
         self.ctx.close()
         self._pw.stop()
+
+
+def _filename(content_disposition: str) -> str:
+    if not content_disposition:
+        return ""
+    m = Message()
+    m["content-disposition"] = content_disposition
+    return m.get_filename() or ""
+
+
+def embedded_documents(html: str) -> list[str]:
+    """Download URLs of the Google Drive files, Docs and Slides a page embeds or links to."""
+    return list(dict.fromkeys(EXPORT[kind].format(doc_id) for kind, doc_id in EMBED.findall(html.replace("\\/", "/"))))
 
 
 def normalize(url: str) -> str:
@@ -168,10 +192,12 @@ def _decode(data: bytes, content_type: str) -> str:
         return data.decode("utf-8", errors="replace")
 
 
-def slug_for(url: str, used: set[str]) -> str:
-    """Readable unique file stem from the URL path: /docs/Ops/Runbook.html -> docs-ops-runbook."""
+def slug_for(url: str, used: set[str], root: str = "") -> str:
+    """Readable unique file stem from the URL path below ``root`` (the crawl folder):
+    /docs/Ops/Runbook.html -> docs-ops-runbook, or ops-runbook below /docs/."""
     p = urlsplit(url)
-    path = re.sub(r"\.(html?|php|aspx?|jsp)$", "", p.path, flags=re.IGNORECASE)
+    path = p.path[len(root):] if root and p.path.startswith(root) else p.path
+    path = re.sub(r"\.(html?|php|aspx?|jsp)$", "", path, flags=re.IGNORECASE)
     path = re.sub(r"/index$", "", path)
     stem = re.sub(r"[^a-z0-9]+", "-", path.lower()).strip("-")[:100] or "index"
     if p.query:
@@ -191,6 +217,7 @@ class Crawler:
         host = urlsplit(self.start).netloc
         folder = self.start if self.start.endswith("/") else self.start.rsplit("/", 1)[0] + "/"
         self.prefixes = [normalize(p) for p in prefixes] if prefixes else [folder.split("?")[0]]
+        self.root = urlsplit(self.prefixes[0]).path.rstrip("/")  # file names are relative to it
         self.allow_hosts = set(allow_hosts or [])
         self.hosts = {host, *self.allow_hosts}
         self.max_pages, self.workers, self.delay, self.timeout = max_pages, workers, delay, timeout
@@ -229,7 +256,8 @@ class Crawler:
         rp = self._robots[root]
         return rp is None or rp.can_fetch(USER_AGENT, url)
 
-    def _get(self, url: str, page: bool = False) -> tuple[bytes, str, str]:
+    def _get(self, url: str, page: bool = False) -> tuple[bytes, str, str, str]:
+        """(body, content type, final URL after redirects, file name from Content-Disposition)."""
         if self.browser:
             return self.browser.get(url, render=page)
         req = urllib.request.Request(url, headers=self.headers)
@@ -237,7 +265,7 @@ class Crawler:
             data = r.read(MAX_BYTES + 1)
             if len(data) > MAX_BYTES:
                 raise ValueError("larger than 50 MB")
-            return data, r.headers.get("Content-Type", ""), r.geturl()
+            return data, r.headers.get("Content-Type", ""), r.geturl(), r.headers.get_filename() or ""
 
     def sitemap_urls(self) -> list[str]:
         root = "{0.scheme}://{0.netloc}".format(urlsplit(self.start))
@@ -265,7 +293,7 @@ class Crawler:
                 self.manifest["skipped"][url] = "robots.txt"
             return []
         try:
-            data, ctype, final = self._get(url, page=not FILE_TYPES.get(Path(urlsplit(url).path).suffix.lower()))
+            data, ctype, final, _ = self._get(url, page=not FILE_TYPES.get(Path(urlsplit(url).path).suffix.lower()))
         except urllib.error.HTTPError as e:
             with self.lock:
                 self.manifest["failed"][url] = f"HTTP {e.code}"
@@ -297,27 +325,59 @@ class Crawler:
             return []
         html = _decode(data, ctype)
         links = page_links(html, final)
-        self._save_page(final, html)
+        attached = [self._embedded(u) for u in embedded_documents(html)] if self.files else []
+        self._save_page(final, html, [a for a in attached if a])
         return links
 
-    def _save_file(self, url: str, data: bytes, kind: str) -> None:
+    def _embedded(self, url: str) -> tuple[str, str] | None:
+        """Download a Drive/Docs file the page embeds (another host, so outside the crawl scope; robots.txt does
+        not apply to a file the page shows): (label, url), the link is made local by rewrite_links."""
+        url = normalize(url)
+        with self.lock:
+            if url in self.manifest["files"]:
+                return self.manifest["files"][url], url
+            if url in self.seen:
+                return None
+            self.seen.add(url)
+        try:
+            data, ctype, _, filename = self._get(url)
+        except Exception as e:  # noqa: BLE001 - e.g. download disabled by the owner
+            with self.lock:
+                self.manifest["failed"][url] = f"embedded file: {str(e)[:150]}"
+            return None
+        kind = "pdf" if "pdf" in ctype or data[:5] == b"%PDF-" else "docx" if "wordprocessingml" in ctype else None
+        if not kind:
+            with self.lock:
+                self.manifest["skipped"][url] = ("embedded file not downloadable (sign-in, or download disabled)"
+                                                 if "html" in ctype else f"embedded file of type {ctype or 'unknown'}")
+            return None
+        name = self._save_file(url, data, kind, filename)
+        return filename or name, url
+
+    def _save_file(self, url: str, data: bytes, kind: str, filename: str = "") -> str:
         digest = hashlib.sha256(data).hexdigest()
         with self.lock:
             if digest in self.hashes:
-                return
-            name = slug_for(url, self.used) + "." + kind
+                self.manifest["files"].setdefault(url, self.hashes[digest])
+                return self.hashes[digest]
+            stem = re.sub(r"[?#]", " ", filename.rsplit(".", 1)[0])
+            name = slug_for("/" + stem, self.used) if stem.strip() else slug_for(url, self.used, self.root)
+            name += "." + kind
             self.hashes[digest] = name
             self.manifest["files"][url] = name
         (self.out / name).write_bytes(data)
+        return name
 
-    def _save_page(self, url: str, html: str) -> None:
+    def _save_page(self, url: str, html: str, attached: list[tuple[str, str]] = ()) -> None:
         title, md = html_to_markdown(html)
+        if attached:  # embedded documents: linked, so they are connected to this page after ingest
+            md += "\n\n## Attached documents\n\n" + "\n".join(f"- [{label}]({file})" for label, file in attached)
         digest = hashlib.sha256(md.encode()).hexdigest()
         with self.lock:
             if digest in self.hashes:  # same page under another URL
                 self.manifest["skipped"][url] = f"same content as {self.hashes[digest]}"
                 return
-            name = slug_for(url, self.used) + ".md"
+            name = slug_for(url, self.used, self.root) + ".md"
             self.hashes[digest] = name
             self.manifest["pages"][url] = {"file": name, "title": title, **({"empty": True} if len(md) < 40 else {})}
         title = title or (re.search(r"(?m)^#\s+(.+)$", md) or [None, urlsplit(url).path])[1]
@@ -337,9 +397,9 @@ class Crawler:
                 self.hashes[hashlib.sha256((self.out / v["file"]).read_bytes()).hexdigest()] = v["file"]
             for name in self.manifest["files"].values():
                 self.used.add(name.rsplit(".", 1)[0])
-            self.seen = set(self.manifest["pages"]) | set(self.manifest["files"]) | set(self.manifest["failed"]) \
-                | set(self.manifest["skipped"])
-            queue.extend(u for u in self.manifest["queue"] if u not in self.seen)
+            retry, self.manifest["failed"] = list(self.manifest["failed"]), {}  # failures are tried again
+            self.seen = set(self.manifest["pages"]) | set(self.manifest["files"]) | set(self.manifest["skipped"])
+            queue.extend(u for u in retry + self.manifest["queue"] if u not in self.seen and self.in_scope(u))
         if not queue:
             queue.append(self.start)
         self.allowed(self.start)  # loads robots.txt (and its sitemap list)
