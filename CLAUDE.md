@@ -24,6 +24,11 @@ Indexing speed may be traded for accuracy (background jobs); retrieval of 1–6 
 acceptable. Graph-style navigation of heavily interlinked technical docs (Graphify-like wikis:
 relationships, blast radius, from→to links) is a priority research direction.
 
+**Accuracy before speed (owner, standing):** never trade result quality or reliability for speed; an extra
+second or two per query is fine. Scale target to plan for: an organisation's archive (~40k multi-MB PDFs,
+millions of passages) on a dedicated server — choose infrastructure (vector index, GPU, OCR) by measured
+scale tests, keeping exact re-scoring so approximation never lowers accuracy.
+
 **Work like the lead architect:** keep going until satisfied with quality, look and functionality; audit
 your own work periodically against this goal and the brief's gates (re-read this file, run the tests and
 the UI walkthrough, check docs match behaviour); make decisions autonomously; keep the handoff current.

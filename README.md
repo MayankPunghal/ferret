@@ -76,6 +76,7 @@ Start the app later with the **Knowledge Search** desktop shortcut or `start.bat
 | [Development](docs/development.md) | Project layout, running tests, evaluation scripts, API |
 | [Evaluation](docs/evaluation.md) | Measured retrieval quality, abstention, latency — and their limits |
 | [Architecture](docs/architecture.md) | Design, decisions and alternatives considered, sources |
+| [Research: better search](docs/research-search.md) · [graph](docs/research-graph.md) | Techniques evaluated or planned, with sources |
 | [Troubleshooting](docs/troubleshooting.md) | Common problems and fixes |
 | [Handoff](docs/HANDOFF.md) | Project status, verified vs. unverified items, next steps |
 

@@ -119,6 +119,10 @@ auto-migrations on start; GraphRAG deferred in favour of a deterministic link-gr
 
 ## 7. Next steps (highest value first)
 
+Owner direction (2026-10-23): **accuracy before speed**; plan for an organisation-scale archive (~40k
+multi-MB PDFs). Ranked search-improvement plan with sources: docs/research-search.md (reranker and
+embedding bake-offs → contextual passages → learned sparse → entity edges + PageRank → scale test).
+
 1. **Owner retry on Windows** (`git pull`, `start.bat`): confirm search works.
 2. **Real-corpus evaluation:** index 200–1,000 real technical documents (e.g. a Graphify /
    codebase-documenter wiki + runbooks); write 50–100 labelled questions including unanswerable ones;
