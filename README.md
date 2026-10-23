@@ -5,8 +5,8 @@
 Knowledge Search indexes your PDF, Word, PowerPoint, HTML, Markdown and text documents and lets people search
 them in plain language or by exact terms (error codes, file names, API paths). Every result is a real
 passage from your documents, with a link to the original file. Everything — database, search models,
-search — runs on your own machine or server: no cloud account, no GPU, no external AI provider and no
-language model (LLM) are needed.
+search — runs on your own machine or server: no cloud account, no GPU and no external AI provider are
+needed. An optional small language model, also local, writes a short summary and topics for each document.
 
 ![Search results with evidence](docs/screenshots/07-conflict.png)
 
@@ -20,6 +20,11 @@ language model (LLM) are needed.
 - **Traceable results** — passage, heading/page, neighbouring context and a link to the original file.
 - **Connections** — links between documents (Markdown/wiki links, HTML links, `depends_on`-style front matter) with a
   "what depends on this" blast-radius view, permission-filtered.
+- **Related documents with every result** — what the page links to, what refers to it, what it mentions and
+  what is related in meaning, as one-click rows under each result; results cover 10 different documents.
+- **Optional document summaries** — a small local language model writes a two-sentence summary, topics and,
+  for vaguely titled pages, a clearer title, in the background while indexing is idle. Labelled as written by
+  the model; never used as evidence.
 - **Link-aware search** — questions that name a page also get passages from the pages it links to and from
   ("who owns the services X depends on"); on a labelled synthetic wiki, multi-hop evidence recall 0.24 → 0.60
   with no single-hop loss ([evaluation](docs/evaluation.md#6-link-aware-search-graph-assisted-retrieval)).
@@ -32,14 +37,17 @@ language model (LLM) are needed.
 | Part | What it does | Size |
 |---|---|---|
 | Embedded PostgreSQL + pgvector | stores documents, passages, links and access rights | installed by setup |
-| Embedding model (bge-base-en-v1.5) | turns each passage and each question into numbers, so a search finds passages with the same *meaning*, not only the same words | ~440 MB |
+| Embedding model (bge-base-en-v1.5) | turns each passage and each question into numbers, so a search finds passages with the same *meaning*, not only the same words | ~210 MB |
 | Reranker (ms-marco-MiniLM-L-6-v2) | re-orders the top 10 results by how well each passage matches the question | ~90 MB |
+| *Optional:* language model (Qwen3.5-0.8B, run by llama.cpp) | writes a summary, topics and (for vague titles) a clearer title per document, in the background | ~0.6 GB |
 
-Both models are small, run on any CPU and are downloaded once by setup. **No language model (LLM) is
-used:** nothing writes or summarises text, so every result is a passage that is really in your documents,
-and indexing stays fast. Local LLMs were tested for writing answers, summarising pages and reading images
-(see [the plan](docs/plan-images-and-models.md)); they cost seconds per item on a CPU, so they are not part
-of this release.
+The models run on any CPU and are downloaded once by setup. **Search never depends on the language model:**
+every result is a passage that is really in your documents; the summaries only help you read the results
+(and, with "Document summary in each passage" on, help find pages that never name their subject). It works
+one document at a time, only while no files are waiting to be indexed, so new files become searchable first:
+about 8–13 seconds per document on the 4-core test machine, so ~128 documents take roughly 20–30 minutes
+after indexing. Nothing is sent anywhere. Writing answers and reading images with local models were tested
+too ([the plan](docs/plan-images-and-models.md)) and are not part of this release.
 
 ## Quick start
 
@@ -68,6 +76,7 @@ cd knowledge-search
 | `--no-demo` | skip the sample data |
 | `--no-start` | install only; do not start the app afterwards |
 | `--no-shortcut` | Windows only: do not create the desktop shortcut |
+| `--summaries` / `--no-summaries` | install / skip the optional summary model without asking (~0.6 GB) |
 
 Setup installs everything for the current user (no administrator rights, no Docker): uv, Python 3.13, the
 app, an embedded PostgreSQL and the offline AI models (~900 MB in total, one time). It is safe to re-run —
@@ -115,7 +124,8 @@ Command-line alternative for step 2: `uv run knowledge-search ingest intranet si
 ## Requirements
 
 64-bit Windows 10/11, macOS or Linux; 4 GB free RAM (8 GB recommended for the larger models); ~2 GB disk;
-internet access during setup only (to download the app's dependencies and models). Nothing needs to be
+(+0.6 GB with the optional summary model); internet access during setup only (to download the app's
+dependencies and models). Nothing needs to be
 installed beforehand. After setup it runs offline.
 
 **Speed:** search answers in under a second. Indexing is limited by the embedding model on the CPU: on the
@@ -126,7 +136,8 @@ layer and text inside images are not indexed (no OCR).
 
 ## Status
 
-Version 1.0: search only (no generated answers, no OCR). See [Handoff](docs/HANDOFF.md) for exactly what
+Version 1.0: search with cited passages, related documents and optional document summaries (no generated
+answers, no OCR). See [Handoff](docs/HANDOFF.md) for exactly what
 has been verified and what has not.
 
 ## License

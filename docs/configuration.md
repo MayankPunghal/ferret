@@ -29,6 +29,20 @@ those.
 | `KS_SESSION_HOURS` | `12` | Sign-in lifetime. |
 | `KS_COOKIE_SECURE` | `false` | Set `true` when serving over HTTPS. |
 
+## Document summaries (optional local language model)
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `KS_ENRICH_ENABLED` | `true` | Default of the Settings switch "Summarise each document in the background". Without an installed model it does nothing. |
+| `KS_LLM_URL` | *(empty)* | Empty = use the model installed by `knowledge-search download-llm` (setup `--summaries`): the app starts llama.cpp's server on a free `127.0.0.1` port and stops it on exit. Set it to use another **local** OpenAI-compatible server instead, e.g. Ollama `http://127.0.0.1:11434/v1` or LM Studio `http://127.0.0.1:1234/v1`. Document text is sent to this address, so never point it at a service outside your control. |
+| `KS_LLM_MODEL` | *(empty)* | Model name for `KS_LLM_URL` (e.g. `qwen3.5:0.8b` in Ollama), or the `.gguf` file name in `KS_MODEL_CACHE/llm` to use instead of the one selected by `download-llm`. |
+| `KS_LLM_THREADS` | `0` | CPU threads for the installed model (0 = half the cores, so indexing and search keep the rest). |
+
+`knowledge-search download-llm [--model qwen3.5-0.8b|gemma-4-e2b]` downloads llama.cpp's CPU server (release
+`b11836`, from github.com) and the model (from huggingface.co) into `KS_MODEL_CACHE/llm`. Qwen3.5-0.8B
+(~0.5 GB, Apache-2.0) is the default; Gemma 4 E2B (~3.1 GB) writes similar summaries and is slower to load.
+Progress is shown on the Index status tab; the server's log is `KS_DATA_DIR/logs/llm-server.log`.
+
 ## Defaults for admin-editable settings
 
 | Variable | Default | Settings page field |
@@ -44,6 +58,7 @@ Values saved on the Settings page are stored in the database (`app_settings`) an
 
 ## What is *not* configurable
 
-There are no settings for remote/cloud AI providers, API keys or generation: this release never sends
-documents or queries to external services. Model files are downloaded from Hugging Face only during setup
+There are no settings for remote/cloud AI providers, API keys or answer generation: this release never sends
+documents or queries to external services. The only language model is the optional local one above, and it
+only sees document text, never queries. Model files are downloaded from Hugging Face only during setup
 or when an admin selects a model that is not yet cached.

@@ -59,6 +59,9 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("download-model", help="fetch the configured embedding model and reranker into KS_MODEL_CACHE")
     p.add_argument("--model", help="a specific embedding model (default: KS_EMBED_MODEL)")
     p.add_argument("--reranker", help="a specific reranker (default: KS_RERANK_MODEL)")
+    p = sub.add_parser("download-llm", help="optional: fetch a local language model (and llama.cpp's server) for "
+                       "document summaries; nothing is sent anywhere")
+    p.add_argument("--model", default=None, help="qwen3.5-0.8b (default, ~0.5 GB) or gemma-4-e2b (~3.1 GB)")
     a = ap.parse_args(argv)
     s = get_settings()
 
@@ -110,6 +113,17 @@ def main(argv: list[str] | None = None) -> None:
         _demo(s)
     elif a.cmd == "worker":
         _worker(s)
+    elif a.cmd == "download-llm":
+        from . import enrich
+
+        name = a.model or enrich.DEFAULT_LLM
+        if name not in enrich.LLMS:
+            sys.exit(f"unknown model {name}; choose one of: {', '.join(enrich.LLMS)}")
+        try:
+            path = enrich.download(s, name)
+        except Exception as e:  # noqa: BLE001 - network/disk errors from urllib or huggingface_hub
+            sys.exit(f"Download failed: {str(e)[:300]}\nRun the same command again to retry.")
+        print("local language model ready:", path, "\nRestart the app; summaries are written in the background.")
     elif a.cmd == "download-model":
         from . import runtime
 
@@ -202,13 +216,19 @@ def _ingest(a, s) -> None:
 
 
 def _worker(s) -> None:
+    from .enrich import Enricher
     from .ingest import BlobStore, Worker
 
-    db.open_pool(db.resolve_url(s), max_size=2)
+    db.open_pool(db.resolve_url(s), max_size=3)
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     signal.signal(signal.SIGINT, lambda *_: stop.set())
+    enricher = Enricher(s)  # document summaries, while no files wait to be indexed (optional local model)
+    t = threading.Thread(target=enricher.loop, args=(stop,), name="enrich", daemon=True)
+    t.start()
     w = Worker(BlobStore(s.data_dir), s.max_pdf_pages, s.max_extracted_chars)
     w.loop(stop, s.worker_poll_seconds)
+    enricher.stop()
+    t.join(timeout=10)
     db.close_pool()
     sys.exit(0)

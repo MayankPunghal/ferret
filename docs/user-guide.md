@@ -27,6 +27,12 @@ evidence**. The right passage is often among them (especially for paraphrased qu
 
 - document title, collection, heading path or PDF page, and version;
 - a snippet with the matching words highlighted;
+- when the optional local language model is installed: **Summary (local model)** — two sentences on what the
+  document is about — and **Topics**; click a topic to search for it. A vague title ("Overview", a file name)
+  is replaced by a clearer one written by the model; hover over it to see the document's own title. These
+  are written by the model, so they can be wrong: the snippet and passage are the evidence, never the summary;
+- related documents in up to four rows — **Links to**, **Referenced by**, **Mentions** and **Related in
+  meaning** — up to four each; click one to open its passage (the passage view lists them all);
 - **View passage** — the passage with the chunks before and after it;
 - **Open source** — the original file (PDFs open at the page).
 
@@ -59,7 +65,7 @@ this off (Settings → Linked documents).
 - **Depends on this (blast radius)** — documents that depend on it directly or via one more hop:
   "what is affected if this changes?".
 
-The **graph** above the lists shows the same neighbourhood visually (1 or 2 hops; blue = depends on, grey =
+**Show as graph** draws the same neighbourhood (1 or 2 hops; blue = depends on, grey =
 links to, dashed = related / part of, dotted = mentions, green dots = related by meaning); click a node to open that document. Click any entry to open it. Documents you cannot access never appear; links whose target is not found in
 your accessible documents are listed by name only. Example front matter:
 
