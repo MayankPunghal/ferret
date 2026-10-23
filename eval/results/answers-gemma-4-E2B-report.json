@@ -1,0 +1,84 @@
+{
+  "model": "gemma-4-E2B",
+  "median_seconds": 15.350000000000001,
+  "corpus-kubernetes-BAAI_bge-base-en-v1.5": {
+    "queries": 72,
+    "must_refuse": 16,
+    "answerable": 56,
+    "model_alone": {
+      "false_answers": 0,
+      "answered": 0.696,
+      "cited_relevant": 0.872
+    },
+    "gate_and_model": {
+      "false_answers": 0,
+      "answered": 0.607
+    },
+    "gate_alone": {
+      "false_answers": 0,
+      "answered": 0.893
+    },
+    "search_rank1_relevant": 0.946,
+    "model_cited@1_relevant": 0.607,
+    "false_answer_ids": [],
+    "missed_ids": [
+      "p003",
+      "p005",
+      "p006",
+      "p007",
+      "p008",
+      "p018",
+      "p021",
+      "p024",
+      "p027",
+      "p033",
+      "p040",
+      "p042",
+      "p047",
+      "p048",
+      "p049",
+      "p050",
+      "p056"
+    ]
+  },
+  "fixtures-BAAI_bge-base-en-v1.5": {
+    "queries": 96,
+    "must_refuse": 40,
+    "answerable": 56,
+    "model_alone": {
+      "false_answers": 3,
+      "answered": 0.768,
+      "cited_relevant": 0.884
+    },
+    "gate_and_model": {
+      "false_answers": 1,
+      "answered": 0.554
+    },
+    "gate_alone": {
+      "false_answers": 3,
+      "answered": 0.732
+    },
+    "search_rank1_relevant": 1.0,
+    "model_cited@1_relevant": 0.679,
+    "false_answer_ids": [
+      "q053",
+      "n001",
+      "n008"
+    ],
+    "missed_ids": [
+      "q014",
+      "q026",
+      "q027",
+      "q055",
+      "q056",
+      "k004",
+      "k005",
+      "k007",
+      "k008",
+      "k010",
+      "k012",
+      "k017",
+      "k024"
+    ]
+  }
+}

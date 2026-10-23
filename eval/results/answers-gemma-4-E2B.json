@@ -137,5 +137,922 @@
    2
   ],
   "seconds": 25.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p021": {
+  "answer": null,
+  "sources": [],
+  "said": "If a Container allocates more memory than its limit, it becomes a candidate for termination, and if it continues to consume memory beyond its limit, it is terminated. This termination happens when the",
+  "seconds": 41.0
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p022": {
+  "answer": "The `OOMKilled` reason shows that the container tried to use more memory than its limit.",
+  "sources": [
+   1,
+   2
+  ],
+  "seconds": 16.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p023": {
+  "answer": "Running Automated Tasks with a CronJob can be used to run a job, and the schedule syntax format includes extended \"Vixie cron\" step values, where `*/2` can be used to specify command execution every two hours.",
+  "sources": [
+   2,
+   5
+  ],
+  "seconds": 29.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p024": {
+  "answer": null,
+  "sources": [],
+  "said": "The `.spec.concurrencyPolicy` field is optional and specifies how to treat concurrent executions of a Job created by this CronJob. It can specify one of the following policies: `Allow` (default), `For",
+  "seconds": 28.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p025": {
+  "answer": "Claims storage resources defined in a PersistentVolume so that it can be mounted as a volume in a container.",
+  "sources": [
+   2
+  ],
+  "seconds": 11.5
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p026": {
+  "answer": "Current reclaim policies are: Retain, Recycle, and Delete.",
+  "sources": [
+   1,
+   3
+  ],
+  "seconds": 23.1
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p027": {
+  "answer": null,
+  "sources": [],
+  "said": "A role binding grants the permissions defined in a role to a user or set of users. It holds a list of subjects (users, groups, or service accounts), and a reference to the role being granted.",
+  "seconds": 34.8
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p028": {
+  "answer": "You can grant a role to a service account group in a namespace to have a role, no matter what service account they use.",
+  "sources": [
+   5
+  ],
+  "seconds": 27.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p029": {
+  "answer": "The upgrade workflow at a high level is to upgrade a primary control plane node, then upgrade additional control plane nodes, and finally upgrade worker nodes.",
+  "sources": [
+   2
+  ],
+  "seconds": 24.8
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p030": {
+  "answer": "You can renew your certificates manually at any time with the `kubeadm certs renew` command, and with the subcommand `all`, it can renew all of them.",
+  "sources": [
+   1,
+   3
+  ],
+  "seconds": 26.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p031": {
+  "answer": "If you are able to do a fully-qualified name lookup but not a relative one, you need to check that your /etc/resolv.conf file in your Pod is correct.",
+  "sources": [
+   4
+  ],
+  "seconds": 29.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p032": {
+  "answer": "One or more initialization containers that must run to completion before any app containers run.",
+  "sources": [
+   1,
+   2
+  ],
+  "seconds": 21.6
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p033": {
+  "answer": null,
+  "sources": [],
+  "said": "Sidecar containers are secondary containers that run along with the main application container within the same Pod. They are used to enhance or extend the functionality of the primary application cont",
+  "seconds": 24.1
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p034": {
+  "answer": "StatefulSet Pods have a unique identity that consists of an ordinal, a stable network identity, and stable storage. The identity sticks to the Pod, regardless of which node it's (re)scheduled on.",
+  "sources": [
+   3
+  ],
+  "seconds": 25.2
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p035": {
+  "answer": "pairs in the referenced ConfigMap or Secret are set as environment variables for the container.",
+  "sources": [
+   4
+  ],
+  "seconds": 25.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p036": {
+  "answer": "The Restricted policy is heavily restricted, following current Pod hardening best practices.",
+  "sources": [
+   5
+  ],
+  "seconds": 28.1
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p037": {
+  "answer": "Instead of using PodSecurityPolicy, you can enforce similar restrictions on Pods using either or both Pod Security Admission or a 3rd party admission plugin that you deploy and configure yourself.",
+  "sources": [
+   2
+  ],
+  "seconds": 36.1
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p038": {
+  "answer": "kubectl port-forward allows using a resource name, such as a pod name, to select a matching pod to port forward to.",
+  "sources": [
+   1
+  ],
+  "seconds": 15.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p039": {
+  "answer": "kubectl exec --stdin --tty shell-demo -- /bin/bash",
+  "sources": [
+   2
+  ],
+  "seconds": 20.6
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p040": {
+  "answer": null,
+  "sources": [],
+  "said": "Ephemeral containers are useful for interactive troubleshooting when `kubectl exec` is insufficient because a container has crashed or a container image doesn't include debugging utilities.",
+  "seconds": 26.3
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p041": {
+  "answer": "Kubernetes' built-in `dockershim` component was removed in release v1.24.",
+  "sources": [
+   1,
+   3
+  ],
+  "seconds": 24.4
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p042": {
+  "answer": null,
+  "sources": [],
+  "said": "A restore operation is employed to recover the data of a failed cluster, and a snapshot file must be present, which can be a snapshot file from a previous backup operation or from a remaining data dir",
+  "seconds": 26.5
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p043": {
+  "answer": "Audit policy defines rules about what events should be recorded and what data they should include.",
+  "sources": [
+   1
+  ],
+  "seconds": 24.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p044": {
+  "answer": "A mode where the kube-proxy configures packet forwarding rules using iptables.",
+  "sources": [
+   2
+  ],
+  "seconds": 25.2
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p045": {
+  "answer": "You can use node labels in conjunction with Pod topology spread constraints to control how Pods are spread across your cluster among fault domains like regions, zones, and specific nodes.",
+  "sources": [
+   2
+  ],
+  "seconds": 25.4
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p046": {
+  "answer": "Node affinity allows you to specify rules that constrain which nodes your Pod can be scheduled on.",
+  "sources": [
+   1,
+   3,
+   5
+  ],
+  "seconds": 22.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p047": {
+  "answer": null,
+  "sources": [],
+  "said": "When Pod priority is enabled, the scheduler orders pending Pods by their priority, placing a pending Pod ahead of other pending Pods with lower priority in the scheduling queue. If a Pod cannot be sch",
+  "seconds": 29.0
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p048": {
+  "answer": null,
+  "sources": [],
+  "said": "Finalizers alert controllers to clean up resources the deleted object owned, and when the `metadata.finalizers` field is empty, Kubernetes considers the deletion complete and deletes the object.",
+  "seconds": 26.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p049": {
+  "answer": null,
+  "sources": [],
+  "said": "A resource quota, defined by a ResourceQuota object, provides constraints that limit aggregate resource consumption per namespace, and can also limit the quantity of objects that can be created in a n",
+  "seconds": 38.1
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p050": {
+  "answer": null,
+  "sources": [],
+  "said": "Define a default memory resource limit for a namespace, so that every new Pod in that namespace has a memory resource limit configured.",
+  "seconds": 15.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p051": {
+  "answer": "You can secure an Ingress by specifying a secret that contains a TLS private key and certificate, with the secret needing keys named `tls.crt` and `tls.key` for TLS to be used.",
+  "sources": [
+   1
+  ],
+  "seconds": 25.1
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p052": {
+  "answer": "The following methods exist for installing kubectl on Windows: Install kubectl binary on Windows (via direct download or curl) or Install on Windows using Chocolatey, Scoop, or winget.",
+  "sources": [
+   1
+  ],
+  "seconds": 21.0
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p053": {
+  "answer": "You can quickly switch between clusters by using the `kubectl config use-context` command after defining clusters, users, and contexts in one or more configuration files.",
+  "sources": [
+   2,
+   3
+  ],
+  "seconds": 19.5
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p054": {
+  "answer": "Kubernetes can be configured to use swap memory on a node, allowing the kernel to free up physical memory by swapping out pages to backing storage.",
+  "sources": [
+   1
+  ],
+  "seconds": 21.6
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p055": {
+  "answer": "Kubernetes lets you configure single-stack IPv4 networking, single-stack IPv6 networking, or dual stack networking with both network families active.",
+  "sources": [
+   1
+  ],
+  "seconds": 22.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p056": {
+  "answer": null,
+  "sources": [],
+  "said": "To pull an image from a private registry, Kubernetes needs credentials, and the `imagePullSecrets` field in the configuration file specifies that Kubernetes should get the credentials from a Secret na",
+  "seconds": 46.5
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n001": {
+  "answer": null,
+  "sources": [],
+  "seconds": 11.8
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n002": {
+  "answer": null,
+  "sources": [],
+  "seconds": 13.2
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n003": {
+  "answer": null,
+  "sources": [],
+  "seconds": 16.6
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n004": {
+  "answer": null,
+  "sources": [],
+  "seconds": 18.5
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n005": {
+  "answer": null,
+  "sources": [],
+  "seconds": 21.6
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n006": {
+  "answer": null,
+  "sources": [],
+  "seconds": 21.4
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n007": {
+  "answer": null,
+  "sources": [],
+  "seconds": 20.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n008": {
+  "answer": null,
+  "sources": [],
+  "said": "No information about the company holiday calendar 2026 was found in the provided documentation.",
+  "seconds": 22.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n009": {
+  "answer": null,
+  "sources": [],
+  "said": "Calico supports a flexible set of networking options so you can choose the most efficient option for your situation, including non-overlay and overlay networks, with or without BGP.",
+  "seconds": 28.2
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n010": {
+  "answer": null,
+  "sources": [],
+  "said": "A Nomad job specification can be one of three main types of task suitable to run as a Job: Non-parallel Jobs, Parallel Jobs with a fixed completion count, or Parallel Jobs with a work queue.",
+  "seconds": 44.2
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n011": {
+  "answer": null,
+  "sources": [],
+  "seconds": 9.2
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n012": {
+  "answer": null,
+  "sources": [],
+  "seconds": 8.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n013": {
+  "answer": null,
+  "sources": [],
+  "seconds": 17.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n014": {
+  "answer": null,
+  "sources": [],
+  "seconds": 18.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n015": {
+  "answer": null,
+  "sources": [],
+  "seconds": 19.2
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/n016": {
+  "answer": null,
+  "sources": [],
+  "said": "No Ansible playbook for nginx is mentioned.",
+  "seconds": 15.4
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q001": {
+  "answer": "Card authorization timeout, returned when the upstream card processor does not answer within 8 seconds. The client may retry once with the same idempotency key. If more than 2% of authorizations fail with ERR-PAY-4012 over five minutes, page the payments on-call engineer and check the processor status page.",
+  "sources": [
+   1
+  ],
+  "seconds": 18.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q002": {
+  "answer": "Duplicate idempotency key. The request reused an idempotency key with a different payload. This is a client bug; do not retry. Log the `request_id` and contact the integrating team.",
+  "sources": [
+   1
+  ],
+  "seconds": 16.5
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q003": {
+  "answer": "The payment was authorized but the ledger write failed. The ledger consumer retries automatically using `ledger.retry_backoff_ms` (default 250 ms, doubling up to 8 attempts). Do not refund manually until the reconciliation job has run, otherwise the customer may be refunded twice.",
+  "sources": [
+   1
+  ],
+  "seconds": 17.9
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q004": {
+  "answer": "POST /api/v2/invoices/{id}/void voids an issued invoice. Only invoices in the `issued` state can be voided; paid invoices must be credited instead with a credit note. Voiding is irreversible and is recorded in the audit log with the caller's client id.",
+  "sources": [
+   1
+  ],
+  "seconds": 17.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q005": {
+  "answer": "250",
+  "sources": [
+   2
+  ],
+  "seconds": 12.9
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q006": {
+  "answer": "ledger.batch_size controls how many ledger entries are written per transaction.",
+  "sources": [
+   2
+  ],
+  "seconds": 13.6
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q007": {
+  "answer": "The deployment manifest lives in deploy-orders.yaml in the platform repository.",
+  "sources": [
+   1
+  ],
+  "seconds": 12.0
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q008": {
+  "answer": "The fix released in orders-svc v3.8.2 releases the connection before calling payments and raises the pool maximum to 40 connections per pod.",
+  "sources": [
+   2,
+   1
+  ],
+  "seconds": 19.5
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q009": {
+  "answer": "Changes to ledger settings are made in config/ledger.properties and require a restart of the ledger consumer.",
+  "sources": [
+   1
+  ],
+  "seconds": 8.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q010": {
+  "answer": "The code name for the 2025 review is PROJECT-KESTREL-7.",
+  "sources": [
+   1
+  ],
+  "seconds": 13.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q011": {
+  "answer": "The client may retry once with the same idempotency key. If more than 2% of authorizations fail with ERR-PAY-4012 over five minutes, page the payments on-call engineer and check the processor status page.",
+  "sources": [
+   1
+  ],
+  "seconds": 22.0
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q012": {
+  "answer": "Roll back immediately with `hctl rollback orders-svc`.",
+  "sources": [
+   2
+  ],
+  "seconds": 9.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q013": {
+  "answer": "A SEV1 page must be acknowledged within 5 minutes and a SEV2 page within 15 minutes.",
+  "sources": [
+   1
+  ],
+  "seconds": 17.2
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q014": {
+  "answer": null,
+  "sources": [],
+  "said": "The payments on-call rotation is one week long and hands over every Monday at 10:00 CET.",
+  "seconds": 9.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q015": {
+  "answer": "Raw events are retained for 400 days.",
+  "sources": [
+   2
+  ],
+  "seconds": 14.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q016": {
+  "answer": "the data protection officer",
+  "sources": [
+   2
+  ],
+  "seconds": 6.4
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q017": {
+  "answer": "The root cause was that orders-svc v3.8.1 exhausted its database connection pool after a change that held connections open while calling the payments service, and slow payment authorizations kept every connection busy.",
+  "sources": [
+   1,
+   3
+  ],
+  "seconds": 21.5
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q018": {
+  "answer": "orders-svc v3.8.1 exhausted its database connection pool after a change that held connections open while calling the payments service.",
+  "sources": [
+   1
+  ],
+  "seconds": 12.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q019": {
+  "answer": "Action items included adding an alert on connection pool saturation above 80 percent, adding a load test for slow upstream dependencies, and documenting pool sizing in the deployment runbook.",
+  "sources": [
+   2
+  ],
+  "seconds": 19.0
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q020": {
+  "answer": "Paid invoices must be credited instead with a credit note.",
+  "sources": [
+   2
+  ],
+  "seconds": 8.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q021": {
+  "answer": "Exceeding the limit returns HTTP 429 with a `Retry-After` header.",
+  "sources": [
+   2
+  ],
+  "seconds": 12.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q022": {
+  "answer": "Never drop a column in the same release that stops reading it.",
+  "sources": [
+   1
+  ],
+  "seconds": 11.9
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q023": {
+  "answer": "After 14 days, annual subscriptions are refunded pro rata for unused full months; monthly subscriptions are not refunded.",
+  "sources": [
+   1
+  ],
+  "seconds": 16.6
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q024": {
+  "answer": "Refunds are issued to the original payment method within 10 business days.",
+  "sources": [
+   1
+  ],
+  "seconds": 8.6
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q025": {
+  "answer": "EUR 220",
+  "sources": [
+   2
+  ],
+  "seconds": 9.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q026": {
+  "answer": null,
+  "sources": [],
+  "seconds": 10.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q027": {
+  "answer": null,
+  "sources": [],
+  "said": "20 weeks",
+  "seconds": 9.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q028": {
+  "answer": "Employees may return part-time at 60% for up to eight weeks after parental leave without a change to their contract.",
+  "sources": [
+   1
+  ],
+  "seconds": 12.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q029": {
+  "answer": "72,000 \u2013 92,000 EUR",
+  "sources": [
+   2
+  ],
+  "seconds": 13.2
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q030": {
+  "answer": "Engineers receive time off in lieu for any incident work between 22:00 and 07:00.",
+  "sources": [
+   1
+  ],
+  "seconds": 18.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q031": {
+  "answer": null,
+  "sources": [],
+  "seconds": 4.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q032": {
+  "answer": null,
+  "sources": [],
+  "seconds": 3.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q033": {
+  "answer": null,
+  "sources": [],
+  "seconds": 9.5
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q034": {
+  "answer": null,
+  "sources": [],
+  "seconds": 8.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q035": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q036": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q037": {
+  "answer": null,
+  "sources": [],
+  "seconds": 8.1
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q038": {
+  "answer": null,
+  "sources": [],
+  "seconds": 8.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q039": {
+  "answer": null,
+  "sources": [],
+  "seconds": 9.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q040": {
+  "answer": null,
+  "sources": [],
+  "seconds": 9.1
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q041": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.9
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q042": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.0
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q043": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.9
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q044": {
+  "answer": null,
+  "sources": [],
+  "said": "The documentation does not specify the rate limit for the orders API.",
+  "seconds": 15.1
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q045": {
+  "answer": null,
+  "sources": [],
+  "seconds": 4.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q046": {
+  "answer": null,
+  "sources": [],
+  "seconds": 6.0
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q047": {
+  "answer": null,
+  "sources": [],
+  "seconds": 8.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q048": {
+  "answer": null,
+  "sources": [],
+  "seconds": 8.6
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q049": {
+  "answer": null,
+  "sources": [],
+  "seconds": 6.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q050": {
+  "answer": null,
+  "sources": [],
+  "seconds": 6.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q051": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.5
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q052": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.5
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q053": {
+  "answer": "Deployments use a rolling strategy with a maximum of 25% of pods unavailable.",
+  "sources": [
+   1
+  ],
+  "seconds": 13.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q054": {
+  "answer": null,
+  "sources": [],
+  "seconds": 8.2
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q055": {
+  "answer": null,
+  "sources": [],
+  "seconds": 10.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/q056": {
+  "answer": null,
+  "sources": [],
+  "seconds": 10.4
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k001": {
+  "answer": "Employees with at least six months of service are entitled to 20 weeks of fully paid parental leave, which can be taken in up to three blocks within two years of the birth or adoption.",
+  "sources": [
+   1
+  ],
+  "seconds": 14.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k002": {
+  "answer": "Employees with at least six months of service are entitled to 20 weeks of fully paid parental leave, which can be taken in up to three blocks within two years of the birth or adoption.",
+  "sources": [
+   1
+  ],
+  "seconds": 13.6
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k003": {
+  "answer": "Expenses must be submitted within 30 days with itemized receipts. Late claims need manager approval.",
+  "sources": [
+   1
+  ],
+  "seconds": 9.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k004": {
+  "answer": null,
+  "sources": [],
+  "seconds": 10.4
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k005": {
+  "answer": null,
+  "sources": [],
+  "said": "If the error rate exceeds 1% or p95 latency doubles, roll back immediately with `hctl rollback orders-svc`. Rollback restores the previous ReplicaSet and does not revert database migrations; migration",
+  "seconds": 17.5
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k006": {
+  "answer": "If the error rate exceeds 1% or p95 latency doubles, roll back immediately with `hctl rollback orders-svc`. Rollback restores the previous ReplicaSet and does not revert database migrations; migrations must therefore always be backwards compatible for one release.",
+  "sources": [
+   1
+  ],
+  "seconds": 15.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k007": {
+  "answer": null,
+  "sources": [],
+  "seconds": 14.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k008": {
+  "answer": null,
+  "sources": [],
+  "said": "The nightly cap for hotel bookings is EUR 150 outside capital cities and EUR 220 in capital cities according to the 2024 policy, or EUR 170 outside capital cities and EUR 240 in capital cities accordi",
+  "seconds": 17.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k009": {
+  "answer": "The payments on-call rotation is one week long and hands over every Monday at 10:00 CET. The secondary on-call is the previous week's primary.",
+  "sources": [
+   1
+  ],
+  "seconds": 13.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k010": {
+  "answer": null,
+  "sources": [],
+  "said": "Engineers receive a fixed on-call allowance per week of rotation, plus time off in lieu for any incident work between 22:00 and 07:00.",
+  "seconds": 13.9
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k011": {
+  "answer": "Raw events are retained for 400 days, and aggregated tables are retained indefinitely.",
+  "sources": [
+   1
+  ],
+  "seconds": 11.9
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k012": {
+  "answer": null,
+  "sources": [],
+  "said": "Access to tables with personal data requires approval from the data protection officer.",
+  "seconds": 9.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k013": {
+  "answer": "Each client may send 300 requests per minute.",
+  "sources": [
+   1
+  ],
+  "seconds": 10.1
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k014": {
+  "answer": "POST /api/v2/invoices/{id}/void voids an issued invoice.",
+  "sources": [
+   1
+  ],
+  "seconds": 10.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k015": {
+  "answer": "Customers on monthly or annual software subscriptions may request a full refund within 14 days of the initial purchase.",
+  "sources": [
+   1
+  ],
+  "seconds": 11.4
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k016": {
+  "answer": "Customers on monthly or annual software subscriptions may request a full refund within 14 days of the initial purchase. After 14 days, annual subscriptions are refunded pro rata for unused full months; monthly subscriptions are not refunded.",
+  "sources": [
+   1
+  ],
+  "seconds": 15.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k017": {
+  "answer": null,
+  "sources": [],
+  "said": "orders-svc v3.8.1 exhausted its database connection pool after a change that held connections open while calling the payments service, and slow payment authorizations kept every connection busy.",
+  "seconds": 16.8
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k018": {
+  "answer": "The root cause of the checkout outage was that orders-svc v3.8.1 exhausted its database connection pool after a change that held connections open while calling the payments service, as slow payment authorizations kept every connection busy.",
+  "sources": [
+   2
+  ],
+  "seconds": 14.9
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k019": {
+  "answer": "Run migrations before deploying code that depends on them. Never drop a column in the same release that stops reading it.",
+  "sources": [
+   1
+  ],
+  "seconds": 12.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k020": {
+  "answer": "The base salary bands for engineers are E3 (Engineer) at EUR 58,000 \u2013 72,000, E4 (Senior Engineer) at EUR 72,000 \u2013 92,000, and E5 (Staff Engineer) at EUR 92,000 \u2013 118,000.",
+  "sources": [
+   2
+  ],
+  "seconds": 24.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k021": {
+  "answer": "ledger.retry_backoff_ms controls the initial delay between ledger write retries. The delay doubles on each attempt up to ledger.max_attempts, which defaults to 8.",
+  "sources": [
+   2,
+   1
+  ],
+  "seconds": 11.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k022": {
+  "answer": "ERR-PAY-4012: Card authorization timeout is returned when the upstream card processor does not answer within 8 seconds.",
+  "sources": [
+   1
+  ],
+  "seconds": 14.6
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k023": {
+  "answer": "You need membership of the `deployers` group and a green build of `orders-svc` on the main branch.",
+  "sources": [
+   1
+  ],
+  "seconds": 15.6
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/k024": {
+  "answer": null,
+  "sources": [],
+  "seconds": 4.9
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n001": {
+  "answer": "The fix for the checkout outage was released in orders-svc v3.8.2, which releases the connection before calling payments and raises the pool maximum to 40 connections per pod.",
+  "sources": [
+   5
+  ],
+  "seconds": 26.0
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n002": {
+  "answer": null,
+  "sources": [],
+  "seconds": 5.4
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n003": {
+  "answer": null,
+  "sources": [],
+  "seconds": 4.0
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n004": {
+  "answer": null,
+  "sources": [],
+  "seconds": 3.9
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n005": {
+  "answer": null,
+  "sources": [],
+  "seconds": 5.0
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n006": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.5
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n007": {
+  "answer": null,
+  "sources": [],
+  "seconds": 8.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n008": {
+  "answer": "Each client may send 300 requests per minute. Exceeding the limit returns HTTP 429 with a `Retry-After` header.",
+  "sources": [
+   1
+  ],
+  "seconds": 19.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n009": {
+  "answer": null,
+  "sources": [],
+  "seconds": 3.4
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n010": {
+  "answer": null,
+  "sources": [],
+  "seconds": 3.7
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n011": {
+  "answer": null,
+  "sources": [],
+  "seconds": 4.6
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n012": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n013": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.6
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n014": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.6
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n015": {
+  "answer": null,
+  "sources": [],
+  "seconds": 7.3
+ },
+ "fixtures-BAAI_bge-base-en-v1.5/n016": {
+  "answer": null,
+  "sources": [],
+  "seconds": 4.1
  }
 }
