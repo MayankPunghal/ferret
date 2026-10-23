@@ -1,6 +1,6 @@
 # Handoff — Knowledge Search
 
-State at the end of the cloud session (2026-10-22). Read with `CLAUDE.md` (owner instructions and end
+State at the end of the cloud session (2026-10-23, version 1.0). Read with `CLAUDE.md` (owner instructions and end
 goal), `README.md`, and the docs listed there. Scope authority: `docs/brief/…master_prompt.md` §11.
 
 ## 1. Resume locally
@@ -9,7 +9,7 @@ goal), `README.md`, and the docs listed there. Scope authority: `docs/brief/…m
 git clone https://github.com/MayankPunghal/knowledge-search && cd knowledge-search
 ./setup.sh --demo --no-start          # Windows: setup.bat -Demo -NoStart
 uv sync                               # adds dev tools
-uv run pytest -q                      # expect 46 passed (embedded PostgreSQL; no Docker)
+uv run pytest -q                      # expect 62 passed (embedded PostgreSQL; no Docker)
 uv run --group eval python eval/run_eval.py --reranker Xenova/ms-marco-MiniLM-L-6-v2
 ./start.sh                            # or start.bat → http://127.0.0.1:8000
 ```
@@ -35,7 +35,7 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 | Item | Status | Evidence |
 |---|---|---|
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
-| Test suite | **verified** | `uv run pytest -q` → 46 passed (search, HTML/DOCX formats, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Test suite | **verified** | `uv run pytest -q` → 62 passed (search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **partially verified by the owner** on Windows 11: install, model download, DB init and indexing worked after the DLL fix; searches then crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93). **That fix is not yet verified on Windows.** | owner logs |
 | UI walkthrough | **verified** (Playwright/Chromium, `scripts/ui_check.py`): first-run admin, settings save + reindex, collections/grants/users, multi-file upload incl. rejection, clean state after sign-out/in, search outcomes, passage drawer, source open, mobile width | `docs/screenshots/` |
@@ -126,6 +126,46 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
 - **Bake-off harness:** `eval/beir_screen.py` takes `cqadupstack/<forum>` (technical StackExchange Q&A),
   several `--rerank-candidates`, `--max-queries`, and ColBERT (late-interaction) models.
 
+## 4e. Version 1.0: crawler, formats, speed, local-model trials (2026-10-23, last)
+
+- **site2md 1.0.0** (`site2md/`, shareable zip, launchers `Crawl Website.bat` / `.command`, browser
+  choice Chrome/Edge/Firefox/Chromium, sign-in kept per browser in `~/.site2md/profile-<browser>`):
+  - **Pages:** saved as Markdown with `source_url` front matter. Text outside `<main>` is kept when
+    `<main>` misses it (Google Sites); pages are scrolled through before reading.
+  - **Linked and embedded files:** saved as originals, not converted. Google Drive files, Docs (as Word),
+    Slides (as PDF) and the files in embedded Drive folders are saved too, and listed under "Attached
+    documents" with links to the local files. Only PDF, Word and PowerPoint are kept, up to 500 MB.
+  - **Skipped:** videos and spreadsheets, by name, before downloading. For files over 100 MB the crawler
+    answers Drive's "Download anyway" prompt itself.
+  - **Manifest:** lists other embeds (forms, sheets, calendars) as "not saved".
+  - **Running a crawl:** Ctrl+C stops cleanly and `--resume` continues. `--save-html` keeps the HTML each
+    page was converted from.
+  - **Verified:** by the owner on their Google Sites intranet (79 pages, 49 files, 0 failures,
+    `check_crawl.py` report), plus `tests/test_crawl.py` and `site2md/tests/test_browser.py`.
+  - **Decisions:** keep our own crawler (Firecrawl: AGPL and heavy; Crawl4AI would still need the Drive
+    and sign-in handling); save originals instead of converting PDF to Markdown (no text lost).
+- **Formats:**
+  - PDF text now comes from PDFium (`pypdfium2`, parse-v5). pypdf split Google-Docs PDFs into one word per
+    line (93–100% one-word lines vs 4–52% with PDFium), measured on the owner's 38 PDFs.
+  - **PowerPoint (.pptx)** is read as one section per slide, with tables and speaker notes.
+  - The upload limit is 500 MB (was 25 MB, which rejected large manuals).
+  - **Upload a folder** (Documents → choose a folder).
+  - A crawled page's `source_url` becomes its original location, shown as a link.
+- **Indexing speed:** a document's passages are embedded sorted by length in batches of 32 (was 8). The
+  vectors are identical, and it is 2.9× faster on bge-base in a micro-benchmark (2.2 → 6.4 passages/s on
+  this 4-core VM). Kubernetes end to end: see `eval/results/corpus-kubernetes-nodesc-*`.
+- **Local language models: trialled, none shipped.** Details and the resumable plan are in
+  `docs/plan-images-and-models.md`. llama.cpp `llama-server`, eval scripts only:
+  - **Gemma 4 E2B answers** (`eval/llm_answers.py`): it writes answers well, but is no better as an
+    evidence check or ranker (its first cited passage was right 61% of the time vs 95% for search's top
+    result).
+  - **Gemma-written page summaries in the embeddings:** +1 of 56 questions at rank 1, for ~12 s per page.
+    Not worth it.
+  - **Vision trial** (`eval/image_set.py`, `eval/image_ocr.py`): stopped by the owner after 4 images. All
+    4 were perfect with PaddleOCR-VL-1.6, at 60–70 s per image on 2 cores.
+  - **Owner decision:** ingestion stays fast with one model (the embedding model); images, OCR and LLM
+    features are deferred.
+
 ## 5. Decisions made this session (details: docs/architecture.md)
 
 Embedded PostgreSQL + vendored Windows DLL; in-memory vector search for laptops; runtime-editable
@@ -144,9 +184,9 @@ auto-migrations on start; GraphRAG deferred in favour of a deterministic link-gr
 | 7 rerankers: CQADupStack-unix (all lowered nDCG), Kubernetes (+0–1 rank-1 hit, 1–4 s) → off by default | bge-reranker-v2-m3 (OOM at 15 GB; try int8), rerankers on the owner's documents |
 | Gate families: similarity, IDF-weighted, reranker, reranker+similarity, all-query-terms rule; contextual passages | Gate tuned on pooled labels (fixtures + Kubernetes); contextual passages with that gate; SPLADE |
 | Concurrency (single/multi process) | Large corpora (10⁵+ chunks), HNSW |
-| HTML (main-content extraction, links → graph) and DOCX — implemented, checked on MkDocs/Sphinx/Kubernetes pages | PPTX/XLSX, legacy .doc, OCR, Docling for complex PDFs |
+| HTML (main-content extraction, links → graph), DOCX, PPTX, PDF via PDFium — implemented | XLSX, legacy .doc/.ppt, OCR (plan: docs/plan-images-and-models.md), Docling for complex PDFs |
 | Graph navigation v1 (links, impact, Connections UI) + link-aware search, evaluated on a synthetic wiki | Graph: real-corpus multi-hop evaluation, shared-identifier/entity edges, Graphify import, MCP tools |
-| — | **Local LLM answers with citations ("second brain")** |
+| Local LLMs (Gemma 4 E2B answers and summaries; vision models for images): trialled, not shipped | **Local LLM answers with citations ("second brain")**, on a GPU or as an opt-in |
 
 ## 7. Next steps (highest value first)
 
@@ -165,7 +205,8 @@ embedding bake-offs → contextual passages → learned sparse → entity edges 
 4. **Second brain:** local LLM (Ollama/llama.cpp via an OpenAI-compatible endpoint, opt-in) answering only
    from retrieved passages with checked citations; abstains on `no_adequate_evidence`; surfaces conflicts.
    Expose `search`/`get_passage`/`get_links` as REST/MCP tools for agent navigation.
-5. PPTX/XLSX/Docling parsing, OIDC, Docker build verification, backup/restore rehearsal.
+5. XLSX/Docling parsing, OCR for scanned PDFs and images (plan ready), OIDC, Docker build verification,
+   backup/restore rehearsal.
 
 ## 8. Gotchas
 

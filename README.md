@@ -2,10 +2,11 @@
 
 **Private, offline document search that shows its evidence — and says so when it has none.**
 
-Knowledge Search indexes your Markdown, text, HTML, Word and PDF documents and lets people search them in plain
-language or by exact terms (error codes, file names, API paths). Every answer points to the exact passage
-and the original file. Everything — database, AI models, search — runs on your own machine or server:
-no cloud account, no GPU and no external AI provider are needed.
+Knowledge Search indexes your PDF, Word, PowerPoint, HTML, Markdown and text documents and lets people search
+them in plain language or by exact terms (error codes, file names, API paths). Every result is a real
+passage from your documents, with a link to the original file. Everything — database, search models,
+search — runs on your own machine or server: no cloud account, no GPU, no external AI provider and no
+language model (LLM) are needed.
 
 ![Search results with evidence](docs/screenshots/07-conflict.png)
 
@@ -25,6 +26,20 @@ no cloud account, no GPU and no external AI provider are needed.
 - **Permissions** — collections with group-based read/write access, enforced inside every query.
 - **Admin UI** — upload by drag and drop, change models/chunking/reranking, manage users and access, reindex.
 - **One-click install** — embedded PostgreSQL + pgvector; nothing else to install.
+
+## What runs on your machine
+
+| Part | What it does | Size |
+|---|---|---|
+| Embedded PostgreSQL + pgvector | stores documents, passages, links and access rights | installed by setup |
+| Embedding model (bge-base-en-v1.5) | turns each passage and each question into numbers, so a search finds passages with the same *meaning*, not only the same words | ~440 MB |
+| Reranker (ms-marco-MiniLM-L-6-v2) | re-orders the top 10 results by how well each passage matches the question | ~90 MB |
+
+Both models are small, run on any CPU and are downloaded once by setup. **No language model (LLM) is
+used:** nothing writes or summarises text, so every result is a passage that is really in your documents,
+and indexing stays fast. Local LLMs were tested for writing answers, summarising pages and reading images
+(see [the plan](docs/plan-images-and-models.md)); they cost seconds per item on a CPU, so they are not part
+of this release.
 
 ## Quick start
 
@@ -63,6 +78,23 @@ Start the app later with the **Knowledge Search** desktop shortcut or `start.bat
 (macOS/Linux). Full walkthrough and a test run with your own documents:
 **[Getting started](docs/getting-started.md)**.
 
+## Search a website or intranet
+
+1. **Copy the site** with **site2md** (in [`site2md/`](site2md/README.md); zip that folder to share it):
+   double-click `Crawl Website.bat` (Windows) or `Crawl Website.command` (macOS), paste the address, give the
+   copy a name and sign in in the browser window if the site asks. You get `site2md/output/<name>/`: one
+   Markdown file per page, plus the PDF, Word and PowerPoint files the pages link to or embed (Google Drive
+   files and folders included), as they are.
+2. **Index the copy:** sign in to Knowledge Search as the administrator → **Users & access** → create a
+   collection (e.g. `intranet`) and grant it to the people who should see it → **Documents** → choose
+   that collection → **choose a folder** → select `output/<name>`. Every page and file is uploaded; the rest
+   (`manifest.json`) is skipped.
+3. **Search.** Each page keeps its web address ("Original: https://…" in the passage view) and is linked to
+   the documents it attaches, so the page and its PDFs are found together and connected under
+   **Connections**.
+
+Command-line alternative for step 2: `uv run knowledge-search ingest intranet site2md/output/<name> --wait`.
+
 ## Documentation
 
 | Guide | For |
@@ -83,13 +115,18 @@ Start the app later with the **Knowledge Search** desktop shortcut or `start.bat
 ## Requirements
 
 64-bit Windows 10/11, macOS or Linux; 4 GB free RAM (8 GB recommended for the larger models); ~2 GB disk;
-internet access during setup only (to download the app's dependencies and models). After setup it runs
-offline.
+internet access during setup only (to download the app's dependencies and models). Nothing needs to be
+installed beforehand. After setup it runs offline.
+
+**Speed:** search answers in under a second. Indexing is limited by the embedding model on the CPU: on the
+4-core test machine about 6 passages per second (a 10-page PDF has ~30 passages), and faster on a modern
+laptop. It runs in the background; documents become searchable one by one. Scanned PDFs without a text
+layer and text inside images are not indexed (no OCR).
 
 ## Status
 
-First release: retrieval-only (no generated answers). See [Handoff](docs/HANDOFF.md) for exactly what has
-been verified and what has not.
+Version 1.0: search only (no generated answers, no OCR). See [Handoff](docs/HANDOFF.md) for exactly what
+has been verified and what has not.
 
 ## License
 

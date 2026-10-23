@@ -70,6 +70,14 @@ Click **View passage** to see the passage in context and **Open source** to open
    - a question your documents cannot answer → expect *no adequate evidence*.
 5. Edit a file and drop it again: only that file is re-indexed; text you removed is no longer found.
 
+A whole folder: **choose a folder** next to *browse* uploads every supported file in it and its subfolders.
 Command-line alternative: `uv run knowledge-search ingest trial path/to/folder --wait`.
+
+## 5. Your website or intranet
+
+Copy it with site2md first (see [the README](../README.md#search-a-website-or-intranet) and
+[`site2md/README.md`](../site2md/README.md)), then upload the copy's folder (`site2md/output/<name>`) with
+**choose a folder** into a collection only the intended readers can access. The copy has no access
+control of its own.
 
 Next: [User guide](user-guide.md) · [Admin guide](admin-guide.md)

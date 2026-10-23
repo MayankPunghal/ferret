@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-__version__ = "0.4.3"
+__version__ = "1.0.0"
 
 
 def main(argv: list[str] | None = None) -> None:

@@ -78,7 +78,7 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
             t.join(timeout=10)
         db.close_pool()
 
-    app = FastAPI(title="Knowledge Search", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="Knowledge Search", version="1.0.0", lifespan=lifespan)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):

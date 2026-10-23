@@ -30,8 +30,9 @@ searchable, never something that delays search.
     evidence check than the current gate, and not a better ranker.
 - **Page summaries in the passage embeddings:** adding the first 300 characters of the page to each
   passage did not change retrieval on the Kubernetes test (top result right 96.4% with or without it).
-  The run with Gemma-written summaries was still in progress when this page was written. Its result is in
-  `eval/results/corpus-kubernetes-nodesc-gemma-4-e2b-*` once it finishes.
+  With summaries written by Gemma 4 E2B (~12 s of model time per page), the top result was right 98.2%
+  of the time instead of 96.4%: one more of the 56 questions. That is within noise and not worth the
+  ingest time (`eval/results/corpus-kubernetes-nodesc-gemma-4-e2b-*`).
 - **Reading text in images** (`eval/image_set.py`, `eval/image_ocr.py`): the trial was stopped after 4
   images. PaddleOCR-VL-1.6 read all 4 perfectly: 2 docs pages, the holiday-calendar table and the
   leave-application form, with every word found and nothing made up. This is too small a sample to
