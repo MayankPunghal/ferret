@@ -220,9 +220,8 @@ $("#search-form").addEventListener("submit", async (e) => {
 async function openPassage(id) {
   const p = await api(`/api/chunks/${id}`);
   $("#d-title").replaceChildren(docTitle(p.doc_title, p.clearer_title));
-  $("#d-summary").replaceChildren(writtenSummary(p));
   $("#d-loc").textContent = [p.collection, p.heading_path, p.page ? `page ${p.page}` : "", `version ${p.version_no}`].filter(Boolean).join(" · ");
-  $("#d-body").replaceChildren(...p.context.map((c) => el("p", { className: c.id === p.id ? "hit" : "ctx", textContent: c.text })));
+  $("#d-body").replaceChildren(writtenSummary(p), ...p.context.map((c) => el("p", { className: c.id === p.id ? "hit" : "ctx", textContent: c.text })));
   $("#d-open").href = `/api/documents/${p.document_id}/source` + (p.page ? `#page=${p.page}` : "");
   $("#d-uri").replaceChildren(...(!p.source_uri ? [] : /^https?:\/\//.test(p.source_uri)
     ? ["Original: ", el("a", { href: p.source_uri, target: "_blank", rel: "noopener noreferrer", textContent: p.source_uri })]

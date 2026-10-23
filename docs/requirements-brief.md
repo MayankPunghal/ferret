@@ -67,8 +67,8 @@ and whether the product does it. Status: **done** (verified by a test, an evalua
 
 | # | Ask | Status | Evidence / note |
 |---|---|---|---|
-| L1 | A local LLM summarises, tags and labels every document **in a background job** that never blocks search | **not built** | Measured: Gemma 4 E2B summaries ≈ authors' descriptions (+1 of 56); ~11 s per document on 4 cores. Owner wants it → next |
-| L2 | The LLM gives a page a proper title when the page's own title is vague | not built | Part of L1 (the summary prompt already returns a title) |
+| L1 | A local LLM summarises, tags and labels every document **in a background job** that never blocks search | done | `enrich.py`: summary + up to 6 topics per document, one at a time while no indexing job waits; llama.cpp server started by the app on 127.0.0.1 (or any local OpenAI-compatible URL); `setup --summaries` / `download-llm` (Qwen3.5-0.8B, ~0.5 GB, pinned llama.cpp b11836, download verified on Linux); results and passage view show them labelled; Settings switch, Index status progress; `tests/test_enrich.py` (fake server) and a live UI walkthrough with the real model |
+| L2 | The LLM gives a page a proper title when the page's own title is vague | done | Only for vague titles ("Overview", file names, "Page 3"; `enrich.vague_title`), the original kept in the tooltip |
 | L3 | Small, fast models (phone-class: Gemma, Qwen, GLM, DeepSeek) for summaries, ranking and answers | done (trialled) | Gemma 4 E2B/E4B, Qwen3.5 0.8B/2B/4B tried; ranking and evidence checks by LLM were worse than the current gate |
 | L4 | Answer the question from the found passages (second brain) | not built | Trialled; useful for writing, not for deciding; after L1 |
 | L5 | Images: read text in images with a small vision model | decided: on hold | Owner: "hold off"; plan and measurements in `docs/plan-images-and-models.md` |
@@ -88,7 +88,7 @@ and whether the product does it. Status: **done** (verified by a test, an evalua
 
 ## Gaps to close, in order
 
-1. L1/L2 background enrichment job (summary, tags, title) — optional, local, set up by the batch file.
+1. ~~L1/L2 background enrichment job (summary, tags, title)~~ — done (optional, local, set up by the batch file).
 2. ~~Gate 2: rehearse backup → restore~~ — done (`scripts/backup_restore_check.sh`; found and fixed the database outliving the app).
 3. Final recommended settings and a local test procedure for the owner's intranet files; site2md 1.0.0 zip.
 4. Later, each only with a measured test: LLM relations (G5), shared-identifier links (R4.5), clusters (G3),

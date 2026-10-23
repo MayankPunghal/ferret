@@ -115,6 +115,22 @@ with sync_playwright() as p:
     pg.click("#search-form button")
     pg.wait_for_selector("#outcome strong")
     shot("03-documents")
+
+    # index status: document summaries by the optional local language model (waits for them when installed)
+    def summaries_line():
+        pg.click(".tab[data-tab=status]")
+        pg.wait_for_selector("#status dl")
+        return pg.locator("#status dt:has-text('summaries') + dd").inner_text()
+    import re
+    line = summaries_line()
+    for _ in range(120):
+        m = re.match(r".*: (\d+) of (\d+) documents", line)
+        if not m or m.group(1) == m.group(2):
+            break
+        pg.wait_for_timeout(5000)
+        line = summaries_line()
+    print("summaries:", line)
+    shot("16-status")
     pg.click("#logout")
     pg.wait_for_selector("#login-view:not([hidden])")
 
@@ -139,8 +155,11 @@ with sync_playwright() as p:
     run("ledger service schema changes", "10-graph-search")
     ledger = pg.locator("#results li.result, #weak-results li.result").filter(has_text="Ledger Service").first
     ledger.locator(".r-related .rel-row").first.wait_for()
-    print("related with the result:", [x.replace("\n", " ") for x in ledger.locator(".rel-row").all_inner_texts()])
+    print("related with the result:", [x.replace("\n", " ") for x in ledger.locator(".r-related .rel-row").all_inner_texts()])
     ledger.screenshot(path=f"{OUT}/15-related.png")
+    summary = ledger.locator(".r-summary")  # only when the optional local language model is installed
+    print("summary with the result:", summary.inner_text().replace("\n", " | ") if summary.count()
+          else "none (no local language model installed)")
     ledger.locator("text=View passage").click()
     pg.wait_for_selector("#d-links h3")
     print("connections:", [x.replace("\n", " ") for x in pg.locator("#d-links h4, #d-links li").all_inner_texts()])

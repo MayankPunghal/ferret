@@ -60,7 +60,9 @@ mark { background: var(--mark); color: inherit; padding: 0 1px; }
 .r-summary p { margin: 0; }
 .chip.topic { color: var(--text); font-size: 12px; }
 .chip.topic:hover { border-color: var(--accent); color: var(--accent); }
-#d-summary .r-summary { margin-top: 6px; }
+.r-summary .rel-row > span:last-child { flex: 1 1 30ch; min-width: 0; }
+.drawer-body .r-summary { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.drawer-body .r-summary p { margin: 0; white-space: normal; }
 .graph-box summary { cursor: pointer; color: var(--muted); margin: 8px 0; }
 .badges { display: inline-flex; gap: 4px; flex-wrap: wrap; }
 .badge { font-size: 11px; border-radius: 4px; padding: 1px 6px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
@@ -120,7 +122,7 @@ button.secondary { background: var(--panel); color: var(--accent); }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner, .progress.indeterminate span { animation: none; } }
 
-.drawer-links { border-top: 1px solid var(--line); padding: 8px 16px; max-height: 60vh; overflow: auto; font-size: 14px; }
+.drawer-links { border-top: 1px solid var(--line); padding: 8px 16px; max-height: 45vh; overflow: auto; font-size: 14px; }
 .drawer-links h3 { font-size: 14px; margin: 4px 0; }
 .drawer-links h4 { font-size: 12px; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .03em; }
 .drawer-links ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
