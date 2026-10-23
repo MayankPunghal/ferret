@@ -226,10 +226,11 @@ def status(conn: Connection, model: str, collections: list[int] | None = None) -
 
 def describe(enricher, conn: Connection, enabled: bool, collections: list[int]) -> str:
     """One line for the status page."""
-    if enricher is None or not enricher.available:
-        return "no local language model installed (optional: run setup with --summaries)"
     if not enabled:
         return "off (Settings)"
+    if enricher is None or not enricher.available:
+        return enricher.state if enricher and enricher.state.startswith(("downloading", "error")) \
+            else "no local language model installed"
     c = status(conn, enricher.model, collections)
     total = sum(c.values())
     failed = f", {c['failed']} could not be summarised" if c["failed"] else ""
@@ -245,14 +246,33 @@ class Enricher:
         self.state = "off"  # off | no model | starting | waiting for indexing | working | idle | error: ...
         self.stopping = False
         self.broken = ""  # the installed model server could not start: reported, not retried until restart
+        self.download_failed = False  # the automatic download failed: retried at the next app start
         if not self.url:
-            found = installed(settings)
-            if found:
-                threads = settings.llm_threads or max(1, (os.cpu_count() or 2) // 2)
-                self.server = LocalServer(found[0], found[1], threads, Path(settings.data_dir) / "logs")
-                self.model = found[1].name
-            else:
-                self.state = "no model"
+            self._find_installed()
+
+    def _find_installed(self) -> None:
+        found = installed(self.settings)
+        if found:
+            threads = self.settings.llm_threads or max(1, (os.cpu_count() or 2) // 2)
+            self.server = LocalServer(found[0], found[1], threads, Path(self.settings.data_dir) / "logs")
+            self.model = found[1].name
+        else:
+            self.state = "no model"
+
+    def _download(self) -> None:
+        """No model yet and summaries are on: fetch the default one in the background, like the embedding
+        model on first use (setup can fetch it beforehand; KS_OFFLINE=true never downloads)."""
+        _, file, note = LLMS[DEFAULT_LLM]
+        self.state = f"downloading the summary model {file} ({note.split(',')[0]}, one-time)"
+        log.warning("document summaries: %s", self.state)
+        try:
+            download(self.settings)
+        except Exception as e:  # noqa: BLE001 - network errors come in many types; search is unaffected
+            self.download_failed = True
+            self.state = f"error: the summary model could not be downloaded ({type(e).__name__}: {e})"[:300]
+            log.error("%s; retried at the next start", self.state)
+            return
+        self._find_installed()
 
     @property
     def available(self) -> bool:
@@ -271,6 +291,12 @@ class Enricher:
 
     def run_once(self) -> bool:
         """Summarise one document. False when there is nothing to do (or indexing comes first)."""
+        if not self.available and not self.settings.llm_url and not self.download_failed and not self.settings.offline:
+            with db.pool().connection() as conn:
+                enabled = runtime.load(conn).enrich_enabled
+            if enabled:  # outside the connection: the download takes minutes
+                self._download()
+                return self.available
         with db.pool().connection() as conn:
             rt = runtime.load(conn)
             conn.commit()
@@ -278,7 +304,7 @@ class Enricher:
                 self.state = self.broken
                 return False
             if not rt.enrich_enabled or not self.available:
-                self.state = "off" if self.available else "no model"
+                self.state = "off" if self.available else (self.state if self.download_failed else "no model")
                 return False
             if conn.execute("SELECT 1 FROM jobs WHERE status IN ('queued', 'running') LIMIT 1").fetchone():
                 self.state = "waiting for indexing"

@@ -1,42 +1,42 @@
 {
- "pages": 28,
+ "pages": 96,
  "reference_descriptions": 228,
  "models": {
   "qwen3.5-0.8b-app": {
-   "agreement": 0.793,
+   "agreement": 0.79,
    "identifies": 0.75,
-   "median_seconds": 6.1,
-   "words": 27.1
+   "median_seconds": 6.6,
+   "words": 26.9
   },
   "qwen3.5-2b-app": {
-   "agreement": 0.773,
-   "identifies": 0.643,
-   "median_seconds": 19.05,
-   "words": 35.3
+   "agreement": 0.782,
+   "identifies": 0.698,
+   "median_seconds": 17.85,
+   "words": 34.2
   },
   "gemma-4-e2b-app": {
-   "agreement": 0.791,
-   "identifies": 0.714,
-   "median_seconds": 17.75,
+   "agreement": 0.803,
+   "identifies": 0.76,
+   "median_seconds": 17.2,
    "words": 29.6
   },
   "qwen3.5-4b-app": {
-   "agreement": 0.785,
-   "identifies": 0.679,
-   "median_seconds": 34.8,
-   "words": 34.1
+   "agreement": 0.781,
+   "identifies": 0.719,
+   "median_seconds": 32.3,
+   "words": 33.6
   },
   "gemma-4-e4b-app": {
-   "agreement": 0.792,
-   "identifies": 0.714,
-   "median_seconds": 34.0,
-   "words": 30.3
+   "agreement": 0.802,
+   "identifies": 0.76,
+   "median_seconds": 33.7,
+   "words": 31.1
   },
   "no model (first paragraph)": {
-   "agreement": 0.884,
-   "identifies": 0.857,
+   "agreement": 0.886,
+   "identifies": 0.875,
    "median_seconds": null,
-   "words": 21.1
+   "words": 20.7
   }
  }
 }

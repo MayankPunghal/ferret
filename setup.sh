@@ -49,13 +49,15 @@ if [ "$SUMMARIES" = ask ]; then
     read -r -p "Also install a small local language model (~3.2 GB) that writes a summary and topics for each document in the background? Nothing leaves this computer. [Y/n] " ans
     case "${ans:-y}" in [Yy]*) SUMMARIES=yes ;; *) SUMMARIES=no ;; esac
   else
-    SUMMARIES=no
+    SUMMARIES=later  # no one to ask: the app downloads it in the background on first start
   fi
 fi
 if [ "$SUMMARIES" = yes ]; then
   step "Downloading the optional local language model for document summaries (one-time)"
   uv run --no-dev knowledge-search download-llm \
-    || echo "WARNING: the summary model could not be downloaded; search works without it. Retry later with: uv run knowledge-search download-llm"
+    || echo "WARNING: the summary model could not be downloaded now; the app retries in the background when it starts. Search works without it."
+elif [ "$SUMMARIES" = no ]; then  # remembered: the app would otherwise download it on first start
+  grep -q '^KS_ENRICH_ENABLED=' .env 2>/dev/null || echo "KS_ENRICH_ENABLED=false" >> .env
 fi
 
 step "Initialising the local database"

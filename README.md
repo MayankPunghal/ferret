@@ -77,7 +77,7 @@ cd knowledge-search
 | `--no-demo` | skip the sample data |
 | `--no-start` | install only; do not start the app afterwards |
 | `--no-shortcut` | Windows only: do not create the desktop shortcut |
-| `--summaries` / `--no-summaries` | install / skip the optional summary model without asking (~3.2 GB) |
+| `--summaries` / `--no-summaries` | download the summary model during setup / turn summaries off, without asking (~3.2 GB; otherwise the app downloads it in the background on first start) |
 
 Setup installs everything for the current user (no administrator rights, no Docker): uv, Python 3.13, the
 app, an embedded PostgreSQL and the offline AI models (~900 MB in total, one time). It is safe to re-run —

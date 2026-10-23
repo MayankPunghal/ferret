@@ -70,9 +70,12 @@ if ($getLlm) {
     Step "Downloading the optional local language model for document summaries (one-time)"
     & uv run --no-dev knowledge-search download-llm
     if ($LASTEXITCODE -ne 0) {
-        Write-Host ("WARNING: the summary model could not be downloaded; search works without it. Run setup.bat " +
-                    "again later, or allow github.com and huggingface.co through the proxy.") -ForegroundColor Yellow
+        Write-Host ("WARNING: the summary model could not be downloaded now; the app retries in the background " +
+                    "when it starts (allow github.com and huggingface.co through the proxy). Search works without it.") -ForegroundColor Yellow
     }
+} elseif (-not (Test-Path .env) -or -not (Select-String -Path .env -Pattern '^KS_ENRICH_ENABLED=' -Quiet)) {
+    # remembered: the app would otherwise download it on first start
+    Add-Content -Path .env -Value "KS_ENRICH_ENABLED=false"
 }
 
 Step "Initialising the local database"

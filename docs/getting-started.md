@@ -8,7 +8,7 @@
    GitHub and extract it).
 2. In that folder run **`setup.bat --demo`** from Command Prompt — or double-click `setup.bat` and answer
    **Y** when asked whether to load the fictional sample documents. It also asks whether to install the
-   optional summary model (answer **Y**, ~3.2 GB). Other options: `--no-demo`, `--summaries`,
+   optional summary model (answer **Y**, ~3.2 GB; if you skip the question, e.g. an unattended install, the app downloads it in the background on first start; **N** turns summaries off). Other options: `--no-demo`, `--summaries`,
    `--no-summaries`, `--no-start`, `--no-shortcut` (the PowerShell-style `-Demo`, `-NoStart` also work).
 
 The setup window shows each step:

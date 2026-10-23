@@ -177,3 +177,30 @@ def test_a_model_server_that_cannot_start_is_reported_not_retried(client, corpus
     assert not e.run_once() and e.server.proc is None  # not retried until the app restarts
     with db.pool().connection() as c:
         assert not c.execute("SELECT 1 FROM documents WHERE enrich_claimed_at IS NOT NULL OR enrichment IS NOT NULL").fetchone()
+
+
+def test_without_a_model_the_default_one_is_downloaded_in_the_background(client, corpus, drain, monkeypatch, tmp_path):
+    drain()
+    calls = []
+
+    def fake_download(settings, name=enrich.DEFAULT_LLM):
+        calls.append(name)
+        if len(calls) == 1:
+            raise OSError("network unreachable")
+        d = enrich.llm_dir(settings)
+        (d / "bin" / "b1").mkdir(parents=True)
+        (d / "bin" / "b1" / "llama-server").write_text("")
+        (d / "model.gguf").write_bytes(b"GGUF")
+        (d / "selected.txt").write_text("model.gguf")
+
+    monkeypatch.setattr(enrich, "download", fake_download)
+    settings = state.settings.model_copy(update={"llm_url": "", "model_cache": tmp_path})
+    e = enrich.Enricher(settings)
+    assert not e.available and not e.run_once() and "could not be downloaded" in e.state
+    assert not e.run_once() and len(calls) == 1 and "could not be downloaded" in e.state  # not retried this run
+    with db.pool().connection() as c:
+        assert "could not be downloaded" in enrich.describe(e, c, True, [])
+    e = enrich.Enricher(settings)  # next start: retried, then used
+    assert e.run_once() and e.available and e.model == "model.gguf" and len(calls) == 2
+    assert enrich.Enricher(settings.model_copy(update={"offline": True, "model_cache": tmp_path / "x"})).run_once() is False
+    assert len(calls) == 2  # never downloads offline

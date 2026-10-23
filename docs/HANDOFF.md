@@ -23,7 +23,7 @@ reranker); every search returns ranked passages with source links **and an expli
 `no_searchable_scope`, `retrieval_degraded`, `retrieval_failure`). One-click setup with an embedded
 PostgreSQL (no Docker). Admin UI for models, chunking, reranker, thresholds, users and access.
 Each result also lists its related documents (links to / referenced by / mentions / related in meaning).
-Optional: a small local language model (Gemma 4 E2B via llama.cpp, `setup --summaries`) writes a
+Optional: a small local language model (Gemma 4 E2B via llama.cpp; setup or the app on first start downloads it) writes a
 summary, topics and, for vague titles, a clearer title per document in the background (§4f). No answer
 generation yet (deliberately — see §7).
 
@@ -39,7 +39,7 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 | Item | Status | Evidence |
 |---|---|---|
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
-| Test suite | **verified** | `uv run pytest -q` → 78 passed (summaries against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Test suite | **verified** | `uv run pytest -q` → 79 passed (summaries against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **verified by the owner** on Windows 11: install, model download, DB init and indexing; searches crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93, 2026-10-22 18:01); owner after that: "setup worked now, search returns results on Windows" (2026-10-23 00:15). **Regression
 found by the owner 2026-10-23 22:36:** the upgrade to migration 0005 (document vectors, `avg(embedding)` in SQL)
@@ -210,7 +210,7 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
 - **Where it runs:** where indexing runs: the app (laptop) or `knowledge-search worker` (server profile).
   The app starts llama.cpp's `llama-server` on a free 127.0.0.1 port (half the cores, `-np 1`) and stops it
   on exit, even mid-request. `KS_LLM_URL` points it at another local OpenAI-compatible server instead.
-- **Install:** `knowledge-search download-llm` / `setup --summaries` (asked by default): llama.cpp release
+- **Install:** automatic: with summaries on and no model, the app downloads the default in the background on first start (once per start on failure, never with `KS_OFFLINE`); setup asks (Y downloads now, N writes `KS_ENRICH_ENABLED=false` to `.env`); `knowledge-search download-llm` by hand. llama.cpp release
   **b11836** CPU build (the build used for every measurement here; all 6 platform files checked to exist)
   + `unsloth/gemma-4-E2B-it-GGUF` Q4_K_M (~3.1 GB, Apache-2.0; `--model qwen3.5-0.8b` for Qwen3.5-0.8B, ~0.5 GB).
   Default switched from Qwen to Gemma after the blind review below; Gemma verified starting through
