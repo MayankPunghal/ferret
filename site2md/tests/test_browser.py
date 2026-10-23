@@ -21,7 +21,10 @@ PAGES = {
     "/site/home": "<html><head><title>Home | Intranet</title></head><body><nav><a href='/site/js'>JS page</a> "
                   "<a href='/site/policy'>Policy</a></nav><main><h1>Home</h1><p>Welcome.</p></main></body></html>",
     "/site/policy": "<html><head><title>Leave Policy | Intranet</title></head><body><main><h1>Leave Policy</h1>"
-                    "<p>Twenty days of leave.</p><a href='/site/files/handbook.pdf'>Handbook</a></main></body></html>",
+                    "<p>Twenty days of leave.</p><a href='/site/files/handbook.pdf'>Handbook</a>"
+                    "<div style='height:3000px'></div><p id='lazy' style='min-height:40px'></p></main><script>new IntersectionObserver("
+                    "e => { if (e.some(x => x.isIntersecting)) document.getElementById('lazy').textContent = 'Carry over at "
+                    "most five days.' }).observe(document.getElementById('lazy'))</script></body></html>",
     "/site/js": "<html><head><title>Dashboard | Intranet</title></head><body><main id='m'></main><script>"
                 "document.getElementById('m').innerHTML='<h1>Dashboard</h1><p>Rendered by JavaScript: on-call is Priya.</p>'"
                 "</script></body></html>",
@@ -69,3 +72,4 @@ def test_sign_in_is_kept_in_the_profile_and_javascript_pages_are_rendered(tmp_pa
     assert "on-call is Priya" in (out / "js.md").read_text()  # rendered by JavaScript
     policy = (out / "policy.md").read_text()
     assert 'title: "Leave Policy"' in policy and "(files-handbook-pdf.pdf)" in policy
+    assert "Carry over at most five days." in policy  # drawn only when scrolled into view

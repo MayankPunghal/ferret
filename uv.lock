@@ -1479,8 +1479,11 @@ wheels = [
 
 [[package]]
 name = "site2md"
-version = "0.2.1"
+version = "0.3.0"
 source = { editable = "site2md" }
+dependencies = [
+    { name = "pypdf" },
+]
 
 [package.optional-dependencies]
 browser = [
@@ -1488,7 +1491,10 @@ browser = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "playwright", marker = "extra == 'browser'", specifier = ">=1.48" }]
+requires-dist = [
+    { name = "playwright", marker = "extra == 'browser'", specifier = ">=1.48" },
+    { name = "pypdf", specifier = ">=5" },
+]
 provides-extras = ["browser"]
 
 [[package]]

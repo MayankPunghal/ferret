@@ -1,6 +1,6 @@
-"""Website → Markdown crawler: point it at a URL, get one Markdown file per page (plus the PDFs / Word files
-the site links to). Standard library only; ``--browser`` (optional ``playwright`` package) drives a real
-browser for sites behind a login or that build pages with JavaScript.
+"""Website → Markdown crawler: point it at a URL, get one Markdown file per page, and per PDF / Word file the
+site links to or embeds. Standard library plus pypdf; ``--browser`` (optional ``playwright`` package) drives
+a real browser for sites behind a login or that build pages with JavaScript.
 
     site2md https://wiki.example.internal/ --out wiki-docs
     site2md https://sites.google.com/acme.com/intranet/home --out intranet --browser --login   # sign in once
@@ -36,6 +36,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import parse_qsl, urldefrag, urlencode, urljoin, urlsplit, urlunsplit
 
+from .docs import document_to_markdown
 from .html import html_to_markdown
 
 USER_AGENT = "site2md/1 (documentation crawler)"
@@ -58,6 +59,20 @@ EXPORT = {"file": "https://drive.google.com/uc?export=download&id={}",
           "document": "https://docs.google.com/document/d/{}/export?format=docx",
           "presentation": "https://docs.google.com/presentation/d/{}/export/pdf"}
 LOGIN = re.compile(r"^(accounts\.google\.com|login\.microsoftonline\.com)|/(login|signin|sign-in|sso)\b", re.IGNORECASE)
+
+
+SETTLE = """async () => {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  for (let i = 0; i < 40 && scrollY + innerHeight < document.documentElement.scrollHeight; i++) {
+    scrollBy(0, innerHeight); await sleep(150);
+  }
+  let last = -1;
+  for (let i = 0; i < 20; i++) {
+    const n = document.body ? document.body.innerText.length : 0;
+    if (n === last) break;
+    last = n; await sleep(250);
+  }
+}"""
 
 
 class _Inline:
@@ -112,6 +127,10 @@ class BrowserFetcher:
                     self.page.wait_for_load_state("networkidle", timeout=5_000)
                 except Exception:  # noqa: BLE001, S110 - still busy: take the page as it is
                     pass
+                try:  # scroll through the page (content drawn when it comes into view), then wait for the text
+                    self.page.evaluate(SETTLE)  # to stop changing
+                except Exception:  # noqa: BLE001, S110 - navigated away meanwhile: take the page as it is
+                    pass
                 return self.page.content().encode("utf-8"), "text/html; charset=utf-8", self.page.url, ""
         r = self.ctx.request.get(url, timeout=120_000)  # files and non-HTML: same cookies, no rendering
         if r.status >= 400:
@@ -134,6 +153,12 @@ def _filename(content_disposition: str) -> str:
 def embedded_documents(html: str) -> list[str]:
     """Download URLs of the Google Drive files, Docs and Slides a page embeds or links to."""
     return list(dict.fromkeys(EXPORT[kind].format(doc_id) for kind, doc_id in EMBED.findall(html.replace("\\/", "/"))))
+
+
+def _front(title: str, source_url: str, document_url: str = "") -> str:
+    doc = f"document_url: {json.dumps(document_url)}\n" if document_url else ""
+    return (f"---\ntitle: {json.dumps(title)}\nsource_url: {json.dumps(source_url)}\n{doc}"
+            f"crawled_at: {datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}\n---\n\n")
 
 
 def normalize(url: str) -> str:
@@ -334,13 +359,13 @@ class Crawler:
         self._save_page(final, html, [a for a in attached if a])
         return links
 
-    def _embedded(self, url: str) -> tuple[str, str] | None:
+    def _embedded(self, url: str) -> tuple | None:
         """Download a Drive/Docs file the page embeds (another host, so outside the crawl scope; robots.txt does
-        not apply to a file the page shows): (label, url), the link is made local by rewrite_links."""
+        not apply to a file the page shows): (url, data, kind, file name); data is None if already saved."""
         url = normalize(url)
         with self.lock:
             if url in self.manifest["files"]:
-                return self.manifest["files"][url], url
+                return url, None, None, self.manifest["files"][url]
             if url in self.seen:
                 return None
             self.seen.add(url)
@@ -356,33 +381,56 @@ class Crawler:
                 self.manifest["skipped"][url] = ("embedded file not downloadable (sign-in, or download disabled)"
                                                  if "html" in ctype else f"embedded file of type {ctype or 'unknown'}")
             return None
-        name = self._save_file(url, data, kind, filename)
-        return filename or name, url
+        return url, data, kind, filename
 
-    def _save_file(self, url: str, data: bytes, kind: str, filename: str = "") -> str:
+    def _save_file(self, url: str, data: bytes, kind: str, filename: str = "", title: str = "",
+                   page_url: str = "") -> str:
+        """Save a linked or embedded document. PDF and Word files become Markdown (front matter: title,
+        source_url = the page showing it, document_url); a file without text (scanned PDF) is kept as it is."""
         digest = hashlib.sha256(data).hexdigest()
         with self.lock:
             if digest in self.hashes:
                 self.manifest["files"].setdefault(url, self.hashes[digest])
                 return self.hashes[digest]
-            stem = re.sub(r"[?#]", " ", filename.rsplit(".", 1)[0])
-            name = slug_for("/" + stem, self.used) if stem.strip() else slug_for(url, self.used, self.root)
-            name += "." + kind
+        doc_title, md = "", ""
+        if kind in ("pdf", "docx"):
+            try:
+                doc_title, md = document_to_markdown(data, kind)
+            except Exception:  # noqa: BLE001, S110 - damaged or protected: the original is kept
+                pass
+        stem = re.sub(r"(?i)(\.(pdf|docx?|pptx?|xlsx?))+$", "", filename).strip()
+        with self.lock:
+            if digest in self.hashes:  # saved by another worker meanwhile
+                self.manifest["files"].setdefault(url, self.hashes[digest])
+                return self.hashes[digest]
+            name = slug_for("/" + re.sub(r"[?#]", " ", stem), self.used) if stem else slug_for(url, self.used, self.root)
+            name += ".md" if md.strip() else "." + kind
             self.hashes[digest] = name
             self.manifest["files"][url] = name
-        (self.out / name).write_bytes(data)
+        if md.strip():
+            title = title or doc_title or stem or name.removesuffix(".md")
+            (self.out / name).write_text(_front(title, page_url or url, url if page_url else "") + md + "\n",
+                                         encoding="utf-8")
+        else:
+            (self.out / name).write_bytes(data)
         return name
 
-    def _save_page(self, url: str, html: str, attached: list[tuple[str, str]] = ()) -> None:
+    def _save_page(self, url: str, html: str, attached: list[tuple] = ()) -> None:
         title, md = html_to_markdown(html)
-        own_text = re.sub(r"(?m)^#+ .*$", "", md).strip()
-        if attached and len(own_text) < THIN_PAGE:  # only a heading around a document viewer: the document
-            with self.lock:                          # is what gets indexed; links to the page lead to it
-                files = [self.manifest["files"][u] for _, u in attached if u in self.manifest["files"]]
-                self.manifest["pages"][url] = {"file": files[0], "title": title, "document_only": True}
+        # only a heading around a document viewer: the document is saved (with the page's title and URL)
+        # instead of a title-only page, and links to the page lead to it
+        thin = bool(attached) and len(re.sub(r"(?m)^#+ .*$", "", md).strip()) < THIN_PAGE
+        docs = []
+        for doc_url, data, kind, filename in attached:
+            name = filename if data is None else self._save_file(
+                doc_url, data, kind, filename, title=title if thin and len(attached) == 1 else "", page_url=url)
+            docs.append((name if data is None else filename or name, doc_url, name))
+        if thin:
+            with self.lock:
+                self.manifest["pages"][url] = {"file": docs[0][2], "title": title, "document_only": True}
             return
-        if attached:  # embedded documents: linked, so they are connected to this page after ingest
-            md += "\n\n## Attached documents\n\n" + "\n".join(f"- [{label}]({file})" for label, file in attached)
+        if docs:  # embedded documents: linked, so they are connected to this page after ingest
+            md += "\n\n## Attached documents\n\n" + "\n".join(f"- [{label}]({u})" for label, u, _ in docs)
         digest = hashlib.sha256(md.encode()).hexdigest()
         with self.lock:
             if digest in self.hashes:  # same page under another URL
@@ -391,12 +439,9 @@ class Crawler:
             name = slug_for(url, self.used, self.root) + ".md"
             self.hashes[digest] = name
             self.manifest["pages"][url] = {"file": name, "title": title, **({"empty": True} if len(md) < 40 else {}),
-                                           **({"attached": [self.manifest["files"].get(u) for _, u in attached]}
-                                              if attached else {})}
+                                           **({"attached": [name for _, _, name in docs]} if docs else {})}
         title = title or (re.search(r"(?m)^#\s+(.+)$", md) or [None, urlsplit(url).path])[1]
-        front = (f"---\ntitle: {json.dumps(title)}\nsource_url: {json.dumps(url)}\n"
-                 f"crawled_at: {datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}\n---\n\n")
-        (self.out / name).write_text(front + md + "\n", encoding="utf-8")
+        (self.out / name).write_text(_front(title, url) + md + "\n", encoding="utf-8")
 
     # -- crawl -----------------------------------------------------------------------------------------------
     def run(self, resume: bool = False) -> dict:

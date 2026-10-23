@@ -1,7 +1,7 @@
 """HTML → Markdown for documentation and wiki pages (MkDocs, Sphinx, Confluence, Google Sites, generated
-wikis). Standard library only. When the page has a <main>/<article>/role="main" element only that is used, so
-menus and footers are not kept; <script>, <style>, <nav>, navigation roles and sidebars are always dropped.
-<a href> becomes a Markdown link."""
+wikis). Standard library only. When the page has <main>/<article>/role="main" elements only those are used
+(unless most of the text is outside them), so menus and footers are not kept; <script>, <style>, <nav>,
+navigation roles and sidebars are always dropped. <a href> becomes a Markdown link."""
 
 import re
 from html.parser import HTMLParser
@@ -18,15 +18,14 @@ _MAIN = re.compile(r"""<(main|article)\b|\brole\s*=\s*["']?main\b""", re.IGNOREC
 
 
 class _Html(HTMLParser):
-    """Markdown-ish text of an HTML page. With ``only_main``, only the first <main>/<article>/role=main
-    element is converted; navigation, permalinks and similar chrome are always skipped."""
+    """Markdown-ish text of an HTML page. With ``only_main``, only the <main>/<article>/role=main
+    elements are converted; navigation, permalinks and similar chrome are always skipped."""
 
     def __init__(self, only_main: bool):
         super().__init__(convert_charrefs=True)
         self.out: list[str] = []
         self.only_main = only_main
         self.main: list = []  # [tag, depth] while inside the main element
-        self.main_done = False
         self.skip: list = []  # [tag, depth] while inside a skipped element
         self.pre = 0
         self.title = ""
@@ -51,7 +50,7 @@ class _Html(HTMLParser):
             return
         elif self.main:
             self.main[1] += tag == self.main[0]
-        elif self.only_main and not self.main_done and (tag in ("main", "article") or a.get("role") == "main"):
+        elif self.only_main and (tag in ("main", "article") or a.get("role") == "main"):
             self.main = [tag, 1]
         if not self._active():
             return
@@ -92,7 +91,7 @@ class _Html(HTMLParser):
         if self.main and tag == self.main[0]:
             self.main[1] -= 1
             if not self.main[1]:
-                self.main, self.main_done = [], True
+                self.main = []
         if re.fullmatch(r"h[1-6]", tag):
             self.out.append("\n\n")
         elif tag == "pre":
@@ -114,11 +113,25 @@ class _Html(HTMLParser):
             self.out.append(data if self.pre else re.sub(r"\s+", " ", data))
 
 
-def html_to_markdown(html: str) -> tuple[str, str]:
-    """(title, markdown)."""
-    p = _Html(only_main=bool(_MAIN.search(html)))
+def _convert(html: str, only_main: bool) -> _Html:
+    p = _Html(only_main)
     p.feed(html)
     p.close()
+    return p
+
+
+def _own_text(md: str) -> int:
+    """Characters of text that are not links or markup (menus are mostly links)."""
+    return len(re.sub(r"\[[^\]]*\]\([^)]*\)|[#*`|\s-]", "", md))
+
+
+def html_to_markdown(html: str) -> tuple[str, str]:
+    """(title, markdown)."""
+    p = _convert(html, only_main=bool(_MAIN.search(html)))
+    if p.only_main:  # a "main" element that holds only part of the text (site builders): use the whole page
+        whole = _convert(html, only_main=False)
+        if _own_text("".join(whole.out)) > 2 * _own_text("".join(p.out)) + 200:
+            p = whole
     md = "".join(p.out)
     md = re.sub(r"[\ue000-\uf8ff¶]", "", md)  # icon-font glyphs and pilcrow permalinks
     md = re.sub(r"\[\s*\]\([^)]*\)", "", md)  # links without text (icons)

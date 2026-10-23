@@ -45,9 +45,9 @@ uv run knowledge-search ingest policies ./policies --wait     # bulk import a fo
 
 ## Crawling a website or intranet
 
-The crawler is a separate, shareable package, **site2md** (`site2md/`, standard-library Python; see
-`site2md/README.md`). It saves a website as one Markdown file per page, plus the PDF and Word files the site
-links to, ready to ingest. It needs no database or models and sends requests only to the site.
+The crawler is a separate, shareable package, **site2md** (`site2md/`, pure Python plus pypdf; see
+`site2md/README.md`). It saves a website as Markdown, one file per page, and converts the PDF and Word files
+the site links to or embeds to Markdown as well, ready to ingest. It needs no database or models and sends requests only to the site.
 `knowledge-search crawl …` runs the same tool.
 
 ```bash
@@ -75,7 +75,8 @@ Later runs drop `--login`. Browser mode also renders pages that build their cont
   `--ignore-robots` is given.
 - **Embedded documents:** Google Drive files, Docs and Slides that a page embeds or links to are
   downloaded with the same sign-in (Docs as Word, Slides as PDF). They are linked from the page under
-  "Attached documents", so a page that is only a title and a PDF viewer is searchable through its PDF.
+  "Attached documents". They are converted to Markdown (`source_url` is the page that shows them). A page
+  that is only a title around a PDF viewer is saved as that PDF's text, under the page's title and address.
 - **Duplicates:** a page reached under several URLs (`index.html`, tracking parameters) is saved once.
 - **Links and titles:** links between crawled pages are rewritten to the local files, so the **graph works
   after ingest**. A site-wide title suffix (" | Company Wiki") is removed from titles.

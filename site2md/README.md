@@ -1,7 +1,7 @@
 # site2md
 
 Save a website or intranet as Markdown files, one per page, for a search index (such as knowledge-search),
-an LLM tool or an offline copy. Standard-library Python; a real browser is optional for sites behind a login.
+an LLM tool or an offline copy. Pure Python (plus pypdf); a real browser is optional for sites behind a login.
 
 ## The easy way (no setup)
 
@@ -11,8 +11,8 @@ an LLM tool or an offline copy. Standard-library Python; a real browser is optio
 3. Paste the website address and give the copy a name. The first time, a browser window opens: sign in if
    the site asks you to (company intranet), then press Enter in the black window.
 
-The pages are saved in `output/<name>/`, one Markdown file per page, plus the PDFs and Word files the
-pages link to or embed. The first run installs what it needs (uv, Python, about 1–2 minutes; the internet
+The pages are saved in `output/<name>/` as Markdown, one file per page, and so are the PDFs and Word files
+the pages link to or embed (their text, converted). The first run installs what it needs (uv, Python, about 1–2 minutes; the internet
 is needed for that). Running it again with the same name continues the copy and retries failed pages.
 
 You choose the browser: Chrome or Edge (already installed), or Firefox or Chromium (downloaded once). The
@@ -52,10 +52,15 @@ site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --brows
   other prefixes (repeatable), `--allow-host` adds whole hosts.
 - Never follows logout, delete, edit, print or feed links; respects robots.txt unless `--ignore-robots`.
 - Writes `<page>.md` with front matter (`title`, `source_url`, `crawled_at`) and the page's main content
-  (menus and footers dropped); saves linked PDF / Word / text files as they are.
+  (menus and footers dropped). Scrolls through each page first, so text drawn when it comes into view is
+  included.
+- Converts linked PDF and Word files to Markdown too (`title`, `source_url` = the page that shows it,
+  `document_url`; PDFs get a `## Page N` section per page). A PDF without a text layer (a scan) is saved as
+  it is: it needs OCR.
 - Downloads the Google Drive files, Docs (as Word) and Slides (as PDF) a page embeds or links to — the PDF
   viewers on Google Sites pages — with the same sign-in, and links them from the page ("Attached documents").
-  A page that is only a heading around such a viewer is not saved separately: the document is the content.
+  A page that is only a heading around such a viewer is not saved separately: its document is saved under the
+  page's title and address.
 - Saves a page reached under several URLs once; rewrites links between crawled pages to the local files;
   removes a title suffix shared by most pages (" | Company Wiki").
 - `manifest.json`: every URL → file, failures (e.g. "sign-in page"), skips and the remaining queue;

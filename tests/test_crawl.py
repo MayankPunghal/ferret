@@ -1,12 +1,16 @@
 """Website crawler: follows every link (content, nav, footer, sitemap), one Markdown file per page, links
 rewritten to local files, never follows logout/robots-disallowed links, saves linked PDFs, dedupes."""
 
+import io
 import json
 import threading
 import urllib.error
+import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from site2md.crawl import EXPORT, Crawler, normalize
+from site2md.html import html_to_markdown
 
 from knowledge_search.parsing import chunk_document, parse_document
 
@@ -106,19 +110,28 @@ def test_crawl_resume_and_page_limit(tmp_path):
     assert len(done["pages"]) == 5 and not done["queue"]
 
 
-def test_embedded_google_drive_files_are_downloaded_and_linked(tmp_path):
+def _docx(text: str) -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("word/document.xml", '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/'
+                   f'2006/main"><w:body><w:p><w:r><w:t>{text}</w:t></w:r></w:p></w:body></w:document>')
+    return buf.getvalue()
+
+
+def test_embedded_google_drive_documents_are_saved_as_markdown(tmp_path):
     pdf_id, doc_id = "1" + "a" * 30, "1" + "b" * 30
     text = "Employees can claim expenses within 30 days. Managers approve claims in the HR system. " * 3
     hr = ("<html><head><title>HR Corner</title></head><body><main><h1>HR Corner</h1>"
           f"<p>{text}</p><a href='/hr/pip'>PIP policy</a>"
           f'<div data-url="https://docs.google.com/document/d/{doc_id}/edit"></div></main></body></html>')
-    pip = ("<html><head><title>PIP Policy</title></head><body><main><h1>PIP Policy</h1>"
+    pip = ("<html><head><title>Postmortem</title></head><body><main><h1>Postmortem</h1>"
            f'<iframe src="https://drive.google.com/file/d/{pdf_id}/preview"></iframe></main></body></html>')
+    pdf = (Path(__file__).parent.parent / "fixtures/corpus/engineering/incident-2025-031-postmortem.pdf").read_bytes()
     docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     served = {"https://intranet.example/hr": (hr.encode(), "text/html", ""),
               "https://intranet.example/hr/pip": (pip.encode(), "text/html", ""),
-              EXPORT["file"].format(pdf_id): (b"%PDF-1.4 policy", "application/pdf", "SF PIP Policy.pdf"),
-              EXPORT["document"].format(doc_id): (b"PK docx", docx, "Leave Policy.docx")}
+              EXPORT["file"].format(pdf_id): (pdf, "application/pdf", "Incident 2025-031.docx.pdf"),
+              EXPORT["document"].format(doc_id): (_docx("Twenty days of paid leave."), docx, "Leave Policy.docx")}
 
     class Intranet(Crawler):
         def _get(self, url, page=False):
@@ -128,13 +141,30 @@ def test_embedded_google_drive_files_are_downloaded_and_linked(tmp_path):
             return data, ctype, url, filename
 
     m = Intranet("https://intranet.example/hr", tmp_path, delay=0, robots=False, log=lambda *_: None).run()
-    assert m["files"] == {EXPORT["file"].format(pdf_id): "sf-pip-policy.pdf",
-                          EXPORT["document"].format(doc_id): "leave-policy.docx"}
-    assert (tmp_path / "sf-pip-policy.pdf").read_bytes().startswith(b"%PDF")
-    # a page with text of its own links its documents; a heading around a viewer is not saved as a page,
-    # and links to it lead to the document
-    assert m["pages"]["https://intranet.example/hr/pip"] == {"file": "sf-pip-policy.pdf", "title": "PIP Policy",
+    assert m["files"] == {EXPORT["file"].format(pdf_id): "incident-2025-031.md",
+                          EXPORT["document"].format(doc_id): "leave-policy.md"}
+    # a heading around a viewer is not saved as a page: the document is, with the page's title and URL
+    assert m["pages"]["https://intranet.example/hr/pip"] == {"file": "incident-2025-031.md", "title": "Postmortem",
                                                              "document_only": True}
-    assert sorted(p.name for p in tmp_path.glob("*.md")) == ["hr.md"]
+    incident = (tmp_path / "incident-2025-031.md").read_text()
+    assert 'title: "Postmortem"' in incident and 'source_url: "https://intranet.example/hr/pip"' in incident
+    assert "## Page 1" in incident and "document_url:" in incident
+    leave = (tmp_path / "leave-policy.md").read_text()
+    assert "Twenty days of paid leave." in leave and 'source_url: "https://intranet.example/hr"' in leave
+    # a page with text of its own links its documents
+    assert sorted(p.name for p in tmp_path.glob("*")) == ["hr.md", "incident-2025-031.md", "leave-policy.md",
+                                                         "manifest.json"]
     md = (tmp_path / "hr.md").read_text()
-    assert "[PIP policy](sf-pip-policy.pdf)" in md and "- [Leave Policy.docx](leave-policy.docx)" in md
+    assert "[PIP policy](incident-2025-031.md)" in md and "- [Leave Policy.docx](leave-policy.md)" in md
+
+
+def test_page_text_outside_the_main_element_is_kept():
+    # several main areas are all kept
+    _, md = html_to_markdown("<body><nav>Menu</nav><main><h1>Sick Leave</h1></main><article><p>Fifteen days "
+                             "a year.</p></article></body>")
+    assert "Sick Leave" in md and "Fifteen days" in md and "Menu" not in md
+    # a "main" element holding only the title banner (site builders): the page text is not lost
+    body = "Every employee is eligible for fifteen days of medical leave a year. " * 5
+    _, md = html_to_markdown(f"<body><div role='main'><h1>Medical Leave</h1></div><section><p>{body}</p>"
+                             "</section></body>")
+    assert "fifteen days of medical leave" in md
