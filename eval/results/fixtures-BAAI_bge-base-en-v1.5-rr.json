@@ -2,7 +2,7 @@
   "model": "BAAI/bge-base-en-v1.5",
   "reranker": "Xenova/ms-marco-MiniLM-L-6-v2",
   "documents": 12,
-  "ingest_seconds": 2.66,
+  "ingest_seconds": 2.72,
   "retrieval": {
     "lexical": {
       "hit@1": 1.0,
@@ -34,8 +34,8 @@
     }
   },
   "latency_ms_full": {
-    "p50": 175.9,
-    "p95": 233.3
+    "p50": 168.3,
+    "p95": 209.1
   },
   "gates": {
     "similarity+coverage": {

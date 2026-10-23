@@ -16,13 +16,12 @@ import time
 from pathlib import Path
 
 import psycopg
+from gates import choose, evaluate
 from psycopg.rows import dict_row
 
 from knowledge_search import auth, db, runtime
 from knowledge_search.ingest import BlobStore, Worker, submit
 from knowledge_search.search import GateConfig, search
-
-from gates import choose, evaluate
 
 ROOT = Path(__file__).resolve().parent.parent
 CORPUS = ROOT / "fixtures" / "corpus"
@@ -67,6 +66,7 @@ def main():
     ap.add_argument("--reranker", default="", help="also record cross-encoder scores (enables rerank gate families)")
     ap.add_argument("--max-far", type=float, default=0.0)
     ap.add_argument("--lexical-weight", type=float, default=1.0)
+    ap.add_argument("--graph", action="store_true", help="enable link expansion (graph_expansion)")
     a = ap.parse_args()
 
     admin_url, _ = db.start_embedded(ROOT / "data" / "eval-pg", database="postgres")
@@ -87,7 +87,7 @@ def main():
         for u, g in [("alice", "staff"), ("bob", "staff"), ("hannah", "hr")]:
             auth.add_user_to_group(c, u, g)
         runtime.save(c, runtime.validate({"embed_model": a.model, "rerank_enabled": bool(a.reranker),
-                                          "fusion_lexical_weight": a.lexical_weight,
+                                          "fusion_lexical_weight": a.lexical_weight, "graph_expansion": a.graph,
                                           **({"rerank_model": a.reranker} if a.reranker else {})}), None)
         for col in sorted(d for d in CORPUS.iterdir() if d.name != "platform-wiki"):  # wiki: graph demo only
             cid = auth.ensure_collection(c, col.name)
@@ -135,7 +135,7 @@ def main():
     out["gates"] = choose(val, test, is_relevant, a.max_far)
     shipped = GateConfig.from_runtime(rt)
     out["shipped_gate_test"] = {"gate": vars(shipped), **evaluate(test, shipped, is_relevant)}
-    path = ROOT / "eval" / "results" / f"fixtures-{a.model.replace('/', '_')}{'-rr' if a.reranker else ''}.json"
+    path = ROOT / "eval" / "results" / f"fixtures-{a.model.replace('/', '_')}{'-rr' if a.reranker else ''}{'-graph' if a.graph else ''}.json"
     path.write_text(json.dumps(out, indent=2))
     print(json.dumps({k: v for k, v in out.items() if k not in ("gates",)}, indent=1))
     for fam, g in out["gates"].items():
