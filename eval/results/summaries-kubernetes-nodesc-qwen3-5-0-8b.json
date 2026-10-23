@@ -1643,5 +1643,261 @@
    "Stateless"
   ],
   "seconds": 9.9
+ },
+ "contributor.md": {
+  "title": "Contributor",
+  "summary": "A role where individuals donate code, documentation, or time to help the Kubernetes project or community, including PRs, issues, SIG participation, and organizing events.",
+  "topics": [
+   "Kubernetes",
+   "Pull Requests",
+   "Issues",
+   "SIG Participation",
+   "Community Events"
+  ],
+  "seconds": 10.5
+ },
+ "control-plane-flags.md": {
+  "title": "Customizing components with the kubeadm API",
+  "summary": "This page explains how to customize control plane components like APIServer, ControllerManager, and Scheduler using the kubeadm API, including flags in ClusterConfiguration and patches per-node.",
+  "topics": [
+   "kubeadm",
+   "ClusterConfiguration",
+   "APIServer",
+   "ControllerManager",
+   "Scheduler",
+   "Kubernetes Components"
+  ],
+  "seconds": 14.9
+ },
+ "control-plane-node-communication.md": {
+  "title": "Communication between Nodes and the Control Plane",
+  "summary": "This document details the secure communication paths between the Kubernetes API server and nodes, including the hub-and-spoke architecture where API requests terminate at the kubelet. It specifies that the API server uses HTTPS (port 443) with client certificates for authentication, and pods can connect securely via service accounts. The control plane communicates with nodes over the same secure port, enabling untrusted network deployments.",
+  "topics": [
+   "Kubernetes API Server",
+   "Kubelet",
+   "HTTPS",
+   "Service Accounts",
+   "Control Plane to Node",
+   "Hub-and-Spoke Architecture"
+  ],
+  "seconds": 15.1
+ },
+ "control-plane.md": {
+  "title": "Control Plane",
+  "summary": "This page describes the container orchestration layer that exposes APIs for defining, deploying, and managing container lifecycles, composed of components like etcd, API Server, and Scheduler.",
+  "topics": [
+   "etcd",
+   "API Server",
+   "Scheduler",
+   "Controller Manager",
+   "Cloud Controller Manager",
+   "Container Lifecycle"
+  ],
+  "seconds": 10.3
+ },
+ "controller-manager-leader-migration.md": {
+  "title": "Migrate Replicated Control Plane To Use Cloud Controller Manager",
+  "summary": "This guide details the process of migrating replicated control plane components from the kube-controller-manager to the cloud-controller-manager, enabling leader migration for HA clusters.",
+  "topics": [
+   "kube-controller-manager",
+   "cloud-controller-manager",
+   "Leader Migration",
+   "Kubernetes Version Upgrade",
+   "Cloud Provider Extraction",
+   "Kubernetes 1.23/1.24"
+  ],
+  "seconds": 16.5
+ },
+ "controller.md": {
+  "title": "Controllers",
+  "summary": "This page explains the Controllers pattern in robotics and automation, detailing how controllers track Kubernetes resources, manage state via API server interactions, and handle direct control of external systems.",
+  "topics": [
+   "Kubernetes",
+   "Job Controller",
+   "Control Loop",
+   "API Server",
+   "External Systems",
+   "Thermostat analogy"
+  ],
+  "seconds": 10.1
+ },
+ "controllers.md": {
+  "title": "Kubernetes Workload Management",
+  "summary": "Kubernetes provides declarative APIs for managing workloads, including Deployments for stateless apps, StatefulSets for persistent pods with identity, and DaemonSets for node-specific drivers. It automates Pod replacement and manages cluster networking, essential for container orchestration.",
+  "topics": [
+   "Kubernetes",
+   "Workloads",
+   "Pods",
+   "StatefulSet",
+   "DaemonSet",
+   "Deployment"
+  ],
+  "seconds": 16.5
+ },
+ "controlling-access.md": {
+  "title": "Controlling Access to the Kubernetes API",
+  "summary": "This page explains how to control access to the Kubernetes API, detailing TLS security, authentication steps, and authorization processes for both human users and service accounts.",
+  "topics": [
+   "Kubernetes API",
+   "TLS",
+   "Authentication",
+   "Authorization",
+   "Service Accounts",
+   "Kubernetes Service Accounts"
+  ],
+  "seconds": 9.3
+ },
+ "coordinated-leader-election.md": {
+  "title": "Coordinated Leader Election",
+  "summary": "Kubernetes enables leader selection via coordinated leader election to satisfy version skew constraints. This feature allows control plane components (kube-controller-manager and kube-scheduler) to automatically elect a leader using the Lease API, which acts as a distributed lock to prevent race conditions during cluster upgrades.",
+  "topics": [
+   "Kubernetes",
+   "Leader Election",
+   "Lease API",
+   "Kubernetes API Server",
+   "Version Skew",
+   "High Availability"
+  ],
+  "seconds": 13.8
+ },
+ "coredns.md": {
+  "title": "Using CoreDNS for Service Discovery",
+  "summary": "This page outlines the upgrade process and installation steps for CoreDNS, including manual deployment instructions and the kubeadm tool for automatic retention. It also details tuning options and provides links to documentation on scaling and the Kubernetes plugin.",
+  "topics": [
+   "CoreDNS",
+   "Kubernetes",
+   "Service Discovery",
+   "DNS Server",
+   "Kubernetes Deployment",
+   "Corefile Configuration"
+  ],
+  "seconds": 13.7
+ },
+ "cpu-constraint-namespace.md": {
+  "title": "Configure Minimum and Maximum CPU Constraints for a Namespace",
+  "summary": "This page explains how to set Kubernetes limits on CPU resources for containers and Pods within a namespace, ensuring pods meet minimum and maximum CPU requirements.",
+  "topics": [
+   "Kubernetes",
+   "Namespace",
+   "CPU Constraints",
+   "LimitRange",
+   "Pod",
+   "Container"
+  ],
+  "seconds": 12.9
+ },
+ "cpu-default-namespace.md": {
+  "title": "Configure Default CPU Requests and Limits for a Namespace",
+  "summary": "This page explains how to set default CPU requests and limits for a Kubernetes namespace, including how pods without explicit limits default to 0.5 request and 1 limit, and how to override these defaults with custom manifests.",
+  "topics": [
+   "Kubernetes Namespace",
+   "CPU Requests",
+   "CPU Limits",
+   "Pod Resources",
+   "Default Values"
+  ],
+  "seconds": 13.3
+ },
+ "cpu-management-policies.md": {
+  "title": "Control CPU Management Policies on the Node",
+  "summary": "This page explains how Kubernetes manages CPU policies for pods on nodes, detailing default CFS-based scheduling, alternative policies for high-latency workloads, and Windows-specific CPU Manager features.",
+  "topics": [
+   "Kubelet",
+   "CFS Quota",
+   "CPU Manager Policy",
+   "CPU Manager Features",
+   "Resource Management",
+   "Pod Placement"
+  ],
+  "seconds": 12.7
+ },
+ "create-cluster-kubeadm.md": {
+  "title": "Creating a cluster with kubeadm",
+  "summary": "This guide explains how to create a Kubernetes cluster using the kubeadm tool, covering prerequisites like Linux OS and RAM, objectives of installing a control-plane node and a pod network, and installation steps for both new and existing hosts.",
+  "topics": [
+   "kubeadm",
+   "Kubernetes control-plane",
+   "Pod network",
+   "Linux OS",
+   "RAM requirements",
+   "CPU requirements"
+  ],
+  "seconds": 13.1
+ },
+ "create-daemon-set.md": {
+  "title": "Building a Basic DaemonSet",
+  "summary": "This page demonstrates how to create a Kubernetes DaemonSet that runs a Pod on every node, using an init container to log host paths and a pause container to keep the Pod running.",
+  "topics": [
+   "Kubernetes",
+   "DaemonSet",
+   "Pod",
+   "Init Container",
+   "Pause Container",
+   "Kubernetes Cluster"
+  ],
+  "seconds": 12.0
+ },
+ "create-external-load-balancer.md": {
+  "title": "Create an External Load Balancer",
+  "summary": "This page explains how to create an external load balancer using YAML manifests or kubectl, including configuration for LoadBalancer type, ingress configuration, and how to find the load balancer's IP address.",
+  "topics": [
+   "Load Balancer",
+   "Service",
+   "Ingress",
+   "kubectl",
+   "IP Address",
+   "Minikube"
+  ],
+  "seconds": 12.5
+ },
+ "create-hostprocess-pod.md": {
+  "title": "Windows HostProcess Containers",
+  "summary": "This guide explains how Windows HostProcess containers enable networked workloads on Windows nodes without requiring dedicated proxies, allowing administrators to deploy plugins and services while reducing privilege requirements.",
+  "topics": [
+   "Windows HostProcess Containers",
+   "Kubernetes v1.6+",
+   "Container Runtime",
+   "Network Namespace",
+   "Privilege Reduction"
+  ],
+  "seconds": 10.0
+ },
+ "cri-o.md": {
+  "title": "CRI-O",
+  "summary": "CRI-O is a Kubernetes tool that enables running OCI-compliant container runtimes via Kubernetes, allowing pods to use compatible runtimes and fetch OCI images from remote registries.",
+  "topics": [
+   "Kubernetes",
+   "OCI Container Runtime",
+   "Container Images",
+   "Pod Deployment",
+   "Container Registry"
+  ],
+  "seconds": 9.4
+ },
+ "cri.md": {
+  "title": "Container Runtime Interface (CRI) API Reference",
+  "summary": "This page explains the CRI plugin interface used by kubelet to connect to various container runtimes, including v1 API support requirements, upgrade handling, and streaming RPCs for large-scale container lists.",
+  "topics": [
+   "kubelet",
+   "CRI",
+   "gRPC",
+   "v1 CRI API",
+   "CRIListStreaming",
+   "container runtimes"
+  ],
+  "seconds": 12.6
+ },
+ "crictl.md": {
+  "title": "Debugging Kubernetes nodes with crictl",
+  "summary": "This page explains how to use crictl, a command-line interface for CRI-compatible container runtimes, to inspect and debug container runtimes and applications on a Kubernetes node.",
+  "topics": [
+   "crictl",
+   "CRI runtime",
+   "Kubernetes node",
+   "Container runtime",
+   "Containerd",
+   "Containerd socket"
+  ],
+  "seconds": 12.5
  }
 }

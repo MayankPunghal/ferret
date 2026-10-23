@@ -45,7 +45,7 @@ and whether the product does it. Status: **done** (verified by a test, an evalua
 
 | # | Ask | Status | Evidence / note |
 |---|---|---|---|
-| R1 | Larger, more accurate embedding model even if slower | done (measured) | Bake-off: bge-base chosen (SciFact nDCG 0.818 vs 0.779 small); Qwen3-Embedding-0.6B answers more fixture questions (0.86 vs 0.68 coverage at 1/20 false answers) but indexing is much slower (estimated >1 h for 2,000 abstracts on this CPU; not measured); selectable in Settings |
+| R1 | Larger, more accurate embedding model even if slower | done (measured) | Bake-off: bge-base chosen (SciFact nDCG 0.818 vs 0.779 small); Qwen3-Embedding-0.6B answers more fixture questions (coverage 0.86 with 1/20 false answers, against 0.68 with 3/20 for bge-base) but indexing is much slower (estimated >1 h for 2,000 abstracts on this CPU; not measured); selectable in Settings |
 | R2 | An offline reranker that does a decent job | done (measured) | MiniLM-L6 (90 MB); jina-turbo and bge-reranker-base measured (+1 of 56 on Kubernetes at best) |
 | R3 | Chunk overlap, chunk linking, summary per chunk/document | done | Overlap on; neighbouring passages in the passage view; document summary in passage embeddings (setting) |
 | R4 | Research and use more search techniques (owner's list of 7) | partial | 1 stronger reranker/more candidates: measured, worse. 2 larger embeddings: measured (R1). 3 contextual passages: built (setting), helps only with real page descriptions. 4 SPLADE: not built. 5 shared-identifier links + PageRank: not built (title mentions built). 6 automatic clusters: not built. 7 Docling/OCR: on hold (images plan) |
