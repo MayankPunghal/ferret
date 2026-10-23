@@ -29,7 +29,8 @@ the vectors and the links at the same time.
    - **identifiers:** exact matches of codes in the question.
 3. The three ranked lists are merged (reciprocal rank fusion: a passage near the top of several lists wins).
 4. **Links:** if the question names a page, passages of pages linked to and from it are added
-   ("linked from …").
+   ("linked from …"). Pages also count as linked when one *mentions the other's title* in its text, so
+   documents without explicit links (crawled or exported pages) are connected too.
 5. **Reranker:** a second local model reads the question together with each of the top 10 passages and
    re-orders them (more accurate than comparing numbers, too slow to run on everything).
 6. **Evidence check:** the system says "relevant passages found" only when the top passages are similar

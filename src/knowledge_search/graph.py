@@ -3,7 +3,9 @@
 Edges come from Markdown links, [[wiki links]] and front-matter relations (parsing.extract_links /
 RELATION_KEYS), stored per chunk in ``doc_links``. Targets are resolved at query time against document
 file names (with or without extension) and titles, so a link starts working as soon as its target is
-ingested. Every query and every traversal hop is restricted to the caller's readable collections: an
+ingested. Pages that do not link explicitly (crawled intranet pages, exported docs) are connected by
+*mentions*: a passage naming another page's title (``mentions``; search expansion and the graph view, not
+the blast radius, which follows declared links only). Every query and every traversal hop is restricted to the caller's readable collections: an
 edge is visible only when both ends are readable, so links never reveal restricted documents.
 """
 
@@ -17,6 +19,7 @@ router = APIRouter(prefix="/api/documents", tags=["graph"])
 
 MAX_DEPTH = 3
 MAX_NODES = 200
+MENTIONS = True  # also treat a passage naming another page's title as a link (kind "mentions")
 
 
 def _resolves(doc: str, link: str) -> str:
@@ -48,9 +51,34 @@ def incoming(conn, scope: list[int], targets: list[UUID]) -> list[dict]:
     ).fetchall()
 
 
+def mentions(conn, scope: list[int], documents: list[UUID]) -> list[tuple[UUID, UUID]]:
+    """Implicit links: (source, target) document pairs where a passage of `source` names the title of
+    `target` ("... calls the Asset Service to ..." → page "Asset Service"), with source or target in
+    `documents`. Stemmed phrase match of titles of two or more words (one-word titles such as "Overview" are
+    too ambiguous); readable documents only. Computed at query time with the keyword index, so mentions of
+    a page start working as soon as it is ingested, whichever document came first."""
+    rows = conn.execute(
+        "WITH t AS (SELECT id, q, tsvector_to_array(to_tsvector('english', title)) AS lex FROM documents, "
+        "  phraseto_tsquery('english', title) q WHERE collection_id = ANY(%(scope)s) AND numnode(q) >= 3), "
+        # lexemes of each seed document: cheap pre-filter before the phrase check
+        "s AS (SELECT c.document_id AS id, array_agg(DISTINCT w) AS lex FROM chunks c, "
+        "  unnest(tsvector_to_array(c.tsv)) w WHERE c.document_id = ANY(%(docs)s) "
+        "  AND c.collection_id = ANY(%(scope)s) GROUP BY 1) "
+        "SELECT DISTINCT c.document_id AS source, t.id AS target FROM t JOIN chunks c ON c.tsv @@ t.q "
+        "AND c.collection_id = ANY(%(scope)s) AND c.document_id <> t.id WHERE t.id = ANY(%(docs)s) "
+        "UNION SELECT s.id, t.id FROM s JOIN t ON s.lex @> t.lex AND t.id <> s.id "
+        "WHERE EXISTS (SELECT 1 FROM chunks c WHERE c.document_id = s.id AND c.tsv @@ t.q)",
+        {"scope": scope, "docs": documents},
+    ).fetchall()
+    return [(r["source"], r["target"]) for r in rows]
+
+
 def neighbours(conn, scope: list[int], documents: list[UUID]) -> list[tuple[UUID, UUID]]:
     """(linked document, seed) pairs: readable documents linked from or to any of `documents` (one hop,
-    both directions), excluding the seeds themselves."""
+    both directions, explicit links and, with MENTIONS, title mentions), excluding the seeds themselves."""
+    seeds = set(documents)
+    implicit = [(t, s) if s in seeds else (s, t) for s, t in mentions(conn, scope, documents)] if MENTIONS else []
+    implicit = [(d, seed) for d, seed in implicit if d not in seeds]
     rows = conn.execute(
         "SELECT DISTINCT t.id, l.document_id AS seed FROM doc_links l JOIN documents t ON " + _resolves("t", "l")
         + " AND t.collection_id = ANY(%(scope)s) WHERE l.document_id = ANY(%(docs)s) AND t.id <> ALL(%(docs)s) "
@@ -59,7 +87,7 @@ def neighbours(conn, scope: list[int], documents: list[UUID]) -> list[tuple[UUID
         "WHERE x.id = ANY(%(docs)s) AND s.id <> ALL(%(docs)s)",
         {"scope": scope, "docs": documents},
     ).fetchall()
-    return [(r["id"], r["seed"]) for r in rows]
+    return list(dict.fromkeys([(r["id"], r["seed"]) for r in rows] + implicit))
 
 
 @router.get("/{document_id}/links")
@@ -91,7 +119,19 @@ def document_links(document_id: UUID, p: User, conn: Conn):
             outgoing.append({**r, "document_id": str(r["document_id"])})
     inc = [{**r, "document_id": str(r["document_id"]), "target_id": str(r["target_id"])}
            for r in incoming(conn, scope, [document_id])]
-    return {"outgoing": outgoing, "incoming": inc, "unresolved": unresolved}
+    linked = {o["document_id"] for o in outgoing} | {i["document_id"] for i in inc}
+    pairs = [(t, "mentioned here") if s == document_id else (s, "mentions this")
+             for s, t in (mentions(conn, scope, [document_id]) if MENTIONS else [])]
+    pairs = [(d, how) for d, how in pairs if str(d) not in linked]
+    docs = {r["id"]: r for r in conn.execute(
+        "SELECT d.id, d.title, col.name AS collection, "
+        "(SELECT c.id FROM chunks c WHERE c.document_id = d.id ORDER BY c.ordinal LIMIT 1) AS chunk_id "
+        "FROM documents d JOIN collections col ON col.id = d.collection_id WHERE d.id = ANY(%s)",
+        ([d for d, _ in pairs],))} if pairs else {}
+    men = [{"document_id": str(d), "title": docs[d]["title"], "collection": docs[d]["collection"],
+            "chunk_id": docs[d]["chunk_id"], "how": how} for d, how in sorted(pairs, key=lambda x: str(x[0]))
+           if d in docs]
+    return {"outgoing": outgoing, "incoming": inc, "mentions": men, "unresolved": unresolved}
 
 
 @router.get("/{document_id}/impact")
@@ -152,6 +192,10 @@ def neighbourhood(document_id: UUID, p: User, conn: Conn, depth: int = Query(1, 
         "SELECT DISTINCT l.document_id AS source, t.id AS target, l.kind FROM doc_links l JOIN documents t ON "
         + _resolves("t", "l") + " WHERE l.document_id = ANY(%(ids)s) AND t.id = ANY(%(ids)s) AND t.id <> l.document_id "
         "ORDER BY 1, 2, 3", {"ids": ids}).fetchall()
+    if MENTIONS:
+        explicit = {(e["source"], e["target"]) for e in edges}
+        edges += [{"source": s, "target": t, "kind": "mentions"} for s, t in sorted(
+            mentions(conn, scope, ids), key=str) if s in level and t in level and (s, t) not in explicit]
     return {
         "document": {"id": str(root["id"]), "title": root["title"]}, "depth": depth,
         "nodes": [{"id": str(i), "title": docs[i]["title"], "collection": docs[i]["collection"], "depth": level[i],

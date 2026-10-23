@@ -130,6 +130,24 @@ one passage per linked document first; they fill up to 5 of the 10 result slots.
 linked passages as a weighted RRF branch (single-hop recall fell to 0.38–0.79 because similar sections of
 neighbours were counted twice); preferring outgoing links (+0.01 dependencies, −0.08 impact).
 
+**Pages without declared links (mentions).** Crawled intranet pages and exported documents rarely carry
+`[[links]]` or `depends_on`. `eval/graph_eval.py --plain` strips every declared link (wiki links become
+plain text, relation keys are removed from front matter), so pages are connected only because a passage
+names another page's title ("… called the Inventory Service to check stock"). `graph.mentions` turns that into
+an edge at query time (stemmed phrase match of titles with ≥ 2 words, keyword index, readable documents only):
+
+| Wiki variant, arm (5 slots, no reranker, all 81 questions) | single-hop | dependencies | workflow | impact | false answers | leaks |
+|---|---|---|---|---|---|---|
+| declared links, hybrid only | 0.96 | 0.24 | 0.36 | 0.23 | 0 | 0 |
+| declared links, links | 0.96 | 0.60 | 0.57 | 0.40 | 0 | 0 |
+| declared links, links + mentions | 0.96 | 0.60 | 0.57 | 0.40 | 0 | 0 |
+| **no declared links**, hybrid only | 0.96 | 0.25 | 0.36 | 0.25 | 0 | 0 |
+| **no declared links**, mentions | 0.96 | **0.64** | **0.57** | **0.40** | 0 | 0 |
+
+Mentions recover all of the gain of declared links on this wiki and add nothing (no harm) where links exist.
+Caveat: here every page names its neighbours by their exact titles; real pages also say "the inventory API"
+or `inv-svc`, which a title match misses (next: aliases / identifiers, research-graph.md).
+
 **Caveats.** Synthetic, templated pages (similar to generated wikis, but not a real corpus). Getting *all*
 the needed passages into the top 10 is still rare for questions needing 4–6 passages (complete-set rate
 0.29 for dependencies, 0 for workflows) — following links step by step (UI Connections, `/links`, a future

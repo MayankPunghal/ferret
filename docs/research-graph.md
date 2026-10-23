@@ -36,6 +36,26 @@ pay off for deep traversals over millions of edges, which documentation graphs d
 - Tests: `tests/test_graph.py` (extraction, anchors, unresolved, incoming, 2-hop impact, kind filter,
   restricted documents invisible, delete removes edges). Demo data: `fixtures/corpus/platform-wiki/`.
 
+## Implemented (v3): mentions — links for pages that do not declare them
+
+Crawled intranet pages, exported PDFs and public docs seldom contain `[[links]]` or `depends_on`. A passage
+that **names another page's title** ("each work order references equipment in the Assets Service") is now an
+edge of kind `mentions` (`graph.mentions`): stemmed phrase match (PostgreSQL `phraseto_tsquery`, so "Assets
+Service" ≈ "Asset Service") of titles with at least two words; one-word titles ("Overview") are too
+ambiguous. It is computed **at query time** from the keyword index — no extra table, works whichever page was
+ingested first, deletions and permissions apply automatically. Used by search expansion, the Connections list
+("Mentions (found automatically)") and the graph view (dotted edges); not by the blast radius, which follows
+declared dependencies only. Measured: with all declared links stripped from the wiki, mentions alone give the
+same multi-hop recall as the declared links (evaluation.md §6).
+
+Limits and next steps: (1) pages that refer to each other by a *different* name ("inventory API", `inv-svc`)
+— add aliases (front-matter `aliases`, the file name, identifiers defined on the page) as extra titles;
+(2) generic two-word titles ("Getting Started", "Release Notes") would link widely — add a document-frequency
+cut-off when a real corpus shows it; (3) at ~40k documents the per-query title scan should move to a
+precomputed title-query column; (4) *semantic* "similar page" edges (document-vector neighbours) for pages that
+never name each other — useful for "related pages", but on templated wikis every page is similar to every
+other, so they must be measured before they feed search.
+
 ## Next: entity edges ("Graphify for documentation")
 
 Graphify-style tools connect code through symbols (imports, calls). The documentation equivalent is

@@ -50,11 +50,14 @@ this off (Settings → Linked documents).
   (`depends_on`, `related`, `calls`, `owned_by`, `part_of`, `see_also`); a link to `file.md#section`
   opens that section.
 - **Linked from** — documents that link to or depend on this one.
+- **Mentions (found automatically)** — documents connected without any link: this document names their
+  title ("… uses the Asset Service …"), or they name this one. Works for crawled or exported pages that do
+  not declare links; titles of two or more words are matched (singular/plural and case ignored).
 - **Depends on this (blast radius)** — documents that depend on it directly or via one more hop:
   "what is affected if this changes?".
 
 The **graph** above the lists shows the same neighbourhood visually (1 or 2 hops; blue = depends on, grey =
-links to, dashed = related / part of); click a node to open that document. Click any entry to open it. Documents you cannot access never appear; links whose target is not found in
+links to, dashed = related / part of, dotted = mentions); click a node to open that document. Click any entry to open it. Documents you cannot access never appear; links whose target is not found in
 your accessible documents are listed by name only. Example front matter:
 
 ```yaml

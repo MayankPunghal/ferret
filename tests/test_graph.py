@@ -130,3 +130,42 @@ def test_link_expansion_in_search_is_permission_safe(client, drain):
         client.delete(f"/api/documents/{secret}", headers=root)
         for d in ids.values():
             client.delete(f"/api/documents/{d}", headers=sam)
+
+
+PLAIN = {  # crawled-style pages without declared links: connected only by naming each other's titles
+    "workorders.md": b"# Work Orders Service\n\nCreates maintenance work orders. Each order references equipment "
+                     b"looked up in the Assets Service.\n",
+    "assets.md": b"# Asset Service\n\nKeeps the register of equipment.\n\n## Runtime\n\nRuns on port 8410.\n",
+    "overview.md": b"# Overview\n\nWork orders and assets are part of maintenance.\n",
+}
+
+
+def test_mentions_link_pages_without_declared_links(client, drain):
+    """A passage naming another page's title (stemmed: "Assets Service" ~ "Asset Service") links the pages
+    for search expansion and the graph view; one-word titles and restricted pages are never linked."""
+    sam, root = token(client, "sam"), token(client, "root")
+    ids = {}
+    for name, body in PLAIN.items():
+        ids[name] = client.post("/api/documents", headers=sam, data={"collection_id": collection_id("scratch")},
+                                files={"file": (name, body)}).json()["document_id"]
+    secret = client.post("/api/documents", headers=root, data={"collection_id": collection_id("hr")},
+                         files={"file": ("audit.md", b"# Audit Plan\n\nReview the Work Orders Service.\n")}
+                         ).json()["document_id"]
+    drain()
+    try:
+        g = client.get(f"/api/documents/{ids['workorders.md']}/graph", headers=sam).json()
+        by_id = {n["id"]: n["title"] for n in g["nodes"]}
+        assert set(by_id.values()) == {"Work Orders Service", "Asset Service"}  # not "Overview", not restricted
+        assert {(by_id[e["source"]], by_id[e["target"]], e["kind"]) for e in g["edges"]} == {
+            ("Work Orders Service", "Asset Service", "mentions")}
+        g_root = client.get(f"/api/documents/{ids['workorders.md']}/graph", headers=root).json()
+        assert "Audit Plan" in {n["title"] for n in g_root["nodes"]}  # incoming mention, readable for root
+        men = client.get(f"/api/documents/{ids['assets.md']}/links", headers=sam).json()["mentions"]
+        assert [(m["title"], m["how"]) for m in men] == [("Work Orders Service", "mentions this")]
+        res = search(client, sam, "Which port does the work orders service run on?")["results"]
+        assert any(r["title"] == "Asset Service" and r["signals"].get("linked_from") == "Work Orders Service"
+                   for r in res)
+    finally:
+        client.delete(f"/api/documents/{secret}", headers=root)
+        for d in ids.values():
+            client.delete(f"/api/documents/{d}", headers=sam)

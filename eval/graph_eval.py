@@ -17,6 +17,7 @@ expansion never surfaces passages the user cannot read. Weight is chosen on val,
 
 import argparse
 import json
+import re
 import statistics
 import time
 from pathlib import Path
@@ -25,7 +26,7 @@ import make_wiki
 import psycopg
 from psycopg.rows import dict_row
 
-from knowledge_search import auth, db, runtime
+from knowledge_search import auth, db, graph, runtime
 from knowledge_search import search as search_mod
 from knowledge_search.ingest import BlobStore, Worker, submit
 from knowledge_search.search import ANSWERED_OUTCOMES, search
@@ -67,6 +68,12 @@ def metrics(rows) -> dict:
     return out
 
 
+def plain(data: bytes) -> bytes:
+    """The page without declared links: [[X]] → X, relation keys dropped from the front matter."""
+    text = re.sub(r"\[\[([^\]|]+)(\|[^\]]+)?\]\]", r"\1", data.decode())
+    return re.sub(r"(?m)^(depends_on|part_of|related):.*\n", "", text).encode()
+
+
 def ingest(a, url: str, gen: Path):
     blobs = BlobStore(ROOT / "data" / "graph-blobs")
     with psycopg.connect(url, row_factory=dict_row) as c:
@@ -77,6 +84,8 @@ def ingest(a, url: str, gen: Path):
         runtime.save(c, runtime.validate({"embed_model": a.model}), None)
         wiki = auth.ensure_collection(c, "wiki")
         files = {f.name: f.read_bytes() for f in sorted((gen / "wiki").iterdir())} | PUBLIC_LINKING
+        if a.plain:  # no declared links: plain mentions only, like crawled pages
+            files = {n: plain(d) for n, d in files.items()}
         for name, data in files.items():
             submit(c, blobs, collection_id=wiki, filename=name, data=data, user_id=None, max_bytes=5_000_000)
         rid = auth.ensure_collection(c, "restricted")
@@ -94,22 +103,24 @@ def main():
     ap.add_argument("--reranker", default="Xenova/ms-marco-MiniLM-L-6-v2", help="'' = no reranker arms")
     ap.add_argument("--slots", default="3,5", help="result slots reserved for linked passages, per arm")
     ap.add_argument("--reuse", action="store_true", help="reuse the index built by the previous run")
+    ap.add_argument("--plain", action="store_true", help="strip declared links (mentions only, like crawled pages)")
     a = ap.parse_args()
 
     gen = ROOT / "data" / "graph-wiki"
     make_wiki.main(gen)
     queries = [json.loads(x) for x in (gen / "queries.jsonl").read_text().splitlines() if x]
-    admin_url, _ = db.start_embedded(ROOT / "data" / "graph-pg", database="postgres")
+    admin_url, _ = db.start_embedded(ROOT / "data" / f"graph-pg{'-plain' * a.plain}", database="postgres")
     if not a.reuse:
         with psycopg.connect(admin_url, autocommit=True) as c:
             c.execute("DROP DATABASE IF EXISTS ks_graph WITH (FORCE)")
             c.execute("CREATE DATABASE ks_graph")
     url = db._embedded.get_uri("ks_graph")
     db.migrate(url)
-    out = {"model": a.model, "k": K, **({"reused_index": True} if a.reuse else ingest(a, url, gen)), "arms": {}}
     db.open_pool(url, max_size=2)
+    out = {"model": a.model, "k": K, "plain": a.plain, **({"reused_index": True} if a.reuse else ingest(a, url, gen)), "arms": {}}
 
-    arms = [("hybrid", 0)] + [(f"linked slots={n}", int(n)) for n in a.slots.split(",")]
+    arms = [("hybrid", 0, False)] + [(f"linked slots={n}{' +mentions' * m}", int(n), m)
+                                     for n in a.slots.split(",") for m in (False, True)]
     with db.pool().connection() as conn:
         u = conn.execute("SELECT id FROM users WHERE username = 'dev'").fetchone()
         principal = auth.principal_for(conn, u["id"], "dev", False)
@@ -118,12 +129,13 @@ def main():
                 for r in conn.execute("SELECT id, source_key, collection_id FROM documents")}
         base = runtime.load(conn)
         for rr in ([""] + ([a.reranker] if a.reranker else [])):
-            for name, slots in arms:
+            for name, slots, mentions in arms:
                 rt = runtime.load(conn)
                 rt.rerank_enabled, rt.graph_expansion = bool(rr), bool(slots)
                 if rr:
                     rt.rerank_model = rr
                 search_mod.GRAPH_SLOTS = slots or search_mod.GRAPH_SLOTS
+                graph.MENTIONS = mentions
                 rows, lat, leaks = [], [], 0
                 for q in queries:
                     resp = search(conn, principal, q["query"], rt, limit=K)
@@ -148,7 +160,7 @@ def main():
     out["gate"] = {"dense_high": base.gate_dense_high, "dense_min": base.gate_dense_min,
                    "lex_coverage": base.gate_lex_coverage}
     db.close_pool()
-    path = ROOT / "eval" / "results" / f"graph-{a.model.replace('/', '_')}.json"
+    path = ROOT / "eval" / "results" / f"graph-{a.model.replace('/', '_')}{'-plain' * a.plain}.json"
     path.write_text(json.dumps(out, indent=2))
     print("wrote", path)
 
