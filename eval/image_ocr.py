@@ -49,7 +49,7 @@ def ask(url: str, image: Path, prompt: str, max_tokens: int) -> tuple[str, float
 
 def words(text: str) -> list[str]:
     text = re.sub(r"<think>.*?</think>", " ", text, flags=re.S)
-    text = re.sub(r"<[^>]+>|[|*#`]|\\[()\[\]]", " ", text)  # Markdown / HTML / LaTeX markup
+    text = re.sub(r"<[^>]+>|[|*#`]|\\[()\[\]]|\\[a-zA-Z]+", " ", text)  # Markdown / HTML / LaTeX markup
     return re.findall(r"[a-z0-9]+", text.lower())
 
 
