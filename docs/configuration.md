@@ -23,7 +23,7 @@ those.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `KS_MAX_UPLOAD_MB` | `25` | Maximum upload size. |
+| `KS_MAX_UPLOAD_MB` | `500` | Maximum upload size (also for folder ingest). |
 | `KS_MAX_PDF_PAGES` | `2000` | PDFs with more pages are rejected. |
 | `KS_MAX_EXTRACTED_CHARS` | `5000000` | Documents with more extracted text are rejected. |
 | `KS_SESSION_HOURS` | `12` | Sign-in lifetime. |

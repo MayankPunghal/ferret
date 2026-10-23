@@ -37,6 +37,38 @@ def _docx(paragraphs: list[tuple[str, str]], title: str = "") -> bytes:
     return buf.getvalue()
 
 
+def _pptx(slides: list[tuple[str, list[str], str]]) -> bytes:
+    """Minimal valid .pptx: (title, body paragraphs, speaker notes) per slide, in presentation order."""
+    ns = ('xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+          'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+          'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"')
+    rel = '<Relationship Id="{}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/{}" Target="{}"/>'
+    rels = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">{}</Relationships>'
+
+    def shape(text, ph=""):
+        paras = "".join(f"<a:p><a:r><a:t>{t}</a:t></a:r></a:p>" for t in text)
+        return (f'<p:sp><p:nvSpPr><p:nvPr>{f"<p:ph type={chr(34)}{ph}{chr(34)}/>" if ph else ""}</p:nvPr></p:nvSpPr>'
+                f"<p:txBody>{paras}</p:txBody></p:sp>")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        # stored in reverse file order: the presentation's own order must win
+        ids = "".join(f'<p:sldId id="{256 + i}" r:id="rId{i}"/>' for i in range(len(slides)))
+        z.writestr("ppt/presentation.xml", f"<p:presentation {ns}><p:sldIdLst>{ids}</p:sldIdLst></p:presentation>")
+        z.writestr("ppt/_rels/presentation.xml.rels", rels.format("".join(
+            rel.format(f"rId{i}", "slide", f"slides/slide{len(slides) - i}.xml") for i in range(len(slides)))))
+        for i, (title, body, notes) in enumerate(slides):
+            n = len(slides) - i
+            z.writestr(f"ppt/slides/slide{n}.xml", f"<p:sld {ns}><p:cSld><p:spTree>{shape([title], 'title')}"
+                       f"{shape(body)}</p:spTree></p:cSld></p:sld>")
+            if notes:
+                z.writestr(f"ppt/slides/_rels/slide{n}.xml.rels",
+                           rels.format(rel.format("rId1", "notesSlide", f"../notesSlides/notesSlide{n}.xml")))
+                z.writestr(f"ppt/notesSlides/notesSlide{n}.xml", f"<p:notes {ns}><p:cSld><p:spTree>"
+                           f"{shape([notes])}{shape([str(n)])}</p:spTree></p:cSld></p:notes>")
+    return buf.getvalue()
+
+
 def test_html_structure_and_links():
     doc = parse_document(HTML, "orders-api.html")
     assert doc.title == "Orders API | Docs"
@@ -67,14 +99,28 @@ def test_docx_headings_lists_tables():
     assert parse_document(_docx([("", "x")], title="Core Title"), "a.docx").title == "Core Title"
 
 
+def test_pptx_slides_become_sections_with_notes():
+    data = _pptx([("IT Induction", ["Welcome to the IT team"], ""),
+                  ("VPN access", ["Install FortiClient", "Use your SSO login"], "Tickets go to the IT Helpdesk in Jira"),
+                  ("", ["Questions?"], "")])
+    doc = parse_document(data, "it-induction.pptx")
+    assert doc.title == "IT Induction"
+    assert [s.heading_path for s in doc.sections] == ["Slide 1: IT Induction", "Slide 2: VPN access", "Slide 3"]
+    vpn = doc.sections[1].text
+    assert "- Install FortiClient" in vpn and "Notes: Tickets go to the IT Helpdesk in Jira" in vpn
+    assert "2" not in vpn.split("Notes:")[1]  # the notes page's slide number is not text
+
+
 def test_invalid_office_files_are_rejected():
-    for data, code in [(b"\xd0\xcf\x11\xe0 legacy doc", "invalid_docx"), (b"PK\x03\x04 broken", "invalid_docx")]:
+    for data, name, code in [(b"\xd0\xcf\x11\xe0 legacy doc", "x.docx", "invalid_docx"),
+                             (b"PK\x03\x04 broken", "x.docx", "invalid_docx"),
+                             (b"\xd0\xcf\x11\xe0 legacy ppt", "x.pptx", "invalid_pptx")]:
         try:
-            parse_document(data, "x.docx")
+            parse_document(data, name)
         except ParseError as e:
             assert e.code == code
         else:
-            raise AssertionError("accepted an invalid .docx")
+            raise AssertionError(f"accepted an invalid {name}")
 
 
 def test_html_and_docx_upload_search_and_safe_source(client, drain):

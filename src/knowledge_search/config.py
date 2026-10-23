@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     fusion_lexical_weight: float = 0.1  # keyword-branch weight in rank fusion (dense/identifier = 1); see evaluation
     graph_expansion: bool = True  # follow links of the documents a query names (multi-hop questions); see evaluation
 
-    max_upload_mb: int = 25
+    max_upload_mb: int = 500  # large manuals and decks are mostly images; their text is what counts
     max_pdf_pages: int = 2000
     max_extracted_chars: int = 5_000_000
 

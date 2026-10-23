@@ -20,7 +20,7 @@ from .config import Settings, get_settings
 from .deps import COOKIE, Conn, User, state
 from .embedder import Embedder
 from .ingest import BlobStore, Worker, delete_document, reindex, retry_document, submit
-from .parsing import CHUNKER_VERSION, DOCX, PARSER_VERSION, ParseError
+from .parsing import CHUNKER_VERSION, DOCX, PARSER_VERSION, PPTX, ParseError
 from .search import MESSAGES, RETRIEVAL_FAILURE, coverage_for, search
 
 log = logging.getLogger(__name__)
@@ -336,14 +336,14 @@ def _routes(app: FastAPI) -> None:
         auth.audit(conn, p.user_id, "open_source", str(document_id))
         conn.commit()
         # Uploaded content is always sandboxed (opaque origin, no scripts). HTML is rendered with nothing
-        # allowed to load except inline styles and embedded images; Word files are downloaded.
+        # allowed to load except inline styles and embedded images; Word and PowerPoint files are downloaded.
         mt, disposition, csp = "text/plain; charset=utf-8", "inline", "sandbox"
         if v["media_type"] == "application/pdf":
             mt = "application/pdf"
         elif v["media_type"] == "text/html":
             mt, csp = "text/html", "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"
-        elif v["media_type"] == DOCX:
-            mt, disposition = DOCX, "attachment"
+        elif v["media_type"] in (DOCX, PPTX):
+            mt, disposition = v["media_type"], "attachment"
         safe = re.sub(r"[^\w.\-]", "_", v["filename"])
         return FileResponse(
             path, media_type=mt,

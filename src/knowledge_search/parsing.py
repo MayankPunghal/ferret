@@ -1,7 +1,7 @@
 """Document validation, text extraction and structure-aware chunking.
 
-Supported: Markdown (.md), plain text (.txt), HTML (.html/.htm), Word (.docx) and text-layer PDF (.pdf, via
-PDFium). HTML and Word are converted to Markdown first (convert.py), so headings, anchors and links work the
+Supported: Markdown (.md), plain text (.txt), HTML (.html/.htm), Word (.docx), PowerPoint (.pptx) and
+text-layer PDF (.pdf, via PDFium). HTML, Word and PowerPoint are converted to Markdown first (convert.py), so headings, anchors and links work the
 same way for all of them. Scanned PDFs without a text layer are rejected with ``no_extractable_text``
 rather than silently indexed as empty (OCR is out of scope).
 """
@@ -19,8 +19,9 @@ _PDFIUM = threading.Lock()  # PDFium is not thread-safe; API requests and ingest
 CHUNKER_VERSION = "chunk-v2"  # size/overlap are runtime settings, recorded in the index signature
 
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+PPTX = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 MEDIA_TYPES = {".md": "text/markdown", ".markdown": "text/markdown", ".txt": "text/plain",
-               ".html": "text/html", ".htm": "text/html", ".docx": DOCX, ".pdf": "application/pdf"}
+               ".html": "text/html", ".htm": "text/html", ".docx": DOCX, ".pptx": PPTX, ".pdf": "application/pdf"}
 
 
 class ParseError(Exception):
@@ -262,17 +263,18 @@ def parse_html(data: bytes, filename: str) -> ParsedDocument:
     return _parse_markdown_text(md, filename, title)
 
 
-def parse_docx(data: bytes, filename: str) -> ParsedDocument:
+def parse_office(data: bytes, filename: str, kind: str) -> ParsedDocument:
+    """Word (.docx) or PowerPoint (.pptx)."""
     import zipfile
 
-    from .convert import docx_to_markdown
+    from .convert import docx_to_markdown, pptx_to_markdown
 
     if not data.startswith(b"PK"):
-        raise ParseError("invalid_docx", "not a .docx file (legacy .doc is not supported; save as .docx)")
+        raise ParseError(f"invalid_{kind}", f"not a .{kind} file (legacy .{kind[:3]} is not supported; save as .{kind})")
     try:
-        title, md = docx_to_markdown(data)
+        title, md = (docx_to_markdown if kind == "docx" else pptx_to_markdown)(data)
     except (zipfile.BadZipFile, KeyError, ValueError, SyntaxError) as e:  # ElementTree.ParseError ⊂ SyntaxError
-        raise ParseError("invalid_docx", f"{type(e).__name__}: {str(e)[:200]}") from e
+        raise ParseError(f"invalid_{kind}", f"{type(e).__name__}: {str(e)[:200]}") from e
     return _parse_markdown_text(md, filename, title)
 
 
@@ -286,8 +288,8 @@ def parse_document(data: bytes, filename: str, max_pages: int = 2000, max_chars:
         doc = parse_markdown(data, filename)
     elif mt == "text/html":
         doc = parse_html(data, filename)
-    elif mt == DOCX:
-        doc = parse_docx(data, filename)
+    elif mt in (DOCX, PPTX):
+        doc = parse_office(data, filename, "docx" if mt == DOCX else "pptx")
     else:
         doc = parse_text(data, filename)
     if not doc.sections:

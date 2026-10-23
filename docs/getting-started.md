@@ -60,7 +60,7 @@ Click **View passage** to see the passage in context and **Open source** to open
 
 ## 4. Test run with your own documents
 
-1. Put 3–20 non-confidential files in a folder: `.md`, `.txt` (UTF-8), `.html`, `.docx` or `.pdf` with selectable text.
+1. Put 3–20 non-confidential files in a folder: `.md`, `.txt` (UTF-8), `.html`, `.docx`, `.pptx` or `.pdf` with selectable text.
 2. Sign in as the administrator → **Users & access** → create a collection, e.g. `trial`.
 3. **Documents** → choose collection `trial` → drag the files onto the drop zone. Each file shows
    `queued`; the table switches from `pending` to `indexed` within seconds to minutes (larger models are slower).
