@@ -39,7 +39,7 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 | Item | Status | Evidence |
 |---|---|---|
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
-| Test suite | **verified** | `uv run pytest -q` → 99 passed (summaries against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Test suite | **verified** | `uv run pytest -q` → 110 passed (summaries, types, topics and hours against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **verified by the owner** on Windows 11: install, model download, DB init and indexing; searches crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93, 2026-10-22 18:01); owner after that: "setup worked now, search returns results on Windows" (2026-10-23 00:15). **Regression
 found by the owner 2026-10-23 22:36:** the upgrade to migration 0005 (document vectors, `avg(embedding)` in SQL)
