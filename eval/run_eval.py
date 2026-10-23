@@ -19,7 +19,7 @@ import psycopg
 from gates import choose, dump_rows, evaluate
 from psycopg.rows import dict_row
 
-from knowledge_search import auth, db, parsing, runtime
+from knowledge_search import auth, db, runtime
 from knowledge_search.ingest import BlobStore, Worker, submit
 from knowledge_search.search import GateConfig, gate_basis, search
 
@@ -67,10 +67,8 @@ def main():
     ap.add_argument("--max-far", type=float, default=0.0)
     ap.add_argument("--lexical-weight", type=float, default=1.0)
     ap.add_argument("--graph", action="store_true", help="enable link expansion (graph_expansion)")
-    ap.add_argument("--context-chars", type=int, default=None, help="document summary added to each passage's embedding")
+    ap.add_argument("--context-chars", type=int, default=0, help="document summary added to each passage's embedding")
     a = ap.parse_args()
-    if a.context_chars is not None:
-        parsing.CONTEXT_CHARS = a.context_chars
 
     admin_url, _ = db.start_embedded(ROOT / "data" / "eval-pg", database="postgres")
     with psycopg.connect(admin_url, autocommit=True) as c:
@@ -90,7 +88,7 @@ def main():
         for u, g in [("alice", "staff"), ("bob", "staff"), ("hannah", "hr")]:
             auth.add_user_to_group(c, u, g)
         runtime.save(c, runtime.validate({"embed_model": a.model, "rerank_enabled": bool(a.reranker),
-                                          "fusion_lexical_weight": a.lexical_weight, "graph_expansion": a.graph,
+                                          "fusion_lexical_weight": a.lexical_weight, "graph_expansion": a.graph, "context_chars": a.context_chars or 0,
                                           **({"rerank_model": a.reranker} if a.reranker else {})}), None)
         for col in sorted(d for d in CORPUS.iterdir() if d.name != "platform-wiki"):  # wiki: graph demo only
             cid = auth.ensure_collection(c, col.name)

@@ -41,7 +41,7 @@ def test_settings_validation(client, corpus):
     root = token(client, "root")
     for bad in ({"chunk_size": 50}, {"chunk_overlap": 5000}, {"embed_model": "evil/model"},
                 {"rerank_model": "x"}, {"gate_mode": "magic"}, {"nonsense": 1},
-                {"chunk_size": 300, "chunk_overlap": 300}):
+                {"chunk_size": 300, "chunk_overlap": 300}, {"context_chars": 5000}):
         assert client.put("/api/admin/settings", headers=root, json=bad).status_code == 422, bad
 
 

@@ -225,7 +225,7 @@ class Worker:
                 self._progress(conn, job, "reading file")
                 parsed = parse_document(self.blobs.get(job["sha256"]), job["filename"], self.max_pages, self.max_chars)
                 chunks = chunk_document(parsed, rt.chunk_size, rt.chunk_overlap)
-                summary = doc_summary(parsed)
+                summary = doc_summary(parsed, rt.context_chars)
                 texts = [embedding_text(parsed.title, c, summary) for c in chunks]
                 step = max(embedder.batch_size * 2, 8)
                 parts = []

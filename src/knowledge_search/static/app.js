@@ -377,6 +377,7 @@ let settings = null;
 function fillSettings(v) {
   $("#s-model").value = v.embed_model; $("#s-chunk").value = v.chunk_size;
   $("#s-overlap-on").checked = v.chunk_overlap > 0; $("#s-overlap").value = v.chunk_overlap; $("#s-overlap").disabled = v.chunk_overlap === 0;
+  $("#s-ctx").value = v.context_chars;
   $("#s-rerank-on").checked = v.rerank_enabled; $("#s-rerank").value = v.rerank_model; $("#s-rerank-n").value = v.rerank_candidates;
   $("#s-graph-on").checked = v.graph_expansion;
   $("#s-g-high").value = v.gate_dense_high; $("#s-g-min").value = v.gate_dense_min; $("#s-g-cov").value = v.gate_lex_coverage;
@@ -403,7 +404,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const v = {
     embed_model: $("#s-model").value, chunk_size: +$("#s-chunk").value,
-    chunk_overlap: $("#s-overlap-on").checked ? +$("#s-overlap").value : 0,
+    chunk_overlap: $("#s-overlap-on").checked ? +$("#s-overlap").value : 0, context_chars: +$("#s-ctx").value,
     rerank_enabled: $("#s-rerank-on").checked, rerank_model: $("#s-rerank").value, rerank_candidates: +$("#s-rerank-n").value,
     graph_expansion: $("#s-graph-on").checked,
     gate_dense_high: +$("#s-g-high").value, gate_dense_min: +$("#s-g-min").value, gate_lex_coverage: +$("#s-g-cov").value, gate_all_terms_min: +$("#s-g-all").value,

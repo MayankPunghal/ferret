@@ -1,7 +1,7 @@
 """Admin-editable runtime settings (stored in ``app_settings``, defaults from ``KS_*`` env) and a
 per-process cache of loaded models.
 
-Changing the embedding model or chunking changes the *index signature*; documents indexed with a
+Changing the embedding model, chunking or passage context changes the *index signature*; documents indexed with a
 different signature are reported as outdated (coverage incomplete) until reindexed.
 """
 
@@ -18,6 +18,7 @@ from .parsing import PARSER_VERSION
 RERANKERS = {
     # name: (licence, approx download MB, note)
     "Xenova/ms-marco-MiniLM-L-6-v2": ("Apache-2.0", 80, "fast, English"),
+    "jinaai/jina-reranker-v1-turbo-en": ("Apache-2.0", 150, "fast, English"),
     "BAAI/bge-reranker-base": ("MIT", 1040, "stronger, English/Chinese, slower"),
     "BAAI/bge-reranker-v2-m3-int8": ("Apache-2.0", 570, "multilingual, slowest"),
 }
@@ -28,6 +29,7 @@ class Runtime:
     embed_model: str
     chunk_size: int
     chunk_overlap: int  # 0 disables overlap
+    context_chars: int  # document summary added to each passage's embedding (parsing.doc_summary); 0 = off
     rerank_enabled: bool
     rerank_model: str
     rerank_candidates: int
@@ -43,7 +45,8 @@ class Runtime:
     graph_expansion: bool  # add passages of linked documents to the results (search._linked)
 
     def signature(self) -> str:
-        return f"{MODELS[self.embed_model].version_key}|{PARSER_VERSION}|chunk={self.chunk_size}/{self.chunk_overlap}"
+        ctx = f"|ctx={self.context_chars}" if self.context_chars else ""
+        return f"{MODELS[self.embed_model].version_key}|{PARSER_VERSION}|chunk={self.chunk_size}/{self.chunk_overlap}{ctx}"
 
 
 _base: Settings | None = None
@@ -59,7 +62,7 @@ def base() -> Settings:
     return _base or get_settings()
 
 
-LIMITS = {"chunk_size": (200, 4000), "chunk_overlap": (0, 1000), "rerank_candidates": (5, 100),
+LIMITS = {"chunk_size": (200, 4000), "chunk_overlap": (0, 1000), "rerank_candidates": (5, 100), "context_chars": (0, 1000),
           "fusion_lexical_weight": (0.0, 2.0)}
 
 
@@ -73,7 +76,7 @@ def defaults(model: str | None = None) -> Runtime:
     lex = spec.gate_lex if spec and spec.gate_lex is not None else s.gate_lex_coverage
     full = spec.gate_all if spec and spec.gate_all is not None else s.gate_all_terms_min
     return Runtime(
-        embed_model=model, chunk_size=s.chunk_size, chunk_overlap=s.chunk_overlap,
+        embed_model=model, chunk_size=s.chunk_size, chunk_overlap=s.chunk_overlap, context_chars=s.context_chars,
         rerank_enabled=s.rerank_enabled, rerank_model=s.rerank_model, rerank_candidates=s.rerank_candidates,
         gate_dense_high=high, gate_dense_min=low,
         gate_lex_coverage=lex, gate_rerank_min=s.gate_rerank_min,

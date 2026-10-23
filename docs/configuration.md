@@ -35,6 +35,7 @@ those.
 |---|---|---|
 | `KS_EMBED_MODEL` | see `config.py` | Embedding model |
 | `KS_CHUNK_SIZE` / `KS_CHUNK_OVERLAP` | `900` / `150` | Chunk size / overlap (0 disables) |
+| `KS_CONTEXT_CHARS` | `0` | Document summary added to each passage's embedding (0 = off; Settings page) |
 | `KS_RERANK_ENABLED` / `KS_RERANK_MODEL` / `KS_RERANK_CANDIDATES` | see `config.py` | Reranker |
 | `KS_GRAPH_EXPANSION` | `true` | Linked documents: follow links of pages named in the question |
 | `KS_GATE_MODE`, `KS_GATE_LEXICAL`, `KS_GATE_DENSE_HIGH`, `KS_GATE_DENSE_MIN`, `KS_GATE_LEX_COVERAGE`, `KS_GATE_RERANK_MIN` | see `config.py` | Evidence thresholds |

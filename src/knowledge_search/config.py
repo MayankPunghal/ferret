@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # Defaults for admin-editable runtime settings (Settings page / app_settings table override these).
     chunk_size: int = 900
     chunk_overlap: int = 150
+    context_chars: int = 0  # document summary in passage embeddings; helped ranking on Kubernetes docs, not on fixtures
     rerank_enabled: bool = True  # measured: +1.4 nDCG@10 on SciFact for ~0.4 s (docs/evaluation.md)
     rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
     rerank_candidates: int = 10  # more candidates let the reranker promote wrong passages (measured)

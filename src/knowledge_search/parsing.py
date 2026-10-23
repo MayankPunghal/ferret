@@ -361,12 +361,8 @@ def chunk_document(doc: ParsedDocument, size: int = 900, overlap: int = 150) -> 
     return chunks
 
 
-CONTEXT_CHARS = 0  # document summary added to every passage's embedding text (0 = off; see evaluation)
-
-
-def doc_summary(doc: ParsedDocument, limit: int | None = None) -> str:
+def doc_summary(doc: ParsedDocument, limit: int) -> str:
     """Front-matter description/summary, else the document's first paragraph, cut to `limit` characters."""
-    limit = CONTEXT_CHARS if limit is None else limit
     if limit <= 0:
         return ""
     s = str(doc.metadata.get("description") or doc.metadata.get("summary") or "")

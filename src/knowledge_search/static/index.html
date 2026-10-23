@@ -105,6 +105,11 @@
             <label>Overlap (characters) <input type="number" name="chunk_overlap" id="s-overlap" min="0" max="1000" step="10"></label>
             <p class="meta">Smaller chunks give more precise passages; larger chunks keep more context. Overlap repeats the end
               of one chunk at the start of the next so sentences at a boundary are not lost.</p>
+            <label>Document summary in each passage (characters, 0 = off) <input type="number" name="context_chars" id="s-ctx" min="0" max="1000" step="50"></label>
+            <p class="meta">Adds what the document is about (its front-matter description, else its first paragraph) to every
+              passage before embedding, so a passage that never names its subject still matches. Measured: better ranking on
+              Kubernetes docs with 300 (right page first 95% → 98%; 100% with the MiniLM reranker), slightly worse on the small
+              test corpus. Changing it requires reindexing.</p>
           </fieldset>
           <fieldset>
             <legend>Reranker (offline cross-encoder)</legend>

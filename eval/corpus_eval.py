@@ -23,7 +23,7 @@ import psycopg
 from gates import choose, dump_rows, evaluate
 from psycopg.rows import dict_row
 
-from knowledge_search import auth, db, parsing, runtime
+from knowledge_search import auth, db, runtime
 from knowledge_search.ingest import BlobStore, Worker, submit
 from knowledge_search.search import GateConfig, gate_basis, search
 
@@ -43,7 +43,6 @@ def main():
     ap.add_argument("--context-chars", type=int, default=0, help="document summary added to each passage's embedding")
     a = ap.parse_args()
     corpus, name = Path(a.corpus), Path(a.corpus).name
-    parsing.CONTEXT_CHARS = a.context_chars
     tag = a.model.replace("/", "_") + (f"-ctx{a.context_chars}" if a.context_chars else "")
     admin_url, _ = db.start_embedded(ROOT / "data" / f"corpus-pg-{tag}", database="postgres")
     if not a.reuse:
@@ -60,7 +59,7 @@ def main():
             auth.create_user(c, "tester", "eval-password-123")
             auth.grant(c, name, "staff")
             auth.add_user_to_group(c, "tester", "staff")
-            runtime.save(c, runtime.validate({"embed_model": a.model}), None)
+            runtime.save(c, runtime.validate({"embed_model": a.model, "context_chars": a.context_chars}), None)
             col = auth.ensure_collection(c, name)
             for f in sorted(corpus.glob("*.md")):
                 submit(c, blobs, collection_id=col, filename=f.name, data=f.read_bytes(), user_id=None,

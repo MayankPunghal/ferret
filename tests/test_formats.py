@@ -118,3 +118,24 @@ def test_custom_heading_anchor_and_generic_version_numbers():
     # lowerCamelCase keys count, also inside field paths; capitalised words (JavaScript, GitHub) do not
     assert extract_idents("set `.spec.concurrencyPolicy` like concurrencyPolicy in JavaScript") == [
         "concurrencypolicy", "spec.concurrencypolicy"]
+
+
+def test_document_summary_in_passage_embeddings_is_a_setting():
+    from knowledge_search import runtime
+    from knowledge_search.parsing import (
+        chunk_document,
+        doc_summary,
+        embedding_text,
+        parse_document,
+    )
+
+    doc = parse_document(b"# Assets\n\nThe asset service tracks equipment.\n\n## API\n\nGET /assets lists them.\n", "a.md")
+    assert doc_summary(doc, 0) == "" and doc_summary(doc, 300) == "The asset service tracks equipment."
+    described = parse_document(b"---\ndescription: Tracks equipment.\n---\n# Assets\n\nText.\n", "b.md")
+    assert doc_summary(described, 300) == "Tracks equipment."
+    api = chunk_document(doc, 900, 0)[-1]
+    assert "tracks equipment" in embedding_text(doc.title, api, doc_summary(doc, 300))
+    rt = runtime.defaults()
+    plain = rt.signature()
+    rt.context_chars = 300
+    assert rt.signature() != plain  # changing it marks documents outdated until reindexed
