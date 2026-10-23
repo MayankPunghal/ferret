@@ -53,11 +53,14 @@ this off (Settings → Linked documents).
 - **Mentions (found automatically)** — documents connected without any link: this document names their
   title ("… uses the Asset Service …"), or they name this one. Works for crawled or exported pages that do
   not declare links; titles of two or more words are matched (singular/plural and case ignored).
+- **Related by meaning (found automatically)** — documents about the same thing even if neither names the
+  other: each is among the other's three closest documents by meaning (with the similarity shown). Useful
+  for crawled pages; on the Kubernetes docs most such pairs are pages the authors also linked by hand.
 - **Depends on this (blast radius)** — documents that depend on it directly or via one more hop:
   "what is affected if this changes?".
 
 The **graph** above the lists shows the same neighbourhood visually (1 or 2 hops; blue = depends on, grey =
-links to, dashed = related / part of, dotted = mentions); click a node to open that document. Click any entry to open it. Documents you cannot access never appear; links whose target is not found in
+links to, dashed = related / part of, dotted = mentions, green dots = related by meaning); click a node to open that document. Click any entry to open it. Documents you cannot access never appear; links whose target is not found in
 your accessible documents are listed by name only. Example front matter:
 
 ```yaml

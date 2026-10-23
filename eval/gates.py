@@ -67,10 +67,14 @@ def evaluate(rows, gate: GateConfig, is_relevant) -> dict:
 
 
 def dump_rows(path, rows, is_relevant) -> None:
-    """Per-query signals for eval/pooled_gates.py (gate tuning across several labelled corpora)."""
+    """Per-query signals for eval/pooled_gates.py (gate tuning across several labelled corpora), plus the
+    top 5 passages for eval/llm_answers.py."""
     keep = ("id", "split", "category", "answerable", "_has_idents")
-    path.write_text(json.dumps([({k: q[k] for k in keep}, [{"signals": r["signals"], "relevant": bool(is_relevant(q, r))}
-                                                           for r in res]) for q, res in rows]))
+    path.write_text(json.dumps([({**{k: q[k] for k in keep}, "query": q["query"]},
+                                 [{"signals": r["signals"], "relevant": bool(is_relevant(q, r)),
+                                   **({"doc": r["doc"], "title": r["title"], "heading_path": r["heading_path"],
+                                       "text": r["text"]} if i < 5 else {})}  # passages for eval/llm_answers.py
+                                  for i, r in enumerate(res)]) for q, res in rows]))
 
 
 def choose(val_rows, test_rows, is_relevant, max_far: float) -> dict:

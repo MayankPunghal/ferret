@@ -34,8 +34,9 @@ def fetch(src: Path) -> None:
     subprocess.run(["git", "-C", str(src), "checkout", "-q", COMMIT], check=True)
 
 
-def clean(text: str) -> tuple[str, str]:
-    """(title, markdown body) of one Hugo page."""
+def clean(text: str, description: bool = True) -> tuple[str, str]:
+    """(title, markdown body) of one Hugo page; `description` keeps the page's one-line description as the
+    first paragraph (intranet pages rarely have one: --no-description simulates them)."""
     title, body = "", text
     m = re.match(r"---\n(.*?)\n---\n", text, re.DOTALL)
     if m:
@@ -43,7 +44,7 @@ def clean(text: str) -> tuple[str, str]:
         t = re.search(r"(?m)^title:\s*[\"']?(.+?)[\"']?\s*$", fm)
         title = t.group(1) if t else ""
         d = re.search(r"(?ms)^(?:description|short_description):\s*>?-?\s*\n?(.+?)(?=^\S|\Z)", fm)
-        if d:
+        if d and description:
             body = " ".join(d.group(1).split()) + "\n\n" + body
     # {{< glossary_tooltip text="Pods" term_id="pod" >}} -> Pods ; {{< glossary_tooltip term_id="pod" >}} -> pod
     body = re.sub(r"\{\{<\s*glossary_tooltip\s+(?:text=\"([^\"]*)\"\s+)?term_id=\"([^\"]*)\"(?:\s+text=\"([^\"]*)\")?\s*>\}\}",
@@ -60,6 +61,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(ROOT / "data" / "corpora" / "kubernetes"))
     ap.add_argument("--src", default=str(ROOT / "data" / "src" / "k8s-website"))
+    ap.add_argument("--no-description", action="store_true", help="drop the pages' curated descriptions")
     a = ap.parse_args()
     src, out = Path(a.src), Path(a.out)
     fetch(src)
@@ -70,10 +72,13 @@ def main():
     used, n, skipped = set(), 0, 0
     for section in SECTIONS:
         for f in sorted((docs / section).rglob("*.md")):
-            title, body = clean(f.read_text(encoding="utf-8"))
-            if len(body) < MIN_CHARS or not title:
+            text = f.read_text(encoding="utf-8")
+            title, body = clean(text)
+            if len(body) < MIN_CHARS or not title:  # same page set with or without descriptions
                 skipped += 1
                 continue
+            if a.no_description:
+                body = clean(text, False)[1]
             name = f.parent.name if f.stem in ("_index", "index") else f.stem
             if name in used:  # keep names unique; the first page keeps the URL name links point to
                 name = f"{f.parent.name}-{name}"

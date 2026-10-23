@@ -52,9 +52,35 @@ Limits and next steps: (1) pages that refer to each other by a *different* name 
 — add aliases (front-matter `aliases`, the file name, identifiers defined on the page) as extra titles;
 (2) generic two-word titles ("Getting Started", "Release Notes") would link widely — add a document-frequency
 cut-off when a real corpus shows it; (3) at ~40k documents the per-query title scan should move to a
-precomputed title-query column; (4) *semantic* "similar page" edges (document-vector neighbours) for pages that
-never name each other — useful for "related pages", but on templated wikis every page is similar to every
-other, so they must be measured before they feed search.
+precomputed title-query column; (4) *semantic* "similar page" edges — done in v4 below.
+
+## Implemented (v4): related by meaning — pages that never name each other
+
+Each document gets a vector (mean of its passage vectors, stored in `documents.embedding`). Two readable
+pages are linked (`similar`, `graph.similar`) when they are **mutual nearest neighbours**: each among the
+other's 3 closest documents (same embedding model), and at least the evidence floor (`gate_dense_min`)
+similar. Mutual closeness needs no model-specific threshold, and it stops a "hub" page from linking to
+everything. Exact search over document vectors (one row per document, so ~40k rows at archive scale).
+
+Measured on 623 Kubernetes pages against the 2,495 links the authors wrote (`eval/link_eval.py`; precision is
+a lower bound because authors do not link every related page):
+
+| Implicit link rule | pairs proposed | also linked by the authors | author links found |
+|---|---|---|---|
+| title mentions (v3) | 3,476 | 33% | 45% |
+| 3 nearest by meaning | 1,386 | 43% | 24% |
+| **mutual 3 nearest (shipped)** | 430 | **61%** | 11% |
+| similarity ≥ 0.88 (bge-base scale) | 363 | 70% | 10% |
+| mentions + 3 nearest | 4,319 | 31% | 54% |
+
+A hand check of 40 random nearest-3 pairs the authors did *not* link: about 36 plainly related, the rest weak
+("Tutorials" ↔ "Configuration", "Audit Annotations" ↔ "Authenticating"); related examples
+("Container Lifecycle Hooks" ↔ "Attach Handlers to Container Lifecycle Events", "Upgrading Linux nodes" ↔
+"Upgrade A Cluster"; `eval/results/links-*-unlinked.txt`). Shown in Connections ("Related by meaning") and the
+graph view; **not used for search expansion**: on the synthetic wiki, where every service page looks alike,
+meaning links took the linked-result slots from real dependencies (dependency evidence recall 0.64 → 0.56,
+`eval/graph_eval.py` arm `+similar`). Next: model-written topics (`eval/llm_summaries.py` asks a local model
+for the systems a page relies on) matched to page titles — a "relies on" edge by meaning, not by exact name.
 
 ## Next: entity edges ("Graphify for documentation")
 
