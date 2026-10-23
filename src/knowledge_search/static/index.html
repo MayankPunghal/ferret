@@ -37,6 +37,7 @@
       <nav>
         <button class="tab" data-tab="search" aria-current="page">Search</button>
         <button class="tab" data-tab="documents">Documents</button>
+        <button class="tab" data-tab="summaries">Summaries</button>
         <button class="tab" data-tab="status">Index status</button>
         <button class="tab admin-only" data-tab="settings" hidden>Settings</button>
         <button class="tab admin-only" data-tab="admin" hidden>Users &amp; access</button>
@@ -80,9 +81,15 @@
         <div id="model-banner" class="outcome index_coverage_incomplete" hidden role="status"></div>
         <ul id="upload-list" class="upload-list"></ul>
         <table class="docs">
-          <thead><tr><th>Document</th><th>Collection</th><th>Status</th><th>Version</th><th>Chunks</th><th>Updated</th><th></th></tr></thead>
+          <thead><tr><th>Document</th><th>Type</th><th>Collection</th><th>Status</th><th>Version</th><th>Chunks</th><th>Updated</th><th></th></tr></thead>
           <tbody id="docs"></tbody>
         </table>
+      </section>
+
+      <section id="tab-summaries" hidden>
+        <p class="meta">Written in the background by the local language model, one document at a time after indexing.
+          Summaries help you find and judge documents; they are not evidence — always check the passage.</p>
+        <div id="summaries"></div>
       </section>
 
       <section id="tab-status" hidden>

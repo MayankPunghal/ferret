@@ -39,7 +39,7 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 | Item | Status | Evidence |
 |---|---|---|
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
-| Test suite | **verified** | `uv run pytest -q` → 79 passed (summaries against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Test suite | **verified** | `uv run pytest -q` → 89 passed (summaries against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **verified by the owner** on Windows 11: install, model download, DB init and indexing; searches crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93, 2026-10-22 18:01); owner after that: "setup worked now, search returns results on Windows" (2026-10-23 00:15). **Regression
 found by the owner 2026-10-23 22:36:** the upgrade to migration 0005 (document vectors, `avg(embedding)` in SQL)
@@ -221,6 +221,15 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   themselves, clearer title with the original in the tooltip. Never evidence; the gate ignores it.
 - **In the embeddings:** only with "Add a line about the whole document to every passage" (`context_chars` > 0) and only for
   documents without their own description: the document is re-indexed once with the summary.
+- **Owner's first intranet test (2026-10-23, 135 files, Windows):** found and fixed the same evening:
+  start crashed on the 0005 upgrade (above); summary model needed a separate command (now downloaded by the
+  app); upload list of one line per file (now one line); no summary stage per document (now in Documents
+  and a **Summaries** tab); PDFs blocked by Chrome (`CSP: sandbox` on PDFs → removed; ERR_BLOCKED_BY_CLIENT)
+  and "authentication required" on reload (session cookie SameSite Strict → Lax); Markdown shown raw and Word/
+  PowerPoint downloaded (now `/api/documents/{id}/view`: rendered page, raw HTML escaped, CSP without
+  scripts, links to other documents resolved, Download original); PDF titles like "Microsoft Word - X",
+  "X.docx.docx", "PowerPoint Presentation" (parse-v6 `pdf_title`); crawled pages with only a title (site2md
+  now skips them, listed under `skipped`); a file Type column. Not verified on Windows by me.
 - **Model choice: blind review** (`eval/blind_review.py`, sheet, grades, reasons and key in `eval/results/blind-review*`):
   5 models summarised the same 100 Kubernetes pages (no author descriptions) with the app's exact prompt;
   9 random pages (fixed seed, none read before) graded with each page's summaries shuffled into slots A–E,

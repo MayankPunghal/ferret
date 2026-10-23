@@ -16,8 +16,9 @@ Output: ``<name>.md`` per page with front matter (title, source_url, crawled_at)
 like an uploaded HTML file (main content only, menus and footers dropped). After the crawl every link between
 crawled pages is rewritten to the local file name, so they become graph edges when ingested; other links stay
 absolute, and a title suffix shared by most pages (" | Company Wiki") is removed. ``manifest.json`` lists url → file, failures and the remaining queue; ``--resume`` continues an
-interrupted crawl. Pages that need JavaScript to show their content come out empty (listed as ``empty`` in the
-manifest) unless ``--browser`` is used.
+interrupted crawl. A page with no text of its own (only a title or headings, e.g. one that only embeds files
+that could not be saved, or one that needs JavaScript without ``--browser``) is not written; the manifest lists
+it under ``skipped``.
 """
 
 import hashlib
@@ -45,7 +46,7 @@ from urllib.parse import (
     urlunsplit,
 )
 
-from .html import html_to_markdown
+from .html import _own_text, html_to_markdown
 
 USER_AGENT = "site2md/1 (documentation crawler)"
 # never follow: ends the session or changes data (crawlers that click "logout" lose the login; "delete"
@@ -569,6 +570,11 @@ class Crawler:
             else:
                 name = self._save_file(doc_url, data, kind, filename)
                 docs.append((name.rsplit(".", 1)[0], doc_url, name))
+        if not docs and not _own_text(re.sub(r"(?m)^#{1,6} .*$", "", md)):
+            with self.lock:  # only a title or headings (e.g. a page that only embedded files that were not saved)
+                self.manifest["skipped"][url] = ("no text of its own (only a title or headings; if a browser shows "
+                                                  "text there, crawl with --browser)")
+            return
         if docs:  # embedded documents: linked (to the local file), so they are connected to this page after ingest
             md += "\n\n## Attached documents\n\n" + "\n".join(f"- [{label}]({quote(name)})" for label, _, name in docs)
         digest = hashlib.sha256(md.encode()).hexdigest()

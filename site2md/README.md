@@ -69,6 +69,6 @@ site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --brows
 - `manifest.json`: every URL → file, failures (e.g. "sign-in page"), skips and the remaining queue;
   `--resume` continues an interrupted crawl. Ctrl+C stops a crawl cleanly (links fixed, manifest saved).
 
-Without `--browser`, pages that build their content with JavaScript come out empty (marked `empty` in the
-manifest). `--resume` also retries the URLs that failed. Embedded Google Sheets and Calendars, forms,
+Pages with no text of their own (only a title or headings) are not written; the manifest lists them under
+`skipped`. Without `--browser`, pages that build their content with JavaScript are among them. `--resume` also retries the URLs that failed. Embedded Google Sheets and Calendars, forms,
 videos and files whose owner disabled downloads are not saved; the manifest lists them. The copy has no access control: keep it where only the intended readers can open it.

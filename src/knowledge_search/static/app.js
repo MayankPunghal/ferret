@@ -81,9 +81,10 @@ $("#logout").addEventListener("click", async () => { await api("/api/auth/logout
 
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
-  for (const t of ["search", "documents", "status", "settings", "admin", "logs"]) $("#tab-" + t).hidden = t !== name;
+  for (const t of ["search", "documents", "summaries", "status", "settings", "admin", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
   if (name === "documents") { loadDocs(); pollTimer = setInterval(loadDocs, 3000); }
+  if (name === "summaries") { loadSummaries(); pollTimer = setInterval(loadSummaries, 5000); }
   if (name === "status") loadStatus();
   if (name === "settings") loadSettings();
   if (name === "admin") loadAdmin();
@@ -141,7 +142,7 @@ function writtenSummary(r) {
   if (!r.summary) return "";
   const topics = r.topics.map((t) => {
     const b = el("button", { className: "chip topic", type: "button", textContent: t, title: "Search for " + t });
-    b.addEventListener("click", () => { $("#drawer").hidden = true; $("#q").value = t; $("#search-form").requestSubmit(); });
+    b.addEventListener("click", () => { $("#drawer").hidden = true; openTab("search"); $("#q").value = t; $("#search-form").requestSubmit(); });
     return b;
   });
   return el("div", { className: "r-summary" },
@@ -222,7 +223,7 @@ async function openPassage(id) {
   $("#d-title").replaceChildren(docTitle(p.doc_title, p.clearer_title));
   $("#d-loc").textContent = [p.collection, p.heading_path, p.page ? `page ${p.page}` : "", `version ${p.version_no}`].filter(Boolean).join(" · ");
   $("#d-body").replaceChildren(writtenSummary(p), ...p.context.map((c) => el("p", { className: c.id === p.id ? "hit" : "ctx", textContent: c.text })));
-  $("#d-open").href = `/api/documents/${p.document_id}/source` + (p.page ? `#page=${p.page}` : "");
+  $("#d-open").href = `/api/documents/${p.document_id}/view` + (p.page ? `#page=${p.page}` : "");
   $("#d-uri").replaceChildren(...(!p.source_uri ? [] : /^https?:\/\//.test(p.source_uri)
     ? ["Original: ", el("a", { href: p.source_uri, target: "_blank", rel: "noopener noreferrer", textContent: p.source_uri })]
     : ["Recorded location: " + p.source_uri]));
@@ -411,6 +412,7 @@ async function loadDocs() {
       b.addEventListener("click", async () => { await api(`/api/documents/${d.id}/retry`, { method: "POST" }); loadDocs(); });
       actions.append(b);
     }
+    actions.append(el("a", { href: `/api/documents/${d.id}/source?download=1&version=latest`, textContent: "Download", title: "The original file" }), " ");
     if (d.can_write) {
       const b = el("button", { className: "link danger", textContent: "Delete" });
       b.addEventListener("click", async () => { if (confirm(`Delete "${d.title}" and all its versions?`)) { await api(`/api/documents/${d.id}`, { method: "DELETE" }); loadDocs(); } });
@@ -425,20 +427,53 @@ async function loadDocs() {
       status.append(el("div", { className: "meta", textContent: label }), bar);
     } else if (d.status === "pending") {
       status.append(el("div", { className: "meta", textContent: again + (d.queue_position ? `waiting — ${d.queue_position} ahead in queue` : "waiting to start") }));
-    } else if (d.summary) {  // after indexing: the local model's summary (optional)
-      status.append(el("div", { className: "meta" + (d.summary === "failed" ? " error" : ""), textContent: {
-        waiting: "summary queued (after indexing)", writing: "writing summary…",
-        done: "summarised", failed: "summary could not be written" }[d.summary] }));
-      if (d.summary === "writing") status.append(el("div", { className: "progress indeterminate" }, el("span")));
-    }
+    } else if (d.summary_stage) status.append(...summaryStage(d));
     if (d.needs_reindex) status.append(" ", el("span", { className: "badge warn", textContent: "outdated settings" }));
     if (d.error_code) status.append(el("div", { className: "meta error", textContent: `${d.error_code}: ${d.error_detail || ""}` }));
     const ver = d.indexed_version && d.indexed_version !== d.latest_version ? `v${d.latest_version} (indexed v${d.indexed_version})` : `v${d.latest_version}`;
     return el("tr", {},
-      el("td", {}, el("a", { href: `/api/documents/${d.id}/source`, target: "_blank", rel: "noopener", textContent: d.title }), el("div", { className: "meta", textContent: d.source_key })),
-      el("td", { textContent: d.collection }), status, el("td", { textContent: ver }), el("td", { textContent: d.chunks }),
+      el("td", {}, sourceLink(d), el("div", { className: "meta", textContent: d.source_key })),
+      el("td", { textContent: fileType(d.media_type) }), el("td", { textContent: d.collection }), status, el("td", { textContent: ver }), el("td", { textContent: d.chunks }),
       el("td", { textContent: new Date(d.updated_at).toLocaleString() }), actions);
   }));
+}
+
+const TYPES = { "application/pdf": "PDF", "text/markdown": "Markdown", "text/plain": "Text", "text/html": "HTML",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "PowerPoint" };
+const fileType = (mt) => TYPES[mt] || mt || "";
+const sourceLink = (d) => el("a", { href: `/api/documents/${d.id}/view`, target: "_blank", rel: "noopener", textContent: d.clearer_title || d.title,
+  title: d.clearer_title ? `Title written by the local model; the document's own title is “${d.title}”` : "" });
+function summaryStage(d) {  // after indexing: the local model's summary (optional)
+  const out = [el("div", { className: "meta" + (d.summary_stage === "failed" ? " error" : ""), textContent: {
+    waiting: "summary queued (after indexing)", writing: "writing summary…",
+    done: "summarised", failed: "summary could not be written" }[d.summary_stage] })];
+  if (d.summary_stage === "writing") out.push(el("div", { className: "progress indeterminate" }, el("span")));
+  return out;
+}
+
+// ---------------------------------------------------------------- summaries
+// What the local model wrote for each document: progress first, then the documents being written or waiting,
+// then the summaries. Same permissions as the Documents tab.
+async function loadSummaries() {
+  const [docs, st] = await Promise.all([api("/api/documents"), api("/api/status").catch(() => ({}))]);
+  const line = st.index?.summaries_by_local_model || "";
+  const indexed = docs.filter((d) => d.status === "indexed");
+  const done = indexed.filter((d) => d.summary_stage === "done").length;
+  const head = [el("p", { className: "meta", textContent: line })];
+  if (indexed.length && indexed.some((d) => d.summary_stage)) {
+    head.push(el("div", { className: "progress" }, el("span", { style: `width:${Math.round((100 * done) / indexed.length)}%` })));
+  }
+  const order = { writing: 0, failed: 1, waiting: 2, done: 3 };
+  const rows = indexed.filter((d) => d.summary_stage || d.summary_text)
+    .sort((a, b) => (order[a.summary_stage] ?? 3) - (order[b.summary_stage] ?? 3) || a.title.localeCompare(b.title));
+  $("#summaries").replaceChildren(...head, rows.length ? el("table", { className: "docs summaries" },
+    el("thead", {}, el("tr", {}, ...["Document", "Type", "Summary and topics", "Status"].map((h) => el("th", { textContent: h })))),
+    el("tbody", {}, ...rows.map((d) => el("tr", {},
+      el("td", {}, sourceLink(d), el("div", { className: "meta", textContent: d.collection })),
+      el("td", { textContent: fileType(d.media_type) }),
+      el("td", {}, writtenSummary({ summary: d.summary_text, topics: d.topics }) || el("span", { className: "meta", textContent: "—" })),
+      el("td", {}, ...(d.summary_stage ? summaryStage(d) : [])))))) : el("p", { className: "empty", textContent: "No summaries yet." }));
 }
 
 // ---------------------------------------------------------------- status

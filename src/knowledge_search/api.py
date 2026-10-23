@@ -10,7 +10,7 @@ from uuid import UUID
 import psycopg
 import psycopg_pool
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -271,6 +271,7 @@ def _routes(app: FastAPI) -> None:
             "c.name AS collection, d.collection_id, v.version_no AS latest_version, iv.version_no AS indexed_version, "
             "v.media_type, v.size_bytes, (SELECT count(*) FROM chunks ch WHERE ch.document_id = d.id) AS chunks, "
             "(d.status = 'indexed' AND d.index_signature IS DISTINCT FROM %s) AS needs_reindex, "
+            "d.enrichment, d.indexed_version_id, "
             "j.stage, j.progress_done, j.progress_total, "
             "(SELECT count(*) FROM jobs q WHERE q.status = 'queued' AND q.id < coalesce(j.id, 0)) AS queue_position, "
             # being indexed again only to add its new summary to the passages (enrich: context_chars > 0)
@@ -293,8 +294,12 @@ def _routes(app: FastAPI) -> None:
                 "WHEN d.enrichment ? 'error' THEN 'failed' ELSE 'done' END AS s FROM documents d "
                 "WHERE d.collection_id = ANY(%(scope)s) AND d.status = 'indexed' AND d.indexed_version_id IS NOT NULL",
                 enrich._args(e.model, claim=enrich.CLAIM_MINUTES, scope=scope))}
-        return [dict(r, id=str(r["id"]), can_write=r["collection_id"] in p.writable, summary=summary.get(r["id"]))
-                for r in rows]
+        out = []
+        for r in rows:
+            r = dict(r, id=str(r["id"]), can_write=r["collection_id"] in p.writable, summary_stage=summary.get(r["id"]))
+            shown = enrich.shown(r.pop("enrichment"), r.pop("indexed_version_id"))
+            out.append(r | {"summary_text": shown["summary"], "topics": shown["topics"], "clearer_title": shown["clearer_title"]})
+        return out
 
     @app.post("/api/documents", status_code=202)
     async def upload(
@@ -353,8 +358,8 @@ def _routes(app: FastAPI) -> None:
         conn.commit()
         return {"queued": True}
 
-    @app.get("/api/documents/{document_id}/source")
-    def source(document_id: UUID, p: User, conn: Conn, version: str = "indexed"):
+    def _original(conn, p: Principal, document_id: UUID, version: str, audit: bool = True):
+        """(version row, stored file) of the indexed (or latest) version; audited as opened."""
         d = _doc_for(conn, p, document_id)
         vid = d["indexed_version_id"] if version == "indexed" and d["indexed_version_id"] else d["latest_version_id"]
         v = conn.execute("SELECT sha256, filename, media_type FROM document_versions WHERE id = %s", (vid,)).fetchone()
@@ -363,8 +368,45 @@ def _routes(app: FastAPI) -> None:
         path = state.blobs.path(v["sha256"])
         if not path.exists():
             raise HTTPException(410, "original file is missing from storage")
+        if audit:
+            auth.audit(conn, p.user_id, "open_source", str(document_id))
+            conn.commit()
+        return v, path
+
+    @app.get("/api/documents/{document_id}/view")
+    def view(document_id: UUID, p: User, conn: Conn, version: str = "indexed"):
+        """The document readable in the browser: PDF and HTML as themselves; Markdown, text, Word and
+        PowerPoint rendered as a page (Markdown with raw HTML escaped, so nothing in it can run)."""
+        v, path = _original(conn, p, document_id, version, audit=False)
+        if v["media_type"] in ("application/pdf", "text/html"):  # the browser shows these itself
+            return RedirectResponse(f"/api/documents/{document_id}/source?version={version}", status_code=303)
         auth.audit(conn, p.user_id, "open_source", str(document_id))
         conn.commit()
+        from .convert import docx_to_markdown, pptx_to_markdown
+        from .viewer import page
+
+        data = path.read_bytes()
+        if v["media_type"] == DOCX:
+            body = docx_to_markdown(data)[1]
+        elif v["media_type"] == PPTX:
+            body = pptx_to_markdown(data)[1]
+        else:
+            body = data.decode("utf-8", "replace")
+        links = {r["target"]: str(r["id"]) for r in conn.execute(  # links to documents this user can read
+            "SELECT DISTINCT ON (l.target) l.target, d.id FROM doc_links l JOIN documents d ON "
+            + graph._resolves("d", "l") + " AND d.collection_id = ANY(%s) AND d.id <> l.document_id "
+            "WHERE l.document_id = %s ORDER BY l.target, d.updated_at DESC", (list(p.readable), document_id))}
+        html = page(v["filename"], body, plain=v["media_type"] == "text/plain", links=links,
+                    download=f"/api/documents/{document_id}/source?download=1&version={version}")
+        return Response(html, media_type="text/html; charset=utf-8", headers={
+            # no scripts at all; styles inline; links work, so does the download link (no sandbox)
+            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+                                       "frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+            "Cache-Control": "private, no-store"})
+
+    @app.get("/api/documents/{document_id}/source")
+    def source(document_id: UUID, p: User, conn: Conn, version: str = "indexed", download: bool = False):
+        v, path = _original(conn, p, document_id, version)
         # Uploaded content is sandboxed (opaque origin, no scripts). HTML is rendered with nothing allowed to
         # load except inline styles and embedded images; Word and PowerPoint files are downloaded. PDFs get no
         # sandbox, only the app's own policy: Chrome's PDF viewer refuses sandboxed documents
@@ -375,6 +417,8 @@ def _routes(app: FastAPI) -> None:
         elif v["media_type"] == "text/html":
             mt, csp = "text/html", "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"
         elif v["media_type"] in (DOCX, PPTX):
+            mt, disposition = v["media_type"], "attachment"
+        if download:
             mt, disposition = v["media_type"], "attachment"
         safe = re.sub(r"[^\w.\-]", "_", v["filename"])
         return FileResponse(

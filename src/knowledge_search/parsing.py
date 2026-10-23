@@ -10,11 +10,12 @@ import re
 import threading
 from dataclasses import dataclass, field
 from urllib.parse import unquote
+from pathlib import Path
 
 import yaml
 from markdown_it import MarkdownIt
 
-PARSER_VERSION = "parse-v5"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium
+PARSER_VERSION = "parse-v6"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium; v6: PDF titles without "Microsoft Word - ", .docx, generic metadata
 _PDFIUM = threading.Lock()  # PDFium is not thread-safe; API requests and ingest workers parse concurrently
 CHUNKER_VERSION = "chunk-v2"  # size/overlap are runtime settings, recorded in the index signature
 
@@ -212,6 +213,21 @@ def parse_pdf(data: bytes, filename: str, max_pages: int) -> ParsedDocument:
         return _parse_pdf(pdfium, data, filename, max_pages)
 
 
+# Titles that say nothing about a document (also used by enrich.vague_title)
+GENERIC = {"", "home", "index", "overview", "introduction", "intro", "untitled", "document", "presentation",
+           "powerpoint presentation", "slide 1", "page 1", "readme", "main", "welcome", "new page", "draft",
+           "start", "about", "notes", "details", "summary", "general", "info", "information", "test"}
+
+
+def pdf_title(meta_title: str, filename: str) -> str:
+    """A PDF's title from its metadata, without what the exporting program added ("Microsoft Word - ",
+    "Handbook.docx"); the file name (without .pdf) when the metadata is empty or generic ("PowerPoint
+    Presentation", "Untitled")."""
+    t = re.sub(r"(?i)^microsoft\s+(word|powerpoint|excel)\s*-\s*", "", " ".join((meta_title or "").split()))
+    t = re.sub(r"(?i)(\.(docx?|pptx?|xlsx?|pdf))+$", "", t).strip()
+    return Path(filename).stem if t.lower() in GENERIC else t
+
+
 def _parse_pdf(pdfium, data: bytes, filename: str, max_pages: int) -> ParsedDocument:
     try:
         pdf = pdfium.PdfDocument(data)
@@ -222,7 +238,7 @@ def _parse_pdf(pdfium, data: bytes, filename: str, max_pages: int) -> ParsedDocu
     try:
         if len(pdf) > max_pages:
             raise ParseError("too_many_pages", f"{len(pdf)} pages > limit {max_pages}")
-        title = (pdf.get_metadata_dict().get("Title") or "").strip() or filename
+        title = pdf_title(pdf.get_metadata_dict().get("Title") or "", filename)
         sections = []
         for i in range(len(pdf)):
             page = pdf[i]

@@ -3,6 +3,8 @@
 import io
 import zipfile
 
+import pytest
+
 from knowledge_search.parsing import (
     ParseError,
     chunk_document,
@@ -141,6 +143,15 @@ def test_html_and_docx_upload_search_and_safe_source(client, drain):
         assert html.headers["content-security-policy"].startswith("sandbox; default-src 'none'")
         docx = client.get(f"/api/documents/{ids['runbook.docx']}/source", headers=sam)
         assert docx.headers["content-disposition"].startswith("attachment")
+        # readable view: Word rendered as a page (no scripts allowed), HTML and PDF go to the original
+        page = client.get(f"/api/documents/{ids['runbook.docx']}/view", headers=sam)
+        assert page.headers["content-type"].startswith("text/html") and "<h1>Rollback</h1>" in page.text
+        assert "script-src" not in page.headers["content-security-policy"]  # default-src 'none': no scripts
+        assert "default-src 'none'" in page.headers["content-security-policy"] and "source?download=1" in page.text
+        moved = client.get(f"/api/documents/{ids['orders-api.html']}/view", headers=sam, follow_redirects=False)
+        assert moved.status_code == 303 and "/source" in moved.headers["location"]
+        down = client.get(f"/api/documents/{ids['orders-api.html']}/source?download=1", headers=sam)
+        assert down.headers["content-disposition"].startswith("attachment")
     finally:
         for d in ids.values():
             client.delete(f"/api/documents/{d}", headers=sam)
@@ -214,3 +225,37 @@ def test_crawled_page_and_its_deck_are_searchable_and_connected(client, drain):
     finally:
         for d in ids.values():
             client.delete(f"/api/documents/{d}", headers=sam)
+
+
+@pytest.mark.parametrize("meta,filename,title", [
+    ("Microsoft Word - Group Health Policy", "x.pdf", "Group Health Policy"),
+    ("Microsoft Word- Group Health Policy", "x.pdf", "Group Health Policy"),
+    ("US HR Employee Handbook 2026.docx.docx", "h.pdf", "US HR Employee Handbook 2026"),
+    ("PowerPoint Presentation", "Leave User Manual.pdf", "Leave User Manual"),
+    ("", "6 1Password Usage.pdf", "6 1Password Usage"),
+    ("Incident 2025-031 Postmortem: Checkout outage", "a.pdf", "Incident 2025-031 Postmortem: Checkout outage")])
+def test_pdf_titles_without_what_the_exporting_program_added(meta, filename, title):
+    from knowledge_search.parsing import pdf_title
+    assert pdf_title(meta, filename) == title
+
+
+def test_markdown_view_is_rendered_and_inert():
+    from knowledge_search.viewer import page
+
+    out = page("x.md", "---\ntitle: X\n---\n# Heading\n\nText <script>alert(1)</script> [a](javascript:alert(1))\n")
+    assert "<h1>Heading</h1>" in out and "title: X" not in out
+    assert "<script>" not in out and "&lt;script&gt;" in out and 'href="javascript' not in out
+    assert "<pre>a &lt;b&gt;</pre>" in page("x.txt", "a <b>", plain=True)
+
+
+def test_links_in_the_readable_view_open_the_linked_document(client, corpus):
+    """ledger-service.md links ledger-config.txt; the view links to that document's view. Unresolvable
+    relative links become plain text; web links stay."""
+    from knowledge_search.viewer import _relink
+
+    root = token(client, "root")
+    docs = {d["source_key"]: d["id"] for d in client.get("/api/documents", headers=root).json()}
+    page = client.get(f"/api/documents/{docs['ledger-service.md']}/view", headers=root).text
+    assert f'href="/api/documents/{docs["ledger-config.txt"]}/view"' in page
+    out = _relink('<a href="missing.md">x</a> <a href="https://example.com/a">y</a> <a href="#top">z</a>', {})
+    assert out == '<a>x</a> <a href="https://example.com/a">y</a> <a href="#top">z</a>'

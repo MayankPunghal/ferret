@@ -32,6 +32,8 @@ PAGES = {
     "/orphan": "<html><head><title>Orphan</title></head><body><main><h1>Orphan</h1><p>Only in the sitemap. <a href='/about/'>Team</a></p></main></body></html>",
     "/private/secret": "<html><body><main><p>Disallowed.</p></main></body></html>",
     "/logout": "<html><body>bye</body></html>",
+    "/hub": f"<html><head><title>HR Corner</title></head><body>{NAV}<main><h1>HR Corner</h1><h2>Policies</h2>"
+            "<iframe src='https://calendar.google.com/calendar/embed?src=x'></iframe></main></body></html>",
 }
 
 
@@ -287,3 +289,15 @@ def test_document_names_stay_readable_and_safe():
     assert file_name_for("leave policy (1)", used) == "leave policy (1) (2)"  # same name ignoring case
     assert file_name_for('Q3: plan? "v2" / final', used) == "Q3- plan- -v2- - final"
     assert file_name_for("CON", used) == "CON_"
+
+
+def test_a_page_with_only_a_title_is_not_written(tmp_path):
+    """Google Sites hub pages that only embed (unsaved) files would be empty documents that cannot be indexed."""
+    srv, _ = serve()
+    base = f"http://127.0.0.1:{srv.server_port}"
+    try:
+        m = Crawler(base + "/hub", tmp_path, delay=0, max_pages=1, workers=1, log=lambda *_: None).run()
+    finally:
+        srv.shutdown()
+    assert base + "/hub" not in m["pages"] and "no text of its own" in m["skipped"][base + "/hub"]
+    assert not (tmp_path / "hub.md").exists()

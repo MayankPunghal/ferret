@@ -113,7 +113,7 @@ with sync_playwright() as p:
     print("uploads:", pg.inner_text("#upload-list").replace("\n", " | "))
     pg.wait_for_selector("#docs tr:has-text('Alpha') .st-indexed", timeout=60000)
     pg.wait_for_selector("#docs tr:has-text('beta.txt') .st-indexed", timeout=60000)
-    print("both uploads indexed; stages:", sorted(set(pg.locator("#docs td:nth-child(3) .meta").all_inner_texts())))
+    print("both uploads indexed; stages:", sorted(set(pg.locator("#docs td:nth-child(4) .meta").all_inner_texts())))
     shot("03-documents")
     pg.click(".tab[data-tab=search]")
     pg.fill("#q", "heliotrope switch")
@@ -135,6 +135,24 @@ with sync_playwright() as p:
         line = summaries_line()
     print("summaries:", line)
     shot("16-status")
+    pg.click(".tab[data-tab=summaries]")
+    pg.wait_for_selector("#summaries table, #summaries .empty")
+    print("summaries tab:", pg.locator("#summaries tbody tr").count(), "rows | first:",
+          pg.locator("#summaries tbody tr").first.inner_text().replace("\n", " | ")[:160]
+          if pg.locator("#summaries tbody tr").count() else "-")
+    shot("17-summaries")
+    # readable view of a Markdown document (rendered, not raw text)
+    pg.click(".tab[data-tab=documents]")
+    pg.wait_for_selector("#docs tr")
+    with pg.context.expect_page() as viewer:
+        pg.locator("#docs tr:has-text('ledger-service.md') td:first-child a").click()
+    v = viewer.value
+    v.wait_for_load_state()
+    assert v.locator("main h1").count() == 1 and "# " not in v.locator("main").inner_text()[:2], "Markdown not rendered"
+    print("viewer:", v.title(), "| h1:", v.locator("main h1").inner_text(), "| download link:",
+          v.locator("header a").inner_text())
+    v.screenshot(path=f"{OUT}/18-viewer.png")
+    v.close()
     pg.click("#logout")
     pg.wait_for_selector("#login-view:not([hidden])")
 

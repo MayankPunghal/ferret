@@ -34,7 +34,9 @@ evidence**. The right passage is often among them (especially for paraphrased qu
 - related documents in up to four rows — **Links to**, **Referenced by**, **Mentions** and **Related in
   meaning** — up to four each; click one to open its passage (the passage view lists them all);
 - **View passage** — the passage with the chunks before and after it;
-- **Open source** — the original file (PDFs open at the page).
+- **Open source** — the document in your browser: PDFs open at the page, HTML as itself (scripts and external
+  content disabled); Markdown, text, Word and PowerPoint as a readable page (formatted, links to other documents
+  open them) with a **Download original** link.
 
 Through the API (`POST /api/search`) each result additionally includes the full chunk text, `chunk_id`,
 `document_id`, `passage_url`, `source_url` and the ranking signals.
@@ -77,6 +79,13 @@ part_of: checkout-workflow
 ---
 ```
 
+## Summaries tab
+
+When the optional local language model runs, the **Summaries** tab lists every document you can read with
+its summary and topics, the progress (*N of M documents*) and each document's stage: *summary queued* (written
+after all indexing), *writing summary…*, *summarised*, or *summary could not be written*. The Documents tab
+shows the same stage under each indexed document.
+
 ## Uploading documents
 
 **Documents** tab (needs write access to a collection): pick the collection, then drag files onto the drop
@@ -87,8 +96,9 @@ zone or click it to browse. Several files can be uploaded at once.
   links become connections), `.docx` (Word: headings, lists, tables), `.pptx` (PowerPoint: a
   section per slide, with the speaker notes), `.pdf` with a text layer.
   Scanned PDFs without text are rejected (`no_extractable_text`); legacy `.doc` and `.ppt`, and `.xlsx`, are not
-  supported yet. Opening an HTML source shows it with scripts and external content disabled; Word files
-  are downloaded.
+  supported yet. Click a document's title to read it in the browser (see **Open source** above);
+  **Download** gets the original file. The **Type** column says what each file is.
+- An upload shows one line with its counts; only rejected files are listed by name.
 - Uploading an identical file again does nothing (`unchanged`). Uploading a changed file with the same name
   creates a new version and replaces the old passages once indexed.
 - Failed documents show the reason and a **Retry** button. **Delete** removes the document, its passages

@@ -87,7 +87,7 @@ def test_reranker_search_path(client, corpus):
         assert res["results"][0]["title"] == "Orders Service Deployment Runbook"
         top = res["results"][0]
         assert top["text"] and top["passage_url"] == f"/api/chunks/{top['chunk_id']}"
-        assert top["source_url"].startswith(f"/api/documents/{top['document_id']}/source")
+        assert top["source_url"].startswith(f"/api/documents/{top['document_id']}/view")
         # identifier rules still apply with the reranker gate
         assert search(client, alice, "ERR-PAY-4013")["outcome"] == "no_adequate_evidence"
     finally:

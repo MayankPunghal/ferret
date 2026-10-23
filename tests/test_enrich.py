@@ -213,11 +213,13 @@ def test_documents_list_shows_the_summary_stage(client, corpus, drain, fake_llm,
     monkeypatch.setattr(state, "enricher", e, raising=False)
     root = token(client, "root")
     docs = client.get("/api/documents", headers=root).json()
-    assert {d["summary"] for d in docs if d["status"] == "indexed"} == {"waiting"}
+    assert {d["summary_stage"] for d in docs if d["status"] == "indexed"} == {"waiting"}
+    assert not any(d["summary_text"] for d in docs)
     run_all(e)
     docs = client.get("/api/documents", headers=root).json()
-    assert {d["summary"] for d in docs if d["status"] == "indexed"} == {"done"}
+    assert {d["summary_stage"] for d in docs if d["status"] == "indexed"} == {"done"}
+    assert {d["summary_text"] for d in docs if d["status"] == "indexed"} == {"How payments are retried. Covers backoff."}
     assert not any(d["adding_summary"] for d in docs if d["status"] != "indexed")
     with db.pool().connection() as c:
         runtime.save(c, {"enrich_enabled": False}, None)
-    assert all(d["summary"] is None for d in client.get("/api/documents", headers=root).json())
+    assert all(d["summary_stage"] is None for d in client.get("/api/documents", headers=root).json())

@@ -31,6 +31,7 @@ from psycopg import Connection
 from psycopg.types.json import Jsonb
 
 from . import db, runtime
+from .parsing import GENERIC
 
 log = logging.getLogger(__name__)
 
@@ -46,9 +47,6 @@ PROMPT = """You index internal technical documentation for search. Read the docu
 Document title: {title}{title_note}
 {outline}
 {text}"""
-GENERIC = {"", "home", "index", "overview", "introduction", "intro", "untitled", "document", "presentation",
-           "powerpoint presentation", "slide 1", "page 1", "readme", "main", "welcome", "new page", "draft",
-           "start", "about", "notes", "details", "summary", "general", "info", "information", "test"}
 
 
 def vague_title(title: str) -> bool:
