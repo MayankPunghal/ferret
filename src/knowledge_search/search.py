@@ -304,7 +304,7 @@ def search(
             "FROM chunks c JOIN documents d ON d.id = c.document_id "
             "JOIN document_versions v ON v.id = c.version_id JOIN collections col ON col.id = c.collection_id "
             "WHERE c.id = ANY(%(ids)s) AND c.collection_id = ANY(%(scope)s)",
-            {"qv": qvec, "lx": lexemes, "tq": _or_tsquery(lexemes) if lexemes else "''", "ids": pool + fill,
+            {"qv": qvec, "lx": lexemes, "tq": _or_tsquery(lexemes), "ids": pool + fill,
              "scope": scope, "mk": model_key, "mem": in_memory},
         ).fetchall()
         rows_by_id = {r["id"]: r for r in rows}

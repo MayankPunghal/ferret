@@ -1,0 +1,109 @@
+{
+  "corpus": "k8s-sub",
+  "model": "BAAI/bge-base-en-v1.5",
+  "reranker": null,
+  "context_chars": 0,
+  "documents": 171,
+  "ingest_seconds": 667.0,
+  "passages": 3357,
+  "retrieval": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0
+  },
+  "latency_ms": {
+    "p50": 100.1,
+    "p95": 187.7
+  },
+  "shipped_gate": {
+    "gate": {
+      "dense_high": 0.78,
+      "dense_min": 0.72,
+      "lex_coverage": 0.2,
+      "rerank_min": 0.0,
+      "mode": "similarity",
+      "lexical": "coverage",
+      "all_terms_min": 0.6
+    },
+    "unanswerable_n": 16,
+    "answerable_n": 27,
+    "false_answer_rate": 0.0,
+    "answer_coverage": 0.778,
+    "precision_among_answered": 1.0,
+    "false_answers": [],
+    "abstained_answerable": [
+      "p013",
+      "p016",
+      "p022",
+      "p023",
+      "p034",
+      "p048"
+    ],
+    "answered_by_category": {
+      "identifier": 0.67,
+      "keyword": 1.0,
+      "near_negative": 0.0,
+      "negative": 0.0,
+      "question": 0.71
+    }
+  },
+  "gates_chosen_on_val": {
+    "similarity+coverage": {
+      "chosen": {
+        "dense_high": 0.78,
+        "dense_min": 0.55,
+        "lex_coverage": 0.34,
+        "rerank_min": 0,
+        "mode": "similarity",
+        "lexical": "coverage",
+        "all_terms_min": 9.0
+      },
+      "val": {
+        "unanswerable_n": 8,
+        "answerable_n": 15,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.933,
+        "precision_among_answered": 1.0
+      },
+      "test": {
+        "unanswerable_n": 8,
+        "answerable_n": 12,
+        "false_answer_rate": 0.125,
+        "answer_coverage": 1.0,
+        "precision_among_answered": 0.923,
+        "false_answers": [
+          "n006"
+        ],
+        "abstained_answerable": []
+      }
+    },
+    "similarity+idf": {
+      "chosen": {
+        "dense_high": 0.78,
+        "dense_min": 0.55,
+        "lex_coverage": 0.34,
+        "rerank_min": 0,
+        "mode": "similarity",
+        "lexical": "idf",
+        "all_terms_min": 9.0
+      },
+      "val": {
+        "unanswerable_n": 8,
+        "answerable_n": 15,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.933,
+        "precision_among_answered": 1.0
+      },
+      "test": {
+        "unanswerable_n": 8,
+        "answerable_n": 12,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 1.0,
+        "precision_among_answered": 1.0,
+        "false_answers": [],
+        "abstained_answerable": []
+      }
+    }
+  }
+}

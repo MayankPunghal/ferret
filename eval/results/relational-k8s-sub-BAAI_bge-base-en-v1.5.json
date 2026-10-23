@@ -1,0 +1,856 @@
+{
+ "corpus": "k8s-sub",
+ "model": "BAAI/bge-base-en-v1.5",
+ "reranker": null,
+ "context_chars": 0,
+ "n": 24,
+ "results": {
+  "need_recall": 0.945,
+  "all_needs": 0.833
+ },
+ "with_related": {
+  "need_recall": 1.0,
+  "all_needs": 1.0,
+  "shown_median": 19.0
+ },
+ "ranked_by_question": {
+  "top2_per_result": {
+   "need_recall": 0.972,
+   "all_needs": 0.917,
+   "shown_median": 14.5
+  },
+  "top3_per_result": {
+   "need_recall": 0.986,
+   "all_needs": 0.958,
+   "shown_median": 16.0
+  },
+  "top4_per_result": {
+   "need_recall": 1.0,
+   "all_needs": 1.0,
+   "shown_median": 17.5
+  }
+ },
+ "control_more_results": {
+  "first11_documents": {
+   "need_recall": 0.958,
+   "all_needs": 0.917
+  },
+  "first13_documents": {
+   "need_recall": 0.972,
+   "all_needs": 0.917
+  },
+  "first16_documents": {
+   "need_recall": 0.986,
+   "all_needs": 0.958
+  },
+  "first31_documents": {
+   "need_recall": 0.986,
+   "all_needs": 0.958
+  }
+ },
+ "rows": [
+  {
+   "id": "r01",
+   "query": "what do I need to set up so that a pod's service account can read secrets",
+   "results": [
+    "configure-service-account",
+    "service-accounts",
+    "secret",
+    "kubelet-credential-provider",
+    "images",
+    "configure-pod-configmap",
+    "distribute-credentials-secure",
+    "service-accounts-admin",
+    "access-api-from-pod",
+    "controlling-access"
+   ],
+   "added_by_related": [
+    "authorization",
+    "namespaces",
+    "names",
+    "rbac",
+    "access-authn-authz-rbac",
+    "admission-controllers",
+    "projected-volumes",
+    "jwt",
+    "cloud-native-security",
+    "best-practices-certificates",
+    "multi-tenancy",
+    "cloud-provider",
+    "device-plugins",
+    "device-plugin",
+    "encrypt-data",
+    "secrets-good-practices",
+    "connect-applications-service",
+    "container-env-variables"
+   ],
+   "need_recall": 0.667,
+   "all_needs": false,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 28,
+   "missing": []
+  },
+  {
+   "id": "r02",
+   "query": "how does the kubelet connect to the control plane and how is that connection secured",
+   "results": [
+    "control-plane-node-communication",
+    "kubelet-tls-bootstrapping",
+    "kubelet-authn-authz",
+    "authorization",
+    "debug-running-pod",
+    "service-accounts",
+    "kubelet-files",
+    "multi-tenancy",
+    "encrypt-data",
+    "kubelet-credential-provider"
+   ],
+   "added_by_related": [
+    "cloud-provider",
+    "best-practices-certificates",
+    "access-authn-authz-rbac",
+    "certificate-rotation",
+    "certificate-signing-requests",
+    "rbac",
+    "rbac-good-practices"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 17,
+   "missing": []
+  },
+  {
+   "id": "r03",
+   "query": "what happens to pods when a node runs out of memory and how do I protect important pods",
+   "results": [
+    "node-pressure-eviction",
+    "assign-memory-resource",
+    "manage-resources-containers",
+    "pod-lifecycle",
+    "disruptions",
+    "pod-qos",
+    "taint-and-toleration",
+    "configure-pdb",
+    "memory-constraint-namespace",
+    "memory-manager"
+   ],
+   "added_by_related": [
+    "scheduling-hugepages",
+    "nodes",
+    "pid-limiting",
+    "controllers",
+    "container-runtimes",
+    "quality-service-pod",
+    "memory-default-namespace",
+    "cpu-default-namespace",
+    "service",
+    "pod-priority-preemption",
+    "multi-tenancy",
+    "horizontal-pod-autoscale",
+    "device-plugin",
+    "kube-scheduler",
+    "windows-resource-management"
+   ],
+   "need_recall": 0.667,
+   "all_needs": false,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 25,
+   "missing": []
+  },
+  {
+   "id": "r04",
+   "query": "upgrading a kubeadm cluster together with its etcd",
+   "results": [
+    "kubeadm-upgrade",
+    "setup-ha-etcd-with-kubeadm",
+    "high-availability",
+    "safely-drain-node",
+    "cni",
+    "configure-upgrade-etcd"
+   ],
+   "added_by_related": [
+    "container-runtimes",
+    "cloud-provider",
+    "network-plugins"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 9,
+   "missing": []
+  },
+  {
+   "id": "r05",
+   "query": "limit how much CPU and memory a team's namespace can use and set defaults for containers",
+   "results": [
+    "cpu-default-namespace",
+    "quota-memory-cpu-namespace",
+    "memory-default-namespace",
+    "limit-range",
+    "resource-quotas",
+    "horizontal-pod-autoscale",
+    "pod-lifecycle",
+    "nodes",
+    "memory-constraint-namespace",
+    "assign-memory-resource"
+   ],
+   "added_by_related": [
+    "manage-resources-containers",
+    "admission-controllers"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 12,
+   "missing": []
+  },
+  {
+   "id": "r06",
+   "query": "keep my application available while nodes are drained for maintenance",
+   "results": [
+    "safely-drain-node",
+    "run-replicated-stateful-application",
+    "disruptions",
+    "admission-controllers",
+    "node-pressure-eviction",
+    "windows-resource-management",
+    "topology-manager",
+    "nodes",
+    "kubeadm-upgrade",
+    "admission-webhooks-good-practices"
+   ],
+   "added_by_related": [
+    "configure-pdb",
+    "pod-lifecycle",
+    "assign-pod-node",
+    "pod-disruption",
+    "persistent-volumes",
+    "statefulset",
+    "service",
+    "configure-pod-configmap",
+    "basic-stateful-set",
+    "node-autoscaling",
+    "assign-memory-resource",
+    "pod-qos",
+    "cloud-provider"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 23,
+   "missing": []
+  },
+  {
+   "id": "r07",
+   "query": "how does a Service send traffic to its pods and what keeps track of the pod addresses",
+   "results": [
+    "connect-applications-service",
+    "dns-pod-service",
+    "service",
+    "expose-intro",
+    "virtual-ips",
+    "statefulset",
+    "expose-external-ip-address",
+    "service-accounts-admin",
+    "multi-tenancy",
+    "debug-pods"
+   ],
+   "added_by_related": [
+    "secret",
+    "create-external-load-balancer",
+    "endpoint-slices",
+    "extensible-admission-controllers",
+    "basic-stateful-set",
+    "namespaces",
+    "dns-debugging-resolution",
+    "container-runtimes",
+    "ingress",
+    "names",
+    "run-replicated-stateful-application",
+    "cloud-provider",
+    "network-plugins"
+   ],
+   "need_recall": 0.667,
+   "all_needs": false,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 23,
+   "missing": []
+  },
+  {
+   "id": "r08",
+   "query": "how do pods get persistent storage provisioned automatically",
+   "results": [
+    "configure-persistent-volume-storage",
+    "dynamic-provisioning",
+    "persistent-volumes",
+    "statefulset",
+    "kubectl",
+    "storage-classes",
+    "admission-controllers",
+    "basic-stateful-set",
+    "node-autoscaling",
+    "configure-projected-volume-storage"
+   ],
+   "added_by_related": [
+    "configure-pod-configmap",
+    "names",
+    "multi-tenancy",
+    "volume-plugin",
+    "run-replicated-stateful-application",
+    "cloud-provider",
+    "custom-resources"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 17,
+   "missing": []
+  },
+  {
+   "id": "r09",
+   "query": "what replaces PodSecurityPolicy and how do I migrate",
+   "results": [
+    "migrate-from-psp",
+    "network-policies",
+    "resource-quotas",
+    "pid-limiting",
+    "admission-controllers",
+    "extensible-admission-controllers",
+    "pod-security-policy",
+    "psp-to-pod-security-standards",
+    "glossary-pod-security-policy",
+    "pod-security-admission"
+   ],
+   "added_by_related": [
+    "pod-security-standards",
+    "service-accounts",
+    "network-plugins",
+    "configure-pod-configmap",
+    "declare-network-policy",
+    "multi-tenancy",
+    "policy",
+    "cloud-native-security",
+    "debug-service",
+    "cloud-provider",
+    "pod-lifecycle",
+    "rbac",
+    "authorization",
+    "quota-memory-cpu-namespace",
+    "limit-range",
+    "custom-resources",
+    "device-plugins",
+    "device-plugin",
+    "container-runtimes"
+   ],
+   "need_recall": 0.667,
+   "all_needs": false,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 29,
+   "missing": []
+  },
+  {
+   "id": "r10",
+   "query": "autoscale an application on CPU usage and where the metrics come from",
+   "results": [
+    "horizontal-pod-autoscale-walkthrough",
+    "autoscaling",
+    "horizontal-pod-autoscale",
+    "horizontal-pod-autoscaler",
+    "resource-metrics-pipeline",
+    "node-autoscaling",
+    "deployment",
+    "quota-memory-cpu-namespace",
+    "cpu-default-namespace",
+    "configure-pdb"
+   ],
+   "added_by_related": [
+    "manage-resources-containers",
+    "pod-lifecycle",
+    "statefulset",
+    "observability"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 14,
+   "missing": []
+  },
+  {
+   "id": "r11",
+   "query": "run a database with stable network identity and its own persistent volume per replica",
+   "results": [
+    "persistent-volumes",
+    "statefulset",
+    "run-replicated-stateful-application",
+    "rbac-good-practices",
+    "dynamic-provisioning",
+    "basic-stateful-set",
+    "multi-tenancy",
+    "projected-volumes",
+    "configure-persistent-volume-storage"
+   ],
+   "added_by_related": [
+    "storage-classes",
+    "admission-controllers",
+    "names",
+    "cloud-provider",
+    "custom-resources",
+    "volume-plugin",
+    "deployment",
+    "service",
+    "controllers",
+    "configure-pod-configmap",
+    "disruptions",
+    "configure-pdb"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 21,
+   "missing": []
+  },
+  {
+   "id": "r12",
+   "query": "give containers configuration and credentials as files in a volume",
+   "results": [
+    "distribute-credentials-secure",
+    "configure-projected-volume-storage",
+    "secret",
+    "configure-pod-configmap",
+    "configure-service-account",
+    "service-accounts",
+    "container-env-variables",
+    "images",
+    "configmap",
+    "projected-volumes"
+   ],
+   "added_by_related": [
+    "managing-secret-using-kubectl",
+    "managing-secret-using-config-file",
+    "get-shell-running-container",
+    "configure-persistent-volume-storage",
+    "encrypt-data",
+    "authorization",
+    "secrets-good-practices",
+    "connect-applications-service",
+    "cloud-native-security",
+    "controlling-access",
+    "device-plugin"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 21,
+   "missing": []
+  },
+  {
+   "id": "r13",
+   "query": "move nodes from dockershim to containerd",
+   "results": [
+    "change-runtime-containerd",
+    "migrating-from-dockershim",
+    "container-runtimes",
+    "topology-manager",
+    "node-pressure-eviction",
+    "windows-resource-management",
+    "safely-drain-node",
+    "check-if-dockershim-removal-affects-you",
+    "find-out-runtime-you-use",
+    "get-shell-running-container"
+   ],
+   "added_by_related": [
+    "manage-resources-containers",
+    "images",
+    "pid-limiting"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 13,
+   "missing": []
+  },
+  {
+   "id": "r14",
+   "query": "write an admission webhook and what to watch out for",
+   "results": [
+    "admission-webhooks-good-practices",
+    "extensible-admission-controllers",
+    "admission-controllers",
+    "custom-resource-definitions",
+    "network-plugins",
+    "policy"
+   ],
+   "added_by_related": [
+    "names",
+    "service-accounts-admin",
+    "debug-pods",
+    "custom-resources",
+    "service-accounts",
+    "certificate-signing-requests",
+    "ingress",
+    "persistent-volumes",
+    "dynamic-provisioning",
+    "storage-classes",
+    "persistent-volume-claim"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 17,
+   "missing": []
+  },
+  {
+   "id": "r15",
+   "query": "how does the scheduler place a pod that has node affinity and must tolerate taints",
+   "results": [
+    "assign-pod-node",
+    "taint-and-toleration",
+    "assign-pods-nodes-using-node-affinity",
+    "advanced-pod-config",
+    "kube-scheduler",
+    "pod-priority-preemption",
+    "node-autoscaling",
+    "pod-lifecycle"
+   ],
+   "added_by_related": [
+    "admission-controllers",
+    "topology-manager",
+    "disruptions",
+    "multi-tenancy",
+    "resource-quotas",
+    "cloud-provider",
+    "nodes",
+    "node-pressure-eviction",
+    "hello-minikube",
+    "rbac-good-practices",
+    "storage-classes"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 19,
+   "missing": []
+  },
+  {
+   "id": "r16",
+   "query": "restrict network traffic between pods and which network plugin is needed for it",
+   "results": [
+    "network-plugins",
+    "network-policies",
+    "multi-tenancy",
+    "network-policy",
+    "cloud-native-security",
+    "compute-storage-net",
+    "container-runtimes",
+    "declare-network-policy",
+    "assign-pod-node",
+    "virtual-ips"
+   ],
+   "added_by_related": [
+    "cni",
+    "admission-webhooks-good-practices",
+    "configure-pod-configmap",
+    "policy",
+    "debug-service",
+    "cloud-provider",
+    "pod-lifecycle",
+    "rbac",
+    "resource-quotas",
+    "service-accounts",
+    "custom-resources"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 21,
+   "missing": []
+  },
+  {
+   "id": "r17",
+   "query": "what checks does an API request go through after the user is authenticated",
+   "results": [
+    "extensible-admission-controllers",
+    "controlling-access",
+    "authorization",
+    "service-accounts",
+    "service-accounts-admin",
+    "admission-webhooks-good-practices",
+    "custom-resources",
+    "policy",
+    "kubelet-authn-authz",
+    "certificate-signing-requests"
+   ],
+   "added_by_related": [
+    "admission-controllers",
+    "names",
+    "debug-pods",
+    "configure-service-account",
+    "cloud-native-security",
+    "cloud-provider",
+    "access-api-from-pod",
+    "rbac",
+    "rbac-good-practices",
+    "resource-quotas",
+    "kubelet-tls-bootstrapping",
+    "secret",
+    "controllers",
+    "access-authn-authz-rbac"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 24,
+   "missing": []
+  },
+  {
+   "id": "r18",
+   "query": "encrypt secrets stored in etcd using an external key management service",
+   "results": [
+    "encrypt-data",
+    "kms-provider",
+    "secrets-good-practices",
+    "managing-secret-using-kubectl",
+    "distribute-credentials-secure",
+    "managing-secret-using-config-file",
+    "cloud-native-security",
+    "secret",
+    "configure-upgrade-etcd",
+    "high-availability"
+   ],
+   "added_by_related": [
+    "cloud-provider",
+    "custom-resources",
+    "rbac",
+    "rbac-good-practices"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 14,
+   "missing": []
+  },
+  {
+   "id": "r19",
+   "query": "how do pods find services by DNS name and how do I debug lookups that fail",
+   "results": [
+    "debug-service",
+    "dns-debugging-resolution",
+    "statefulset",
+    "dns-pod-service",
+    "basic-stateful-set",
+    "connect-applications-service",
+    "debug-pods",
+    "service",
+    "expose-intro",
+    "debug-running-pod"
+   ],
+   "added_by_related": [
+    "network-policies",
+    "debug",
+    "network-policy",
+    "cloud-provider",
+    "deployment",
+    "dynamic-provisioning",
+    "persistent-volumes",
+    "controllers",
+    "storage-classes"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 19,
+   "missing": []
+  },
+  {
+   "id": "r20",
+   "query": "add my own resource type to the API and a controller that manages it",
+   "results": [
+    "custom-resources",
+    "resource-quotas",
+    "authorization",
+    "pod-lifecycle",
+    "parallel-processing-expansion",
+    "rbac-good-practices",
+    "custom-resource-definitions",
+    "controller",
+    "access-authn-authz-rbac",
+    "topology-manager"
+   ],
+   "added_by_related": [
+    "names",
+    "admission-controllers",
+    "extensible-admission-controllers",
+    "configure-pdb",
+    "gateway",
+    "ingress",
+    "multi-tenancy",
+    "rbac",
+    "quota-memory-cpu-namespace",
+    "limit-range",
+    "policy",
+    "cloud-native-security",
+    "device-plugins",
+    "device-plugin",
+    "container-runtimes",
+    "controlling-access",
+    "certificate-signing-requests",
+    "kubelet-tls-bootstrapping",
+    "service-accounts",
+    "secret",
+    "cloud-provider",
+    "controllers"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 32,
+   "missing": []
+  },
+  {
+   "id": "r21",
+   "query": "a pod keeps crashing, how do I find out why it failed",
+   "results": [
+    "pod-lifecycle",
+    "determine-reason-pod-failure",
+    "manage-resources-containers",
+    "disruptions",
+    "pod-disruption",
+    "container-lifecycle-hooks",
+    "deployment",
+    "debug-running-pod",
+    "debug-pods",
+    "debug-service"
+   ],
+   "added_by_related": [
+    "names",
+    "controllers",
+    "pod-qos",
+    "statefulset",
+    "basic-stateful-set",
+    "horizontal-pod-autoscale",
+    "container-runtimes",
+    "glossary-logging",
+    "images",
+    "service",
+    "pod-priority-preemption",
+    "multi-tenancy",
+    "cpu-default-namespace",
+    "device-plugin",
+    "kube-scheduler",
+    "windows-resource-management"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 26,
+   "missing": []
+  },
+  {
+   "id": "r22",
+   "query": "run a job on a schedule and delete finished jobs automatically",
+   "results": [
+    "ttlafterfinished",
+    "automated-tasks-with-cron-jobs",
+    "finalizers",
+    "admission-controllers",
+    "cron-jobs",
+    "parallel-processing-expansion",
+    "autoscaling",
+    "run-replicated-stateful-application",
+    "kube-scheduler",
+    "node-autoscaling"
+   ],
+   "added_by_related": [
+    "debug-pods",
+    "finalizer"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 12,
+   "missing": []
+  },
+  {
+   "id": "r23",
+   "query": "how are kubelet client certificates issued and renewed",
+   "results": [
+    "certificate-rotation",
+    "best-practices-certificates",
+    "kubelet-tls-bootstrapping",
+    "manual-rotation-of-ca-certificates",
+    "projected-volumes",
+    "kubelet-credential-provider",
+    "certificate-signing-requests",
+    "images",
+    "kubelet-authn-authz"
+   ],
+   "added_by_related": [
+    "service-accounts",
+    "authorization",
+    "control-plane-node-communication",
+    "access-authn-authz-rbac"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 13,
+   "missing": []
+  },
+  {
+   "id": "r24",
+   "query": "make GPUs available to pods",
+   "results": [
+    "scheduling-gpus",
+    "device-plugins",
+    "device-plugin",
+    "resource-quotas",
+    "pod-qos",
+    "assign-memory-resource",
+    "quality-service-pod",
+    "run-replicated-stateful-application",
+    "compute-storage-net",
+    "taint-and-toleration"
+   ],
+   "added_by_related": [
+    "manage-resources-containers",
+    "device-plugin-api-versions",
+    "topology-manager",
+    "kubelet-files",
+    "secret",
+    "topology",
+    "container-runtimes",
+    "hello-minikube"
+   ],
+   "need_recall": 1.0,
+   "all_needs": true,
+   "need_recall_related": 1.0,
+   "all_needs_related": true,
+   "shown": 18,
+   "missing": []
+  }
+ ]
+}
