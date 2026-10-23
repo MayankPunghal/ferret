@@ -257,7 +257,22 @@ characters, added to every passage's *embedding* text; `--context-chars 300`; bg
 Not adopted as the default yet: it helps the real corpus (whose pages carry curated one-line descriptions)
 and slightly hurts the small fixture corpus, where one short summary dominates every passage of a short
 document and blurs which passage answers; the gate thresholds were tuned without it (answered share fell on
-fixtures). Next: re-tune the gate with it on both label sets pooled, and test on pages without descriptions.
+fixtures).
+
+**Gate tuned on both label sets pooled** (`eval/pooled_gates.py`; 84 val / 84 test queries; rows files in
+`eval/results/*.rows.json` so this re-runs without models). For bge-base the sweep on the pooled val half
+picks **exactly the shipped gate** (0.78 / 0.72 / coverage 0.20 / all-terms 0.60):
+
+| Passages | pooled test: false answers | answered | precision | fixtures test (false / answered) | Kubernetes test |
+|---|---|---|---|---|---|
+| plain (shipped) | 3/28 (0.107) | **0.768** | **0.935** | 3/20 / 0.679 | 0/8 / 0.857 |
+| + document summary | 3/28 (0.107) | 0.732 | 0.909 | 3/20 / 0.571 | 0/8 / 0.893 |
+
+So the shipped gate stands, and contextual passages stay off: with the best gate for them they answer less
+and less precisely overall, despite the better ranking on Kubernetes. The 3 false answers are fixture
+near-topic questions whose subject exists but whose specific fact does not ("rate limit of the orders API",
+"roll back a database migration", "orders api rate limits") — the hard case for any similarity gate; a
+reader model that checks the passage states the fact is the planned fix (second-brain step).
 
 ## Not measured
 

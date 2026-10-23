@@ -2,7 +2,7 @@
   "model": "BAAI/bge-base-en-v1.5",
   "reranker": null,
   "documents": 12,
-  "ingest_seconds": 6.55,
+  "ingest_seconds": 6.56,
   "retrieval": {
     "lexical": {
       "hit@1": 0.946,
@@ -34,8 +34,8 @@
     }
   },
   "latency_ms_full": {
-    "p50": 78.5,
-    "p95": 116.8
+    "p50": 75.4,
+    "p95": 109.5
   },
   "gates": {
     "similarity+coverage": {

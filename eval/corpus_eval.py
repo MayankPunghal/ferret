@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 
 import psycopg
-from gates import choose, evaluate
+from gates import choose, dump_rows, evaluate
 from psycopg.rows import dict_row
 
 from knowledge_search import auth, db, parsing, runtime
@@ -130,6 +130,7 @@ def main():
     base = str(ROOT / "eval" / "results" / f"corpus-{name}-{tag}{'-rr-' + a.reranker.split('/')[-1] if a.reranker else ''}")
     Path(base + ".json").write_text(json.dumps(out, indent=2))
     Path(base + ".txt").write_text("\n".join(table) + "\n")
+    dump_rows(Path(base + ".rows.json"), rows, is_relevant)
     sg = out["shipped_gate"]
     print(json.dumps({k: out[k] for k in ("corpus", "model", "reranker", "retrieval", "latency_ms") if k in out}))
     print(f"shipped gate {sg['gate']}\n  false answers {sg['false_answer_rate']} (n={sg['unanswerable_n']}) "

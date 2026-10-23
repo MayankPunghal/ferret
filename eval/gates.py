@@ -5,6 +5,7 @@ matches, reranker score). Gate families are then swept on the *val* split; the c
 answer coverage whose val false-answer rate is <= the budget is applied unchanged to the held-out *test* split.
 """
 
+import json
 from itertools import product
 
 from knowledge_search.search import GateConfig, gate_basis
@@ -63,6 +64,13 @@ def evaluate(rows, gate: GateConfig, is_relevant) -> dict:
         "precision_among_answered": round(pos_ok / max(pos_ans + neg_ans, 1), 3),
         "false_answers": false_answers, "abstained_answerable": missed,
     }
+
+
+def dump_rows(path, rows, is_relevant) -> None:
+    """Per-query signals for eval/pooled_gates.py (gate tuning across several labelled corpora)."""
+    keep = ("id", "split", "category", "answerable", "_has_idents")
+    path.write_text(json.dumps([({k: q[k] for k in keep}, [{"signals": r["signals"], "relevant": bool(is_relevant(q, r))}
+                                                           for r in res]) for q, res in rows]))
 
 
 def choose(val_rows, test_rows, is_relevant, max_far: float) -> dict:

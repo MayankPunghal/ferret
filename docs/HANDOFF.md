@@ -106,11 +106,23 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   passage + similarity ≥ `gate_all_terms_min`; 40 keyword queries added to `eval/queries.jsonl`; Qwen3 tuned
   (0.78/0.64/0.20/0.45): fixtures test answered 0.86, false answers 1/20; bge-base 0.68 and 3/20. Switching
   the reranker now resets a stored reranker-score threshold. Recommend gate mode **similarity**.
-- **Real corpus** (ed5c956): `eval/make_k8s_corpus.py` (623 Kubernetes pages), `eval/k8s_queries.jsonl`
-  (56 answerable, 16 must-refuse), `eval/corpus_eval.py` (per-query table). bge-base: 56/56 in top 5, 1/16
-  false answers, 87.5% answered. It exposed 4 parser/gate bugs, fixed in parse-v4 (bare "2.0" as identifier,
-  `{#id}` headings, camelCase keys, loose front matter). Re-measurement with parse-v4, document-summary
-  context (`--context-chars`) and Qwen3: see docs/evaluation.md §7 (pending at time of writing).
+- **Real corpus** (ed5c956, 82197ac, 9da5864): `eval/make_k8s_corpus.py` (623 Kubernetes pages, 8,524
+  passages), `eval/k8s_queries.jsonl` (56 answerable, 16 must-refuse; labels = answer key for the test only,
+  written by hand once, never needed by the product), `eval/corpus_eval.py` (per-query table). It exposed 4
+  parser/gate bugs, fixed in parse-v4 (bare "2.0" as identifier, `{#id}` headings, camelCase keys, loose
+  front matter). parse-v4, bge-base: **56/56 in top 5, 0/16 false answers, 89% answered, rank-1 0.946,
+  0.24 s/query**. MiniLM / jina-turbo / bge-reranker-base: rank-1 0.946 / 0.964 / 0.964 for 1.2 / 1.3 /
+  4.3 s — at most one query better, so **reranker off** is the recommendation. Remaining misses are
+  abstentions on reworded questions ("run a job every night at 2am") and `OOMKilled` (sim 0.59).
+- **Contextual passages** (`parsing.CONTEXT_CHARS`, research item 3): document summary in every passage's
+  embedding. Kubernetes rank-1 0.946 → 0.982 (1.00 with MiniLM); fixtures 1.00 → 0.98 and fewer answered.
+  **Off**: with a gate tuned for it on both label sets pooled it answers less (0.73 vs 0.77) and less
+  precisely (0.91 vs 0.94). `eval/pooled_gates.py` (fixtures + Kubernetes, 84 val / 84 test) re-picks the
+  shipped bge-base gate exactly; its 3/28 test false answers are fixture near-topic questions.
+- **Not done, deliberately:** UpperCamel words (`OOMKilled`, `NodePort`) as exact identifiers — would fix
+  `OOMKilled`, but brand words (`GitHub`, `JavaScript`) mentioned in passing would then count as exact
+  evidence and a query with an identifier absent from the corpus is refused outright. If revisited: count
+  them as evidence only when matched, never as a veto, and only with full query-term coverage.
 - **Bake-off harness:** `eval/beir_screen.py` takes `cqadupstack/<forum>` (technical StackExchange Q&A),
   several `--rerank-candidates`, `--max-queries`, and ColBERT (late-interaction) models.
 
@@ -128,9 +140,9 @@ auto-migrations on start; GraphRAG deferred in favour of a deterministic link-gr
 | Existing products (Onyx/RAGFlow/R2R) — rejected for v1 | Connectors (Confluence, SharePoint, Git, Jira) |
 | Docker-based laptop install — replaced (failed on the owner's Windows) | OIDC / company SSO |
 | Embedded PG on Windows — two platform bugs found and fixed (DLL, pgvector distance) | Verify the Windows search fix; Windows service install (NSSM) |
-| 6 embedding models screened (3 measured on SciFact) | Qwen3-Embedding-0.6B, bge-large, mxbai-large; multilingual corpora |
-| 3 rerankers (MiniLM measured harmful on technical text) | Rerankers on the owner's real documents |
-| Gate families: similarity, IDF-weighted, reranker, reranker+similarity | Calibration on real labelled data |
+| 6 embedding models screened (3 measured on SciFact); bge-base vs Qwen3-0.6B on 623 Kubernetes pages | bge-large, mxbai-large, arctic-l; multilingual corpora |
+| 7 rerankers: CQADupStack-unix (all lowered nDCG), Kubernetes (+0–1 rank-1 hit, 1–4 s) → off by default | bge-reranker-v2-m3 (OOM at 15 GB; try int8), rerankers on the owner's documents |
+| Gate families: similarity, IDF-weighted, reranker, reranker+similarity, all-query-terms rule; contextual passages | Gate tuned on pooled labels (fixtures + Kubernetes); contextual passages with that gate; SPLADE |
 | Concurrency (single/multi process) | Large corpora (10⁵+ chunks), HNSW |
 | HTML (main-content extraction, links → graph) and DOCX — implemented, checked on MkDocs/Sphinx/Kubernetes pages | PPTX/XLSX, legacy .doc, OCR, Docling for complex PDFs |
 | Graph navigation v1 (links, impact, Connections UI) + link-aware search, evaluated on a synthetic wiki | Graph: real-corpus multi-hop evaluation, shared-identifier/entity edges, Graphify import, MCP tools |
@@ -143,9 +155,10 @@ multi-MB PDFs). Ranked search-improvement plan with sources: docs/research-searc
 embedding bake-offs → contextual passages → learned sparse → entity edges + PageRank → scale test).
 
 1. **Owner retry on Windows** (`git pull`, `start.bat`): confirm search works.
-2. **Real-corpus evaluation:** index 200–1,000 real technical documents (e.g. a Graphify /
-   codebase-documenter wiki + runbooks); write 50–100 labelled questions including unanswerable ones;
-   run the gate tuning (`eval/gates.py`) on them; store per-model thresholds in `embedder.py`.
+2. **Real-corpus evaluation:** done for public docs (Kubernetes, §4d). Still needed: the owner's own
+   documents (runbooks, codebase wiki) with 50–100 labelled questions incl. unanswerable ones; then tune the
+   gate on fixtures + Kubernetes + owner labels pooled (`eval/pooled_gates.py`, add the owner's rows file).
+   Store per-model thresholds in `embedder.py`.
 3. **Graph navigation, next increments** (docs/research-graph.md): run `eval/graph_eval.py`-style questions on
    a real Graphify/codebase-documenter wiki; shared-identifier (entity) edges; REST/MCP tools (`search`,
    `get_passage`, `get_links`, `impact`) for agent navigation.

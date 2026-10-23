@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 
 import psycopg
-from gates import choose, evaluate
+from gates import choose, dump_rows, evaluate
 from psycopg.rows import dict_row
 
 from knowledge_search import auth, db, parsing, runtime
@@ -147,6 +147,7 @@ def main():
     out["shipped_gate_test"] = {"gate": vars(shipped), **evaluate(test, shipped, is_relevant)}
     path = ROOT / "eval" / "results" / f"fixtures-{a.model.replace('/', '_')}{'-rr' if a.reranker else ''}{'-graph' if a.graph else ''}{f'-ctx{a.context_chars}' if a.context_chars else ''}.json"
     path.write_text(json.dumps(out, indent=2))
+    dump_rows(path.with_name(path.stem + ".rows.json"), full, is_relevant)
     print(json.dumps({k: v for k, v in out.items() if k not in ("gates",)}, indent=1))
     for fam, g in out["gates"].items():
         if g.get("chosen"):
