@@ -1,24 +1,42 @@
 {
- "pages": 228,
+ "pages": 28,
  "reference_descriptions": 228,
  "models": {
-  "qwen3-5-0-8b": {
-   "agreement": 0.791,
-   "identifies": 0.728,
-   "median_seconds": 10.3,
-   "words": 27.2
+  "qwen3.5-0.8b-app": {
+   "agreement": 0.793,
+   "identifies": 0.75,
+   "median_seconds": 6.1,
+   "words": 27.1
   },
-  "gemma-4-E2B": {
-   "agreement": 0.795,
-   "identifies": 0.732,
-   "median_seconds": 18.8,
-   "words": 30.7
+  "qwen3.5-2b-app": {
+   "agreement": 0.773,
+   "identifies": 0.643,
+   "median_seconds": 19.05,
+   "words": 35.3
+  },
+  "gemma-4-e2b-app": {
+   "agreement": 0.791,
+   "identifies": 0.714,
+   "median_seconds": 17.75,
+   "words": 29.6
+  },
+  "qwen3.5-4b-app": {
+   "agreement": 0.785,
+   "identifies": 0.679,
+   "median_seconds": 34.8,
+   "words": 34.1
+  },
+  "gemma-4-e4b-app": {
+   "agreement": 0.792,
+   "identifies": 0.714,
+   "median_seconds": 34.0,
+   "words": 30.3
   },
   "no model (first paragraph)": {
-   "agreement": 0.86,
-   "identifies": 0.785,
+   "agreement": 0.884,
+   "identifies": 0.857,
    "median_seconds": null,
-   "words": 23.6
+   "words": 21.1
   }
  }
 }

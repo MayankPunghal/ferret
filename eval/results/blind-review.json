@@ -1,0 +1,94 @@
+{
+ "key": {
+  "authentication-mechanisms.md": {
+   "A": "gemma-4-e2b-app",
+   "B": "gemma-4-e4b-app",
+   "C": "qwen3.5-2b-app",
+   "D": "qwen3.5-0.8b-app",
+   "E": "qwen3.5-4b-app"
+  },
+  "cluster-administration.md": {
+   "A": "qwen3.5-0.8b-app",
+   "B": "qwen3.5-4b-app",
+   "C": "qwen3.5-2b-app",
+   "D": "gemma-4-e4b-app",
+   "E": "gemma-4-e2b-app"
+  },
+  "autoscaling.md": {
+   "A": "qwen3.5-4b-app",
+   "B": "qwen3.5-2b-app",
+   "C": "qwen3.5-0.8b-app",
+   "D": "gemma-4-e2b-app",
+   "E": "gemma-4-e4b-app"
+  },
+  "api-server-bypass-risks.md": {
+   "A": "gemma-4-e4b-app",
+   "B": "gemma-4-e2b-app",
+   "C": "qwen3.5-4b-app",
+   "D": "qwen3.5-2b-app",
+   "E": "qwen3.5-0.8b-app"
+  },
+  "cloud-native-security.md": {
+   "A": "gemma-4-e4b-app",
+   "B": "qwen3.5-0.8b-app",
+   "C": "qwen3.5-4b-app",
+   "D": "gemma-4-e2b-app",
+   "E": "qwen3.5-2b-app"
+  },
+  "application-security-checklist.md": {
+   "A": "qwen3.5-0.8b-app",
+   "B": "qwen3.5-4b-app",
+   "C": "gemma-4-e4b-app",
+   "D": "qwen3.5-2b-app",
+   "E": "gemma-4-e2b-app"
+  },
+  "admission-webhooks-good-practices.md": {
+   "A": "qwen3.5-0.8b-app",
+   "B": "qwen3.5-2b-app",
+   "C": "qwen3.5-4b-app",
+   "D": "gemma-4-e4b-app",
+   "E": "gemma-4-e2b-app"
+  },
+  "authorization.md": {
+   "A": "qwen3.5-4b-app",
+   "B": "qwen3.5-2b-app",
+   "C": "gemma-4-e2b-app",
+   "D": "gemma-4-e4b-app",
+   "E": "qwen3.5-0.8b-app"
+  },
+  "architecture.md": {
+   "A": "qwen3.5-4b-app",
+   "B": "qwen3.5-0.8b-app",
+   "C": "gemma-4-e4b-app",
+   "D": "qwen3.5-2b-app",
+   "E": "gemma-4-e2b-app"
+  }
+ },
+ "scores": {
+  "qwen3.5-0.8b-app": {
+   "faithful": 1.22,
+   "specific": 1.56,
+   "wrong_claims": 3
+  },
+  "qwen3.5-2b-app": {
+   "faithful": 1.89,
+   "specific": 2,
+   "wrong_claims": 0
+  },
+  "gemma-4-e2b-app": {
+   "faithful": 2,
+   "specific": 1.67,
+   "wrong_claims": 0
+  },
+  "qwen3.5-4b-app": {
+   "faithful": 1.78,
+   "specific": 2,
+   "wrong_claims": 0
+  },
+  "gemma-4-e4b-app": {
+   "faithful": 2,
+   "specific": 1.67,
+   "wrong_claims": 0
+  }
+ }
+}

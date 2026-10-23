@@ -25,7 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 NODESC = ROOT / "data" / "corpora" / "kubernetes-nodesc"
 MODELS = ["qwen3.5-0.8b-app", "qwen3.5-2b-app", "gemma-4-e2b-app", "qwen3.5-4b-app", "gemma-4-e4b-app"]
-PAGES, MIN_CHARS, EXCERPT = 15, 2500, 3000
+PAGES, MIN_CHARS, EXCERPT = 12, 1500, 3000
 SEEN = {"affinity.md", "aggregation-layer.md", "annotation.md", "api-group.md", "api-resource.md",
         "admission-controller.md", "admission-policies.md"}  # summaries read before the review
 SHEET = ROOT / "eval" / "results" / "blind-review-sheet.md"
@@ -42,7 +42,7 @@ def build(key: Path):
     common = sorted(set.intersection(*(set(r) for r in runs.values())))
     pages = [p for p in common if len(body(p)) >= MIN_CHARS and p not in SEEN]
     rng = random.Random(20261023)
-    pages = rng.sample(pages, PAGES)
+    pages = rng.sample(pages, min(PAGES, len(pages)))
     out, mapping = ["# Blind review sheet (summaries shuffled per page; key kept outside the repository)\n"], {}
     for p in pages:
         order = MODELS[:]
