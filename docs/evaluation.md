@@ -103,6 +103,40 @@ Rerankers are therefore used for **ordering** (default), with the similarity gat
 
 Not re-measured with bge-base (expect query embedding ~3–4× slower).
 
+## 6. Link-aware search (graph-assisted retrieval)
+
+`eval/graph_eval.py` generates a FICTIONAL interlinked platform wiki (`eval/make_wiki.py`: 36 service pages
+with Dependencies / Ownership / Runtime / Failure sections, 8 workflow pages, front-matter `depends_on` /
+`part_of`, `[[wiki links]]`; every page has the same section types, so they are hard negatives for each
+other) and 81 labelled questions whose label is the **set** of passages needed. A restricted page is linked
+to and from public pages to test leakage. bge-base, top 10 results, shipped gate.
+
+| Arm | single-hop recall | dependencies ("services X depends on") | workflow ("every service in W") | impact ("services that depend on X") | false answers (15 about non-existent things) | p50 |
+|---|---|---|---|---|---|---|
+| hybrid (before) | 0.96 | 0.24 | 0.36 | 0.23 | 0 | 22 ms |
+| + links, 3 slots | 0.96 | 0.48 | 0.49 | 0.32 | 0 | 39 ms |
+| **+ links, 5 slots (default)** | **0.96** | **0.60** | **0.57** | **0.40** | 0 | 38 ms |
+| + links, 7 slots | 0.83 | 0.69 | 0.79 | 0.46 | 0 | 37 ms |
+
+Values = evidence recall (share of the labelled passages in the top 10), all 81 questions; slots chosen on
+val (largest without single-hop loss), held-out test: dependencies 0.26 → 0.70, workflow 0.41 → 0.68, impact
+0.23 → 0.36–0.38, single-hop 0.92 → 0.92. Restricted passages returned: 0 in every arm. The reranker does
+not change recall@10 (it reorders the same 10) but lowers hit@1 on dependency questions (0.42 → 0.29) while
+raising it on single-hop (0.54 → 0.75). Fixture eval (§3–4) is identical with link expansion on and off.
+
+How it works (`search._linked`): seeds = documents whose title/file name the question contains (else the
+top result); linked passages are scored against the question **with the seed names removed** (+3–5 points);
+one passage per linked document first; they fill up to 5 of the 10 result slots. Tried and rejected: adding
+linked passages as a weighted RRF branch (single-hop recall fell to 0.38–0.79 because similar sections of
+neighbours were counted twice); preferring outgoing links (+0.01 dependencies, −0.08 impact).
+
+**Caveats.** Synthetic, templated pages (similar to generated wikis, but not a real corpus). Getting *all*
+the needed passages into the top 10 is still rare for questions needing 4–6 passages (complete-set rate
+0.29 for dependencies, 0 for workflows) — following links step by step (UI Connections, `/links`, a future
+agent) remains the tool for those. The evidence gate abstains on most correct short-section answers here
+(similarity 0.6–0.7 < 0.72): thresholds tuned on longer prose do not transfer to terse wiki sections —
+re-tune on the real corpus.
+
 ## Not measured
 
 Real company corpus; corpora beyond ~4k chunks; Qwen3/large models; GPU; Windows performance; Docker
@@ -115,4 +149,5 @@ uv run --group eval python eval/run_eval.py --model BAAI/bge-base-en-v1.5 --lexi
 uv run --group eval python eval/beir_screen.py --max-docs 2000 --models BAAI/bge-small-en-v1.5 BAAI/bge-base-en-v1.5
 uv run --group eval python eval/scale_eval.py --model BAAI/bge-base-en-v1.5 --reranker "" --lexical-weight 0.1
 uv run --group eval python eval/scale_eval.py --model BAAI/bge-base-en-v1.5 --reuse --reranker BAAI/bge-reranker-base --rerank-candidates 10
+uv run --group eval python eval/graph_eval.py --slots 3,5,7          # link-aware search
 ```

@@ -55,7 +55,7 @@ evidence gate per result → outcome + reason codes. Restricted documents never 
 | 11 | Durable job queue in PostgreSQL (`SKIP LOCKED`) | Redis/Celery | No broker; transactional with document state. | Measured polling load. |
 | 12 | Local accounts, groups → collection grants; first-run admin from localhost | OIDC now | No IdP known yet; identical laptop/server behaviour. | IdP known → OIDC mapping groups. |
 | 13 | Static UI without build step | React + TS | Few screens, strict CSP, nothing to build for users. | UI grows substantially. |
-| 14 | GraphRAG deferred; deterministic link graph is the next research item | GraphRAG / LightRAG now | Brief gates; LLM extraction cost on CPU; see [research-graph.md](research-graph.md). | Evaluation on an interlinked technical corpus shows gains. |
+| 14 | GraphRAG deferred; deterministic link graph (edge table `doc_links` in PostgreSQL, resolved at query time) + link expansion in search | GraphRAG / LightRAG; graph database (Neo4j) | Brief gates; LLM extraction cost on CPU; one store keeps permissions in every query; see [research-graph.md](research-graph.md). | Real-corpus multi-hop evaluation; entity/identifier edges; corpora beyond ~10⁶ edges. |
 
 Restricted scope: the system never derives any state from documents the caller cannot read, so a query
 whose only answer is restricted looks exactly like `no_adequate_evidence`; filtering to an unreadable

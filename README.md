@@ -19,6 +19,9 @@ no cloud account, no GPU and no external AI provider are needed.
 - **Traceable results** — passage, heading/page, neighbouring context and a link to the original file.
 - **Connections** — links between documents (Markdown/wiki links, `depends_on`-style front matter) with a
   "what depends on this" blast-radius view, permission-filtered.
+- **Link-aware search** — questions that name a page also get passages from the pages it links to and from
+  ("who owns the services X depends on"); on a labelled synthetic wiki, multi-hop evidence recall 0.24 → 0.60
+  with no single-hop loss ([evaluation](docs/evaluation.md#6-link-aware-search-graph-assisted-retrieval)).
 - **Permissions** — collections with group-based read/write access, enforced inside every query.
 - **Admin UI** — upload by drag and drop, change models/chunking/reranking, manage users and access, reindex.
 - **One-click install** — embedded PostgreSQL + pgvector; nothing else to install.

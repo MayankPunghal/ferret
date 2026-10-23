@@ -1,8 +1,25 @@
 # Research note: graph navigation for interlinked technical documentation
 
-Status: **v1 implemented** (deterministic links, link/impact API, Connections panel — see "Implemented" below).
-Not yet done: link expansion inside search ranking, shared-identifier edges, agent/MCP tools, and the
-evaluation that decides whether graph features improve answers (owner priority).
+Status: **v1 implemented** (deterministic links, link/impact API, Connections panel) and **v2: link-aware
+search** (on by default; measured on a labelled synthetic wiki — docs/evaluation.md §6: multi-hop evidence
+recall 0.24 → 0.60, single-hop unchanged, no leakage). Not yet done: shared-identifier / entity edges,
+Graphify import, agent/MCP tools, real-corpus multi-hop evaluation.
+
+## Implemented (v2): link expansion in search
+
+`search._linked`: when the question names a document (title or file name; else the top result), the
+passages of documents linked to/from it (one hop, both directions, readable only) are scored against the
+question minus the seed names, one per linked document first, and fill up to 5 of 10 result slots
+(badge "linked from …", `signals.linked_from`). Setting `graph_expansion` (Settings → Linked documents).
+Arms tried and rejected are listed in the evaluation.
+
+## How the graph is stored
+
+No graph database: nodes are `documents` (and their `chunks`, for anchors), edges are rows in `doc_links`
+(source chunk, kind, raw target, anchor). Targets are resolved at query time, so edges appear as soon as
+the target is ingested and disappear with it; traversal is SQL (one query per hop, permission filter
+inside). This keeps one store, one backup and one permission model; a dedicated graph engine would only
+pay off for deep traversals over millions of edges, which documentation graphs do not need.
 
 ## Implemented (v1)
 
@@ -18,6 +35,16 @@ evaluation that decides whether graph features improve answers (owner priority).
 - UI: passage drawer → **Connections** (links from, linked from, depends on this) with click-through.
 - Tests: `tests/test_graph.py` (extraction, anchors, unresolved, incoming, 2-hop impact, kind filter,
   restricted documents invisible, delete removes edges). Demo data: `fixtures/corpus/platform-wiki/`.
+
+## Next: entity edges ("Graphify for documentation")
+
+Graphify-style tools connect code through symbols (imports, calls). The documentation equivalent is
+**shared identifiers**: `orders-svc`, `orders_db`, `POST /v1/orders`, `ERR-PAY-4012`, table and config names
+are already extracted per chunk (`chunks.idents`). Plan: treat each rare identifier as an entity node
+(edge `mentions` from every chunk containing it, weighted by rarity), surface "also mentioned in" in
+Connections and use it as a second expansion source; import Graphify's own graph export when a user has
+one (format to be verified before building an importer). Accept only if it beats links-only on the same
+evaluation without single-hop or permission regressions.
 
 ## Problem
 

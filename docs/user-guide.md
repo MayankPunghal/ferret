@@ -33,6 +33,15 @@ evidence**. The right passage is often among them (especially for paraphrased qu
 Through the API (`POST /api/search`) each result additionally includes the full chunk text, `chunk_id`,
 `document_id`, `passage_url`, `source_url` and the ranking signals.
 
+## Questions that follow links
+
+When your question names a page — by its title or file name, e.g. *"who is on call for the services the
+Orders Service depends on"* — search also follows that page's links (both directions, one hop) and adds the
+most relevant passage of each linked page to the results, marked **linked from Orders Service**. Up to half
+of the ten results can come from linked pages; the rest are ordinary matches. Only pages you may read are
+followed. If the question names no page, the links of the top result are followed. Administrators can turn
+this off (Settings → Linked documents).
+
 ## Connections (linked documents)
 
 **View passage** also shows how the document is connected to others you can access:
