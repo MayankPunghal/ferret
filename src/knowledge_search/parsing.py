@@ -1,19 +1,20 @@
 """Document validation, text extraction and structure-aware chunking.
 
 Supported: Markdown (.md), plain text (.txt), HTML (.html/.htm), Word (.docx) and text-layer PDF (.pdf, via
-pypdf). HTML and Word are converted to Markdown first (convert.py), so headings, anchors and links work the
+PDFium). HTML and Word are converted to Markdown first (convert.py), so headings, anchors and links work the
 same way for all of them. Scanned PDFs without a text layer are rejected with ``no_extractable_text``
 rather than silently indexed as empty (OCR is out of scope).
 """
 
-import io
 import re
+import threading
 from dataclasses import dataclass, field
 
 import yaml
 from markdown_it import MarkdownIt
 
-PARSER_VERSION = "parse-v4"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter
+PARSER_VERSION = "parse-v5"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium
+_PDFIUM = threading.Lock()  # PDFium is not thread-safe; API requests and ingest workers parse concurrently
 CHUNKER_VERSION = "chunk-v2"  # size/overlap are runtime settings, recorded in the index signature
 
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -199,31 +200,41 @@ def parse_text(data: bytes, filename: str) -> ParsedDocument:
 
 
 def parse_pdf(data: bytes, filename: str, max_pages: int) -> ParsedDocument:
-    from pypdf import PdfReader
-    from pypdf.errors import PdfReadError
+    """Text layer of each page (PDFium, the engine of Chrome's PDF viewer: lines as they are drawn, also for
+    exports that place every word separately, where pypdf put one word per line)."""
+    import pypdfium2 as pdfium
 
     if not data.startswith(b"%PDF-"):
         raise ParseError("invalid_pdf", "missing %PDF- header")
+    with _PDFIUM:
+        return _parse_pdf(pdfium, data, filename, max_pages)
+
+
+def _parse_pdf(pdfium, data: bytes, filename: str, max_pages: int) -> ParsedDocument:
     try:
-        reader = PdfReader(io.BytesIO(data), strict=False)
-        if reader.is_encrypted:
-            raise ParseError("encrypted_pdf", "encrypted PDFs are not supported")
-        if len(reader.pages) > max_pages:
-            raise ParseError("too_many_pages", f"{len(reader.pages)} pages > limit {max_pages}")
-        info = reader.metadata or {}
+        pdf = pdfium.PdfDocument(data)
+    except pdfium.PdfiumError as e:
+        if "password" in str(e).lower():
+            raise ParseError("encrypted_pdf", "encrypted PDFs are not supported") from e
+        raise ParseError("invalid_pdf", f"PdfiumError: {str(e)[:200]}") from e
+    try:
+        if len(pdf) > max_pages:
+            raise ParseError("too_many_pages", f"{len(pdf)} pages > limit {max_pages}")
+        title = (pdf.get_metadata_dict().get("Title") or "").strip() or filename
         sections = []
-        for i, page in enumerate(reader.pages, start=1):
-            text = (page.extract_text() or "").strip()
-            text = re.sub(r"[ \t]+\n", "\n", text)
+        for i in range(len(pdf)):
+            page = pdf[i]
+            text = page.get_textpage().get_text_range()
+            text = re.sub(r"[\ufffe\x02]\r?\n?", "", text.replace("\r\n", "\n").replace("\r", "\n"))  # soft hyphens
+            text = re.sub(r"[ \t]+\n", "\n", text.replace("\x00", "")).strip()
             if text:
-                sections.append(Section(heading_path=f"Page {i}", text=text, page=i, anchor=f"page={i}"))
-    except ParseError:
-        raise
-    except (PdfReadError, ValueError, KeyError, TypeError, AttributeError) as e:
-        raise ParseError("invalid_pdf", f"{type(e).__name__}: {str(e)[:200]}") from e
+                sections.append(Section(heading_path=f"Page {i + 1}", text=text, page=i + 1, anchor=f"page={i + 1}"))
+    except pdfium.PdfiumError as e:
+        raise ParseError("invalid_pdf", f"PdfiumError: {str(e)[:200]}") from e
+    finally:
+        pdf.close()
     if not sections:
         raise ParseError("no_extractable_text", "PDF has no text layer (OCR is not supported)")
-    title = str(info.get("/Title") or "").strip() or filename
     return ParsedDocument(title=title, metadata={}, sections=sections)
 
 
