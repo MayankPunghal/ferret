@@ -69,6 +69,8 @@ def main():
         t = time.perf_counter()
         out["documents"] = Worker(blobs, 2000, 20_000_000).drain()
         out["ingest_seconds"] = round(time.perf_counter() - t, 1)
+    else:  # finish an interrupted ingest
+        Worker(BlobStore(ROOT / "data" / f"corpus-blobs-{tag}"), 2000, 20_000_000).drain()
 
     queries = [json.loads(x) for x in Path(a.queries).read_text().splitlines() if x]
     loose = GateConfig(9, 9, 9, 99, "similarity")
