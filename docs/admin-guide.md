@@ -43,6 +43,31 @@ uv run knowledge-search add-to-group maria everyone
 uv run knowledge-search ingest policies ./policies --wait     # bulk import a folder
 ```
 
+## Crawling a website or intranet
+
+`knowledge-search crawl` saves a website as one Markdown file per page (plus the PDF / Word files it links
+to), ready to ingest. It needs no database or models and sends nothing anywhere except requests to the site.
+
+```bash
+uv run knowledge-search crawl https://wiki.example.internal/ --out data/crawl/wiki
+uv run knowledge-search ingest wiki data/crawl/wiki --wait
+```
+
+- Follows **every link on every page** — content, navigation bar, header, footer, sidebars, frames — plus
+  the site's `sitemap.xml`, until no new page is found (`--max-pages`, default 10,000).
+- Stays on the start URL's host; `--prefix https://wiki.example.internal/ops/` narrows it (repeatable),
+  `--allow-host docs.example.internal` adds hosts.
+- Never follows logout, delete, edit, print or feed links; respects robots.txt unless `--ignore-robots`.
+- Pages reached under several URLs (`index.html`, tracking parameters) are saved once.
+- Links between crawled pages are rewritten to the local files, so the **graph works after ingest**; a
+  site-wide title suffix (" | Company Wiki") is removed from titles.
+- Logged-in intranets: pass the browser's session cookie, `--header "Cookie: session=..."` (or an
+  `Authorization` header). Use a read-only account.
+- `manifest.json` lists every URL → file, failures and skips; `--resume` continues an interrupted crawl.
+- Limits: pages that build their content with JavaScript come out empty (marked `empty` in the manifest) —
+  export those systems instead. Access rights of the source system are not copied: put pages with different
+  audiences into different collections and grant them as usual.
+
 ## Index status and jobs
 
 **Index status** shows per-collection counts (indexed, pending, failed) and the active configuration; admins
