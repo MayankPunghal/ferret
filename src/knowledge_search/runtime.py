@@ -39,6 +39,7 @@ class Runtime:
     gate_mode: str
     gate_lexical: str
     fusion_lexical_weight: float
+    graph_expansion: bool  # add passages of linked documents to the results (search._linked)
 
     def signature(self) -> str:
         return f"{MODELS[self.embed_model].version_key}|{PARSER_VERSION}|chunk={self.chunk_size}/{self.chunk_overlap}"
@@ -75,6 +76,7 @@ def defaults(model: str | None = None) -> Runtime:
         gate_dense_high=high, gate_dense_min=low,
         gate_lex_coverage=lex, gate_rerank_min=s.gate_rerank_min,
         gate_mode=s.gate_mode, gate_lexical=s.gate_lexical, fusion_lexical_weight=s.fusion_lexical_weight,
+        graph_expansion=s.graph_expansion,
     )
 
 

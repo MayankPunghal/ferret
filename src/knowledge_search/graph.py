@@ -48,6 +48,20 @@ def incoming(conn, scope: list[int], targets: list[UUID]) -> list[dict]:
     ).fetchall()
 
 
+def neighbours(conn, scope: list[int], documents: list[UUID]) -> list[tuple[UUID, UUID]]:
+    """(linked document, seed) pairs: readable documents linked from or to any of `documents` (one hop,
+    both directions), excluding the seeds themselves."""
+    rows = conn.execute(
+        "SELECT DISTINCT t.id, l.document_id AS seed FROM doc_links l JOIN documents t ON " + _resolves("t", "l")
+        + " AND t.collection_id = ANY(%(scope)s) WHERE l.document_id = ANY(%(docs)s) AND t.id <> ALL(%(docs)s) "
+        "UNION SELECT DISTINCT s.id, x.id FROM documents x JOIN doc_links l ON " + _resolves("x", "l") + " "
+        "JOIN documents s ON s.id = l.document_id AND s.collection_id = ANY(%(scope)s) "
+        "WHERE x.id = ANY(%(docs)s) AND s.id <> ALL(%(docs)s)",
+        {"scope": scope, "docs": documents},
+    ).fetchall()
+    return [(r["id"], r["seed"]) for r in rows]
+
+
 @router.get("/{document_id}/links")
 def document_links(document_id: UUID, p: User, conn: Conn):
     """Outgoing and incoming links of one document, limited to documents the caller can read."""

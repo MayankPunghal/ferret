@@ -8,7 +8,8 @@ from knowledge_search.api import state
 from .conftest import search, token
 
 QUERIES = ["how do I roll back the orders service", "why was checkout unavailable in March 2025",
-           "how long are raw events kept", "deadline for submitting expense claims"]
+           "how long are raw events kept", "deadline for submitting expense claims",
+           "what does the Orders Service depend on"]  # names a linked wiki page: exercises link expansion
 
 
 def test_memory_and_database_vector_search_agree(client, corpus, monkeypatch):
@@ -20,6 +21,7 @@ def test_memory_and_database_vector_search_agree(client, corpus, monkeypatch):
     sql = [[r["chunk_id"] for r in search(client, alice, q)["results"]] for q in QUERIES]
     sql_sims = [search(client, alice, q)["results"][0]["signals"]["cosine_similarity"] for q in QUERIES]
     assert mem == sql
+    assert any("linked_from" in r["signals"] for r in search(client, alice, QUERIES[-1])["results"])
     assert all(abs(a - b) < 1e-3 for a, b in zip(mem_sims, sql_sims))
 
 

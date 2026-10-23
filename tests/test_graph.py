@@ -2,7 +2,7 @@
 
 from knowledge_search.parsing import chunk_document, parse_document
 
-from .conftest import collection_id, token
+from .conftest import collection_id, search, token
 
 WIKI = {
     "service-a.md": b"---\ntitle: Service A\ndepends_on: [service-b.md]\n---\n# Service A\n\n"
@@ -89,3 +89,34 @@ def test_windows_line_endings_front_matter_and_links():
     assert ("depends_on", "service-b.md") in [(lk.kind, lk.target) for c in chunks for lk in c.links]
     old_mac = parse_document(b"---\rtitle: T\rseries: s\r---\r# T\r\rBody text.\r", "t.md")
     assert old_mac.metadata == {"title": "T", "series": "s"} and "Body text." in old_mac.sections[0].text
+
+
+SECRET = b"---\ntitle: Secret Project\ndepends_on: service-b.md\n---\n# Secret\n\nBudget codename aurora.\n"
+
+
+def test_link_expansion_in_search_is_permission_safe(client, drain):
+    """Search follows links of the documents a query names; restricted neighbours are never reached."""
+    sam, root = token(client, "sam"), token(client, "root")
+    ids = _upload_wiki(client, drain, sam)
+    secret = client.post("/api/documents", headers=root, data={"collection_id": collection_id("hr")},
+                         files={"file": ("secret-project.md", SECRET)}).json()["document_id"]
+    drain()
+
+    def linked(headers, query):
+        return {(r["title"], r["signals"]["linked_from"]) for r in search(client, headers, query)["results"]
+                if "linked_from" in r["signals"]}
+
+    try:
+        assert client.get("/api/admin/settings", headers=root).json()["values"]["graph_expansion"] is True
+        assert ("Service A", "Service B") in linked(sam, "What depends on Service B?")  # incoming link
+        assert ("Service B", "Frontend") not in linked(sam, "Frontend")  # two hops away: not expanded
+        assert ("Service A", "Frontend") in linked(sam, "Frontend")
+        assert not any(t == "Secret Project" for t, _ in linked(sam, "What depends on Service B?"))
+        assert ("Secret Project", "Service B") in linked(root, "What depends on Service B?")
+        client.put("/api/admin/settings", headers=root, json={"graph_expansion": False})
+        assert linked(root, "What depends on Service B?") == set()
+    finally:
+        client.put("/api/admin/settings", headers=root, json={"graph_expansion": True})
+        client.delete(f"/api/documents/{secret}", headers=root)
+        for d in ids.values():
+            client.delete(f"/api/documents/{d}", headers=sam)

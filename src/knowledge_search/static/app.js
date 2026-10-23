@@ -112,6 +112,7 @@ function resultItem(r) {
   const loc = [r.collection, r.heading_path, r.page ? `page ${r.page}` : "", `v${r.version_no}`].filter(Boolean).join(" · ");
   const badges = el("span", { className: "badges" });
   for (const b of r.match_basis) badges.append(el("span", { className: "badge ok", textContent: BASIS[b] || b }));
+  if (r.signals.linked_from) badges.append(el("span", { className: "badge", textContent: "linked from " + r.signals.linked_from }));
   if (r.outdated_version) badges.append(el("span", { className: "badge warn", textContent: "newer version not yet indexed" }));
   if (r.metadata?.version || r.metadata?.effective_date)
     badges.append(el("span", { className: "badge", textContent: [r.metadata.version && `version ${r.metadata.version}`, r.metadata.effective_date && `effective ${r.metadata.effective_date}`].filter(Boolean).join(", ") }));
@@ -289,6 +290,7 @@ function fillSettings(v) {
   $("#s-model").value = v.embed_model; $("#s-chunk").value = v.chunk_size;
   $("#s-overlap-on").checked = v.chunk_overlap > 0; $("#s-overlap").value = v.chunk_overlap; $("#s-overlap").disabled = v.chunk_overlap === 0;
   $("#s-rerank-on").checked = v.rerank_enabled; $("#s-rerank").value = v.rerank_model; $("#s-rerank-n").value = v.rerank_candidates;
+  $("#s-graph-on").checked = v.graph_expansion;
   $("#s-g-high").value = v.gate_dense_high; $("#s-g-min").value = v.gate_dense_min; $("#s-g-cov").value = v.gate_lex_coverage;
   $("#s-g-rr").value = v.gate_rerank_min; $("#s-g-mode").value = v.gate_mode; $("#s-g-lex").value = v.gate_lexical;
 }
@@ -314,6 +316,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
     embed_model: $("#s-model").value, chunk_size: +$("#s-chunk").value,
     chunk_overlap: $("#s-overlap-on").checked ? +$("#s-overlap").value : 0,
     rerank_enabled: $("#s-rerank-on").checked, rerank_model: $("#s-rerank").value, rerank_candidates: +$("#s-rerank-n").value,
+    graph_expansion: $("#s-graph-on").checked,
     gate_dense_high: +$("#s-g-high").value, gate_dense_min: +$("#s-g-min").value, gate_lex_coverage: +$("#s-g-cov").value,
     gate_rerank_min: +$("#s-g-rr").value, gate_mode: $("#s-g-mode").value, gate_lexical: $("#s-g-lex").value,
   };

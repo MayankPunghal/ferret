@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     gate_lexical: str = "coverage"  # coverage | idf
     gate_rerank_min: float = 0.0
     fusion_lexical_weight: float = 0.1  # keyword-branch weight in rank fusion (dense/identifier = 1); see evaluation
+    graph_expansion: bool = True  # follow links of the documents a query names (multi-hop questions); see evaluation
 
     max_upload_mb: int = 25
     max_pdf_pages: int = 2000

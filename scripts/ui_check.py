@@ -145,6 +145,10 @@ with sync_playwright() as p:
     pg.wait_for_selector("#d-title:has-text('Checkout Workflow')")
     print("followed link to:", pg.inner_text("#d-title"))
     pg.click("#d-close")
+    run("who is on call for the services the Orders Service depends on", "13-linked-search")
+    linked = pg.locator("#results .badge, #weak-results .badge").filter(has_text="linked from").all_inner_texts()
+    assert linked, "no result reached through a link"
+    print("linked results:", sorted(set(linked)))
     run("per diem for domestic travel", "07-conflict")
     run("who won the company football tournament", "08-no-evidence")
     pg.set_viewport_size({"width": 390, "height": 844})

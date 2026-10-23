@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass, field
 
 from psycopg import Connection
 
-from . import runtime, vectors
+from . import graph, runtime, vectors
 from .auth import Principal
 from .config import memory_vectors
 from .embedder import Embedder
@@ -22,6 +22,8 @@ from .parsing import extract_idents
 
 RRF_K = 60
 BRANCH_LIMIT = 50
+GRAPH_SEEDS = 3  # link expansion: follow the links of up to this many documents ...
+GRAPH_SLOTS = 5  # ... and reserve this many of the result slots for passages of linked documents
 
 # Outcomes (stable API contract)
 EVIDENCE_FOUND = "evidence_found"
@@ -256,14 +258,21 @@ def search(
             reasons.append("query_identifier_not_found")
 
     # Weighted RRF: the generic keyword branch is down-weighted (it adds weaker candidates for natural-language
-    # questions); dense and exact-identifier branches keep full weight. Weight is tuned in eval/.
+    # questions); dense and exact-identifier branches keep full weight. Weights are tuned in eval/.
     weights = {"lexical": rt.fusion_lexical_weight}
-    fused: dict[int, float] = {}
-    for branch, ids in ranked.items():
-        w = weights.get(branch, 1.0)
-        for r, cid in enumerate(ids, start=1):
-            fused[cid] = fused.get(cid, 0.0) + w / (RRF_K + r)
-    pool = sorted(fused, key=lambda c: (-fused[c], c))[: max(limit, rt.rerank_candidates if rt.rerank_enabled else 0)]
+    fused = _fuse(ranked, weights)
+    order = sorted(fused, key=lambda c: (-fused[c], c))
+    pool = order[: max(limit, rt.rerank_candidates if rt.rerank_enabled else 0)]
+    via: dict[int, str] = {}
+    if rt.graph_expansion and qvec is not None and order:
+        t = time.perf_counter()
+        via = _linked(conn, scope, query, order, qvec, embedder, in_memory)
+        keep = max(limit - GRAPH_SLOTS, 1)
+        extra = [c for c in via if c not in pool[:keep]][: limit - keep]
+        if extra:
+            ranked["linked"] = extra
+            pool = (pool[:keep] + extra + [c for c in pool[keep:] if c not in extra])[: len(pool)]
+        timings["linked"] = (time.perf_counter() - t) * 1000
 
     rows_by_id: dict[int, dict] = {}
     if pool:
@@ -318,7 +327,8 @@ def search(
             "identifier_matches": sorted(q_ident_set & set(r["idents"])),
             "rerank_score": round(rerank[cid], 4) if cid in rerank else None,
             "branches": [b for b, ids in ranked.items() if cid in ids],
-            "rrf_score": round(fused[cid], 5),
+            **({"linked_from": via[cid]} if cid in via else {}),
+            "rrf_score": round(fused.get(cid, 0.0), 5),
         }
         basis = gate_basis(gate, signals, bool(q_idents))
         doc_id = str(r["document_id"])
@@ -356,6 +366,73 @@ def search(
         query=query, outcome=outcome, message=MESSAGES[outcome], reason_codes=reasons, results=results,
         coverage=cov, index=index_info, timings_ms={k: round(v, 2) for k, v in timings.items()},
     )
+
+
+def _fuse(ranked: dict[str, list[int]], weights: dict[str, float]) -> dict[int, float]:
+    fused: dict[int, float] = {}
+    for branch, ids in ranked.items():
+        w = weights.get(branch, 1.0)
+        for r, cid in enumerate(ids, start=1):
+            fused[cid] = fused.get(cid, 0.0) + w / (RRF_K + r)
+    return fused
+
+
+def _linked(conn: Connection, scope: list[int], query: str, order: list[int], qvec, embedder: Embedder,
+            in_memory: bool) -> dict[int, str]:
+    """Link expansion for multi-hop questions ("who owns the services X depends on"): passages of documents
+    linked to/from the documents the question is about, which may never mention X themselves.
+
+    Seeds are the documents whose title or file name the query contains, in rank order, else the
+    top-ranked document (covers names like `orders-svc`; measured harmless for single-hop questions).
+    Linked passages are scored against the query *without* the seed names (the link already
+    covers that part: "which ports do the services that [Media Service] depends on listen on" → runtime
+    sections, not the neighbours' own dependency lists). Candidates are the best passage of each linked
+    document, then the second best, ..., so each related document gets a slot first.
+    Only links between documents the caller can read are followed (graph.neighbours).
+    Returns {chunk_id: title of the seed document it was reached from}."""
+    q = query.lower()
+    model_key = embedder.spec.version_key
+    rows = conn.execute("SELECT id, document_id FROM chunks WHERE id = ANY(%s)", (order[:BRANCH_LIMIT],)).fetchall()
+    doc_of = {r["id"]: r["document_id"] for r in rows}
+    named = {}  # document -> the strings by which the query names it (removed before scoring linked passages)
+    for r in conn.execute(
+        "SELECT id, title, lower(regexp_replace(source_key, '\\.[^.]+$', '')) AS stem FROM documents "
+        "WHERE collection_id = ANY(%(scope)s) AND (length(title) >= 4 AND strpos(%(q)s, lower(title)) > 0 "
+        "OR strpos(%(q)s, lower(regexp_replace(source_key, '\\.[^.]+$', ''))) > 0)", {"scope": scope, "q": q}):
+        named[r["id"]] = [n for n in (r["title"].lower(), r["stem"]) if len(n) >= 4 and n in q]
+    ranked_docs = list(dict.fromkeys(doc_of[c] for c in order if c in doc_of))
+    seeds = ([d for d in ranked_docs if d in named] + [d for d in named if d not in ranked_docs])[:GRAPH_SEEDS]
+    seeds = seeds or ranked_docs[:1]
+    if not seeds:
+        return {}
+    rest = q
+    for n in sorted({n for d in seeds for n in named.get(d, [])}, key=len, reverse=True):
+        rest = rest.replace(n, " ")
+    if rest != q and rest.strip():
+        qvec = embedder.embed_query(" ".join(rest.split()))
+    titles = {r["id"]: r["title"] for r in conn.execute("SELECT id, title FROM documents WHERE id = ANY(%s)", (seeds,))}
+    reached = {}
+    for d, seed in graph.neighbours(conn, scope, seeds):
+        reached.setdefault(d, titles.get(seed, ""))
+    if not reached:
+        return {}
+    rows = conn.execute(
+        "SELECT id, document_id FROM chunks WHERE document_id = ANY(%s) AND collection_id = ANY(%s) "
+        "AND embedding_model = %s", (list(reached), scope, model_key)).fetchall()
+    if in_memory:
+        sims = vectors.index.similarities(model_key, qvec, [r["id"] for r in rows])
+    else:
+        sims = {r["id"]: r["sim"] for r in conn.execute(
+            "SELECT id, 1 - (embedding <=> %s) AS sim FROM chunks WHERE id = ANY(%s)", (qvec, [r["id"] for r in rows]))}
+    per_doc: dict = {}
+    for r in sorted(rows, key=lambda r: (-sims.get(r["id"], -1), r["id"])):
+        per_doc.setdefault(r["document_id"], []).append(r["id"])
+    out: dict[int, str] = {}
+    for depth in range(max(len(v) for v in per_doc.values())):
+        layer = [(v[depth], d) for d, v in per_doc.items() if len(v) > depth]
+        for cid, d in sorted(layer, key=lambda x: (-sims.get(x[0], -1), x[0])):
+            out[cid] = reached[d]
+    return out
 
 
 def _conflict(supported: list, reasons: list[str]) -> bool:
