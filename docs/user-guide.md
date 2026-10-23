@@ -86,7 +86,7 @@ zone or click it to browse. Several files can be uploaded at once.
   (UTF-8), `.html`/`.htm` (doc-site and wiki exports: only the main content is indexed, menus are dropped;
   links become connections), `.docx` (Word: headings, lists, tables), `.pptx` (PowerPoint: a
   section per slide, with the speaker notes), `.pdf` with a text layer.
-  Scanned PDFs without text are rejected (`no_extractable_text`); legacy `.doc`, `.pptx`, `.xlsx` are not
+  Scanned PDFs without text are rejected (`no_extractable_text`); legacy `.doc` and `.ppt`, and `.xlsx`, are not
   supported yet. Opening an HTML source shows it with scripts and external content disabled; Word files
   are downloaded.
 - Uploading an identical file again does nothing (`unchanged`). Uploading a changed file with the same name
