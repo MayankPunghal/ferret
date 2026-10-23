@@ -6654,5 +6654,313 @@
    "iptables"
   ],
   "seconds": 22.8
+ },
+ "volume-attributes-classes.md": {
+  "summary": "VolumeAttributesClass allows administrators to describe mutable storage classes that map to specific quality-of-service levels. These classes define driver names and parameters used for dynamically provisioning or modifying PersistentVolumes.",
+  "topics": [
+   "StorageClasses",
+   "volumes",
+   "PersistentVolumes",
+   "Container Storage Interface (CSI)",
+   "external-provisioner",
+   "external-resizer"
+  ],
+  "seconds": 28.2
+ },
+ "volume-health-monitoring.md": {
+  "summary": "CSI volume health monitoring allows CSI drivers to report volume or storage backend health directly to Kubernetes. This information is surfaced in status fields on PersistentVolumeClaims, Pods, and CSI Nodes for automated monitoring.",
+  "topics": [
+   "CSI driver",
+   "CSI RPCs",
+   "PersistentVolumeClaim",
+   "Pod",
+   "CSINode"
+  ],
+  "seconds": 23.5
+ },
+ "volume-plugin.md": {
+  "summary": "A Volume Plugin allows for the integration of storage within a Kubernetes Pod by enabling the attachment and mounting of storage volumes. These plugins can be either part of the Kubernetes code repository or developed independently.",
+  "topics": [
+   "Volume Plugin",
+   "storage",
+   "Pod",
+   "volumes"
+  ],
+  "seconds": 28.6
+ },
+ "volume-populators-and-data-sources.md": {
+  "summary": "This document explains Kubernetes volume populators and data sources, which allow PersistentVolumeClaims to be pre-populated with existing data. It details how populator controllers use data sources to fill new volumes.",
+  "topics": [
+   "PersistentVolumes",
+   "PersistentVolumeClaim",
+   "Volume populators",
+   "Data sources",
+   "CustomResourceDefinition",
+   "kube-apiserver"
+  ],
+  "seconds": 37.2
+ },
+ "volume-pvc-datasource.md": {
+  "summary": "This document describes the CSI Volume Cloning feature in Kubernetes, which allows specifying an existing PersistentVolumeClaim (PVC) as a `dataSource` to create an exact duplicate volume.",
+  "topics": [
+   "CSI drivers",
+   "dynamic provisioners",
+   "PersistentVolumeClaim (PVC)",
+   "VolumePVCDataSource",
+   "Storage Class",
+   "VolumeMode"
+  ],
+  "seconds": 26.7
+ },
+ "volume-snapshot-classes.md": {
+  "summary": "VolumeSnapshotClass allows administrators to define classes for provisioning volume snapshots, similar to StorageClass for volumes. It contains driver, deletionPolicy, and parameters used when dynamically provisioning a VolumeSnapshot.",
+  "topics": [
+   "VolumeSnapshotClass",
+   "volume snapshots",
+   "storage classes",
+   "CSI drivers"
+  ],
+  "seconds": 22.5
+ },
+ "volume-snapshots.md": {
+  "summary": "Volume snapshots allow users to copy a volume's contents at a specific point in time without creating a new volume. This functionality is useful for tasks like database backups.",
+  "topics": [
+   "VolumeSnapshot",
+   "VolumeSnapshotContent",
+   "VolumeSnapshotClass",
+   "PersistentVolume",
+   "PersistentVolumeClaim",
+   "CSI drivers"
+  ],
+  "seconds": 18.4
+ },
+ "volume.md": {
+  "summary": "A Kubernetes volume is a directory containing data accessible to containers within a pod. Volumes persist as long as the enclosing Pod, ensuring data is preserved across container restarts.",
+  "topics": [
+   "Kubernetes",
+   "Volume",
+   "Pod",
+   "Containers",
+   "Data Persistence"
+  ],
+  "seconds": 16.9
+ },
+ "volumes.md": {
+  "summary": "Kubernetes volumes allow containers in a Pod to access and share data via the filesystem. They solve problems related to data persistence and shared storage across containers and Pods.",
+  "topics": [
+   "Kubernetes",
+   "Pod",
+   "ConfigMap",
+   "Secret",
+   "PersistentVolumes",
+   "PersistentVolumeClaims"
+  ],
+  "seconds": 23.6
+ },
+ "watch.md": {
+  "summary": "The 'watch' verb is used in Kubernetes to track changes to an object as a stream, enabling efficient detection of modifications.",
+  "topics": [
+   "Kubernetes",
+   "API Concepts"
+  ],
+  "seconds": 8.7
+ },
+ "web-ui-dashboard.md": {
+  "summary": "This page explains how to deploy and access the deprecated Kubernetes Dashboard, which is a web interface for managing Kubernetes clusters. It notes that Headlamp is the recommended alternative.",
+  "topics": [
+   "Kubernetes Dashboard",
+   "Headlamp",
+   "Helm",
+   "kubectl",
+   "RBAC"
+  ],
+  "seconds": 23.2
+ },
+ "webhook.md": {
+  "summary": "Webhook mode uses an HTTP callback to notify an external REST service when an event occurs, such as determining user privileges. This configuration involves a specific file format and handling of authorization requests.",
+  "topics": [
+   "HTTP POST",
+   "Kubernetes",
+   "REST service",
+   "Configuration file format",
+   "SubjectAccessReview object",
+   "API Server"
+  ],
+  "seconds": 20.8
+ },
+ "wg.md": {
+  "summary": "A working group facilitates discussions and implementation for short-lived, narrow, or decoupled projects for a committee, SIG, or cross-SIG effort. They organize people to accomplish a discrete task.",
+  "topics": [
+   "working group",
+   "committee",
+   "SIG",
+   "cross-SIG effort"
+  ],
+  "seconds": 17.8
+ },
+ "what-happens-on-restart.md": {
+  "summary": "This page describes the effects of restarts for Pods and nodes when the kubelet, container runtime, or the node itself restarts. It details the consequences, especially for large nodes, and how running workloads are generally preserved.",
+  "topics": [
+   "kubelet",
+   "container runtime",
+   "Pod",
+   "API server",
+   "Node heartbeats"
+  ],
+  "seconds": 23.0
+ },
+ "windows-networking.md": {
+  "summary": "This page provides an overview of networking concepts specific to the Windows operating system within Kubernetes. It details how Windows containers utilize the Host Networking Service and Hyper-V virtual switches for network attachment.",
+  "topics": [
+   "Windows operating system",
+   "Container networking",
+   "CNI plugins",
+   "Hyper-V virtual switch (vSwitch)",
+   "Host Networking Service (HNS)",
+   "Host Compute Service (HCS)"
+  ],
+  "seconds": 24.3
+ },
+ "windows-resource-management.md": {
+  "summary": "This page compares resource management differences between Linux and Windows nodes, focusing on container isolation, memory handling, and CPU allocation mechanisms.",
+  "topics": [
+   "cgroups",
+   "job object",
+   "system namespace filter",
+   "memory management",
+   "CPU management",
+   "kubelet"
+  ],
+  "seconds": 21.0
+ },
+ "windows-security.md": {
+  "summary": "This page outlines security considerations and best practices for Windows operating system nodes, focusing on protecting secret data and managing container user access.",
+  "topics": [
+   "BitLocker",
+   "file ACLs",
+   "ContainerUser",
+   "ContainerAdministrator",
+   "Group Managed Service Accounts",
+   "HostProcess containers"
+  ],
+  "seconds": 21.7
+ },
+ "windows-storage.md": {
+  "summary": "This page details the storage overview for the Windows operating system, outlining limitations regarding volume mounts and file system features. It also describes how Kubernetes volumes and plugins function on Windows nodes.",
+  "topics": [
+   "NTFS",
+   "Docker",
+   "containerd",
+   "Kubernetes volumes",
+   "FlexVolume plugins",
+   "CSI Plugins"
+  ],
+  "seconds": 21.6
+ },
+ "windows.md": {
+  "summary": "This page explains how Kubernetes supports worker nodes running on Microsoft Windows. It provides resources for installing kubectl and configuring various aspects like networking, storage, and security for Windows nodes.",
+  "topics": [
+   "Kubernetes",
+   "Windows server",
+   "kubectl",
+   "Networking On Windows",
+   "Windows Storage In Kubernetes",
+   "Resource Management for Windows Nodes"
+  ],
+  "seconds": 20.0
+ },
+ "working-with-objects.md": {
+  "summary": "This page explains how Kubernetes objects are represented in the API and how to express them in YAML. Objects are persistent entities defining the desired state of cluster workloads.",
+  "topics": [
+   "Kubernetes API",
+   "kubectl",
+   "Client Libraries",
+   "spec",
+   "status",
+   "Deployment"
+  ],
+  "seconds": 20.8
+ },
+ "workload-api-topology-aware-scheduling.md": {
+  "summary": "Topology-Aware Scheduling (TAS) optimizes pod placement by ensuring pods in a PodGroup are co-located in a specific topology domain to reduce communication latency. It works with gang and basic scheduling policies.",
+  "topics": [
+   "Workload API",
+   "PodGroup",
+   "Topology Domain",
+   "gang scheduling policy",
+   "basic scheduling policy",
+   "scheduling constraints"
+  ],
+  "seconds": 24.4
+ },
+ "workload-api.md": {
+  "summary": "The Workload API resource defines the scheduling requirements and structure for multi-Pod applications. It specifies how groups of Pods should be scheduled, with runtime state managed by PodGroup objects.",
+  "topics": [
+   "Workload API",
+   "PodGroup",
+   "Job controller",
+   "PodGroupTemplates",
+   "scheduling policy",
+   "priority and disruption mode"
+  ],
+  "seconds": 26.2
+ },
+ "workload-aware-preemption.md": {
+  "summary": "Workload-aware preemption is a mechanism for PodGroups to be scheduled by preempting other workloads across the cluster. It treats a PodGroup as a single unit and selects victims based on a defined hierarchy.",
+  "topics": [
+   "PodGroups",
+   "Scheduler",
+   "Gang Scheduling",
+   "Workload API",
+   "Preemption"
+  ],
+  "seconds": 19.1
+ },
+ "workload.md": {
+  "summary": "This page defines a workload as an application running on Kubernetes. It explains that core objects like DaemonSet, Deployment, Job, ReplicaSet, and StatefulSet represent different parts of a workload.",
+  "topics": [
+   "Kubernetes",
+   "DaemonSet",
+   "Deployment",
+   "Job",
+   "ReplicaSet",
+   "StatefulSet"
+  ],
+  "seconds": 18.8
+ },
+ "workloadbuilder.md": {
+  "summary": "This page describes reusable API building blocks for workload-aware scheduling under `scheduling.k8s.io`. These blocks are compiled by the `workloadbuilder` library to generate scheduler-facing objects.",
+  "topics": [
+   "Scheduling Building Block APIs",
+   "workloadbuilder Library",
+   "Job controller",
+   "PodGroup",
+   "CompositePodGroup"
+  ],
+  "seconds": 26.3
+ },
+ "workloads.md": {
+  "summary": "Workloads in Kubernetes run containers inside Pods. Workload resources like Deployment, StatefulSet, DaemonSet, Job, and CronJob manage sets of Pods to maintain the desired state.",
+  "topics": [
+   "Pods",
+   "Deployment",
+   "ReplicaSet",
+   "StatefulSet",
+   "PersistentVolume",
+   "DaemonSet"
+  ],
+  "seconds": 30.7
+ },
+ "zookeeper.md": {
+  "summary": "This tutorial demonstrates running Apache ZooKeeper on Kubernetes using StatefulSets, PodDisruptionBudgets, and PodAntiAffinity. It explains how to deploy, configure, and manage a ZooKeeper ensemble for distributed coordination.",
+  "topics": [
+   "Apache ZooKeeper",
+   "Kubernetes StatefulSets",
+   "PodDisruptionBudgets",
+   "PodAntiAffinity",
+   "PersistentVolumes",
+   "Zab protocol"
+  ],
+  "seconds": 21.0
  }
 }

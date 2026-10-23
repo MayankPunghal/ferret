@@ -1,0 +1,66 @@
+{
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p001": {
+  "answer": "To roll back the deployment to your last working version, use the `rollout undo` subcommand, for example: `kubectl rollout undo deployments/kubernetes-bootcamp`. The `rollout undo` command reverts the deployment to the previous known state (e.g., `v2` of the image).",
+  "sources": [
+   3
+  ],
+  "seconds": 37.6
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p002": {
+  "answer": "To rollback the Deployment from the current version to the previous version, you can use the command `kubectl rollout undo deployment/nginx-deployment` or specify a revision with `kubectl rollout undo deployment/nginx-deployment --to-revision=<revision_number>`.",
+  "sources": [
+   1
+  ],
+  "seconds": 27.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p003": {
+  "answer": null,
+  "sources": [],
+  "said": "kubectl rollout undo deployment/nginx-deployment",
+  "seconds": 24.6
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p004": {
+  "answer": "An object that limits the number of Pods of a replicated application that are down simultaneously from voluntary disruptions.",
+  "sources": [
+   1,
+   5
+  ],
+  "seconds": 37.3
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p005": {
+  "answer": null,
+  "sources": [],
+  "seconds": 10.0
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p006": {
+  "answer": null,
+  "sources": [],
+  "said": "Liveness probes determine when to restart a container.",
+  "seconds": 41.0
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p007": {
+  "answer": null,
+  "sources": [],
+  "seconds": 14.3
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p008": {
+  "answer": null,
+  "sources": [],
+  "said": "A `CrashLoopBackOff` is a condition or event seen in `kubectl` output when a container in a Pod fails to start properly and continually tries and fails in a loop. When a container enters a crash loop,",
+  "seconds": 48.8
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p009": {
+  "answer": "Use a service with type `NodePort` or `LoadBalancer` to make the service reachable outside the cluster.",
+  "sources": [
+   3
+  ],
+  "seconds": 18.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p010": {
+  "answer": "If you set the `type` field to `NodePort`, the Kubernetes control plane allocates a port from a range specified by the `--service-node-port-range` flag (default: 30000-32767). Each node proxies that port into your Service, and your Service reports the allocated port in its `.spec.ports[*].nodePort` field.",
+  "sources": [
+   1
+  ],
+  "seconds": 30.6
+ }
+}
