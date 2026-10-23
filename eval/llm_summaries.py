@@ -55,16 +55,36 @@ def main():
     ap.add_argument("--chars", type=int, default=3000, help="page characters given to the model")
     ap.add_argument("--parallel", type=int, default=2)
     ap.add_argument("--limit", type=int, default=0, help="only the first N pages (speed test)")
+    ap.add_argument("--described", default="", help="only pages that have an author description in this copy of "
+                    "the corpus (e.g. data/corpora/kubernetes): the reference set of eval/summary_quality.py")
+    ap.add_argument("--app-prompt", action="store_true", help="the app's prompt and parser (enrich.py)")
     a = ap.parse_args()
     corpus = Path(a.corpus)
     cache = ROOT / "eval" / "results" / f"summaries-{corpus.name}-{a.name}.json"
     done = json.loads(cache.read_text()) if cache.exists() else {}
-    files = sorted(corpus.glob("*.md"))[: a.limit or None]
+    files = sorted(corpus.glob("*.md"))
+    if a.described:
+        files = [f for f in files if f.read_bytes() != (Path(a.described) / f.name).read_bytes()]
+    files = files[: a.limit or None]
     todo = [f for f in files if f.name not in done]
 
     def one(f: Path):
         _, title, body = split(f.read_text(encoding="utf-8"))
         t = time.perf_counter()
+        if a.app_prompt:  # exactly what the app sends: headings outline + opening text (enrich.source_text)
+            from knowledge_search import enrich
+
+            heads = [h.lstrip("#").strip() for h in body.splitlines() if h.startswith("#")][1:41]
+            outline = ("Sections: " + "; ".join(heads) + "\n") if heads else ""
+            note = " (not descriptive: write a specific title of at most 8 words from the content, not a file name)" \
+                if enrich.vague_title(title) else ""
+            prompt = enrich.PROMPT.format(title=title, title_note=note, outline=outline, text=body.strip()[: a.chars])
+            raw = chat(a.url, prompt, 300)
+            try:
+                return f.name, {**enrich.parse_reply(raw), "seconds": round(time.perf_counter() - t, 1)}
+            except enrich.LLMError:
+                return f.name, {"summary": " ".join(raw.split())[:400], "topics": [], "unparsed": True,
+                                "seconds": round(time.perf_counter() - t, 1)}
         raw = chat(a.url, PROMPT.format(title=title, text=body.strip()[: a.chars]), 200)
         try:
             out = json.loads(raw)
@@ -86,7 +106,7 @@ def main():
     secs = [v["seconds"] for v in done.values()]
     print(f"{len(done)} summaries, median {statistics.median(secs):.1f} s per request, "
           f"{sum(v.get('unparsed', False) for v in done.values())} unparsed -> {cache}")
-    if a.limit:
+    if a.limit or a.described:
         return
     out_dir = corpus.with_name(f"{corpus.name}-{a.name}".lower())  # collection names are lowercase
     out_dir.mkdir(exist_ok=True)

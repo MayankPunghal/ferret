@@ -2,13 +2,19 @@
 
 Offline check: do documents sharing model-written topics with a top result add the pages a relationship
 question needs? Uses the stored relational_eval rows (results per question) and the summary files."""
-import json, math, re, statistics, sys
+import json
+import math
+import re
+import statistics
+import sys
 from collections import Counter
-R = json.load(open("eval/results/relational-kubernetes-nodesc-BAAI_bge-base-en-v1.5.json"))
-Q = {json.loads(l)["id"]: json.loads(l) for l in open("eval/k8s_relational.jsonl") if l.strip()}
+from pathlib import Path
+
+R = json.loads(Path("eval/results/relational-kubernetes-nodesc-BAAI_bge-base-en-v1.5.json").read_text())
+Q = {json.loads(l)["id"]: json.loads(l) for l in Path("eval/k8s_relational.jsonl").read_text().splitlines() if l.strip()}
 def norm(t): return re.sub(r"s$", "", " ".join(re.sub(r"[^a-z0-9 ]", " ", t.lower()).split()))
 for name in sys.argv[1:]:
-    S = json.load(open(f"eval/results/summaries-kubernetes-nodesc-{name}.json"))
+    S = json.loads(Path(f"eval/results/summaries-kubernetes-nodesc-{name}.json").read_text())
     topics = {k.removesuffix(".md"): {norm(t) for t in v.get("topics", []) if norm(t)} for k, v in S.items() if isinstance(v, dict)}
     df = Counter(t for ts in topics.values() for t in ts); N = len(topics)
     for per in (2, 4):
