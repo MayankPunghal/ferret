@@ -1,7 +1,7 @@
 # Handoff — Knowledge Search
 
 State at the end of the cloud session (2026-10-23, version 1.0). Read with `CLAUDE.md` (owner instructions and end
-goal), `README.md`, and the docs listed there. Scope authority: `docs/brief/…master_prompt.md` §11.
+goal), `docs/requirements-brief.md` (every owner ask and its status), `README.md`, and the docs listed there. Scope authority: `docs/brief/…master_prompt.md` §11.
 
 ## 1. Resume locally
 
@@ -37,7 +37,7 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
 | Test suite | **verified** | `uv run pytest -q` → 62 passed (search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
-| Windows setup | **partially verified by the owner** on Windows 11: install, model download, DB init and indexing worked after the DLL fix; searches then crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93). **That fix is not yet verified on Windows.** | owner logs |
+| Windows setup | **verified by the owner** on Windows 11: install, model download, DB init and indexing; searches crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93, 2026-10-22 18:01); owner after that: "setup worked now, search returns results on Windows" (2026-10-23 00:15) | owner messages |
 | UI walkthrough | **verified** (Playwright/Chromium, `scripts/ui_check.py`): first-run admin, settings save + reindex, collections/grants/users, multi-file upload incl. rejection, clean state after sign-out/in, search outcomes, passage drawer, source open, mobile width | `docs/screenshots/` |
 | Server profile (web + separate worker, external PG, concurrency) | verified natively earlier (0 errors at c=16, ~60–75 req/s on 4 vCPU, bge-small). Docker image build **not verified** (registry rate limits) | docs/evaluation.md |
 | GPU | **not available, not implemented** | — |
