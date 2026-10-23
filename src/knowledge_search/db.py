@@ -73,6 +73,14 @@ def resolve_url(settings) -> str:
     return start_embedded(Path(settings.data_dir) / "pg")[1]
 
 
+def release_embedded() -> None:
+    """This process no longer uses the embedded server; the last process to release it stops it. Called on
+    app shutdown: the web server re-raises Ctrl+C / SIGTERM after shutting down, so exit hooks never run and
+    the database would keep running after the app (unsafe to copy for a backup)."""
+    if _embedded is not None:
+        _embedded._cleanup()  # pixeltable_pgserver's own last-handle logic; idempotent with its exit hook
+
+
 def _configure(conn: Connection) -> None:
     register_vector(conn)
 

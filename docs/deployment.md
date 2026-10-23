@@ -84,18 +84,29 @@ What this means:
 
 ## Backups and restore
 
-Back up **both** the database and the original files:
+Back up **both** the database and the original files (`data/blobs/`). Rehearsed end to end on a demo
+install with `scripts/backup_restore_check.sh`: after each restore the same searches return the same
+results and every original file opens.
+
+**Laptop (embedded database).** Stop the app with **Ctrl+C** in its window (the embedded database stops
+with it; wait until `data/pg/postmaster.pid` is gone), then copy the whole data folder:
 
 ```bash
-# external PostgreSQL
-pg_dump -Fc "$KS_DATABASE_URL" > ks.dump
-# embedded PostgreSQL (app stopped): copy the whole data directory
-cp -a data/ backup-$(date +%F)/
+cp -a data/ backup-$(date +%F)/        # Windows: robocopy data backup-2026-10-23 /E
 ```
 
-Restore: `pg_restore -d <empty db> ks.dump` and put `data/blobs/` back (or copy the data directory back).
-Passages and vectors are in the database; no reindex is needed unless the model changes.
-(Procedure documented, not yet rehearsed — see Handoff.)
+Restore: put the copied folder back as `data/` (or point `KS_DATA_DIR` at it) and start the app.
+
+**Server (external PostgreSQL), while running:**
+
+```bash
+pg_dump -Fc "$KS_DATABASE_URL" -f ks.dump          # consistent snapshot, no downtime
+cp -a data/blobs/ blobs-backup/                    # original files (content-addressed, append-only)
+```
+
+Restore: create an empty database, `pg_restore -d <empty database URL> ks.dump`, put `data/blobs/` back,
+start the app. Passages and vectors are in the database, so no re-indexing is needed unless the embedding
+model changes.
 
 ## Upgrades
 

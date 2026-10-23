@@ -89,7 +89,7 @@ and whether the product does it. Status: **done** (verified by a test, an evalua
 ## Gaps to close, in order
 
 1. L1/L2 background enrichment job (summary, tags, title) — optional, local, set up by the batch file.
-2. Gate 2: rehearse backup → restore.
+2. ~~Gate 2: rehearse backup → restore~~ — done (`scripts/backup_restore_check.sh`; found and fixed the database outliving the app).
 3. Final recommended settings and a local test procedure for the owner's intranet files; site2md 1.0.0 zip.
 4. Later, each only with a measured test: LLM relations (G5), shared-identifier links (R4.5), clusters (G3),
    agent tools (G6), answer writing (L4), scale test at archive size (P6).
