@@ -110,12 +110,18 @@ def main(argv: list[str] | None = None) -> None:
 
         models = [a.model] if a.model else [s.embed_model]
         rerankers = [a.reranker] if a.reranker else ([s.rerank_model] if not a.model else [])
-        for m in models:
-            runtime.embedder(m).warm()
-            print("embedding model ready:", m)
-        for r in rerankers:
-            runtime.rerank_scores(r, "warm up", ["warm up"])
-            print("reranker ready:", r)
+        from .embedder import EmbeddingError
+
+        try:
+            for m in models:
+                runtime.embedder(m).warm()
+                print("embedding model ready:", m)
+            for r in rerankers:
+                runtime.rerank_scores(r, "warm up", ["warm up"])
+                print("reranker ready:", r)
+        except (EmbeddingError, runtime.RerankError) as e:
+            sys.exit(f"Model download failed: {str(e).splitlines()[0][:300]}\n"
+                     "Completed downloads are kept; run the same command (or setup) again.")
         print("model cache:", s.model_cache)
 
 

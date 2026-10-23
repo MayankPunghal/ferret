@@ -4,7 +4,16 @@
 #   3. downloads the offline AI models, initialises the database
 #   4. optionally loads sample documents, creates a desktop shortcut, starts the app in your browser
 # Options: -Demo (load sample data without asking), -NoDemo, -NoStart, -NoShortcut. Safe to re-run.
-param([switch]$Demo, [switch]$NoDemo, [switch]$NoStart, [switch]$NoShortcut)
+param([switch]$Demo, [switch]$NoDemo, [switch]$NoStart, [switch]$NoShortcut,
+      [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest)
+# Also accept the Linux-style flags (setup.bat --demo --no-start).
+foreach ($a in $Rest) {
+    switch ($a.ToLower()) {
+        "--demo" { $Demo = $true } "--no-demo" { $NoDemo = $true }
+        "--no-start" { $NoStart = $true } "--no-shortcut" { $NoShortcut = $true }
+        default { if ($a -notmatch "^#") { Write-Host "Ignoring unknown option: $a" -ForegroundColor Yellow } }
+    }
+}
 
 # Windows PowerShell 5.1 turns stderr output of native commands into terminating errors when
 # ErrorActionPreference is "Stop" (uv writes progress to stderr), so check exit codes explicitly.
@@ -43,7 +52,12 @@ Step "Installing Python 3.13, dependencies and the embedded database (first run 
 Run uv sync --no-dev
 
 Step "Downloading the offline AI models (embedding model + reranker; one-time)"
-Run uv run --no-dev knowledge-search download-model
+& uv run --no-dev knowledge-search download-model
+if ($LASTEXITCODE -ne 0) {
+    Die ("Downloading the AI models failed, most likely because the internet connection was interrupted " +
+         "(it is retried automatically several times). Files that finished downloading are kept, so simply " +
+         "run setup.bat again. Behind a proxy or firewall, allow huggingface.co and cas-bridge.xethub.hf.co.")
+}
 
 Step "Initialising the local database"
 Run uv run --no-dev knowledge-search migrate

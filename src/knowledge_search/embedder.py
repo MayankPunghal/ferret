@@ -79,13 +79,15 @@ class Embedder:
                     from fastembed import TextEmbedding
 
                     self.state = "loading (first use downloads the model)"
+                    from .download import with_retries
+
                     try:
-                        model = TextEmbedding(
+                        model = with_retries(lambda: TextEmbedding(
                             self.spec.name,
                             cache_dir=self._cache_dir,
                             threads=self._threads,
                             local_files_only=self._offline,
-                        )
+                        ), f"embedding model {self.spec.name}", self._offline)
                     except Exception as e:  # download / load failure
                         self.state = f"error: {e}"[:300]
                         raise EmbeddingError(f"cannot load model {self.spec.name}: {e}") from e

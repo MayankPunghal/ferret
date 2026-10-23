@@ -165,9 +165,13 @@ def reranker(name: str):
         if name not in _rerankers:
             from fastembed.rerank.cross_encoder import TextCrossEncoder
 
+            from .download import with_retries
+
             s = base()
             try:
-                _rerankers[name] = TextCrossEncoder(name, cache_dir=str(s.model_cache), local_files_only=s.offline)
+                _rerankers[name] = with_retries(
+                    lambda: TextCrossEncoder(name, cache_dir=str(s.model_cache), local_files_only=s.offline),
+                    f"reranker {name}", s.offline)
             except Exception as e:  # download / load failure
                 raise RerankError(f"cannot load reranker {name}: {e}") from e
         return _rerankers[name]
