@@ -116,3 +116,33 @@ effective_date: 2025-04-01
 ```
 
 lets search flag conflicts between versions of the same policy.
+
+## Using it from Claude (optional; sends passages to Anthropic)
+
+`skills/knowledge-search/` is a skill for Claude Code. With it, Claude searches your Knowledge Search,
+reads the passages and whole documents, follows links, and answers with citations. It says when your
+documents do not cover a question instead of guessing. It can also upload folders, report indexing status,
+retry failed documents and delete them (only after you confirm).
+
+**Before you use it:** the app never calls an external AI service, but Claude does. Every passage Claude reads
+is sent to Anthropic as part of the conversation. Check your organisation's data policy first. Use an account
+that can read only the collections you are willing to share.
+
+Set it up on the machine that runs the app (Claude Code reaches `http://127.0.0.1:8000`; skills uploaded to
+claude.ai run in Anthropic's cloud and cannot reach your computer):
+
+1. Copy the folder into your personal skills folder: `~/.claude/skills/knowledge-search/` (Windows:
+   `%USERPROFILE%\.claude\skills\knowledge-search\`).
+2. Create an account for Claude in **Users & access**, read-only unless it should upload. Give it the
+   groups of the collections it may read.
+3. Start Claude Code with the account in the environment:
+   - `KS_USER` and `KS_PASSWORD`;
+   - `KS_URL` too if the app is not at `http://127.0.0.1:8000`.
+
+   For example, in PowerShell: `$env:KS_USER="claude"; $env:KS_PASSWORD="…"; claude`.
+
+   The sign-in token is cached in `~/.cache/knowledge-search/`, readable only by you.
+4. Ask a question ("how do we roll back the orders service?"), or a task ("upload C:\docs\runbooks to the
+   engineering collection").
+
+The helper also works by hand: `python skills/knowledge-search/ks.py --help`. It needs Python 3, no packages.

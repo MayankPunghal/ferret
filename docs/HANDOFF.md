@@ -39,7 +39,7 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 | Item | Status | Evidence |
 |---|---|---|
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
-| Test suite | **verified** | `uv run pytest -q` → 89 passed (summaries against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Test suite | **verified** | `uv run pytest -q` → 90 passed (summaries against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **verified by the owner** on Windows 11: install, model download, DB init and indexing; searches crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93, 2026-10-22 18:01); owner after that: "setup worked now, search returns results on Windows" (2026-10-23 00:15). **Regression
 found by the owner 2026-10-23 22:36:** the upgrade to migration 0005 (document vectors, `avg(embedding)` in SQL)
@@ -251,6 +251,33 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   documents on screen. Same for Qwen and Gemma topics.
 - **Not built (each needs a measured test first):** LLM-extracted relations between documents, answer
   writing.
+
+## 4g. Claude skill (owner request 2026-10-23; external AI, opt-in)
+
+`skills/knowledge-search/`:
+- `SKILL.md`: the workflow, which is search, read the outcome, search again, read the context or the whole
+  document, follow links or impact, then answer only from what was read with citations, abstaining otherwise.
+  It also covers management (upload, status, retry, delete with confirmation, reindex) and tells the user once
+  that passages go to Anthropic.
+- `ks.py`: stdlib client.
+  - Sign-in: token or user/password; cache per user and server, 0600.
+  - Upload checks write access first and skips other file types.
+  - Output survives `| head` and Windows code pages.
+- New endpoint `GET /api/documents/{id}/text`: the indexed passages in reading order, permission-checked and
+  audited as opened; tested.
+
+Verified: every command run against a fresh demo app on Linux, covering:
+- alice and bob permissions;
+- an expired token;
+- a wrong password;
+- an unreachable server;
+- a recursive folder upload with an empty and an .exe file.
+
+**Not verified:**
+- installed as a skill in a Claude Code session;
+- Windows;
+- answer quality as a whole. A test set of questions answered through the skill would measure that, and
+  is not built.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 

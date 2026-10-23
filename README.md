@@ -111,7 +111,7 @@ Command-line alternative for step 2: `uv run knowledge-search ingest intranet si
 |---|---|
 | [Getting started](docs/getting-started.md) | Installing, first run, trying it with sample or your own documents |
 | [How it works](docs/how-it-works.md) | Plain-language explanation: embeddings, search, links, evidence check, why one database |
-| [User guide](docs/user-guide.md) | Searching, reading results and outcomes, uploading documents |
+| [User guide](docs/user-guide.md) | Searching, reading results and outcomes, uploading documents, answering with Claude through the optional skill |
 | [Admin guide](docs/admin-guide.md) | Settings (models, chunking, reranker, evidence thresholds), users and access, reindexing |
 | [Configuration](docs/configuration.md) | All `KS_*` environment variables |
 | [Deployment](docs/deployment.md) | Laptop vs. dedicated server, Docker/external PostgreSQL, TLS, backups, GPU notes |

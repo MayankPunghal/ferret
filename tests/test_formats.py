@@ -259,3 +259,13 @@ def test_links_in_the_readable_view_open_the_linked_document(client, corpus):
     assert f'href="/api/documents/{docs["ledger-config.txt"]}/view"' in page
     out = _relink('<a href="missing.md">x</a> <a href="https://example.com/a">y</a> <a href="#top">z</a>', {})
     assert out == '<a>x</a> <a href="https://example.com/a">y</a> <a href="#top">z</a>'
+
+
+def test_whole_document_text_in_reading_order_for_readers_only(client, corpus):
+    alice, bob = token(client, "alice"), token(client, "bob")
+    root = token(client, "root")
+    docs = {d["source_key"]: d["id"] for d in client.get("/api/documents", headers=root).json()}
+    doc = client.get(f"/api/documents/{docs['payments-error-codes.md']}/text", headers=alice).json()
+    assert doc["title"] == "Payments Service Error Code Reference" and len(doc["passages"]) >= 2
+    assert "ERR-PAY-4012" in " ".join(x["text"] for x in doc["passages"])
+    assert client.get(f"/api/documents/{docs['compensation-bands.md']}/text", headers=bob).status_code == 404

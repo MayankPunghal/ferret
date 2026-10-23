@@ -427,6 +427,18 @@ def _routes(app: FastAPI) -> None:
                      "Cache-Control": "private, no-store"} | ({"Content-Security-Policy": csp} if csp else {}),
         )
 
+    @app.get("/api/documents/{document_id}/text")
+    def document_text(document_id: UUID, p: User, conn: Conn):
+        """The indexed version's passages in reading order (for tools that read a whole document)."""
+        d = _doc_for(conn, p, document_id)
+        auth.audit(conn, p.user_id, "open_source", str(document_id))
+        rows = conn.execute("SELECT id AS chunk_id, heading_path, page, text FROM chunks WHERE version_id = %s "
+                            "ORDER BY ordinal", (d["indexed_version_id"],)).fetchall() if d["indexed_version_id"] else []
+        conn.commit()
+        return {"document_id": str(d["id"]), "title": d["title"], "collection": d["collection"],
+                "source_key": d["source_key"], "source_uri": d["source_uri"], "status": d["status"],
+                **enrich.shown(d["enrichment"], d["indexed_version_id"]), "passages": rows}
+
     @app.get("/api/chunks/{chunk_id}")
     def passage(chunk_id: int, p: User, conn: Conn):
         c = conn.execute(
