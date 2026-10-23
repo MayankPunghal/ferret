@@ -620,5 +620,133 @@
    "Deployments"
   ],
   "seconds": 42.2
+ },
+ "debug-application.md": {
+  "title": "Troubleshooting Containerized Applications",
+  "summary": "This document provides resources for resolving issues within containerized applications. It covers common problems with Kubernetes resources, interpreting container termination messages, and debugging running containers.",
+  "topics": [
+   "Containerized Applications",
+   "Kubernetes",
+   "Pods",
+   "Services",
+   "StatefulSets",
+   "Container Debugging"
+  ],
+  "seconds": 38.0
+ },
+ "debug-cluster.md": {
+  "title": "Troubleshooting Kubernetes Clusters",
+  "summary": "This document provides guidance on troubleshooting issues within a cluster environment, assuming the application itself is not the root cause. It covers checking node status, examining logs, and understanding various cluster failure modes.",
+  "topics": [
+   "Cluster",
+   "Nodes",
+   "Control Plane",
+   "Worker Nodes",
+   "kubectl",
+   "Logs"
+  ],
+  "seconds": 48.8
+ },
+ "debug.md": {
+  "title": "Monitoring, Logging, and Debugging Guide",
+  "summary": "This guide provides resources for troubleshooting issues within a system. It directs users to specific documentation for debugging applications, clusters, and managing logging and monitoring in Kubernetes.",
+  "topics": [
+   "Kubernetes",
+   "Debugging",
+   "Logging",
+   "Monitoring",
+   "Kubernetes API",
+   "kubectl"
+  ],
+  "seconds": 48.5
+ },
+ "deployment.md": {
+  "title": "Kubernetes Deployments Overview",
+  "summary": "This document explains Kubernetes Deployments, which provide declarative updates for Pods and ReplicaSets. It details various operations such as creating, updating, scaling, rolling back, and managing the lifecycle of deployments.",
+  "topics": [
+   "Deployment",
+   "ReplicaSet",
+   "Pod",
+   "Rolling Update",
+   "Scaling",
+   "Rollback"
+  ],
+  "seconds": 40.5
+ },
+ "device-plugin.md": {
+  "title": "Device Plugin Overview",
+  "summary": "This document explains Device Plugins, which run on worker Nodes to give Pods access to infrastructure resources like local hardware. They advertise these resources to the kubelet so workloads can utilize specific hardware features.",
+  "topics": [
+   "Device Plugins",
+   "Worker Nodes",
+   "Pods",
+   "Kubelet",
+   "Infrastructure Resources",
+   "DaemonSet"
+  ],
+  "seconds": 40.1
+ },
+ "device-plugins.md": {
+  "title": "Kubernetes Device Plugins Overview",
+  "summary": "This document explains the Kubernetes device plugin framework, allowing vendors to advertise specialized hardware resources like GPUs or FPGAs to the kubelet. It details the registration process, resource advertising, and how Pods request these extended resources.",
+  "topics": [
+   "Device Plugins",
+   "Kubelet",
+   "gRPC",
+   "Extended Resources",
+   "Pod Scheduling",
+   "Device Plugin Registration"
+  ],
+  "seconds": 43.1
+ },
+ "device.md": {
+  "title": "Device Definition and Usage",
+  "summary": "This document defines a 'Device' as infrastructure resources attached to nodes, which can be commercial products like GPUs or custom hardware. It explains that these devices typically require device drivers for Kubernetes Pods to access them.",
+  "topics": [
+   "Device",
+   "Infrastructure Resources",
+   "Kubernetes Pods",
+   "Device Drivers",
+   "GPUs",
+   "ASIC boards"
+  ],
+  "seconds": 31.9
+ },
+ "deviceclass.md": {
+  "title": "DeviceClass for Dynamic Resource Allocation",
+  "summary": "DeviceClass categorizes devices within the cluster for use with Dynamic Resource Allocation (DRA). It allows administrators to define sets of devices that can be claimed by workloads using ResourceClaims.",
+  "topics": [
+   "DeviceClass",
+   "Dynamic Resource Allocation (DRA)",
+   "ResourceClaims",
+   "Device Parameters",
+   "Cluster"
+  ],
+  "seconds": 29.4
+ },
+ "disruption.md": {
+  "title": "Understanding Pod Disruptions",
+  "summary": "This document defines disruptions as events causing Pods to go out of service. It distinguishes between voluntary disruptions (like manual Pod destruction) and involuntary disruptions (like Node failures).",
+  "topics": [
+   "Pods",
+   "Disruptions",
+   "Kubernetes",
+   "Workload Management",
+   "Deployment"
+  ],
+  "seconds": 39.0
+ },
+ "dns-pod-service.md": {
+  "title": "Kubernetes DNS for Services and Pods",
+  "summary": "This document explains how Kubernetes automatically creates DNS records for Services and Pods, allowing components to communicate using names instead of IP addresses. It details concepts like namespaces, record types (A/AAAA, SRV), and DNS resolution behavior.",
+  "topics": [
+   "Services",
+   "Pods",
+   "DNS Records",
+   "Namespaces",
+   "kubelet",
+   "DNS"
+  ],
+  "seconds": 43.7
  }
 }
