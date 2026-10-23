@@ -33,10 +33,19 @@ async function boot() {
   }
   only("#app-view");
   openTab("search");  // always start on Search; never show a previous user's tab or results
-  $("#drawer").hidden = true; $("#outcome").hidden = true; $("#weak").hidden = true; $("#q").value = "";
+  closeDrawer(); $("#outcome").hidden = true; $("#weak").hidden = true; $("#q").value = "";
   for (const id of ["#results", "#weak-results", "#upload-list", "#docs", "#status", "#d-body"]) $(id).replaceChildren();
   $("#timing").textContent = "";
   renderMe();
+  searchHint();
+}
+
+async function searchHint() {
+  const box = $("#search-hint");
+  box.hidden = false;
+  const st = await api("/api/status").catch(() => null);
+  const c = st?.coverage;
+  $("#hint-scope").textContent = c ? `${c.indexed.toLocaleString()} document${c.indexed === 1 ? "" : "s"} indexed in ${st.collections.length} collection${st.collections.length === 1 ? "" : "s"} you can read` + (c.pending ? ` · ${c.pending} still being indexed` : "") + (c.failed ? ` · ${c.failed} failed` : "") : "";
 }
 
 // Re-read the current user's collections/permissions without changing the visible tab.
@@ -98,9 +107,60 @@ function highlighted(text) {
   const frag = document.createDocumentFragment();
   text.split(/(\x02[^\x03]*\x03)/).forEach((part) => {
     if (part.startsWith("\x02")) frag.append(el("mark", { textContent: part.slice(1, -1) }));
-    else if (part) frag.append(part);
+    else if (part) frag.append(part.replace(/[\x02\x03]/g, ""));
   });
   return frag;
+}
+
+// Passages are Markdown-like source (Markdown, and Word/PowerPoint/HTML converted to it; PDF text with a
+// line break per printed line). Render the common parts as DOM nodes, never as HTML: paragraphs (soft line
+// breaks joined), lists, code, tables, headings; links show their label. Plain-text files stay as they are.
+const unmark = (s) => s.replace(/[\x02\x03]/g, "");
+function inline(text) {
+  const frag = document.createDocumentFragment();
+  text.split(/(`[^`\n]+`)/).forEach((part, i) => {
+    if (i % 2) return frag.append(el("code", { textContent: unmark(part.slice(1, -1)) }));
+    frag.append(highlighted(part.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+      .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, a, b) => b || a).replace(/(\*\*|__)(?=\S)(.+?)\1/g, "$2")));
+  });
+  return frag;
+}
+function prose(text, mediaType) {
+  if (mediaType === "text/plain") return [el("p", { className: "plain" }, highlighted(text))];
+  const out = [];
+  let para = [], list = null, code = null, table = null;
+  const flush = () => { if (para.length) out.push(el("p", {}, inline(para.join(" ")))); para = []; };
+  for (const line of text.split("\n")) {
+    if (code) {
+      if (/^\s*(```|~~~)/.test(line)) { out.push(el("pre", {}, el("code", { textContent: code.join("\n") }))); code = null; }
+      else code.push(unmark(line));
+      continue;
+    }
+    if (/^\s*(```|~~~)/.test(line)) { flush(); list = table = null; code = []; continue; }
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      flush(); list = null;
+      if (/^[\s|:-]+$/.test(line)) continue;  // the |---|---| separator
+      if (!table) { table = el("table"); out.push(el("div", { className: "table-wrap" }, table)); }
+      table.append(el("tr", {}, ...line.trim().slice(1, -1).split("|").map((c) => el("td", {}, inline(c.trim())))));
+      continue;
+    }
+    table = null;
+    const li = line.match(/^\s*(?:[-*+]|\d+[.)])\s+(.*)/);
+    if (li) {
+      flush();
+      if (!list) { list = el(/^\s*\d/.test(line) ? "ol" : "ul"); out.push(list); }
+      list.append(el("li", {}, inline(li[1])));
+      continue;
+    }
+    const h = line.match(/^#{1,6}\s+(.*)/);
+    if (h) { flush(); list = null; out.push(el("p", { className: "h" }, inline(h[1]))); continue; }
+    if (!line.trim()) { flush(); list = null; continue; }
+    if (list) { list.lastChild.append(" ", inline(line.trim())); continue; }  // continuation of the item
+    para.push(line.trim());
+  }
+  if (code) out.push(el("pre", {}, el("code", { textContent: code.join("\n") })));
+  flush();
+  return out;
 }
 
 const BASIS = {
@@ -110,25 +170,31 @@ const BASIS = {
   reranker_and_similarity_agree: "reranker + similarity agree",
 };
 
+// "Title > Section > Sub" → "Section > Sub" (the title is shown above it)
+const section = (path, title) => (path === title ? "" : path.startsWith(title + " > ") ? path.slice(title.length + 3) : path);
+const location = (collection, path, title, page, version) =>
+  [collection, section(path || "", title), page ? `page ${page}` : "", version > 1 ? `version ${version}` : ""].filter(Boolean).join(" · ");
+
 function resultItem(r) {
-  const loc = [r.collection, r.heading_path, r.page ? `page ${r.page}` : "", `v${r.version_no}`].filter(Boolean).join(" · ");
+  const loc = location(r.collection, r.heading_path, r.title, r.page, r.version_no);
   const badges = el("span", { className: "badges" });
   for (const b of r.match_basis) badges.append(el("span", { className: "badge ok", textContent: BASIS[b] || b }));
   if (r.signals.linked_from) badges.append(el("span", { className: "badge", textContent: "linked from " + r.signals.linked_from }));
   if (r.outdated_version) badges.append(el("span", { className: "badge warn", textContent: "newer version not yet indexed" }));
   if (r.metadata?.version || r.metadata?.effective_date)
     badges.append(el("span", { className: "badge", textContent: [r.metadata.version && `version ${r.metadata.version}`, r.metadata.effective_date && `effective ${r.metadata.effective_date}`].filter(Boolean).join(", ") }));
-  const view = el("button", { className: "link", textContent: "View passage" });
+  const view = el("button", { className: "secondary small", textContent: "View passage" });
   view.addEventListener("click", () => openPassage(r.chunk_id));
   const related = el("div", { className: "r-related", hidden: true });
   relatedDocs(related, r.document_id, r.chunk_id);
   return el("li", { className: "result" },
-    el("div", { className: "r-head" }, el("span", { className: "rank", textContent: r.rank }), docTitle(r.title, r.clearer_title), badges),
+    el("div", { className: "r-head" }, el("span", { className: "rank", textContent: r.rank }),
+      el("a", { className: "r-title", href: r.source_url, target: "_blank", rel: "noopener", title: "Open the document" }, docTitle(r.title, r.clearer_title)), badges),
     el("div", { className: "meta", textContent: loc }),
-    el("p", { className: "snippet" }, highlighted(r.snippet)),
+    el("p", { className: "snippet" }, inline(r.snippet.replace(/\s*\n\s*/g, " "))),
     writtenSummary(r),
     related,
-    el("div", { className: "r-actions" }, view, el("a", { href: r.source_url, target: "_blank", rel: "noopener", textContent: "Open source" })),
+    el("div", { className: "r-actions" }, view, el("a", { href: r.source_url, target: "_blank", rel: "noopener", textContent: "Open document" })),
   );
 }
 
@@ -142,7 +208,7 @@ function writtenSummary(r) {
   if (!r.summary) return "";
   const topics = r.topics.map((t) => {
     const b = el("button", { className: "chip topic", type: "button", textContent: t, title: "Search for " + t });
-    b.addEventListener("click", () => { $("#drawer").hidden = true; openTab("search"); $("#q").value = t; $("#search-form").requestSubmit(); });
+    b.addEventListener("click", () => { closeDrawer(); openTab("search"); $("#q").value = t; $("#search-form").requestSubmit(); });
     return b;
   });
   return el("div", { className: "r-summary" },
@@ -192,6 +258,7 @@ $("#search-form").addEventListener("submit", async (e) => {
   const ids = $$("#scope input:checked").map((c) => +c.value);
   const all = ids.length === me.collections.length;
   const out = $("#outcome");
+  $("#search-hint").hidden = true;
   out.hidden = false; out.className = "outcome"; out.replaceChildren(el("span", { className: "spinner" }), " Searching…");
   const slow = setTimeout(() => { if (out.textContent.includes("Searching")) out.append(el("span", { className: "meta", textContent: " — still working (the first search after a start or a model change loads the model)" })); }, 3000);
   $("#results").replaceChildren(); $("#weak").hidden = true; $("#timing").textContent = "";
@@ -221,13 +288,19 @@ $("#search-form").addEventListener("submit", async (e) => {
 async function openPassage(id) {
   const p = await api(`/api/chunks/${id}`);
   $("#d-title").replaceChildren(docTitle(p.doc_title, p.clearer_title));
-  $("#d-loc").textContent = [p.collection, p.heading_path, p.page ? `page ${p.page}` : "", `version ${p.version_no}`].filter(Boolean).join(" · ");
-  $("#d-body").replaceChildren(writtenSummary(p), ...p.context.map((c) => el("p", { className: c.id === p.id ? "hit" : "ctx", textContent: c.text })));
+  $("#d-loc").textContent = location(p.collection, p.heading_path, p.doc_title, p.page, p.version_no);
+  $("#d-body").replaceChildren(...p.context.map((c) => {
+    const where = c.id !== p.id && section(c.heading_path || "", p.doc_title);
+    return el("div", { className: c.id === p.id ? "hit" : "ctx" },
+      where && where !== section(p.heading_path || "", p.doc_title) ? el("div", { className: "ctx-loc meta", textContent: where }) : "",
+      ...prose(c.text, p.media_type));
+  }));
+  $("#d-summary").replaceChildren(writtenSummary(p));
   $("#d-open").href = `/api/documents/${p.document_id}/view` + (p.page ? `#page=${p.page}` : "");
-  $("#d-uri").replaceChildren(...(!p.source_uri ? [] : /^https?:\/\//.test(p.source_uri)
-    ? ["Original: ", el("a", { href: p.source_uri, target: "_blank", rel: "noopener noreferrer", textContent: p.source_uri })]
-    : ["Recorded location: " + p.source_uri]));
-  $("#drawer").hidden = false;
+  $("#d-download").href = `/api/documents/${p.document_id}/source?download=1&version=indexed`;
+  $("#d-uri").replaceChildren(...(/^https?:\/\//.test(p.source_uri || "")
+    ? [el("a", { href: p.source_uri, target: "_blank", rel: "noopener noreferrer", textContent: "Original page ↗", title: p.source_uri })] : []));
+  $("#drawer").hidden = $("#backdrop").hidden = false;
   $("#d-body .hit")?.scrollIntoView({ block: "center" });
   renderLinks(p.document_id);
 }
@@ -351,7 +424,15 @@ async function drawGraph(box, docId, depth, hops) {
     el("span", { className: "g-key g-sim" }), " related in meaning",
     g.truncated ? " · showing the nearest 60 documents" : ""));
 }
-$("#d-close").addEventListener("click", () => { $("#drawer").hidden = true; });
+function closeDrawer() { $("#drawer").hidden = $("#backdrop").hidden = true; }
+$("#d-close").addEventListener("click", closeDrawer);
+$("#backdrop").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("#drawer").hidden) closeDrawer();
+  else if (e.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && !$("#tab-search").hidden) {
+    e.preventDefault(); $("#q").focus(); $("#q").select();
+  }
+});
 
 // ---------------------------------------------------------------- documents
 const dz = $("#dropzone"), fileInput = $("#file-input");

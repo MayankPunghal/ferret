@@ -53,6 +53,17 @@
           <button type="submit">Search</button>
         </form>
         <fieldset id="scope" class="scope"><legend>Collections</legend></fieldset>
+        <div id="search-hint" class="hint" hidden>
+          <p id="hint-scope" class="meta"></p>
+          <ul>
+            <li><strong>Exact terms</strong> find the passages that contain them: an error code, a config key, an API
+              path, a file or service name (<code>ERR-PAY-4012</code>, <code>/api/v2/invoices</code>).</li>
+            <li><strong>Questions in your own words</strong> are matched by meaning: <em>how do I roll back a release?</em></li>
+            <li><strong>Name a page</strong> to follow its links: <em>who owns the services the Orders Service depends on</em>.</li>
+          </ul>
+          <p class="meta">Results that pass the evidence check are listed first; others are marked as closest matches.
+            Press <kbd>/</kbd> to search from anywhere on this tab.</p>
+        </div>
         <div id="outcome" class="outcome" hidden role="status"></div>
         <ol id="results" class="results"></ol>
         <details id="weak" class="weak" hidden>
@@ -228,14 +239,22 @@
       </section>
     </main>
 
+    <div id="backdrop" class="backdrop" hidden></div>
     <aside id="drawer" class="drawer" hidden aria-label="Passage">
       <div class="drawer-head">
-        <div><div id="d-title"></div><div id="d-loc" class="meta"></div></div>
-        <button id="d-close" class="link" aria-label="Close passage">Close</button>
+        <div><div id="d-title" class="d-title"></div><div id="d-loc" class="meta"></div></div>
+        <button id="d-close" class="icon" aria-label="Close passage" title="Close (Esc)">×</button>
       </div>
-      <div id="d-body" class="drawer-body"></div>
-      <div id="d-links" class="drawer-links" hidden></div>
-      <div class="drawer-foot"><a id="d-open" target="_blank" rel="noopener">Open original source</a> <span id="d-uri" class="meta"></span></div>
+      <div class="d-actions">
+        <a id="d-open" class="button" target="_blank" rel="noopener">Open document</a>
+        <a id="d-download" class="button secondary">Download</a>
+        <span id="d-uri"></span>
+      </div>
+      <div class="drawer-body">
+        <div id="d-body" class="passages"></div>
+        <div id="d-summary"></div>
+        <div id="d-links" class="drawer-links" hidden></div>
+      </div>
     </aside>
   </div>
 </body>

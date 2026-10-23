@@ -164,14 +164,20 @@ with sync_playwright() as p:
     assert pg.is_visible("#tab-search") and pg.locator("#results > li").count() == 0 and pg.input_value("#q") == "", \
         "previous user's tab/results leaked into alice's session"
     print("alice starts on a clean Search tab (no previous user's results)")
+    assert pg.is_visible("#search-hint") and "documents indexed" in pg.inner_text("#hint-scope"), "no search hint"
+    print("search hint:", pg.inner_text("#hint-scope"))
+    shot("00-search-start")
     print("alice tabs:", pg.locator(".tab:not([hidden])").all_inner_texts(),
           "| chips:", pg.locator("#scope label").all_inner_texts())
     run("ERR-PAY-4012", "04-exact")
     pg.click("#results li >> text=View passage")
     pg.wait_for_selector("#drawer:not([hidden])")
     print("passage:", pg.inner_text("#d-loc"))
+    assert pg.locator("#d-body code").count() and "`" not in pg.inner_text("#d-body"), "passage Markdown not rendered"
     shot("05-passage")
-    pg.click("#d-close")
+    pg.keyboard.press("Escape")
+    pg.wait_for_selector("#drawer", state="hidden")
+    print("passage rendered (code spans), Esc closes it")
     run("how do I undo a bad release of the orders service", "06-conceptual")
     # graph navigation: connections of the Ledger Service wiki page
     run("ledger service schema changes", "10-graph-search")

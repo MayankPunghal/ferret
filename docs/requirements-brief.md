@@ -36,7 +36,7 @@ and whether the product does it. Status: **done** (verified by a test, an evalua
 | U1 | Clean UI to upload documents and change settings (chunk size, overlap, …) | done | Documents tab (files and whole folders), Settings tab (model, chunking, overlap, document summary, reranker, link following, thresholds) |
 | U2 | Loading indicator for indexing and for the cold start | done | Per-document progress (parsing / embedding n of m), model-loading note |
 | U3 | Log viewer with copyable, detailed errors | done | Logs tab, "Copy for support" |
-| U4 | Each result shows the passage, the document and opens the real source | done | Result card → passage drawer → "Open source" (PDF at the page); crawled pages link to the original web address |
+| U4 | Each result shows the passage, the document and opens the real source | done | Result card (title opens the document) → passage view → "Open document" (PDF at the page; Markdown, Word, PowerPoint rendered); crawled pages link to the original web address |
 | U5 | Related / referenced / connected documents shown **with** each result, instead of a graph picture | done | "Links to / Referenced by / Mentions / Related in meaning" rows on every result (`docs/screenshots/15-related.png`); graph behind "Show as graph" |
 | U6 | CPU/GPU toggle in settings | not built | No GPU to test on; CPU only (brief: GPU optional) |
 | U7 | Is the document summary + reranker combination configurable in Settings | done | Both are Settings fields |

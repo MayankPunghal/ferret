@@ -58,7 +58,7 @@ confidential `hr`. Demo users: `alice`, `bob`, `hannah` (password `demo-password
 | `ERR-PAY-4013` | **No adequate evidence** — the code does not exist |
 | `how many weeks of paid parental leave` | signed in as `bob`: nothing from HR; as `hannah` or admin: the HR policy |
 
-Click **View passage** to see the passage in context and **Open source** to open the original file.
+Click **View passage** to see the passage in context and **Open document** to read the whole document (formatted; **Download** gets the original file).
 
 ## 4. Test run with your own documents
 

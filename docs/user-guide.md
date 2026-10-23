@@ -2,7 +2,8 @@
 
 ## Searching
 
-Type a question, a phrase or an exact term into the search box. Use the **Collections** chips to limit the
+Before the first search the page shows how many documents you can search and what kinds of queries work.
+Press **/** to jump to the search box. Type a question, a phrase or an exact term into the search box. Use the **Collections** chips to limit the
 search; you only ever see collections you have access to.
 
 Good queries:
@@ -25,7 +26,8 @@ evidence**. The right passage is often among them (especially for paraphrased qu
 
 ## Each result shows
 
-- document title, collection, heading path or PDF page, and version;
+- document title (click it to open the document), collection, section or PDF page, and the version when
+  there is more than one;
 - a snippet with the matching words highlighted;
 - when the optional local language model is installed: **Summary (local model)** — two sentences on what the
   document is about — and **Topics**; click a topic to search for it. A vague title ("Overview", a file name)
@@ -33,8 +35,9 @@ evidence**. The right passage is often among them (especially for paraphrased qu
   are written by the model, so they can be wrong: the snippet and passage are the evidence, never the summary;
 - related documents in up to four rows — **Links to**, **Referenced by**, **Mentions** and **Related in
   meaning** — up to four each; click one to open its passage (the passage view lists them all);
-- **View passage** — the passage with the chunks before and after it;
-- **Open source** — the document in your browser: PDFs open at the page, HTML as itself (scripts and external
+- **View passage**: the passage, highlighted, with the passages before and after it, formatted (lists,
+  code, tables), then the summary and the document's connections. **Esc** or a click outside closes it;
+- **Open document**: the document in your browser: PDFs open at the page, HTML as itself (scripts and external
   content disabled); Markdown, text, Word and PowerPoint as a readable page (formatted, links to other documents
   open them) with a **Download original** link.
 
@@ -96,7 +99,7 @@ zone or click it to browse. Several files can be uploaded at once.
   links become connections), `.docx` (Word: headings, lists, tables), `.pptx` (PowerPoint: a
   section per slide, with the speaker notes), `.pdf` with a text layer.
   Scanned PDFs without text are rejected (`no_extractable_text`); legacy `.doc` and `.ppt`, and `.xlsx`, are not
-  supported yet. Click a document's title to read it in the browser (see **Open source** above);
+  supported yet. Click a document's title to read it in the browser (see **Open document** above);
   **Download** gets the original file. The **Type** column says what each file is.
 - An upload shows one line with its counts; only rejected files are listed by name.
 - Uploading an identical file again does nothing (`unchanged`). Uploading a changed file with the same name

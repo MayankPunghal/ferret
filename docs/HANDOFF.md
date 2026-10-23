@@ -279,6 +279,22 @@ Verified: every command run against a fresh demo app on Linux, covering:
 - answer quality as a whole. A test set of questions answered through the skill would measure that, and
   is not built.
 
+## 4h. UI pass (owner: "UI could be way better", 2026-10-23)
+
+- Passages are rendered from their Markdown-like source as DOM nodes, never HTML (`prose`/`inline` in app.js):
+  soft line breaks joined, so PDF lines become paragraphs; lists, code spans and blocks, tables and headings;
+  links show their label. Plain-text files stay monospace as they are.
+- The passage view is 780 px wide with a backdrop; Esc or a click outside closes it. The evidence comes first,
+  then the model's summary, then connections, all in one scroll area. It has Open document and Download
+  buttons. The `file:///` footer is gone; only http(s) originals are linked.
+- Result cards: the title opens the document; the location drops the repeated title and shows the version only
+  when there is more than one; outcome icons.
+- Search start: the number of documents and collections the user can read, three kinds of query, and **/** to
+  focus.
+- Verified: the UI walkthrough, which now asserts rendered code spans, Esc, and the hint; no console errors.
+  Screenshots refreshed. **Not** reviewed by the owner yet. Documents, Summaries and admin tabs unchanged in
+  this pass.
+
 ## 5. Decisions made this session (details: docs/architecture.md)
 
 Embedded PostgreSQL + vendored Windows DLL; in-memory vector search for laptops; runtime-editable
