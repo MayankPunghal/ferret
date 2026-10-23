@@ -1,5 +1,5 @@
 """Functional + visual UI walkthrough (Playwright, headless Chromium) against a running server that was set up
-with demo data but no administrator yet (fresh install: `setup --demo`, then start).
+with demo data but no administrator yet (fresh data dir: `knowledge-search serve`, then `knowledge-search demo`).
 
     pip install playwright && playwright install chromium     (or set CHROMIUM_PATH to an existing Chromium)
     python scripts/ui_check.py docs/screenshots [http://127.0.0.1:8000]
@@ -105,7 +105,7 @@ with sync_playwright() as p:
         {"name": "beta.txt", "mimeType": "text/plain", "buffer": b"Beta notes: the cobalt gate opens at dawn."},
         {"name": "bad.exe", "mimeType": "application/octet-stream", "buffer": b"MZ"},
     ])
-    pg.wait_for_selector("#upload-list li:has-text('bad.exe') .error")
+    pg.wait_for_selector("#upload-list li:has-text('skipped 1 file(s) of other types (exe)')")  # not uploaded
     print("uploads:", [x.replace("\n", " ") for x in pg.locator("#upload-list li").all_inner_texts()])
     pg.wait_for_selector("#docs tr:has-text('Alpha') .st-indexed", timeout=60000)
     pg.wait_for_selector("#docs tr:has-text('beta.txt') .st-indexed", timeout=60000)
@@ -137,9 +137,14 @@ with sync_playwright() as p:
     run("how do I undo a bad release of the orders service", "06-conceptual")
     # graph navigation: connections of the Ledger Service wiki page
     run("ledger service schema changes", "10-graph-search")
-    pg.locator("#results li, #weak-results li").filter(has_text="Ledger Service").first.locator("text=View passage").click()
+    ledger = pg.locator("#results li.result, #weak-results li.result").filter(has_text="Ledger Service").first
+    ledger.locator(".r-related .rel-row").first.wait_for()
+    print("related with the result:", [x.replace("\n", " ") for x in ledger.locator(".rel-row").all_inner_texts()])
+    ledger.screenshot(path=f"{OUT}/15-related.png")
+    ledger.locator("text=View passage").click()
     pg.wait_for_selector("#d-links h3")
     print("connections:", [x.replace("\n", " ") for x in pg.locator("#d-links h4, #d-links li").all_inner_texts()])
+    pg.click("#d-links .graph-box summary")
     pg.wait_for_selector("#d-links .graph svg .g-node")
     print("graph (1 hop): nodes", pg.locator("#d-links .g-node").count(), "edges", pg.locator("#d-links .g-edge").count())
     shot("11-connections")

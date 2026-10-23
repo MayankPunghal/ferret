@@ -10,6 +10,9 @@
 - Never claim a gate/test passes without running it. Mark unmeasured numbers as unmeasured.
 - No external AI calls unless explicitly opted in. No GraphRAG / generation / plugin system / agent
   harness before Gates 1–2 pass.
+  **Owner decision 2026-10-23:** graph retrieval (LightRAG-style entities and relations) and a local LLM
+  that summarises, tags and extracts relations per document in a background job are now in scope —
+  local models only, optional, never blocking search, kept only where measured useful.
 
 - **Do not over-engineer.** If something can be achieved in a simpler way, the simpler/easier way is
   the best way — as long as the quality of the outcome is not compromised. Prefer deleting or

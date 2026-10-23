@@ -119,12 +119,52 @@ function resultItem(r) {
     badges.append(el("span", { className: "badge", textContent: [r.metadata.version && `version ${r.metadata.version}`, r.metadata.effective_date && `effective ${r.metadata.effective_date}`].filter(Boolean).join(", ") }));
   const view = el("button", { className: "link", textContent: "View passage" });
   view.addEventListener("click", () => openPassage(r.chunk_id));
+  const related = el("div", { className: "r-related", hidden: true });
+  relatedDocs(related, r.document_id, r.chunk_id);
   return el("li", { className: "result" },
     el("div", { className: "r-head" }, el("span", { className: "rank", textContent: r.rank }), el("strong", { textContent: r.title }), badges),
     el("div", { className: "meta", textContent: loc }),
     el("p", { className: "snippet" }, highlighted(r.snippet)),
+    related,
     el("div", { className: "r-actions" }, view, el("a", { href: r.source_url, target: "_blank", rel: "noopener", textContent: "Open source" })),
   );
+}
+
+// The documents connected to a result, shown with it: what it links to, what refers to it, and what is
+// related in meaning. Up to RELATED_SHOWN per group; the passage view lists them all.
+const RELATED_SHOWN = 4;
+const linksCache = new Map();
+function docLinks(docId) {
+  if (!linksCache.has(docId)) linksCache.set(docId, api(`/api/documents/${docId}/links`).catch(() => null));
+  return linksCache.get(docId);
+}
+
+async function relatedDocs(box, docId, chunkId) {
+  const links = await docLinks(docId);
+  if (!links) return;
+  const seen = new Set([docId]);
+  const pick = (items) => items.filter((i) => !seen.has(i.document_id) && seen.add(i.document_id));
+  const groups = [
+    ["Links to", pick(links.outgoing)],
+    ["Referenced by", pick([...links.incoming, ...(links.mentions || []).filter((m) => m.how === "mentions this")])],
+    ["Mentions", pick((links.mentions || []).filter((m) => m.how === "mentioned here"))],
+    ["Related in meaning", pick(links.similar || [])],
+  ].filter(([, items]) => items.length);
+  for (const [label, items] of groups) {
+    const row = el("div", { className: "rel-row" }, el("span", { className: "rel-label", textContent: label }));
+    for (const i of items.slice(0, RELATED_SHOWN)) {
+      const b = el("button", { className: "chip rel", type: "button", textContent: i.title, title: i.collection });
+      b.addEventListener("click", () => openPassage(i.chunk_id));
+      row.append(b);
+    }
+    if (items.length > RELATED_SHOWN) {
+      const more = el("button", { className: "link", type: "button", textContent: `+${items.length - RELATED_SHOWN} more` });
+      more.addEventListener("click", () => openPassage(chunkId));
+      row.append(more);
+    }
+    box.append(row);
+  }
+  box.hidden = !groups.length;
 }
 
 $("#search-form").addEventListener("submit", async (e) => {
@@ -135,6 +175,7 @@ $("#search-form").addEventListener("submit", async (e) => {
   out.hidden = false; out.className = "outcome"; out.replaceChildren(el("span", { className: "spinner" }), " Searching…");
   const slow = setTimeout(() => { if (out.textContent.includes("Searching")) out.append(el("span", { className: "meta", textContent: " — still working (the first search after a start or a model change loads the model)" })); }, 3000);
   $("#results").replaceChildren(); $("#weak").hidden = true; $("#timing").textContent = "";
+  linksCache.clear();
   if (!ids.length) { out.textContent = "Select at least one collection."; return; }
   let res;
   try { res = await api("/api/search", { method: "POST", json: { query: $("#q").value, collection_ids: all ? null : ids } }); }
@@ -177,7 +218,7 @@ const KIND = { links_to: "links to", depends_on: "depends on", related: "related
 async function renderLinks(docId) {
   const box = $("#d-links");
   box.hidden = true; box.replaceChildren();
-  const [links, imp] = await Promise.all([api(`/api/documents/${docId}/links`), api(`/api/documents/${docId}/impact?depth=2`)])
+  const [links, imp] = await Promise.all([docLinks(docId), api(`/api/documents/${docId}/impact?depth=2`)])
     .catch(() => [null, null]);
   if (!links) return;
   const item = (title, meta, chunkId) => {
@@ -207,8 +248,10 @@ async function renderLinks(docId) {
     b.addEventListener("click", () => drawGraph(graph, docId, d, hops));
     hops.append(b);
   }
-  box.prepend(el("h3", { textContent: "Connections" }), hops, graph);
-  drawGraph(graph, docId, 1, hops);
+  const asGraph = el("details", { className: "graph-box" }, el("summary", { textContent: "Show as graph" }), hops, graph);
+  asGraph.addEventListener("toggle", () => asGraph.open && !graph.childElementCount && drawGraph(graph, docId, 1, hops), { once: true });
+  box.prepend(el("h3", { textContent: "Connections" }));
+  box.append(asGraph);
 }
 
 // Neighbourhood graph (SVG, no library): the document in the centre, directly linked documents on the

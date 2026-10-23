@@ -156,6 +156,12 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   loaded the CPU and was wrong. Re-measured on an idle 4-core VM: 7.4 passages/s sorted against 7.1
   unsorted at batch 8, and 6.3 at batch 32. The Kubernetes ingest at batch 32 took 1,698 s for 8,514
   passages (5.0/s) against 1,590 s before, so batch 32 was reverted.
+- **Related documents with every result:** each search result lists what it links to, what refers to it
+  (links and mentions) and what is related in meaning, up to 4 per group, each opening that document's
+  passage (`relatedDocs` in `app.js`, from `/api/documents/{id}/links`). In the passage view the graph
+  is behind "Show as graph". UI walkthrough verified (`docs/screenshots/15-related.png`).
+- **Kubernetes without descriptions, MiniLM reranker:** top result right 94.6% (96.4% without the
+  reranker); 0 false answers. The reranker helps only together with page descriptions (100%).
 - **Local language models: trialled, none shipped.** Details and the resumable plan are in
   `docs/plan-images-and-models.md`. llama.cpp `llama-server`, eval scripts only:
   - **Gemma 4 E2B answers** (`eval/llm_answers.py`): it writes answers well, but is no better as an

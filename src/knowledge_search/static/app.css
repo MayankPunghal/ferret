@@ -51,6 +51,12 @@ main { max-width: 980px; margin: 0 auto; padding: 20px 16px 80px; }
 .snippet { margin: 6px 0; }
 mark { background: var(--mark); color: inherit; padding: 0 1px; }
 .r-actions { display: flex; gap: 16px; font-size: 13px; }
+.r-related { margin: 4px 0 8px; display: grid; gap: 4px; font-size: 13px; }
+.rel-row { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.rel-label { color: var(--muted); font-size: 12px; min-width: 120px; }
+.chip.rel { color: var(--accent); max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.chip.rel:hover { border-color: var(--accent); }
+.graph-box summary { cursor: pointer; color: var(--muted); margin: 8px 0; }
 .badges { display: inline-flex; gap: 4px; flex-wrap: wrap; }
 .badge { font-size: 11px; border-radius: 4px; padding: 1px 6px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
 .badge.ok, .badge.st-indexed { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
