@@ -127,7 +127,7 @@ def main():
     val = [x for x in rows if x[0]["split"] == "val"]
     test = [x for x in rows if x[0]["split"] == "test"]
     out["gates_chosen_on_val"] = choose(val, test, is_relevant, a.max_far)
-    base = str(ROOT / "eval" / "results" / f"corpus-{name}-{tag}{'-rr' if a.reranker else ''}")
+    base = str(ROOT / "eval" / "results" / f"corpus-{name}-{tag}{'-rr-' + a.reranker.split('/')[-1] if a.reranker else ''}")
     Path(base + ".json").write_text(json.dumps(out, indent=2))
     Path(base + ".txt").write_text("\n".join(table) + "\n")
     sg = out["shipped_gate"]
