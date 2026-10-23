@@ -15,8 +15,8 @@ The pages are saved in `output/<name>/`, one Markdown file per page, plus the PD
 pages link to or embed. The first run installs what it needs (uv, Python, about 1–2 minutes; the internet
 is needed for that). Running it again with the same name continues the copy and retries failed pages.
 
-The sign-in is kept on your computer only, in `~/.site2md/browser-profile`. Delete that folder to sign
-out.
+You choose the browser: Chrome or Edge (already installed), or Firefox or Chromium (downloaded once). The
+sign-in is kept on your computer only, in `~/.site2md/profile-<browser>`. Delete that folder to sign out.
 
 ## Install as a command (technical users)
 
@@ -33,15 +33,16 @@ site2md https://docs.example.com/ --out example-docs
 ```
 
 Sites behind a company login (Google Sites, SharePoint, Confluence with SSO) — sign in once in a browser
-window, then crawl with that session (kept in `~/.site2md/browser-profile`, on your machine only):
+window, then crawl with that session (kept in `~/.site2md/profile-<channel>`, on your machine only):
 
 ```bash
-site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --browser --login --channel msedge
-site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --browser --channel msedge   # later runs
+site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --browser --login --channel chrome
+site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --browser --channel chrome   # later runs
 ```
 
-`--channel msedge` (Windows) or `--channel chrome` uses the browser already installed; without it, run
-`playwright install chromium` once.
+`--channel chrome` or `--channel msedge` uses the browser already installed. `--channel firefox` or
+`--channel chromium` (the default) uses Playwright's own copy: run `playwright install firefox` (or
+`chromium`) once. Other Chromium-based browsers (Brave, Vivaldi): `--browser-path` to the executable.
 
 ## What it does
 

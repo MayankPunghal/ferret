@@ -1,5 +1,6 @@
 """Browser mode (needs: pip install playwright, and a Chromium: playwright install chromium, or set
-SITE2MD_CHROMIUM to an executable). A site behind a sign-in, with a page built by JavaScript."""
+SITE2MD_CHROMIUM to an executable; SITE2MD_CHANNEL=firefox tests Firefox). A site behind a sign-in, with a
+page built by JavaScript."""
 
 import os
 import threading
@@ -14,6 +15,7 @@ from site2md.crawl import BrowserFetcher
 from site2md import main
 
 EXE = os.environ.get("SITE2MD_CHROMIUM", "")
+CHANNEL = os.environ.get("SITE2MD_CHANNEL", "chromium")  # or firefox, chrome, msedge
 
 PAGES = {
     "/site/home": "<html><head><title>Home | Intranet</title></head><body><nav><a href='/site/js'>JS page</a> "
@@ -50,11 +52,12 @@ def test_sign_in_is_kept_in_the_profile_and_javascript_pages_are_rendered(tmp_pa
     srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     base, profile = f"http://127.0.0.1:{srv.server_port}", tmp_path / "profile"
-    args = ["--browser", "--profile", str(profile), *(["--browser-path", EXE] if EXE else [])]
+    exe = EXE if CHANNEL == "chromium" else ""
+    args = ["--browser", "--channel", CHANNEL, "--profile", str(profile), *(["--browser-path", exe] if exe else [])]
     try:
         main([base + "/site/home", "--out", str(tmp_path / "before"), *args])
         assert "sign-in page" in (tmp_path / "before" / "manifest.json").read_text()
-        f = BrowserFetcher(profile, executable=EXE)  # stands in for the person signing in (--login)
+        f = BrowserFetcher(profile, CHANNEL, executable=exe)  # stands in for the person signing in (--login)
         f.page.goto(base + "/auth")
         f.close()
         out = tmp_path / "after"

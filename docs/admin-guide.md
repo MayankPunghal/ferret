@@ -57,11 +57,11 @@ uv run knowledge-search ingest wiki data/crawl/wiki --wait
 
 **Sites behind a sign-in** (Google Sites, SharePoint, Confluence with SSO): install the browser extra
 (`uv pip install playwright`). Then sign in once in the browser window that opens. The session is kept in a
-local browser profile (`~/.site2md/browser-profile`):
+local browser profile, one per browser (`~/.site2md/profile-<channel>`):
 
 ```bash
 uv run knowledge-search crawl "https://sites.google.com/acme.com/intranet/home" --out data/crawl/intranet \
-    --browser --login --channel msedge          # --channel chrome, or `playwright install chromium` once
+    --browser --login --channel chrome   # or msedge; firefox/chromium: `playwright install <name>` once
 ```
 
 Later runs drop `--login`. Browser mode also renders pages that build their content with JavaScript.

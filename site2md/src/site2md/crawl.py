@@ -83,16 +83,17 @@ class BrowserFetcher:
     profile, so a sign-in done once (``login``) is reused by every crawl, and pages that build their content
     with JavaScript are captured after rendering. Not thread-safe: the crawler uses one worker."""
 
-    def __init__(self, profile: Path, channel: str = "", headless: bool = True, executable: str = ""):
+    def __init__(self, profile: Path, channel: str = "chromium", headless: bool = True, executable: str = ""):
         try:
             from playwright.sync_api import sync_playwright
         except ImportError as e:
             raise SystemExit("--browser needs Playwright: pip install playwright (then, unless you use "
                              "--channel msedge/chrome, run: playwright install chromium)") from e
         self._pw = sync_playwright().start()
-        opts = {"headless": headless, **({"channel": channel} if channel else {}),
+        engine = self._pw.firefox if channel == "firefox" else self._pw.chromium
+        opts = {"headless": headless, **({"channel": channel} if channel not in ("", "chromium", "firefox") else {}),
                 **({"executable_path": executable} if executable else {})}
-        self.ctx = self._pw.chromium.launch_persistent_context(str(profile), **opts)
+        self.ctx = engine.launch_persistent_context(str(profile), **opts)
         self.page = self.ctx.pages[0] if self.ctx.pages else self.ctx.new_page()
         if headless:  # crawling: images, video and fonts are not needed for the text, and slow every page down
             self.ctx.route("**/*", lambda route: route.abort() if route.request.resource_type in

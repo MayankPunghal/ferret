@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-__version__ = "0.1.0"
+__version__ = "0.2.1"
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -24,13 +24,15 @@ def main(argv: list[str] | None = None) -> None:
     b = ap.add_argument_group("browser (sites behind a login or built with JavaScript; needs: pip install playwright)")
     b.add_argument("--browser", action="store_true", help="fetch pages with a real browser")
     b.add_argument("--login", action="store_true", help="open a browser window to sign in first (saved for next time)")
-    b.add_argument("--channel", default="", help="use an installed browser: msedge or chrome (default: Playwright's Chromium)")
-    b.add_argument("--profile", default=str(Path.home() / ".site2md" / "browser-profile"),
-                   help="where the browser keeps the sign-in (default: ~/.site2md/browser-profile)")
+    b.add_argument("--channel", default="chromium", help="chrome or msedge (the installed browser), or firefox / "
+                   "chromium (Playwright's own, once: playwright install firefox|chromium); default chromium")
+    b.add_argument("--profile", default="", help="where the browser keeps the sign-in "
+                   "(default: ~/.site2md/profile-<channel>, one per browser)")
     b.add_argument("--show-browser", action="store_true", help="show the browser window while crawling")
     b.add_argument("--browser-path", default="", help="path to a Chromium/Chrome executable")
     a = ap.parse_args(argv)
     fetcher = None
+    a.profile = a.profile or str(Path.home() / ".site2md" / f"profile-{a.channel}")
     if a.browser or a.login:
         Path(a.profile).mkdir(parents=True, exist_ok=True)
         if a.login:
