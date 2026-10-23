@@ -45,28 +45,46 @@ uv run knowledge-search ingest policies ./policies --wait     # bulk import a fo
 
 ## Crawling a website or intranet
 
-`knowledge-search crawl` saves a website as one Markdown file per page (plus the PDF / Word files it links
-to), ready to ingest. It needs no database or models and sends nothing anywhere except requests to the site.
+The crawler is a separate, shareable package, **site2md** (`site2md/`, standard-library Python; see
+`site2md/README.md`). It saves a website as one Markdown file per page, plus the PDF and Word files the site
+links to, ready to ingest. It needs no database or models and sends requests only to the site.
+`knowledge-search crawl …` runs the same tool.
 
 ```bash
 uv run knowledge-search crawl https://wiki.example.internal/ --out data/crawl/wiki
 uv run knowledge-search ingest wiki data/crawl/wiki --wait
 ```
 
-- Follows **every link on every page** — content, navigation bar, header, footer, sidebars, frames — plus
-  the site's `sitemap.xml`, until no new page is found (`--max-pages`, default 10,000).
-- Stays on the start URL's host; `--prefix https://wiki.example.internal/ops/` narrows it (repeatable),
-  `--allow-host docs.example.internal` adds hosts.
-- Never follows logout, delete, edit, print or feed links; respects robots.txt unless `--ignore-robots`.
-- Pages reached under several URLs (`index.html`, tracking parameters) are saved once.
-- Links between crawled pages are rewritten to the local files, so the **graph works after ingest**; a
-  site-wide title suffix (" | Company Wiki") is removed from titles.
-- Logged-in intranets: pass the browser's session cookie, `--header "Cookie: session=..."` (or an
-  `Authorization` header). Use a read-only account.
-- `manifest.json` lists every URL → file, failures and skips; `--resume` continues an interrupted crawl.
-- Limits: pages that build their content with JavaScript come out empty (marked `empty` in the manifest) —
-  export those systems instead. Access rights of the source system are not copied: put pages with different
-  audiences into different collections and grant them as usual.
+**Sites behind a sign-in** (Google Sites, SharePoint, Confluence with SSO): install the browser extra
+(`uv pip install playwright`). Then sign in once in the browser window that opens. The session is kept in a
+local browser profile (`~/.site2md/browser-profile`):
+
+```bash
+uv run knowledge-search crawl "https://sites.google.com/acme.com/intranet/home" --out data/crawl/intranet \
+    --browser --login --channel msedge          # --channel chrome, or `playwright install chromium` once
+```
+
+Later runs drop `--login`. Browser mode also renders pages that build their content with JavaScript.
+
+- **Links followed:** every link on every page (content, navigation bar, header, footer, sidebars, frames),
+  plus the site's `sitemap.xml`. Crawling stops when no new page is found, or at `--max-pages` (default
+  10,000).
+- **Scope:** stays under the start URL's folder. `--prefix` sets other prefixes (repeatable) and
+  `--allow-host` adds hosts.
+- **Never followed:** logout, delete, edit, print and feed links. robots.txt is respected unless
+  `--ignore-robots` is given.
+- **Duplicates:** a page reached under several URLs (`index.html`, tracking parameters) is saved once.
+- **Links and titles:** links between crawled pages are rewritten to the local files, so the **graph works
+  after ingest**. A site-wide title suffix (" | Company Wiki") is removed from titles.
+- **Manifest:** `manifest.json` lists every URL → file, the failures (for example "sign-in page", which means
+  run once with `--browser --login`) and the skips. `--resume` continues an interrupted crawl.
+- **Limits:**
+  - Without `--browser`, JavaScript-built pages come out empty (marked `empty` in the manifest).
+  - Embedded Google Docs and Drive frames are not captured; export those files instead.
+  - Access rights are not copied: put pages with different audiences into different collections and grant
+    them as usual.
+- **Sharing the crawler:** `uv build --package site2md -o dist` builds a wheel. Others install it with
+  `uv tool install "site2md[browser] @ ./site2md-0.1.0-py3-none-any.whl"`.
 
 ## Index status and jobs
 

@@ -2,7 +2,6 @@
 
 import argparse
 import getpass
-import logging
 import secrets
 import signal
 import sys
@@ -53,18 +52,8 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--port", type=int, default=8000)
     p.add_argument("--workers", type=int, default=1, help="HTTP worker processes (each loads the model)")
     p.add_argument("--open", action="store_true", help="open the web UI in the default browser once ready")
-    p = sub.add_parser("crawl", help="save a website as Markdown files (one per page), ready to ingest")
-    p.add_argument("url")
-    p.add_argument("--out", required=True, help="output directory")
-    p.add_argument("--max-pages", type=int, default=10_000)
-    p.add_argument("--prefix", action="append", help="only URLs starting with this (repeatable; default: whole host)")
-    p.add_argument("--allow-host", action="append", help="also follow links to this host (repeatable)")
-    p.add_argument("--header", action="append", default=[], help="extra request header, e.g. 'Cookie: session=...'")
-    p.add_argument("--workers", type=int, default=4)
-    p.add_argument("--delay", type=float, default=0.2, help="seconds each worker waits between requests")
-    p.add_argument("--ignore-robots", action="store_true", help="ignore robots.txt (only for your own sites)")
-    p.add_argument("--no-files", action="store_true", help="do not save linked PDF/Word/text files")
-    p.add_argument("--resume", action="store_true", help="continue an interrupted crawl in --out")
+    p = sub.add_parser("crawl", help="save a website as Markdown files, one per page (site2md; see site2md --help)")
+    p.add_argument("args", nargs=argparse.REMAINDER, help="URL --out DIR [options]")
     sub.add_parser("demo", help="load the FICTIONAL sample corpus with demo users alice/bob/hannah (idempotent)")
     sub.add_parser("worker", help="run ingestion workers as a separate process")
     p = sub.add_parser("download-model", help="fetch the configured embedding model and reranker into KS_MODEL_CACHE")
@@ -99,12 +88,9 @@ def main(argv: list[str] | None = None) -> None:
             auth.grant(c, a.collection, a.group, a.write)
         print("ok")
     elif a.cmd == "crawl":
-        from .crawl import Crawler
+        import site2md
 
-        headers = dict(h.split(":", 1) for h in a.header)
-        Crawler(a.url, Path(a.out), prefixes=a.prefix, allow_hosts=a.allow_host, max_pages=a.max_pages,
-                workers=a.workers, delay=a.delay, headers={k.strip(): v.strip() for k, v in headers.items()},
-                robots=not a.ignore_robots, files=not a.no_files).run(resume=a.resume)
+        site2md.main(a.args)
     elif a.cmd == "ingest":
         _ingest(a, s)
     elif a.cmd == "serve":
@@ -207,7 +193,6 @@ def _ingest(a, s) -> None:
                 print(f"rejected  {f}: {e.code}")
             c.commit()
     if a.wait:
-        from .embedder import Embedder
         from .ingest import Worker
 
         db.open_pool(db.resolve_url(s), max_size=2)
@@ -217,7 +202,6 @@ def _ingest(a, s) -> None:
 
 
 def _worker(s) -> None:
-    from .embedder import Embedder
     from .ingest import BlobStore, Worker
 
     db.open_pool(db.resolve_url(s), max_size=2)

@@ -20,6 +20,7 @@ dependencies = [
     "pypdf==6.21.2",
     "python-multipart==0.0.32",
     "pyyaml==6.0.3",
+    "site2md",
     "uvicorn[standard]==0.54.0",
 ]
 
@@ -38,6 +39,12 @@ dev = [
 eval = [
     "pyarrow==22.0.0",
 ]
+
+[tool.uv.workspace]
+members = ["site2md"]
+
+[tool.uv.sources]
+site2md = { workspace = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,14 +1,14 @@
 """Website → Markdown crawler: point it at a URL, get one Markdown file per page (plus the PDFs / Word files
-the site links to), ready for ``knowledge-search ingest``. Separate utility: no database, no models,
-standard library only.
+the site links to). Standard library only; ``--browser`` (optional ``playwright`` package) drives a real
+browser for sites behind a login or that build pages with JavaScript.
 
-    knowledge-search crawl https://wiki.example.internal/ --out data/crawl/wiki
-    knowledge-search ingest wiki data/crawl/wiki --wait
+    site2md https://wiki.example.internal/ --out wiki-docs
+    site2md https://sites.google.com/acme.com/intranet/home --out intranet --browser --login   # sign in once
 
 Traversal: breadth-first over every link on every page — content, navigation bar, header, footer, sidebars,
 image maps, frames, <link rel=next> — plus the site's sitemap.xml, until no new page is found (or
-``--max-pages``). Scope: the start URL's host (``--prefix`` narrows it to URL prefixes, ``--allow-host`` adds
-hosts). Robots.txt is respected unless ``--ignore-robots`` (your own intranet). Links that change state or
+``--max-pages``). Scope: URLs under the start URL's folder (https://host/docs/intro.html → https://host/docs/;
+``--prefix`` sets other prefixes, ``--allow-host`` adds whole hosts). Robots.txt is respected unless ``--ignore-robots`` (your own intranet). Links that change state or
 end a session (logout, delete, edit, …) are never followed. Pages reached under several URLs are saved once
 (same content).
 
@@ -17,7 +17,7 @@ like an uploaded HTML file (main content only, menus and footers dropped). After
 crawled pages is rewritten to the local file name, so they become graph edges when ingested; other links stay
 absolute, and a title suffix shared by most pages (" | Company Wiki") is removed. ``manifest.json`` lists url → file, failures and the remaining queue; ``--resume`` continues an
 interrupted crawl. Pages that need JavaScript to show their content come out empty (listed as ``empty`` in the
-manifest); export those systems instead (Confluence/SharePoint export, API) or crawl their print views.
+manifest) unless ``--browser`` is used.
 """
 
 import hashlib
@@ -29,15 +29,15 @@ import urllib.error
 import urllib.request
 import urllib.robotparser
 from collections import deque
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from datetime import UTC, datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import parse_qsl, urldefrag, urlencode, urljoin, urlsplit, urlunsplit
 
-from .convert import html_to_markdown
+from .html import html_to_markdown
 
-USER_AGENT = "knowledge-search-crawler/1 (+offline knowledge search)"
+USER_AGENT = "site2md/1 (documentation crawler)"
 # never follow: ends the session or changes data (crawlers that click "logout" lose the login; "delete"
 # links on wikis are GET in old systems), plus endless calendars / print / feed variants
 NO_FOLLOW = re.compile(
@@ -46,8 +46,65 @@ NO_FOLLOW = re.compile(
 FILE_TYPES = {".pdf": "pdf", ".docx": "docx", ".md": "md", ".markdown": "md", ".txt": "txt"}
 SKIP_TYPES = re.compile(r"\.(png|jpe?g|gif|svg|webp|ico|css|js|mjs|json|xml|zip|gz|tgz|tar|exe|msi|dmg|iso|mp4|"
                         r"mp3|wav|avi|mov|woff2?|ttf|eot|pptx?|xlsx?|csv)$", re.IGNORECASE)
-TRACKING = re.compile(r"^(utm_\w+|fbclid|gclid|mc_cid|mc_eid|_ga|ref|sessionid|jsessionid|phpsessid|sid)$", re.IGNORECASE)
+TRACKING = re.compile(r"^(utm_\w+|fbclid|gclid|mc_cid|mc_eid|_ga|ref|sessionid|jsessionid|phpsessid|sid|authuser)$",
+                      re.IGNORECASE)  # authuser: Google's account selector, same page
 MAX_BYTES = 50_000_000
+LOGIN = re.compile(r"^(accounts\.google\.com|login\.microsoftonline\.com)|/(login|signin|sign-in|sso)\b", re.IGNORECASE)
+
+
+class _Inline:
+    """Executor that runs each task immediately on the calling thread (Playwright objects are bound to it)."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def submit(self, fn, *args) -> Future:
+        f = Future()
+        try:
+            f.set_result(fn(*args))
+        except Exception as e:  # noqa: BLE001 - surfaced by result(), like a thread pool
+            f.set_exception(e)
+        return f
+
+
+class BrowserFetcher:
+    """Fetch through a real browser (Playwright: installed Edge/Chrome, or its own Chromium) with a persistent
+    profile, so a sign-in done once (``login``) is reused by every crawl, and pages that build their content
+    with JavaScript are captured after rendering. Not thread-safe: the crawler uses one worker."""
+
+    def __init__(self, profile: Path, channel: str = "", headless: bool = True, executable: str = ""):
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError as e:
+            raise SystemExit("--browser needs Playwright: pip install playwright (then, unless you use "
+                             "--channel msedge/chrome, run: playwright install chromium)") from e
+        self._pw = sync_playwright().start()
+        opts = {"headless": headless, **({"channel": channel} if channel else {}),
+                **({"executable_path": executable} if executable else {})}
+        self.ctx = self._pw.chromium.launch_persistent_context(str(profile), **opts)
+        self.page = self.ctx.pages[0] if self.ctx.pages else self.ctx.new_page()
+
+    def login(self, url: str) -> None:
+        self.page.goto(url)
+        input("Sign in in the browser window until you see the site, then press Enter here... ")
+
+    def get(self, url: str, render: bool) -> tuple[bytes, str, str]:
+        if render:
+            resp = self.page.goto(url, wait_until="networkidle", timeout=60_000)
+            ctype = (resp.headers.get("content-type", "") if resp else "") or "text/html"
+            if "html" in ctype:
+                return self.page.content().encode("utf-8"), "text/html; charset=utf-8", self.page.url
+        r = self.ctx.request.get(url, timeout=60_000)  # files and non-HTML: same cookies, no rendering
+        if r.status >= 400:
+            raise urllib.error.HTTPError(url, r.status, r.status_text, None, None)
+        return r.body(), r.headers.get("content-type", ""), r.url
+
+    def close(self) -> None:
+        self.ctx.close()
+        self._pw.stop()
 
 
 def normalize(url: str) -> str:
@@ -129,14 +186,19 @@ def slug_for(url: str, used: set[str]) -> str:
 class Crawler:
     def __init__(self, start: str, out: Path, *, prefixes: list[str] | None = None, allow_hosts: list[str] | None = None,
                  max_pages: int = 10_000, workers: int = 4, delay: float = 0.2, headers: dict | None = None,
-                 robots: bool = True, files: bool = True, timeout: float = 30, log=print):
+                 robots: bool = True, files: bool = True, timeout: float = 30, log=print, browser=None):
         self.start, self.out = normalize(start), Path(out)
         host = urlsplit(self.start).netloc
-        self.prefixes = [normalize(p) for p in prefixes] if prefixes else None
-        self.hosts = {host, *(allow_hosts or [])}
+        folder = self.start if self.start.endswith("/") else self.start.rsplit("/", 1)[0] + "/"
+        self.prefixes = [normalize(p) for p in prefixes] if prefixes else [folder.split("?")[0]]
+        self.allow_hosts = set(allow_hosts or [])
+        self.hosts = {host, *self.allow_hosts}
         self.max_pages, self.workers, self.delay, self.timeout = max_pages, workers, delay, timeout
         self.headers = {"User-Agent": USER_AGENT, **(headers or {})}
         self.robots, self.files, self.log = robots, files, log
+        self.browser = browser  # BrowserFetcher: pages are rendered in a signed-in browser (one at a time)
+        if browser:
+            self.workers = 1
         self._robots: dict[str, urllib.robotparser.RobotFileParser | None] = {}
         self.lock = threading.Lock()
         self.manifest = {"start": self.start, "pages": {}, "files": {}, "failed": {}, "skipped": {}, "queue": []}
@@ -149,7 +211,7 @@ class Crawler:
         p = urlsplit(url)
         if p.scheme not in ("http", "https") or p.netloc not in self.hosts:
             return False
-        if self.prefixes and not any(url.startswith(x) for x in self.prefixes):
+        if p.netloc not in self.allow_hosts and not any(url.startswith(x) for x in self.prefixes):
             return False
         return not NO_FOLLOW.search(url) and not SKIP_TYPES.search(p.path)
 
@@ -167,7 +229,9 @@ class Crawler:
         rp = self._robots[root]
         return rp is None or rp.can_fetch(USER_AGENT, url)
 
-    def _get(self, url: str) -> tuple[bytes, str, str]:
+    def _get(self, url: str, page: bool = False) -> tuple[bytes, str, str]:
+        if self.browser:
+            return self.browser.get(url, render=page)
         req = urllib.request.Request(url, headers=self.headers)
         with urllib.request.urlopen(req, timeout=self.timeout) as r:  # http(s) only (in_scope)
             data = r.read(MAX_BYTES + 1)
@@ -201,7 +265,7 @@ class Crawler:
                 self.manifest["skipped"][url] = "robots.txt"
             return []
         try:
-            data, ctype, final = self._get(url)
+            data, ctype, final = self._get(url, page=not FILE_TYPES.get(Path(urlsplit(url).path).suffix.lower()))
         except urllib.error.HTTPError as e:
             with self.lock:
                 self.manifest["failed"][url] = f"HTTP {e.code}"
@@ -213,6 +277,10 @@ class Crawler:
         finally:
             time.sleep(self.delay)
         final = normalize(final)
+        if final != url and LOGIN.search(urlsplit(final).netloc + urlsplit(final).path):  # redirected to a sign-in
+            with self.lock:
+                self.manifest["failed"][url] = "sign-in page: run once with --browser --login"
+            return []
         if final != url and not self.in_scope(final):
             with self.lock:
                 self.manifest["skipped"][url] = f"redirects out of scope: {final}"
@@ -277,7 +345,7 @@ class Crawler:
         self.allowed(self.start)  # loads robots.txt (and its sitemap list)
         queue.extend(u for u in self.sitemap_urls() if self.in_scope(u))
         t0, last_save = time.time(), time.time()
-        with ThreadPoolExecutor(self.workers) as pool:
+        with _Inline() if self.browser else ThreadPoolExecutor(self.workers) as pool:  # browser: its own thread only
             running = {}
             while queue or running:
                 while queue and len(running) < self.workers and self._count() < self.max_pages:

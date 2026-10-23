@@ -5,7 +5,8 @@ import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from knowledge_search.crawl import Crawler, normalize
+from site2md.crawl import Crawler, normalize
+
 from knowledge_search.parsing import chunk_document, parse_document
 
 NAV = ('<header><a href="/">Home</a> <a href="/about">About us</a></header>'

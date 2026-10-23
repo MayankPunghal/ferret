@@ -1,0 +1,17 @@
+[project]
+name = "site2md"
+version = "0.1.0"
+description = "Save a website or intranet as Markdown files, one per page (for search indexes and LLM tools)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+browser = ["playwright>=1.48"]
+
+[project.scripts]
+site2md = "site2md:main"
+
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12.0"]
+build-backend = "uv_build"

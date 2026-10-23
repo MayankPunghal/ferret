@@ -1,0 +1,47 @@
+# site2md
+
+Save a website or intranet as Markdown files, one per page, for a search index (such as knowledge-search),
+an LLM tool or an offline copy. Standard-library Python; a real browser is optional for sites behind a login.
+
+## Install
+
+Needs Python 3.11+ (or [uv](https://docs.astral.sh/uv/), which installs Python for you).
+
+```bash
+uv tool install site2md-0.1.0-py3-none-any.whl              # or: pipx install site2md-0.1.0-py3-none-any.whl
+uv tool install "site2md[browser] @ ./site2md-0.1.0-py3-none-any.whl"   # with browser support (logins, JavaScript)
+```
+
+## Use
+
+```bash
+site2md https://docs.example.com/ --out example-docs
+```
+
+Sites behind a company login (Google Sites, SharePoint, Confluence with SSO) — sign in once in a browser
+window, then crawl with that session (kept in `~/.site2md/browser-profile`, on your machine only):
+
+```bash
+site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --browser --login --channel msedge
+site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --browser --channel msedge   # later runs
+```
+
+`--channel msedge` (Windows) or `--channel chrome` uses the browser already installed; without it, run
+`playwright install chromium` once.
+
+## What it does
+
+- Follows **every link on every page** — content, navigation bar, header, footer, sidebars, frames,
+  `<link rel=next>` — plus `sitemap.xml`, until no new page is found (`--max-pages`, default 10,000).
+- Stays under the start URL's folder (`https://host/docs/intro.html` → `https://host/docs/`); `--prefix` sets
+  other prefixes (repeatable), `--allow-host` adds whole hosts.
+- Never follows logout, delete, edit, print or feed links; respects robots.txt unless `--ignore-robots`.
+- Writes `<page>.md` with front matter (`title`, `source_url`, `crawled_at`) and the page's main content
+  (menus and footers dropped); saves linked PDF / Word / text files as they are.
+- Saves a page reached under several URLs once; rewrites links between crawled pages to the local files;
+  removes a title suffix shared by most pages (" | Company Wiki").
+- `manifest.json`: every URL → file, failures (e.g. "sign-in page"), skips and the remaining queue;
+  `--resume` continues an interrupted crawl.
+
+Without `--browser`, pages that build their content with JavaScript come out empty (marked `empty` in the
+manifest). The copy has no access control: keep it where only the intended readers can open it.
