@@ -3,7 +3,7 @@
 | Symptom | Cause / fix |
 |---|---|
 | `setup.bat` window closes or says *uv could not be installed* | No internet or a proxy blocks `astral.sh`. Set `HTTPS_PROXY` and retry, or install uv manually from <https://docs.astral.sh/uv/>. |
-| Setup fails at *Downloading the offline AI models* | Hugging Face is blocked. Copy `data/models` from a machine where setup worked, then set `KS_OFFLINE=1`. |
+| Setup fails at *Downloading the offline AI models* (e.g. `WinError 10054` / `10038`) | The connection dropped. Downloads are retried 5× with backoff and finished files are kept — run setup again. Behind a proxy/firewall allow `huggingface.co` and `*.hf.co`, or copy `data/models` from a machine where setup worked and set `KS_OFFLINE=1`. |
 | Browser does not open | Open <http://127.0.0.1:8000> manually. |
 | *Port 8000 already in use* | Another app uses it: `uv run knowledge-search serve --port 8010 --open`. |
 | Welcome page says setup is only allowed from this machine | First-run admin creation is restricted to the computer running the app. Open the page there. |

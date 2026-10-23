@@ -4,9 +4,11 @@
 
 ### Windows 10/11
 
-1. Get the code: **Code → Download ZIP** on GitHub and extract it (or `git clone`).
-2. Double-click **`setup.bat`**.
-3. Answer **Y** when asked whether to load the fictional sample documents (recommended for a first try).
+1. Get the code: `git clone https://github.com/MayankPunghal/knowledge-search` (or **Code → Download ZIP** on
+   GitHub and extract it).
+2. In that folder run **`setup.bat --demo`** from Command Prompt — or double-click `setup.bat` and answer
+   **Y** when asked whether to load the fictional sample documents. Other options: `--no-demo`,
+   `--no-start`, `--no-shortcut` (the PowerShell-style `-Demo`, `-NoStart` also work).
 
 The setup window shows each step:
 
@@ -14,7 +16,7 @@ The setup window shows each step:
 |---|---|---|
 | uv | Installs [uv](https://docs.astral.sh/uv/), a Python package manager, into your user profile | No |
 | Dependencies | uv downloads Python 3.13, the app's libraries and an embedded PostgreSQL + pgvector (~600 MB) | No |
-| Models | Downloads the offline embedding model and reranker into `data/models` | No |
+| Models | Downloads the offline embedding model and reranker (~300 MB) into `data/models`; network drops are retried, and re-running setup reuses finished files | No |
 | Database | Creates the local database in `data/pg` | No |
 | Sample data | Optional fictional documents and demo users | No |
 | Shortcut | Puts a **Knowledge Search** shortcut on the desktop | No |

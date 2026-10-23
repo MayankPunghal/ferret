@@ -25,16 +25,40 @@ no cloud account, no GPU and no external AI provider are needed.
 
 ## Quick start
 
-| Platform | Do this |
+**Windows 10/11** — open *Command Prompt* (or PowerShell) and run:
+
+```bat
+git clone https://github.com/MayankPunghal/knowledge-search
+cd knowledge-search
+setup.bat --demo
+```
+
+(No git? Download the ZIP from GitHub, extract it and double-click `setup.bat` — it asks whether to load the
+sample documents.)
+
+**macOS / Linux:**
+
+```bash
+git clone https://github.com/MayankPunghal/knowledge-search
+cd knowledge-search
+./setup.sh --demo
+```
+
+| Option (both scripts) | Effect |
 |---|---|
-| **Windows 10/11** | Download or clone this repository, then double-click **`setup.bat`** |
-| **macOS / Linux** | `./setup.sh` |
+| `--demo` | load the fictional sample documents and demo users without asking |
+| `--no-demo` | skip the sample data |
+| `--no-start` | install only; do not start the app afterwards |
+| `--no-shortcut` | Windows only: do not create the desktop shortcut |
 
-The setup installs everything it needs for the current user (no administrator rights), offers to load
-fictional sample documents, and opens <http://127.0.0.1:8000>, where you create the administrator account.
-Later, start the app with the **Knowledge Search** desktop shortcut, `start.bat`, or `./start.sh`.
+Setup installs everything for the current user (no administrator rights, no Docker): uv, Python 3.13, the
+app, an embedded PostgreSQL and the offline AI models (~900 MB in total, one time). It is safe to re-run —
+if the internet connection drops during a download, run it again and completed files are reused. At the end
+it opens <http://127.0.0.1:8000>, where you create the administrator account.
 
-Full walkthrough, including a test run with a few documents: **[Getting started](docs/getting-started.md)**.
+Start the app later with the **Knowledge Search** desktop shortcut or `start.bat` (Windows), or `./start.sh`
+(macOS/Linux). Full walkthrough and a test run with your own documents:
+**[Getting started](docs/getting-started.md)**.
 
 ## Documentation
 

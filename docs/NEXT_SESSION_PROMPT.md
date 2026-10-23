@@ -11,7 +11,7 @@ knowledge search for technical/IT teams. Before doing anything:
    `docs/HANDOFF.md` (verified vs unverified state, decisions, explored/unexplored paths) and
    `docs/research-graph.md` (graph navigation design + what v1 implements).
 2. Verify the baseline: `uv sync && uv run knowledge-search download-model && uv run pytest -q`
-   (expect 33 passed; tests start their own embedded PostgreSQL, no Docker). If anything fails, fix that
+   (expect 37 passed; tests start their own embedded PostgreSQL, no Docker). If anything fails, fix that
    first and report it.
 
 Then continue the graph-navigation track, in this order, one increment at a time, each with tests,
