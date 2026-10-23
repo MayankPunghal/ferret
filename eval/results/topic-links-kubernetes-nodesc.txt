@@ -1,0 +1,6 @@
+qwen3-5-0-8b topic links top2/result: all needs 0.625  shown median 16.0
+qwen3-5-0-8b topic links top4/result: all needs 0.625  shown median 21.0
+gemma-4-E2B topic links top2/result: all needs 0.625  shown median 16.0
+gemma-4-E2B topic links top4/result: all needs 0.625  shown median 21.0
+baseline results only: 0.583 | current related rows: {'need_recall': 0.972, 'all_needs': 0.917, 'shown_median': 33.0}
+ranked_by_question: {'top2_per_result': 0.875, 'top3_per_result': 0.875, 'top4_per_result': 0.875} | more results: {'first11_documents': 0.875, 'first13_documents': 0.917, 'first16_documents': 0.917, 'first31_documents': 0.917}

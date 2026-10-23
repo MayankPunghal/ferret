@@ -220,8 +220,13 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   server start; a server that cannot start counted against documents; the model repeated file names as
   "clearer" titles (prompt v2 + `clearer_title`). On a one-line document it embellishes slightly — the
   reason for the label.
-- **Not built (each needs a measured test first):** LLM-extracted relations between documents, topic-based
-  links, answer writing.
+- **Topic links: measured, rejected** (`eval/topic_links_eval.py`, results in
+  `eval/results/topic-links-kubernetes-nodesc.txt`): linking each top result to the documents sharing its
+  model-written topics (IDF-weighted, 2 or 4 per result) finds all needed pages for 62.5% of the 24
+  relationship questions (58.3% without), against 91.7% for the related rows already shown, with 16–21
+  documents on screen. Same for Qwen and Gemma topics.
+- **Not built (each needs a measured test first):** LLM-extracted relations between documents, answer
+  writing.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 
