@@ -21,11 +21,11 @@ from psycopg.rows import dict_row
 
 from knowledge_search import auth, db, runtime
 from knowledge_search.ingest import BlobStore, Worker, submit
-from knowledge_search.search import GateConfig, search
+from knowledge_search.search import GateConfig, gate_basis, search
 
 ROOT = Path(__file__).resolve().parent.parent
 CORPUS = ROOT / "fixtures" / "corpus"
-NEGATIVE = {"unanswerable", "hard_negative", "restricted"}
+NEGATIVE = {"unanswerable", "hard_negative", "restricted", "keyword_negative"}
 VARIANTS = {"lexical": ("lexical",), "dense": ("dense",), "lexical+dense": ("lexical", "dense"),
             "full": ("lexical", "dense", "exact")}
 
@@ -133,6 +133,13 @@ def main():
     val = [x for x in full if x[0]["split"] == "val"]
     test = [x for x in full if x[0]["split"] == "test"]
     out["gates"] = choose(val, test, is_relevant, a.max_far)
+    for fam in out["gates"].values():  # answered share per question category, test split
+        if fam.get("chosen"):
+            g = GateConfig(**fam["chosen"])
+            cats: dict[str, list] = {}
+            for q, res in test:
+                cats.setdefault(q["category"], []).append(any(gate_basis(g, r["signals"], q["_has_idents"]) for r in res))
+            fam["test_answered_by_category"] = {c: round(sum(v) / len(v), 2) for c, v in sorted(cats.items())}
     shipped = GateConfig.from_runtime(rt)
     out["shipped_gate_test"] = {"gate": vars(shipped), **evaluate(test, shipped, is_relevant)}
     path = ROOT / "eval" / "results" / f"fixtures-{a.model.replace('/', '_')}{'-rr' if a.reranker else ''}{'-graph' if a.graph else ''}.json"
@@ -143,7 +150,7 @@ def main():
             t = g["test"]
             print(f"gate {fam:22s} test: false-answer {t['false_answer_rate']:.3f} (n={t['unanswerable_n']}) "
                   f"coverage {t['answer_coverage']:.3f} (n={t['answerable_n']}) precision {t['precision_among_answered']:.3f}"
-                  f" false={t['false_answers']}")
+                  f" false={t['false_answers']}\n     chosen {g['chosen']}\n     by category {g['test_answered_by_category']}")
         else:
             print(f"gate {fam:22s} {g['note']}")
     print("wrote", path)

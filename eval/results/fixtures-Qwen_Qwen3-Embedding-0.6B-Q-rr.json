@@ -1,0 +1,261 @@
+{
+  "model": "Qwen/Qwen3-Embedding-0.6B-Q",
+  "reranker": "BAAI/bge-reranker-base",
+  "documents": 12,
+  "ingest_seconds": 15.97,
+  "retrieval": {
+    "lexical": {
+      "hit@1": 0.982,
+      "recall@5": 1.0,
+      "mrr@10": 0.991,
+      "ndcg@10": 0.993,
+      "passage_hit@1": 0.964
+    },
+    "dense": {
+      "hit@1": 0.982,
+      "recall@5": 1.0,
+      "mrr@10": 0.991,
+      "ndcg@10": 0.993,
+      "passage_hit@1": 0.964
+    },
+    "lexical+dense": {
+      "hit@1": 0.982,
+      "recall@5": 1.0,
+      "mrr@10": 0.991,
+      "ndcg@10": 0.993,
+      "passage_hit@1": 0.964
+    },
+    "full": {
+      "hit@1": 0.982,
+      "recall@5": 1.0,
+      "mrr@10": 0.991,
+      "ndcg@10": 0.993,
+      "passage_hit@1": 0.964
+    }
+  },
+  "latency_ms_full": {
+    "p50": 960.6,
+    "p95": 1129.5
+  },
+  "gates": {
+    "similarity+coverage": {
+      "chosen": {
+        "dense_high": 0.78,
+        "dense_min": 0.64,
+        "lex_coverage": 0.2,
+        "rerank_min": 0,
+        "mode": "similarity",
+        "lexical": "coverage",
+        "all_terms_min": 0.45
+      },
+      "val": {
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.893,
+        "precision_among_answered": 0.96
+      },
+      "test": {
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.05,
+        "answer_coverage": 0.857,
+        "precision_among_answered": 0.96,
+        "false_answers": [
+          "q046"
+        ],
+        "abstained_answerable": [
+          "q020",
+          "q022",
+          "k008",
+          "k024"
+        ]
+      },
+      "test_answered_by_category": {
+        "conceptual": 0.8,
+        "conflict": 1.0,
+        "exact_id": 1.0,
+        "hard_negative": 0.17,
+        "keyword": 0.83,
+        "keyword_negative": 0.0,
+        "restricted": 0.0,
+        "unanswerable": 0.0
+      }
+    },
+    "similarity+idf": {
+      "chosen": {
+        "dense_high": 0.78,
+        "dense_min": 0.64,
+        "lex_coverage": 0.2,
+        "rerank_min": 0,
+        "mode": "similarity",
+        "lexical": "idf",
+        "all_terms_min": 0.45
+      },
+      "val": {
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.893,
+        "precision_among_answered": 0.96
+      },
+      "test": {
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.05,
+        "answer_coverage": 0.821,
+        "precision_among_answered": 0.958,
+        "false_answers": [
+          "q046"
+        ],
+        "abstained_answerable": [
+          "q020",
+          "q022",
+          "q024",
+          "k008",
+          "k024"
+        ]
+      },
+      "test_answered_by_category": {
+        "conceptual": 0.7,
+        "conflict": 1.0,
+        "exact_id": 1.0,
+        "hard_negative": 0.17,
+        "keyword": 0.83,
+        "keyword_negative": 0.0,
+        "restricted": 0.0,
+        "unanswerable": 0.0
+      }
+    },
+    "rerank": {
+      "chosen": {
+        "dense_high": 9,
+        "dense_min": 9,
+        "lex_coverage": 9,
+        "rerank_min": 1.764,
+        "mode": "rerank",
+        "lexical": "coverage",
+        "all_terms_min": 9.0
+      },
+      "val": {
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.929,
+        "precision_among_answered": 0.962
+      },
+      "test": {
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.15,
+        "answer_coverage": 0.75,
+        "precision_among_answered": 0.875,
+        "false_answers": [
+          "q044",
+          "q046",
+          "n008"
+        ],
+        "abstained_answerable": [
+          "q012",
+          "q014",
+          "q020",
+          "q028",
+          "q030",
+          "k008",
+          "k024"
+        ]
+      },
+      "test_answered_by_category": {
+        "conceptual": 0.5,
+        "conflict": 1.0,
+        "exact_id": 1.0,
+        "hard_negative": 0.33,
+        "keyword": 0.83,
+        "keyword_negative": 0.12,
+        "restricted": 0.0,
+        "unanswerable": 0.0
+      }
+    },
+    "rerank+similarity": {
+      "chosen": {
+        "dense_high": 9,
+        "dense_min": 0.508,
+        "lex_coverage": 9,
+        "rerank_min": -0.048,
+        "mode": "rerank_and_similarity",
+        "lexical": "coverage",
+        "all_terms_min": 9.0
+      },
+      "val": {
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.0,
+        "answer_coverage": 0.929,
+        "precision_among_answered": 0.962
+      },
+      "test": {
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.2,
+        "answer_coverage": 0.857,
+        "precision_among_answered": 0.857,
+        "false_answers": [
+          "q044",
+          "q046",
+          "n004",
+          "n008"
+        ],
+        "abstained_answerable": [
+          "q012",
+          "q020",
+          "k008",
+          "k024"
+        ]
+      },
+      "test_answered_by_category": {
+        "conceptual": 0.8,
+        "conflict": 1.0,
+        "exact_id": 1.0,
+        "hard_negative": 0.33,
+        "keyword": 0.83,
+        "keyword_negative": 0.25,
+        "restricted": 0.0,
+        "unanswerable": 0.0
+      }
+    }
+  },
+  "shipped_gate_test": {
+    "gate": {
+      "dense_high": 0.88,
+      "dense_min": 0.76,
+      "lex_coverage": 0.34,
+      "rerank_min": 0.0,
+      "mode": "similarity",
+      "lexical": "coverage",
+      "all_terms_min": 0.5
+    },
+    "unanswerable_n": 20,
+    "answerable_n": 28,
+    "false_answer_rate": 0.05,
+    "answer_coverage": 0.536,
+    "precision_among_answered": 0.938,
+    "false_answers": [
+      "q046"
+    ],
+    "abstained_answerable": [
+      "q012",
+      "q014",
+      "q016",
+      "q020",
+      "q022",
+      "q024",
+      "q026",
+      "q028",
+      "q030",
+      "q056",
+      "k004",
+      "k008",
+      "k024"
+    ]
+  }
+}

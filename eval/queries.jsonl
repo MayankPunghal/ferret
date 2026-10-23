@@ -54,3 +54,43 @@
 {"id": "q054", "split": "test", "category": "restricted", "user": "bob", "query": "can I come back part time after parental leave", "relevant": []}
 {"id": "q055", "split": "val", "category": "conflict", "user": "alice", "query": "daily meal allowance per diem for domestic business travel", "relevant": ["expense-policy-2025.md#meals-and-per-diem", "expense-policy-2024.md#meals-and-per-diem"]}
 {"id": "q056", "split": "test", "category": "conflict", "user": "alice", "query": "per diem amount for international trips", "relevant": ["expense-policy-2025.md#meals-and-per-diem", "expense-policy-2024.md#meals-and-per-diem"]}
+{"id": "k001", "split": "val", "category": "keyword", "user": "hannah", "query": "parental leave policy", "relevant": ["parental-leave.md"]}
+{"id": "k002", "split": "test", "category": "keyword", "user": "hannah", "query": "parental leave", "relevant": ["parental-leave.md"]}
+{"id": "k003", "split": "val", "category": "keyword", "user": "alice", "query": "travel expense policy", "relevant": ["expense-policy-2025.md", "expense-policy-2024.md"]}
+{"id": "k004", "split": "test", "category": "keyword", "user": "alice", "query": "expense claims deadline", "relevant": ["expense-policy-2025.md#submitting-expenses", "expense-policy-2024.md#submitting-expenses"]}
+{"id": "k005", "split": "val", "category": "keyword", "user": "alice", "query": "rollback", "relevant": ["orders-deploy-runbook.md#rollback"]}
+{"id": "k006", "split": "test", "category": "keyword", "user": "alice", "query": "orders service rollback", "relevant": ["orders-deploy-runbook.md#rollback"]}
+{"id": "k007", "split": "val", "category": "keyword", "user": "alice", "query": "per diem", "relevant": ["expense-policy-2025.md#meals-and-per-diem", "expense-policy-2024.md#meals-and-per-diem"]}
+{"id": "k008", "split": "test", "category": "keyword", "user": "alice", "query": "hotel limit", "relevant": ["expense-policy-2025.md#hotels", "expense-policy-2024.md#hotels"]}
+{"id": "k009", "split": "val", "category": "keyword", "user": "alice", "query": "on-call rotation", "relevant": ["oncall-payments.md#rotation"]}
+{"id": "k010", "split": "test", "category": "keyword", "user": "alice", "query": "on-call compensation", "relevant": ["oncall-payments.md#compensation-for-on-call"]}
+{"id": "k011", "split": "val", "category": "keyword", "user": "alice", "query": "data retention", "relevant": ["data-platform-overview.md#retention"]}
+{"id": "k012", "split": "test", "category": "keyword", "user": "alice", "query": "personal data access", "relevant": ["data-platform-overview.md#access"]}
+{"id": "k013", "split": "val", "category": "keyword", "user": "alice", "query": "invoice rate limits", "relevant": ["invoices-api.md#rate-limits"]}
+{"id": "k014", "split": "test", "category": "keyword", "user": "alice", "query": "void invoice", "relevant": ["invoices-api.md#void-an-invoice"]}
+{"id": "k015", "split": "val", "category": "keyword", "user": "alice", "query": "refund window", "relevant": ["refund-policy-software.md#refund-window"]}
+{"id": "k016", "split": "test", "category": "keyword", "user": "alice", "query": "subscription refund policy", "relevant": ["refund-policy-software.md"]}
+{"id": "k017", "split": "val", "category": "keyword", "user": "alice", "query": "checkout outage root cause", "relevant": ["incident-2025-031-postmortem.pdf#page=1"]}
+{"id": "k018", "split": "test", "category": "keyword", "user": "alice", "query": "checkout incident postmortem", "relevant": ["incident-2025-031-postmortem.pdf"]}
+{"id": "k019", "split": "val", "category": "keyword", "user": "alice", "query": "database migrations", "relevant": ["orders-deploy-runbook.md#database-migrations"]}
+{"id": "k020", "split": "test", "category": "keyword", "user": "hannah", "query": "engineering salary bands", "relevant": ["compensation-bands.md"]}
+{"id": "k021", "split": "val", "category": "keyword", "user": "alice", "query": "ledger retry backoff", "relevant": ["ledger-config.txt"]}
+{"id": "k022", "split": "test", "category": "keyword", "user": "alice", "query": "card authorization timeout", "relevant": ["payments-error-codes.md#err-pay-4012-card-authorization-timeout"]}
+{"id": "k023", "split": "val", "category": "keyword", "user": "alice", "query": "deployment prerequisites", "relevant": ["orders-deploy-runbook.md#prerequisites"]}
+{"id": "k024", "split": "test", "category": "keyword", "user": "alice", "query": "incident response targets", "relevant": ["oncall-payments.md#response-targets"]}
+{"id": "n001", "split": "val", "category": "keyword_negative", "user": "alice", "query": "vpn setup", "relevant": []}
+{"id": "n002", "split": "test", "category": "keyword_negative", "user": "alice", "query": "wifi password", "relevant": []}
+{"id": "n003", "split": "val", "category": "keyword_negative", "user": "alice", "query": "sick leave policy", "relevant": []}
+{"id": "n004", "split": "test", "category": "keyword_negative", "user": "alice", "query": "hardware refund policy", "relevant": []}
+{"id": "n005", "split": "val", "category": "keyword_negative", "user": "alice", "query": "kubernetes upgrade", "relevant": []}
+{"id": "n006", "split": "test", "category": "keyword_negative", "user": "alice", "query": "mileage reimbursement", "relevant": []}
+{"id": "n007", "split": "val", "category": "keyword_negative", "user": "alice", "query": "laptop ordering", "relevant": []}
+{"id": "n008", "split": "test", "category": "keyword_negative", "user": "alice", "query": "orders api rate limits", "relevant": []}
+{"id": "n009", "split": "val", "category": "keyword_negative", "user": "alice", "query": "data platform on-call", "relevant": []}
+{"id": "n010", "split": "test", "category": "keyword_negative", "user": "alice", "query": "sabbatical policy", "relevant": []}
+{"id": "n011", "split": "val", "category": "keyword_negative", "user": "alice", "query": "gift card", "relevant": []}
+{"id": "n012", "split": "test", "category": "keyword_negative", "user": "alice", "query": "dress code", "relevant": []}
+{"id": "n013", "split": "val", "category": "keyword_negative", "user": "alice", "query": "bonus policy", "relevant": []}
+{"id": "n014", "split": "test", "category": "keyword_negative", "user": "alice", "query": "payments service rollback", "relevant": []}
+{"id": "n015", "split": "val", "category": "keyword_negative", "user": "alice", "query": "pension plan", "relevant": []}
+{"id": "n016", "split": "test", "category": "keyword_negative", "user": "alice", "query": "office locations", "relevant": []}

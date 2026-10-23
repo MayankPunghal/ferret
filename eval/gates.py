@@ -12,6 +12,7 @@ from knowledge_search.search import GateConfig, gate_basis
 SIM_HIGH = [0.78, 0.80, 0.82, 0.84, 0.86, 0.88, 0.90, 0.92, 0.94]
 SIM_MIN = [0.55, 0.60, 0.64, 0.68, 0.72, 0.76, 0.80, 0.84]
 LEX = [0.2, 0.34, 0.5, 0.67]
+ALL_TERMS = [9.0, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3, 0.2, 0.0]  # 9 = rule off; ties keep the higher floor
 
 
 def _quantiles(xs: list[float], n: int = 25) -> list[float]:
@@ -25,10 +26,10 @@ def families(rows) -> dict[str, list[GateConfig]]:
     rr = _quantiles([r["signals"]["rerank_score"] for _, res in rows for r in res[:3]], 30)
     sims = _quantiles([r["signals"]["cosine_similarity"] for _, res in rows for r in res[:3]], 12)
     out = {
-        "similarity+coverage": [GateConfig(h, m, c, 0, "similarity", "coverage")
-                                for h, m, c in product(SIM_HIGH, SIM_MIN, LEX) if m < h],
-        "similarity+idf": [GateConfig(h, m, c, 0, "similarity", "idf")
-                           for h, m, c in product(SIM_HIGH, SIM_MIN, LEX) if m < h],
+        "similarity+coverage": [GateConfig(h, m, c, 0, "similarity", "coverage", f)
+                                for h, m, c, f in product(SIM_HIGH, SIM_MIN, LEX, ALL_TERMS) if m < h and (f < m or f == 9.0)],
+        "similarity+idf": [GateConfig(h, m, c, 0, "similarity", "idf", f)
+                           for h, m, c, f in product(SIM_HIGH, SIM_MIN, LEX, ALL_TERMS) if m < h and (f < m or f == 9.0)],
     }
     if rr:
         out["rerank"] = [GateConfig(9, 9, 9, t, "rerank") for t in rr]

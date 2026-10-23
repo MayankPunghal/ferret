@@ -38,6 +38,7 @@ class Runtime:
     gate_rerank_min: float
     gate_mode: str
     gate_lexical: str
+    gate_all_terms_min: float
     fusion_lexical_weight: float
     graph_expansion: bool  # add passages of linked documents to the results (search._linked)
 
@@ -70,12 +71,13 @@ def defaults(model: str | None = None) -> Runtime:
     high = spec.gate_high if spec and spec.gate_high is not None else s.gate_dense_high
     low = spec.gate_min if spec and spec.gate_min is not None else s.gate_dense_min
     lex = spec.gate_lex if spec and spec.gate_lex is not None else s.gate_lex_coverage
+    full = spec.gate_all if spec and spec.gate_all is not None else s.gate_all_terms_min
     return Runtime(
         embed_model=model, chunk_size=s.chunk_size, chunk_overlap=s.chunk_overlap,
         rerank_enabled=s.rerank_enabled, rerank_model=s.rerank_model, rerank_candidates=s.rerank_candidates,
         gate_dense_high=high, gate_dense_min=low,
         gate_lex_coverage=lex, gate_rerank_min=s.gate_rerank_min,
-        gate_mode=s.gate_mode, gate_lexical=s.gate_lexical, fusion_lexical_weight=s.fusion_lexical_weight,
+        gate_mode=s.gate_mode, gate_lexical=s.gate_lexical, gate_all_terms_min=full, fusion_lexical_weight=s.fusion_lexical_weight,
         graph_expansion=s.graph_expansion,
     )
 

@@ -143,3 +143,14 @@ def test_search_makes_no_outbound_network_calls(client, corpus, monkeypatch):
     monkeypatch.setattr(socket.socket, "connect", blocked)
     res = search(client, token(client, "alice"), "how do I roll back the orders service")
     assert "Orders Service Deployment Runbook" in [r["title"] for r in res["results"][:3]]
+
+
+def test_gate_accepts_keyword_searches_only_when_every_term_matches():
+    from knowledge_search.search import GateConfig, gate_basis
+
+    g = GateConfig(0.78, 0.64, 0.2, 0, "similarity", "coverage", all_terms_min=0.3)
+    s = {"identifier_matches": [], "cosine_similarity": 0.55, "query_term_coverage": 1.0, "idf_coverage": 1.0}
+    assert gate_basis(g, s, False) == ["all_query_terms_and_semantic"]  # "parental leave policy"
+    assert gate_basis(g, {**s, "query_term_coverage": 0.67}, False) == []  # "sick leave policy": "sick" missing
+    assert gate_basis(g, {**s, "cosine_similarity": 0.2}, False) == []
+    assert gate_basis(GateConfig(0.78, 0.64, 0.2, 0, "similarity", "coverage"), s, False) == []  # rule off

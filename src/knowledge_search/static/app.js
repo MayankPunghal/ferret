@@ -104,7 +104,8 @@ function highlighted(text) {
 
 const BASIS = {
   exact_identifier: "exact identifier", strong_semantic: "strong semantic match",
-  semantic_and_lexical_agreement: "semantic + keyword agreement", reranker_judged_relevant: "reranker: relevant",
+  semantic_and_lexical_agreement: "semantic + keyword agreement", all_query_terms_and_semantic: "all words match",
+  reranker_judged_relevant: "reranker: relevant",
   reranker_and_similarity_agree: "reranker + similarity agree",
 };
 
@@ -379,6 +380,7 @@ function fillSettings(v) {
   $("#s-rerank-on").checked = v.rerank_enabled; $("#s-rerank").value = v.rerank_model; $("#s-rerank-n").value = v.rerank_candidates;
   $("#s-graph-on").checked = v.graph_expansion;
   $("#s-g-high").value = v.gate_dense_high; $("#s-g-min").value = v.gate_dense_min; $("#s-g-cov").value = v.gate_lex_coverage;
+  $("#s-g-all").value = v.gate_all_terms_min;
   $("#s-g-rr").value = v.gate_rerank_min; $("#s-g-mode").value = v.gate_mode; $("#s-g-lex").value = v.gate_lexical;
 }
 function showSettings(s) {
@@ -404,7 +406,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
     chunk_overlap: $("#s-overlap-on").checked ? +$("#s-overlap").value : 0,
     rerank_enabled: $("#s-rerank-on").checked, rerank_model: $("#s-rerank").value, rerank_candidates: +$("#s-rerank-n").value,
     graph_expansion: $("#s-graph-on").checked,
-    gate_dense_high: +$("#s-g-high").value, gate_dense_min: +$("#s-g-min").value, gate_lex_coverage: +$("#s-g-cov").value,
+    gate_dense_high: +$("#s-g-high").value, gate_dense_min: +$("#s-g-min").value, gate_lex_coverage: +$("#s-g-cov").value, gate_all_terms_min: +$("#s-g-all").value,
     gate_rerank_min: +$("#s-g-rr").value, gate_mode: $("#s-g-mode").value, gate_lexical: $("#s-g-lex").value,
   };
   const changed = Object.fromEntries(Object.entries(v).filter(([k, x]) => x !== settings.values[k]));

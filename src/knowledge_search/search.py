@@ -63,12 +63,14 @@ class GateConfig:
     rerank_min: float = 0.0
     mode: str = "similarity"
     lexical: str = "coverage"
+    all_terms_min: float = 9.0  # similarity sufficient when every query term occurs in the passage
+
 
     @classmethod
     def from_runtime(cls, rt: "runtime.Runtime") -> "GateConfig":
         mode = rt.gate_mode if rt.rerank_enabled else "similarity"
         return cls(rt.gate_dense_high, rt.gate_dense_min, rt.gate_lex_coverage, rt.gate_rerank_min, mode,
-                   rt.gate_lexical)
+                   rt.gate_lexical, rt.gate_all_terms_min)
 
 
 @dataclass
@@ -167,8 +169,12 @@ def gate_basis(g: GateConfig, s: dict, query_has_idents: bool) -> list[str]:
     lex = s["idf_coverage"] if g.lexical == "idf" else s["query_term_coverage"]
     sim_strong = sim is not None and sim >= g.dense_high
     sim_agree = sim is not None and sim >= g.dense_min and lex >= g.lex_coverage
+    # keyword searches ("parental leave policy"): short queries have low cosine similarity with every model,
+    # so every query term present (title, headings or text) plus moderate similarity is also evidence
+    sim_all = sim is not None and s["query_term_coverage"] >= 1.0 and sim >= g.all_terms_min
     if g.mode == "similarity":
-        return ["strong_semantic"] if sim_strong else ["semantic_and_lexical_agreement"] if sim_agree else []
+        return (["strong_semantic"] if sim_strong else ["semantic_and_lexical_agreement"] if sim_agree
+                else ["all_query_terms_and_semantic"] if sim_all else [])
     rr_ok = rr is not None and rr >= g.rerank_min
     if g.mode == "rerank":
         return ["reranker_judged_relevant"] if rr_ok else []

@@ -68,7 +68,10 @@ def put_settings(changes: dict, p: Admin, conn: Conn):
     before = runtime.load(conn)
     if "embed_model" in clean and not ({"gate_dense_high", "gate_dense_min"} & set(clean)):
         # switching models: drop threshold overrides so the new model's tuned values apply
-        conn.execute("DELETE FROM app_settings WHERE key IN ('gate_dense_high', 'gate_dense_min', 'gate_lex_coverage')")
+        conn.execute("DELETE FROM app_settings WHERE key IN "
+                     "('gate_dense_high', 'gate_dense_min', 'gate_lex_coverage', 'gate_all_terms_min')")
+    if "rerank_model" in clean and "gate_rerank_min" not in clean:  # reranker scores have model-specific scales
+        conn.execute("DELETE FROM app_settings WHERE key = 'gate_rerank_min'")
     runtime.save(conn, clean, p.user_id)
     auth.audit(conn, p.user_id, "settings_changed", None, keys=sorted(clean))
     conn.commit()

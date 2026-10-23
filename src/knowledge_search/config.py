@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     gate_dense_high: float = 0.88
     gate_dense_min: float = 0.76
     gate_lex_coverage: float = 0.34
+    gate_all_terms_min: float = 0.5  # every query term in the passage + this similarity (keyword searches)
 
 
 def memory_vectors(s: "Settings") -> bool:

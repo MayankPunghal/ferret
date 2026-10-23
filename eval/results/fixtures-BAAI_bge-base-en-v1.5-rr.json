@@ -2,40 +2,40 @@
   "model": "BAAI/bge-base-en-v1.5",
   "reranker": "Xenova/ms-marco-MiniLM-L-6-v2",
   "documents": 12,
-  "ingest_seconds": 2.72,
+  "ingest_seconds": 2.32,
   "retrieval": {
     "lexical": {
       "hit@1": 1.0,
       "recall@5": 1.0,
       "mrr@10": 1.0,
       "ndcg@10": 1.0,
-      "passage_hit@1": 0.969
+      "passage_hit@1": 0.982
     },
     "dense": {
       "hit@1": 1.0,
       "recall@5": 1.0,
       "mrr@10": 1.0,
       "ndcg@10": 1.0,
-      "passage_hit@1": 0.969
+      "passage_hit@1": 0.982
     },
     "lexical+dense": {
       "hit@1": 1.0,
       "recall@5": 1.0,
       "mrr@10": 1.0,
       "ndcg@10": 1.0,
-      "passage_hit@1": 0.969
+      "passage_hit@1": 0.982
     },
     "full": {
       "hit@1": 1.0,
       "recall@5": 1.0,
       "mrr@10": 1.0,
       "ndcg@10": 1.0,
-      "passage_hit@1": 0.969
+      "passage_hit@1": 0.982
     }
   },
   "latency_ms_full": {
-    "p50": 168.3,
-    "p95": 209.1
+    "p50": 170.4,
+    "p95": 213.0
   },
   "gates": {
     "similarity+coverage": {
@@ -45,23 +45,26 @@
         "lex_coverage": 0.2,
         "rerank_min": 0,
         "mode": "similarity",
-        "lexical": "coverage"
+        "lexical": "coverage",
+        "all_terms_min": 0.6
       },
       "val": {
-        "unanswerable_n": 12,
-        "answerable_n": 16,
+        "unanswerable_n": 20,
+        "answerable_n": 28,
         "false_answer_rate": 0.0,
-        "answer_coverage": 0.562,
+        "answer_coverage": 0.786,
         "precision_among_answered": 1.0
       },
       "test": {
-        "unanswerable_n": 12,
-        "answerable_n": 16,
-        "false_answer_rate": 0.083,
-        "answer_coverage": 0.562,
-        "precision_among_answered": 0.9,
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.15,
+        "answer_coverage": 0.679,
+        "precision_among_answered": 0.864,
         "false_answers": [
-          "q044"
+          "q044",
+          "q046",
+          "n008"
         ],
         "abstained_answerable": [
           "q012",
@@ -70,8 +73,20 @@
           "q020",
           "q022",
           "q024",
-          "q030"
+          "q030",
+          "k008",
+          "k024"
         ]
+      },
+      "test_answered_by_category": {
+        "conceptual": 0.3,
+        "conflict": 1.0,
+        "exact_id": 1.0,
+        "hard_negative": 0.33,
+        "keyword": 0.83,
+        "keyword_negative": 0.12,
+        "restricted": 0.0,
+        "unanswerable": 0.0
       }
     },
     "similarity+idf": {
@@ -81,23 +96,26 @@
         "lex_coverage": 0.2,
         "rerank_min": 0,
         "mode": "similarity",
-        "lexical": "idf"
+        "lexical": "idf",
+        "all_terms_min": 0.6
       },
       "val": {
-        "unanswerable_n": 12,
-        "answerable_n": 16,
+        "unanswerable_n": 20,
+        "answerable_n": 28,
         "false_answer_rate": 0.0,
-        "answer_coverage": 0.562,
+        "answer_coverage": 0.786,
         "precision_among_answered": 1.0
       },
       "test": {
-        "unanswerable_n": 12,
-        "answerable_n": 16,
-        "false_answer_rate": 0.083,
-        "answer_coverage": 0.562,
-        "precision_among_answered": 0.9,
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.15,
+        "answer_coverage": 0.679,
+        "precision_among_answered": 0.864,
         "false_answers": [
-          "q044"
+          "q044",
+          "q046",
+          "n008"
         ],
         "abstained_answerable": [
           "q012",
@@ -106,8 +124,20 @@
           "q020",
           "q022",
           "q024",
-          "q030"
+          "q030",
+          "k008",
+          "k024"
         ]
+      },
+      "test_answered_by_category": {
+        "conceptual": 0.3,
+        "conflict": 1.0,
+        "exact_id": 1.0,
+        "hard_negative": 0.33,
+        "keyword": 0.83,
+        "keyword_negative": 0.12,
+        "restricted": 0.0,
+        "unanswerable": 0.0
       }
     },
     "rerank": {
@@ -115,32 +145,46 @@
         "dense_high": 9,
         "dense_min": 9,
         "lex_coverage": 9,
-        "rerank_min": 2.419,
+        "rerank_min": 2.175,
         "mode": "rerank",
-        "lexical": "coverage"
+        "lexical": "coverage",
+        "all_terms_min": 9.0
       },
       "val": {
-        "unanswerable_n": 12,
-        "answerable_n": 16,
+        "unanswerable_n": 20,
+        "answerable_n": 28,
         "false_answer_rate": 0.0,
-        "answer_coverage": 0.875,
+        "answer_coverage": 0.964,
         "precision_among_answered": 1.0
       },
       "test": {
-        "unanswerable_n": 12,
-        "answerable_n": 16,
-        "false_answer_rate": 0.167,
-        "answer_coverage": 0.812,
-        "precision_among_answered": 0.867,
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.15,
+        "answer_coverage": 0.821,
+        "precision_among_answered": 0.885,
         "false_answers": [
           "q044",
-          "q046"
+          "q046",
+          "n008"
         ],
         "abstained_answerable": [
           "q012",
           "q028",
-          "q030"
+          "q030",
+          "k008",
+          "k024"
         ]
+      },
+      "test_answered_by_category": {
+        "conceptual": 0.7,
+        "conflict": 1.0,
+        "exact_id": 1.0,
+        "hard_negative": 0.33,
+        "keyword": 0.83,
+        "keyword_negative": 0.12,
+        "restricted": 0.0,
+        "unanswerable": 0.0
       }
     },
     "rerank+similarity": {
@@ -148,32 +192,46 @@
         "dense_high": 9,
         "dense_min": 0.0,
         "lex_coverage": 9,
-        "rerank_min": 2.419,
+        "rerank_min": 2.175,
         "mode": "rerank_and_similarity",
-        "lexical": "coverage"
+        "lexical": "coverage",
+        "all_terms_min": 9.0
       },
       "val": {
-        "unanswerable_n": 12,
-        "answerable_n": 16,
+        "unanswerable_n": 20,
+        "answerable_n": 28,
         "false_answer_rate": 0.0,
-        "answer_coverage": 0.875,
+        "answer_coverage": 0.964,
         "precision_among_answered": 1.0
       },
       "test": {
-        "unanswerable_n": 12,
-        "answerable_n": 16,
-        "false_answer_rate": 0.167,
-        "answer_coverage": 0.812,
-        "precision_among_answered": 0.867,
+        "unanswerable_n": 20,
+        "answerable_n": 28,
+        "false_answer_rate": 0.15,
+        "answer_coverage": 0.821,
+        "precision_among_answered": 0.885,
         "false_answers": [
           "q044",
-          "q046"
+          "q046",
+          "n008"
         ],
         "abstained_answerable": [
           "q012",
           "q028",
-          "q030"
+          "q030",
+          "k008",
+          "k024"
         ]
+      },
+      "test_answered_by_category": {
+        "conceptual": 0.7,
+        "conflict": 1.0,
+        "exact_id": 1.0,
+        "hard_negative": 0.33,
+        "keyword": 0.83,
+        "keyword_negative": 0.12,
+        "restricted": 0.0,
+        "unanswerable": 0.0
       }
     }
   },
@@ -184,15 +242,18 @@
       "lex_coverage": 0.2,
       "rerank_min": 0.0,
       "mode": "similarity",
-      "lexical": "coverage"
+      "lexical": "coverage",
+      "all_terms_min": 0.5
     },
-    "unanswerable_n": 12,
-    "answerable_n": 16,
-    "false_answer_rate": 0.083,
-    "answer_coverage": 0.562,
-    "precision_among_answered": 0.9,
+    "unanswerable_n": 20,
+    "answerable_n": 28,
+    "false_answer_rate": 0.15,
+    "answer_coverage": 0.679,
+    "precision_among_answered": 0.864,
     "false_answers": [
-      "q044"
+      "q044",
+      "q046",
+      "n008"
     ],
     "abstained_answerable": [
       "q012",
@@ -201,7 +262,9 @@
       "q020",
       "q022",
       "q024",
-      "q030"
+      "q030",
+      "k008",
+      "k024"
     ]
   }
 }
