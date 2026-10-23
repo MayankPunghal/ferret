@@ -22,7 +22,7 @@ from psycopg.types.json import Jsonb
 
 from . import db, runtime
 from .embedder import EmbeddingError
-from .parsing import ParseError, chunk_document, embedding_text, media_type_for, parse_document
+from .parsing import ParseError, chunk_document, doc_summary, embedding_text, media_type_for, parse_document
 
 log = logging.getLogger(__name__)
 
@@ -225,7 +225,8 @@ class Worker:
                 self._progress(conn, job, "reading file")
                 parsed = parse_document(self.blobs.get(job["sha256"]), job["filename"], self.max_pages, self.max_chars)
                 chunks = chunk_document(parsed, rt.chunk_size, rt.chunk_overlap)
-                texts = [embedding_text(parsed.title, c) for c in chunks]
+                summary = doc_summary(parsed)
+                texts = [embedding_text(parsed.title, c, summary) for c in chunks]
                 step = max(embedder.batch_size * 2, 8)
                 parts = []
                 for i in range(0, len(texts), step):

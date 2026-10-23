@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 import yaml
 from markdown_it import MarkdownIt
 
-PARSER_VERSION = "parse-v3"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links
+PARSER_VERSION = "parse-v4"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter
 CHUNKER_VERSION = "chunk-v2"  # size/overlap are runtime settings, recorded in the index signature
 
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -137,10 +137,14 @@ def _split_frontmatter(text: str) -> tuple[dict, str]:
         if end != -1:
             try:
                 meta = yaml.safe_load(text[4:end]) or {}
-            except yaml.YAMLError as e:
-                raise ParseError("invalid_frontmatter", str(e)[:200]) from e
+            except yaml.YAMLError:
+                meta = None
             if not isinstance(meta, dict):
-                raise ParseError("invalid_frontmatter", "front matter must be a mapping")
+                # hand-written front matter is often not strict YAML ("title: Example: Deploying X");
+                # read top-level `key: value` lines instead of rejecting the whole document
+                meta = dict(m.groups() for m in re.finditer(r"(?m)^([A-Za-z_][\w-]*):[ \t]*(\S.*?)\s*$", text[4:end]))
+                if not meta:
+                    raise ParseError("invalid_frontmatter", "front matter is neither YAML nor key: value lines")
             body = text[end + 4 :].lstrip("\n")
             return {str(k): v for k, v in meta.items()}, body
     return {}, text
@@ -172,10 +176,13 @@ def _parse_markdown_text(text: str, filename: str, title: str = "") -> ParsedDoc
             sections.append(Section(heading_path="", text=pre, anchor=None))
     for idx, (start, h) in enumerate(bounds[:-1]):
         _, level, htext = h
+        custom = re.search(r"\s*\{#([\w-]+)\}\s*$", htext)  # "## Title {#anchor}" (Hugo, Pandoc, MkDocs)
+        if custom:
+            htext = htext[: custom.start()]
         stack = [s for s in stack if s[0] < level] + [(level, htext)]
         end = bounds[idx + 1][0]
         text = "\n".join(lines[start + 1 : end]).strip()
-        slug = slugify(htext)
+        slug = custom.group(1).lower() if custom else slugify(htext)
         n = used_anchors.get(slug, 0)
         used_anchors[slug] = n + 1
         anchor = slug if n == 0 else f"{slug}-{n}"
@@ -283,16 +290,22 @@ def parse_document(data: bytes, filename: str, max_pages: int = 2000, max_chars:
 _IDENT_RE = re.compile(r"(?<![\w/])(/?[A-Za-z0-9][\w.\-/{}:]*[\w}])")
 
 
+_CAMEL = re.compile(r"[a-z]+(?:[A-Z][a-z0-9]*)+")  # lowerCamelCase config keys / fields: concurrencyPolicy
+
+
 def extract_idents(text: str) -> list[str]:
     out = set()
     for m in _IDENT_RE.finditer(text):
-        tok = m.group(1).strip(".:").lower()
-        if len(tok) < 3 or len(tok) > 120:
+        raw = m.group(1).strip(".:")
+        tok = raw.lower()
+        if len(tok) < 3 or len(tok) > 120 or re.fullmatch(r"\d+\.\d+", tok):  # "2.0", "1.5": too generic
             continue
         has_digit = any(c.isdigit() for c in tok)
         structured = any(c in tok for c in "_/") or ("-" in tok and has_digit) or ("." in tok and not tok.endswith("."))
-        if has_digit and not tok.isdigit() or structured:
+        if has_digit and not tok.isdigit() or structured or _CAMEL.fullmatch(raw):
             out.add(tok)
+        if "." in raw:  # field paths: .spec.concurrencyPolicy also yields concurrencypolicy
+            out.update(p.lower() for p in raw.split(".") if len(p) >= 3 and _CAMEL.fullmatch(p))
             if "/" in tok and tok.startswith("/"):
                 out.add(tok.rstrip("/"))
     return sorted(out)
@@ -348,7 +361,27 @@ def chunk_document(doc: ParsedDocument, size: int = 900, overlap: int = 150) -> 
     return chunks
 
 
-def embedding_text(doc_title: str, chunk: Chunk) -> str:
-    """Text passed to the document encoder: cheap contextual header + passage."""
+CONTEXT_CHARS = 0  # document summary added to every passage's embedding text (0 = off; see evaluation)
+
+
+def doc_summary(doc: ParsedDocument, limit: int | None = None) -> str:
+    """Front-matter description/summary, else the document's first paragraph, cut to `limit` characters."""
+    limit = CONTEXT_CHARS if limit is None else limit
+    if limit <= 0:
+        return ""
+    s = str(doc.metadata.get("description") or doc.metadata.get("summary") or "")
+    for sec in doc.sections if not s else []:
+        s = next((p for p in sec.text.split("\n\n") if p.strip() and not p.lstrip().startswith(("```", "|"))), "")
+        if s:
+            break
+    s = " ".join(s.split())
+    return s if len(s) <= limit else s[:limit].rsplit(" ", 1)[0] + " …"
+
+
+def embedding_text(doc_title: str, chunk: Chunk, summary: str = "") -> str:
+    """Text passed to the document encoder: cheap contextual header (title, heading path and, optionally,
+    what the document is about) + passage. The summary is skipped for the passage that contains it."""
     head = doc_title if not chunk.heading_path else f"{doc_title} — {chunk.heading_path}"
+    if summary and summary.removesuffix(" …")[:80] not in " ".join(chunk.text.split()):
+        head += f"\n{summary}"
     return f"{head}\n{chunk.text}"

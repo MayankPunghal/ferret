@@ -1,0 +1,71 @@
+{
+  "corpus": "kubernetes",
+  "model": "BAAI/bge-base-en-v1.5",
+  "reranker": "Xenova/ms-marco-MiniLM-L-6-v2",
+  "documents": 623,
+  "ingest_seconds": 3359.3,
+  "passages": 8479,
+  "retrieval": {
+    "n": 56,
+    "hit@1": 0.857,
+    "success@5": 1.0,
+    "mrr@10": 0.918
+  },
+  "latency_ms": {
+    "p50": 1219.4,
+    "p95": 1712.5
+  },
+  "shipped_gate": {
+    "gate": {
+      "dense_high": 0.78,
+      "dense_min": 0.72,
+      "lex_coverage": 0.2,
+      "rerank_min": 0.0,
+      "mode": "similarity",
+      "lexical": "coverage",
+      "all_terms_min": 0.6
+    },
+    "unanswerable_n": 16,
+    "answerable_n": 56,
+    "false_answer_rate": 0.062,
+    "answer_coverage": 0.875,
+    "precision_among_answered": 0.86,
+    "false_answers": [
+      "n013"
+    ],
+    "abstained_answerable": [
+      "p013",
+      "p016",
+      "p022",
+      "p023",
+      "p024",
+      "p034",
+      "p048"
+    ],
+    "answered_by_category": {
+      "identifier": 0.67,
+      "keyword": 1.0,
+      "near_negative": 0.12,
+      "negative": 0.0,
+      "question": 0.71
+    }
+  },
+  "gates_chosen_on_val": {
+    "similarity+coverage": {
+      "chosen": null,
+      "note": "no config met val false-answer rate <= 0.0"
+    },
+    "similarity+idf": {
+      "chosen": null,
+      "note": "no config met val false-answer rate <= 0.0"
+    },
+    "rerank": {
+      "chosen": null,
+      "note": "no config met val false-answer rate <= 0.0"
+    },
+    "rerank+similarity": {
+      "chosen": null,
+      "note": "no config met val false-answer rate <= 0.0"
+    }
+  }
+}

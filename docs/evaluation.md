@@ -58,6 +58,26 @@ Query latency p50 ~180–190 ms, p95 ~310 ms (contended; query embedding ~90 ms 
 Permission-restricted queries: 0 answered, no restricted passage in any candidate list (also enforced by
 tests). IDF-weighted keyword coverage gave no improvement over plain coverage on either dataset.
 
+**Keyword searches (added 2026-10-23).** Most people type a few words ("parental leave policy", "rollback",
+"per diem"), not a question. Such short queries have low cosine similarity to the right passage with every
+model (0.54–0.71 measured), so the gate abstained on almost all of them although the top results were
+right — the labelled set had contained almost only full questions. Added: 24 answerable keyword queries and
+16 keyword queries that must be refused (`eval/queries.jsonl`, categories `keyword` / `keyword_negative`),
+and a gate rule *every query term occurs in the passage (title, headings or text) and similarity ≥
+`gate_all_terms_min`*. Fixture test split, now 28 answerable / 20 must-refuse (reranker used for ordering):
+
+| Model, similarity gate chosen on val (high/min/coverage/all-terms) | False answers | Answered | Keyword answered | Question answered |
+|---|---|---|---|---|
+| **Qwen3-Embedding-0.6B-Q, 0.78/0.64/0.20/0.45** | **1/20** | **0.86** | 0.83 | 0.80 |
+| Qwen3-Embedding-0.6B-Q, untuned defaults (what the UI used before) | 1/20 | 0.50 | — | — |
+| bge-base, 0.78/0.72/0.20/0.60 | 3/20 | 0.68 | 0.83 | 0.30 |
+| bge-base + MiniLM reranker-score gate | 3/20 | 0.82 | 0.83 | 0.70 |
+
+The one Qwen3 false answer ("how do I roll back a database migration") retrieves the runbook section on
+database migrations, which does discuss reversing them — arguably a labelling issue. Qwen3 query latency
+p50 0.96 s with bge-reranker-base (contended) vs 0.17 s for bge-base + MiniLM. Small set: one query moves a
+rate by 4–5 points; see §7 for a real 623-page corpus.
+
 **SciFact at scale (122 unanswerable hard negatives / 150 answerable), similarity gates, bge-base:**
 
 | Gate | False-answer rate | Coverage | Precision |
@@ -154,6 +174,36 @@ the needed passages into the top 10 is still rare for questions needing 4–6 pa
 agent) remains the tool for those. The evidence gate abstains on most correct short-section answers here
 (similarity 0.6–0.7 < 0.72): thresholds tuned on longer prose do not transfer to terse wiki sections —
 re-tune on the real corpus.
+
+## 7. Real technical corpus: 623 Kubernetes documentation pages (`eval/corpus_eval.py`)
+
+`eval/make_k8s_corpus.py` converts the Kubernetes docs (concepts, tasks, tutorials, setup, glossary, parts of
+reference; CC BY 4.0, pinned commit) into 623 Markdown pages (~8,000 passages) with their own cross-links.
+`eval/k8s_queries.jsonl`: 56 answerable queries (24 keyword, 21 questions, 11 identifiers such as
+`CrashLoopBackOff`, `concurrencyPolicy`) labelled with the pages that answer them, and 16 that must be
+refused — 8 off-topic, 8 near misses that sound like Kubernetes but are not covered ("Docker Swarm overlay
+network", "ArgoCD sync waves", "Kubernetes 2.0 release date"). A per-query table
+(`eval/results/corpus-*.txt`) shows every answer/abstention with its scores.
+
+bge-base + MiniLM reranker (top 10), shipped gate, parser parse-v3 (3 pages failed on front matter):
+
+| Metric | Value |
+|---|---|
+| a labelled page in the top 5 / at rank 1 / MRR@10 | **56/56** / 0.86 / 0.92 |
+| must-refuse queries answered (false answers) | **1/16** — "Kubernetes 2.0 release date" |
+| answerable queries answered | 0.875 (keyword 1.00, identifier 0.67, question 0.71) |
+| top supported result is a labelled page | 0.86 (lower bound: labels list the main pages; e.g. *hello-minikube* for "expose a deployment outside the cluster" does show `kubectl expose`) |
+| query latency p50 / p95 | 1.2 s / 1.7 s (contended with a reranker benchmark) |
+
+Problems this corpus exposed, fixed in parse-v4 (re-measurement pending):
+1. The false answer came from treating "2.0" as an exact identifier (an exact identifier match counts as
+   evidence by itself). Bare `x.y` numbers are no longer identifiers; `v3.8.2` and `1.29.3` still are.
+2. Hugo/Pandoc custom heading anchors (`## Title {#id}`) leaked into heading paths; now stripped and used
+   as the anchor.
+3. lowerCamelCase keys (`concurrencyPolicy`) got no keyword credit: PostgreSQL reads
+   `.spec.concurrencyPolicy` as one token. They are now identifiers, also inside dotted paths.
+4. Hand-written front matter that is not strict YAML (`title: Example: Deploying X`) rejected the whole
+   page; it is now read as `key: value` lines.
 
 ## Not measured
 

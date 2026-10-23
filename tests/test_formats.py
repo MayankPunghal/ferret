@@ -98,3 +98,23 @@ def test_html_and_docx_upload_search_and_safe_source(client, drain):
     finally:
         for d in ids.values():
             client.delete(f"/api/documents/{d}", headers=sam)
+
+
+def test_loose_front_matter_is_read_line_by_line():
+    """Hand-written front matter that is not strict YAML must not reject the document."""
+    from knowledge_search.parsing import parse_document
+
+    doc = parse_document(b"---\ntitle: Example: Deploying Cassandra\nweight: 30\n---\n# Example\n\nBody.\n", "c.md")
+    assert doc.title == "Example: Deploying Cassandra" and "Body." in doc.sections[0].text
+
+
+def test_custom_heading_anchor_and_generic_version_numbers():
+    from knowledge_search.parsing import extract_idents, parse_document
+
+    doc = parse_document(b"# T\n\n## Version support {#os-support}\n\nText.\n", "t.md")
+    assert [(s.heading_path, s.anchor) for s in doc.sections] == [("T > Version support", "os-support")]
+    assert extract_idents("Kubernetes 2.0 release date") == []  # a bare x.y number is not an identifier
+    assert extract_idents("orders-svc v3.8.2 and 1.29.3") == ["1.29.3", "v3.8.2"]
+    # lowerCamelCase keys count, also inside field paths; capitalised words (JavaScript, GitHub) do not
+    assert extract_idents("set `.spec.concurrencyPolicy` like concurrencyPolicy in JavaScript") == [
+        "concurrencypolicy", "spec.concurrencypolicy"]
