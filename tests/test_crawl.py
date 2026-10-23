@@ -108,12 +108,16 @@ def test_crawl_resume_and_page_limit(tmp_path):
 
 def test_embedded_google_drive_files_are_downloaded_and_linked(tmp_path):
     pdf_id, doc_id = "1" + "a" * 30, "1" + "b" * 30
-    page = ("<html><head><title>HR Corner</title></head><body><main><h1>HR Corner</h1><p>Read the manuals.</p>"
-            f'<iframe src="https://drive.google.com/file/d/{pdf_id}/preview"></iframe>'
-            f'<div data-url="https://docs.google.com/document/d/{doc_id}/edit"></div></main></body></html>')
+    text = "Employees can claim expenses within 30 days. Managers approve claims in the HR system. " * 3
+    hr = ("<html><head><title>HR Corner</title></head><body><main><h1>HR Corner</h1>"
+          f"<p>{text}</p><a href='/hr/pip'>PIP policy</a>"
+          f'<div data-url="https://docs.google.com/document/d/{doc_id}/edit"></div></main></body></html>')
+    pip = ("<html><head><title>PIP Policy</title></head><body><main><h1>PIP Policy</h1>"
+           f'<iframe src="https://drive.google.com/file/d/{pdf_id}/preview"></iframe></main></body></html>')
     docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    served = {"https://intranet.example/hr": (page.encode(), "text/html", ""),
-              EXPORT["file"].format(pdf_id): (b"%PDF-1.4 manual", "application/pdf", "HRIS User Manual.pdf"),
+    served = {"https://intranet.example/hr": (hr.encode(), "text/html", ""),
+              "https://intranet.example/hr/pip": (pip.encode(), "text/html", ""),
+              EXPORT["file"].format(pdf_id): (b"%PDF-1.4 policy", "application/pdf", "SF PIP Policy.pdf"),
               EXPORT["document"].format(doc_id): (b"PK docx", docx, "Leave Policy.docx")}
 
     class Intranet(Crawler):
@@ -124,8 +128,13 @@ def test_embedded_google_drive_files_are_downloaded_and_linked(tmp_path):
             return data, ctype, url, filename
 
     m = Intranet("https://intranet.example/hr", tmp_path, delay=0, robots=False, log=lambda *_: None).run()
-    assert m["files"] == {EXPORT["file"].format(pdf_id): "hris-user-manual.pdf",
+    assert m["files"] == {EXPORT["file"].format(pdf_id): "sf-pip-policy.pdf",
                           EXPORT["document"].format(doc_id): "leave-policy.docx"}
-    md = (tmp_path / m["pages"]["https://intranet.example/hr"]["file"]).read_text()
-    assert "- [HRIS User Manual.pdf](hris-user-manual.pdf)" in md and "(leave-policy.docx)" in md
-    assert (tmp_path / "hris-user-manual.pdf").read_bytes().startswith(b"%PDF")
+    assert (tmp_path / "sf-pip-policy.pdf").read_bytes().startswith(b"%PDF")
+    # a page with text of its own links its documents; a heading around a viewer is not saved as a page,
+    # and links to it lead to the document
+    assert m["pages"]["https://intranet.example/hr/pip"] == {"file": "sf-pip-policy.pdf", "title": "PIP Policy",
+                                                             "document_only": True}
+    assert sorted(p.name for p in tmp_path.glob("*.md")) == ["hr.md"]
+    md = (tmp_path / "hr.md").read_text()
+    assert "[PIP policy](sf-pip-policy.pdf)" in md and "- [Leave Policy.docx](leave-policy.docx)" in md

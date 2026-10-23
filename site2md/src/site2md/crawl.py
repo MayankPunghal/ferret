@@ -50,6 +50,7 @@ SKIP_TYPES = re.compile(r"\.(png|jpe?g|gif|svg|webp|ico|css|js|mjs|json|xml|zip|
 TRACKING = re.compile(r"^(utm_\w+|fbclid|gclid|mc_cid|mc_eid|_ga|ref|sessionid|jsessionid|phpsessid|sid|authuser)$",
                       re.IGNORECASE)  # authuser: Google's account selector, same page
 MAX_BYTES = 50_000_000
+THIN_PAGE = 200  # characters of text besides headings: below this, a page with embedded documents is not saved
 # Google Drive / Docs / Slides files embedded in a page (Google Sites viewers, iframes, links): downloaded
 # with the same sign-in, saved next to the page and linked from it
 EMBED = re.compile(r"https://(?:drive|docs)\.google\.com/(?:a/[\w.-]+/)?(file|document|presentation)/d/([\w-]{20,})")
@@ -373,6 +374,12 @@ class Crawler:
 
     def _save_page(self, url: str, html: str, attached: list[tuple[str, str]] = ()) -> None:
         title, md = html_to_markdown(html)
+        own_text = re.sub(r"(?m)^#+ .*$", "", md).strip()
+        if attached and len(own_text) < THIN_PAGE:  # only a heading around a document viewer: the document
+            with self.lock:                          # is what gets indexed; links to the page lead to it
+                files = [self.manifest["files"][u] for _, u in attached if u in self.manifest["files"]]
+                self.manifest["pages"][url] = {"file": files[0], "title": title, "document_only": True}
+            return
         if attached:  # embedded documents: linked, so they are connected to this page after ingest
             md += "\n\n## Attached documents\n\n" + "\n".join(f"- [{label}]({file})" for label, file in attached)
         digest = hashlib.sha256(md.encode()).hexdigest()
@@ -383,7 +390,8 @@ class Crawler:
             name = slug_for(url, self.used, self.root) + ".md"
             self.hashes[digest] = name
             self.manifest["pages"][url] = {"file": name, "title": title, **({"empty": True} if len(md) < 40 else {}),
-                                           **({"attached": [f for _, f in attached]} if attached else {})}
+                                           **({"attached": [self.manifest["files"].get(u) for _, u in attached]}
+                                              if attached else {})}
         title = title or (re.search(r"(?m)^#\s+(.+)$", md) or [None, urlsplit(url).path])[1]
         front = (f"---\ntitle: {json.dumps(title)}\nsource_url: {json.dumps(url)}\n"
                  f"crawled_at: {datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}\n---\n\n")
@@ -404,6 +412,8 @@ class Crawler:
         if resume and mpath.exists():
             self.manifest = json.loads(mpath.read_text())
             for url, v in self.manifest["pages"].items():
+                if v.get("document_only"):
+                    continue
                 self.used.add(v["file"].removesuffix(".md"))
                 self.hashes[hashlib.sha256((self.out / v["file"]).read_bytes()).hexdigest()] = v["file"]
             for name in self.manifest["files"].values():
@@ -446,6 +456,8 @@ class Crawler:
         with self.lock:
             if url in m["pages"]:
                 page = m["pages"][url]
+                if page.get("document_only"):
+                    return "-> no page text, only the embedded document " + page["file"]
                 extra = f" + {len(page['attached'])} attached document(s)" if page.get("attached") else ""
                 return "-> " + page["file"] + (" (no text)" if page.get("empty") and not extra else "") + extra
             for key, label in (("files", "-> "), ("failed", "FAILED: "), ("skipped", "skipped: ")):
@@ -486,6 +498,8 @@ class Crawler:
 
         suffix = self.site_suffix()
         for url, v in self.manifest["pages"].items():
+            if v.get("document_only"):
+                continue
             path = self.out / v["file"]
             text = path.read_text(encoding="utf-8")
             new = re.sub(r"\]\(([^)\s]+)\)", lambda m, u=url: f"]({fix(u, m.group(1))})", text)
