@@ -172,7 +172,9 @@ def _doc_for(conn, p: Principal, document_id: UUID, write: bool = False):
 def _start_session(conn, response: Response, uid: int) -> dict:
     token = auth.create_session(conn, uid, state.settings.session_hours)
     response.set_cookie(
-        COOKIE, token, httponly=True, samesite="strict", secure=state.settings.cookie_secure,
+        # lax, not strict: opening a source in a new tab, a reload or a pasted link is a top-level navigation
+        # that must stay signed in; state changes still need the CSRF header (deps.current_principal)
+        COOKIE, token, httponly=True, samesite="lax", secure=state.settings.cookie_secure,
         max_age=state.settings.session_hours * 3600, path="/",
     )
     return {"token": token}
@@ -270,7 +272,10 @@ def _routes(app: FastAPI) -> None:
             "v.media_type, v.size_bytes, (SELECT count(*) FROM chunks ch WHERE ch.document_id = d.id) AS chunks, "
             "(d.status = 'indexed' AND d.index_signature IS DISTINCT FROM %s) AS needs_reindex, "
             "j.stage, j.progress_done, j.progress_total, "
-            "(SELECT count(*) FROM jobs q WHERE q.status = 'queued' AND q.id < coalesce(j.id, 0)) AS queue_position "
+            "(SELECT count(*) FROM jobs q WHERE q.status = 'queued' AND q.id < coalesce(j.id, 0)) AS queue_position, "
+            # being indexed again only to add its new summary to the passages (enrich: context_chars > 0)
+            "(d.enrichment ? 'summary' AND d.enrichment->>'version_id' = d.indexed_version_id::text "
+            " AND d.latest_version_id = d.indexed_version_id) AS adding_summary "
             "FROM documents d JOIN collections c ON c.id = d.collection_id "
             "LEFT JOIN LATERAL (SELECT id, stage, progress_done, progress_total FROM jobs "
             "  WHERE document_id = d.id AND status IN ('queued', 'running') ORDER BY id DESC LIMIT 1) j ON true "
@@ -279,7 +284,17 @@ def _routes(app: FastAPI) -> None:
             "WHERE d.collection_id = ANY(%s) ORDER BY d.updated_at DESC LIMIT 1000",
             (sig, scope),
         ).fetchall()
-        return [dict(r, id=str(r["id"]), can_write=r["collection_id"] in p.writable) for r in rows]
+        summary = {}  # indexed documents: waiting / writing / done / failed, while summaries are on
+        e = getattr(state, "enricher", None)
+        if e and e.available and runtime.load(conn).enrich_enabled:
+            summary = {r["id"]: r["s"] for r in conn.execute(
+                "SELECT d.id, CASE WHEN (" + enrich.PENDING + ") AND d.enrich_claimed_at > now() - "
+                "make_interval(mins => %(claim)s) THEN 'writing' WHEN " + enrich.PENDING + " THEN 'waiting' "
+                "WHEN d.enrichment ? 'error' THEN 'failed' ELSE 'done' END AS s FROM documents d "
+                "WHERE d.collection_id = ANY(%(scope)s) AND d.status = 'indexed' AND d.indexed_version_id IS NOT NULL",
+                enrich._args(e.model, claim=enrich.CLAIM_MINUTES, scope=scope))}
+        return [dict(r, id=str(r["id"]), can_write=r["collection_id"] in p.writable, summary=summary.get(r["id"]))
+                for r in rows]
 
     @app.post("/api/documents", status_code=202)
     async def upload(
@@ -350,11 +365,13 @@ def _routes(app: FastAPI) -> None:
             raise HTTPException(410, "original file is missing from storage")
         auth.audit(conn, p.user_id, "open_source", str(document_id))
         conn.commit()
-        # Uploaded content is always sandboxed (opaque origin, no scripts). HTML is rendered with nothing
-        # allowed to load except inline styles and embedded images; Word and PowerPoint files are downloaded.
+        # Uploaded content is sandboxed (opaque origin, no scripts). HTML is rendered with nothing allowed to
+        # load except inline styles and embedded images; Word and PowerPoint files are downloaded. PDFs get no
+        # sandbox, only the app's own policy: Chrome's PDF viewer refuses sandboxed documents
+        # (ERR_BLOCKED_BY_CLIENT); nosniff keeps the browser from treating the file as anything but a PDF.
         mt, disposition, csp = "text/plain; charset=utf-8", "inline", "sandbox"
         if v["media_type"] == "application/pdf":
-            mt = "application/pdf"
+            mt, csp = "application/pdf", None
         elif v["media_type"] == "text/html":
             mt, csp = "text/html", "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"
         elif v["media_type"] in (DOCX, PPTX):
@@ -362,8 +379,8 @@ def _routes(app: FastAPI) -> None:
         safe = re.sub(r"[^\w.\-]", "_", v["filename"])
         return FileResponse(
             path, media_type=mt,
-            headers={"Content-Disposition": f'{disposition}; filename="{safe}"', "Content-Security-Policy": csp,
-                     "Cache-Control": "private, no-store"},
+            headers={"Content-Disposition": f'{disposition}; filename="{safe}"', "X-Content-Type-Options": "nosniff",
+                     "Cache-Control": "private, no-store"} | ({"Content-Security-Policy": csp} if csp else {}),
         )
 
     @app.get("/api/chunks/{chunk_id}")

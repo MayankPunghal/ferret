@@ -365,23 +365,34 @@ $("#folder-button").addEventListener("click", (e) => { e.stopPropagation(); fold
 folderInput.addEventListener("change", () => { uploadFiles([...folderInput.files]); folderInput.value = ""; });
 const SUPPORTED = /\.(md|markdown|txt|html?|docx|pptx|pdf)$/i;
 
+// One line per upload (not per file): counts while it runs; only rejected files are listed by name.
 async function uploadFiles(files) {
   const list = $("#upload-list");
   const other = files.filter((f) => !SUPPORTED.test(f.name));
   files = files.filter((f) => SUPPORTED.test(f.name));
-  if (other.length) list.prepend(el("li", { className: "meta", textContent: `skipped ${other.length} file(s) of other types (${[...new Set(other.map((f) => (f.name.split(".").pop() || "").toLowerCase()))].join(", ")})` }));
+  const skipped = other.length ? ` · skipped ${other.length} of other types (${[...new Set(other.map((f) => (f.name.split(".").pop() || "").toLowerCase()))].join(", ")})` : "";
+  const line = el("span", { className: "meta" }), errors = el("ul", { className: "upload-errors" });
+  list.replaceChildren(el("li", {}, line, errors));
+  let queued = 0, unchanged = 0, rejected = 0;
+  const show = (done) => {
+    line.textContent = (done ? `Uploaded ${files.length} file(s): ` : `Uploading ${queued + unchanged + rejected + 1} of ${files.length}… `)
+      + `${queued} queued for indexing` + (unchanged ? `, ${unchanged} unchanged` : "") + (rejected ? `, ${rejected} rejected` : "") + skipped;
+    line.className = "meta " + (done && !rejected ? "ok-text" : "");
+  };
   for (const f of files) {
-    const status = el("span", { className: "meta", textContent: "uploading…" });
-    list.prepend(el("li", {}, el("strong", { textContent: f.name }), " ", status));
+    show(false);
     const fd = new FormData();
     fd.append("file", f); fd.append("collection_id", $("#upload-collection").value);
     const uri = $("#upload-form [name=source_uri]").value; if (uri) fd.append("source_uri", uri);
     try {
       const r = await api("/api/documents", { method: "POST", body: fd });
-      status.textContent = r.outcome === "unchanged" ? "unchanged (identical to the indexed version)" : "queued for indexing";
-      status.className = "meta ok-text";
-    } catch (err) { status.textContent = "rejected — " + err.message; status.className = "meta error"; }
+      if (r.outcome === "unchanged") unchanged++; else queued++;
+    } catch (err) {
+      rejected++;
+      errors.append(el("li", { className: "meta error" }, el("strong", { textContent: f.name }), " — " + err.message));
+    }
   }
+  show(true);
   loadDocs();
 }
 
@@ -406,13 +417,19 @@ async function loadDocs() {
       actions.append(" ", b);
     }
     const status = el("td", {}, el("span", { className: "badge st-" + d.status, textContent: d.status }));
+    const again = d.adding_summary ? "adding its summary to the passages · " : "";
     if (d.status === "processing" && d.stage) {
       const pct = d.progress_total ? Math.round((100 * d.progress_done) / d.progress_total) : null;
-      const label = d.stage === "embedding" && d.progress_total ? `embedding ${d.progress_done}/${d.progress_total} chunks` : d.stage;
+      const label = again + (d.stage === "embedding" && d.progress_total ? `embedding ${d.progress_done}/${d.progress_total} chunks` : d.stage);
       const bar = el("div", { className: "progress" + (pct === null ? " indeterminate" : "") }, el("span", { style: pct === null ? "" : `width:${pct}%` }));
       status.append(el("div", { className: "meta", textContent: label }), bar);
     } else if (d.status === "pending") {
-      status.append(el("div", { className: "meta", textContent: d.queue_position ? `waiting — ${d.queue_position} ahead in queue` : "waiting to start" }));
+      status.append(el("div", { className: "meta", textContent: again + (d.queue_position ? `waiting — ${d.queue_position} ahead in queue` : "waiting to start") }));
+    } else if (d.summary) {  // after indexing: the local model's summary (optional)
+      status.append(el("div", { className: "meta" + (d.summary === "failed" ? " error" : ""), textContent: {
+        waiting: "summary queued (after indexing)", writing: "writing summary…",
+        done: "summarised", failed: "summary could not be written" }[d.summary] }));
+      if (d.summary === "writing") status.append(el("div", { className: "progress indeterminate" }, el("span")));
     }
     if (d.needs_reindex) status.append(" ", el("span", { className: "badge warn", textContent: "outdated settings" }));
     if (d.error_code) status.append(el("div", { className: "meta error", textContent: `${d.error_code}: ${d.error_detail || ""}` }));

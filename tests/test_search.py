@@ -39,6 +39,10 @@ def test_pdf_result_opens_real_source_page(client, corpus):
     assert src.content == (CORPUS / "engineering" / "incident-2025-031-postmortem.pdf").read_bytes()
     passage = client.get(f"/api/chunks/{pdf[0]['chunk_id']}", headers=h).json()
     assert passage["page"] == pdf[0]["page"] and passage["context"]
+    src = client.get(f"/api/documents/{pdf[0]['document_id']}/source", headers=h)
+    # Chrome's PDF viewer refuses sandboxed documents; nosniff keeps it a PDF
+    assert src.headers["content-type"] == "application/pdf" and src.headers["x-content-type-options"] == "nosniff"
+    assert "sandbox" not in src.headers["content-security-policy"]  # the app's own policy (object-src 'self')
 
 
 def test_markdown_source_is_served_inert(client, corpus):

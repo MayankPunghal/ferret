@@ -21,7 +21,8 @@ with sync_playwright() as p:
     pg = b.new_page(viewport={"width": 1280, "height": 900})
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
-    pg.on("console", lambda m: errors.append(m.text) if m.type == "error" and "401" not in m.text else None)
+    pg.on("console", lambda m: errors.append(m.text) if m.type == "error" and "401" not in m.text
+               and "422" not in m.text else None)
 
     def shot(name):
         pg.screenshot(path=f"{OUT}/{name}.png", full_page=True)
@@ -103,18 +104,21 @@ with sync_playwright() as p:
     pg.set_input_files("#file-input", files=[
         {"name": "alpha.md", "mimeType": "text/markdown", "buffer": b"# Alpha\n\nThe heliotrope switch resets the sorter."},
         {"name": "beta.txt", "mimeType": "text/plain", "buffer": b"Beta notes: the cobalt gate opens at dawn."},
+        {"name": "empty.md", "mimeType": "text/markdown", "buffer": b""},  # rejected at upload
         {"name": "bad.exe", "mimeType": "application/octet-stream", "buffer": b"MZ"},
     ])
-    pg.wait_for_selector("#upload-list li:has-text('skipped 1 file(s) of other types (exe)')")  # not uploaded
-    print("uploads:", [x.replace("\n", " ") for x in pg.locator("#upload-list li").all_inner_texts()])
+    # one line for the whole upload; only the rejected file is named; other types are not uploaded
+    pg.wait_for_selector("#upload-list li:has-text('Uploaded 3 file(s): 2 queued for indexing, 1 rejected')")
+    assert "skipped 1 of other types (exe)" in pg.inner_text("#upload-list") and pg.locator(".upload-errors li").count() == 1
+    print("uploads:", pg.inner_text("#upload-list").replace("\n", " | "))
     pg.wait_for_selector("#docs tr:has-text('Alpha') .st-indexed", timeout=60000)
     pg.wait_for_selector("#docs tr:has-text('beta.txt') .st-indexed", timeout=60000)
-    print("both uploads indexed")
+    print("both uploads indexed; stages:", sorted(set(pg.locator("#docs td:nth-child(3) .meta").all_inner_texts())))
+    shot("03-documents")
     pg.click(".tab[data-tab=search]")
     pg.fill("#q", "heliotrope switch")
     pg.click("#search-form button")
     pg.wait_for_selector("#outcome strong")
-    shot("03-documents")
 
     # index status: document summaries by the optional local language model (waits for them when installed)
     def summaries_line():

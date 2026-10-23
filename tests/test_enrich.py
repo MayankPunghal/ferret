@@ -204,3 +204,20 @@ def test_without_a_model_the_default_one_is_downloaded_in_the_background(client,
     assert e.run_once() and e.available and e.model == "model.gguf" and len(calls) == 2
     assert enrich.Enricher(settings.model_copy(update={"offline": True, "model_cache": tmp_path / "x"})).run_once() is False
     assert len(calls) == 2  # never downloads offline
+
+
+def test_documents_list_shows_the_summary_stage(client, corpus, drain, fake_llm, monkeypatch):
+    url, _, _ = fake_llm
+    drain()
+    e = enricher(url)
+    monkeypatch.setattr(state, "enricher", e, raising=False)
+    root = token(client, "root")
+    docs = client.get("/api/documents", headers=root).json()
+    assert {d["summary"] for d in docs if d["status"] == "indexed"} == {"waiting"}
+    run_all(e)
+    docs = client.get("/api/documents", headers=root).json()
+    assert {d["summary"] for d in docs if d["status"] == "indexed"} == {"done"}
+    assert not any(d["adding_summary"] for d in docs if d["status"] != "indexed")
+    with db.pool().connection() as c:
+        runtime.save(c, {"enrich_enabled": False}, None)
+    assert all(d["summary"] is None for d in client.get("/api/documents", headers=root).json())
