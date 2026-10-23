@@ -9,7 +9,7 @@ goal), `README.md`, and the docs listed there. Scope authority: `docs/brief/…m
 git clone https://github.com/MayankPunghal/knowledge-search && cd knowledge-search
 ./setup.sh --demo --no-start          # Windows: setup.bat -Demo -NoStart
 uv sync                               # adds dev tools
-uv run pytest -q                      # expect 41 passed (embedded PostgreSQL; no Docker)
+uv run pytest -q                      # expect 46 passed (embedded PostgreSQL; no Docker)
 uv run --group eval python eval/run_eval.py --reranker Xenova/ms-marco-MiniLM-L-6-v2
 ./start.sh                            # or start.bat → http://127.0.0.1:8000
 ```
@@ -35,7 +35,7 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 | Item | Status | Evidence |
 |---|---|---|
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
-| Test suite | **verified** | `uv run pytest -q` → 41 passed (search, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Test suite | **verified** | `uv run pytest -q` → 46 passed (search, HTML/DOCX formats, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **partially verified by the owner** on Windows 11: install, model download, DB init and indexing worked after the DLL fix; searches then crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93). **That fix is not yet verified on Windows.** | owner logs |
 | UI walkthrough | **verified** (Playwright/Chromium, `scripts/ui_check.py`): first-run admin, settings save + reindex, collections/grants/users, multi-file upload incl. rejection, clean state after sign-out/in, search outcomes, passage drawer, source open, mobile width | `docs/screenshots/` |
@@ -113,7 +113,7 @@ auto-migrations on start; GraphRAG deferred in favour of a deterministic link-gr
 | 3 rerankers (MiniLM measured harmful on technical text) | Rerankers on the owner's real documents |
 | Gate families: similarity, IDF-weighted, reranker, reranker+similarity | Calibration on real labelled data |
 | Concurrency (single/multi process) | Large corpora (10⁵+ chunks), HNSW |
-| — | Office formats, OCR, Docling for complex PDFs |
+| HTML (main-content extraction, links → graph) and DOCX — implemented, checked on MkDocs/Sphinx/Kubernetes pages | PPTX/XLSX, legacy .doc, OCR, Docling for complex PDFs |
 | Graph navigation v1 (links, impact, Connections UI) + link-aware search, evaluated on a synthetic wiki | Graph: real-corpus multi-hop evaluation, shared-identifier/entity edges, Graphify import, MCP tools |
 | — | **Local LLM answers with citations ("second brain")** |
 
@@ -129,7 +129,7 @@ auto-migrations on start; GraphRAG deferred in favour of a deterministic link-gr
 4. **Second brain:** local LLM (Ollama/llama.cpp via an OpenAI-compatible endpoint, opt-in) answering only
    from retrieved passages with checked citations; abstains on `no_adequate_evidence`; surfaces conflicts.
    Expose `search`/`get_passage`/`get_links` as REST/MCP tools for agent navigation.
-5. Office/Docling parsing, OIDC, Docker build verification, backup/restore rehearsal.
+5. PPTX/XLSX/Docling parsing, OIDC, Docker build verification, backup/restore rehearsal.
 
 ## 8. Gotchas
 

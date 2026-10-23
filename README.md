@@ -2,7 +2,7 @@
 
 **Private, offline document search that shows its evidence — and says so when it has none.**
 
-Knowledge Search indexes your Markdown, text and PDF documents and lets people search them in plain
+Knowledge Search indexes your Markdown, text, HTML, Word and PDF documents and lets people search them in plain
 language or by exact terms (error codes, file names, API paths). Every answer points to the exact passage
 and the original file. Everything — database, AI models, search — runs on your own machine or server:
 no cloud account, no GPU and no external AI provider are needed.
@@ -17,7 +17,7 @@ no cloud account, no GPU and no external AI provider are needed.
   the index is incomplete, or nothing adequate exists in the sources *you* can access. No invented
   confidence numbers.
 - **Traceable results** — passage, heading/page, neighbouring context and a link to the original file.
-- **Connections** — links between documents (Markdown/wiki links, `depends_on`-style front matter) with a
+- **Connections** — links between documents (Markdown/wiki links, HTML links, `depends_on`-style front matter) with a
   "what depends on this" blast-radius view, permission-filtered.
 - **Link-aware search** — questions that name a page also get passages from the pages it links to and from
   ("who owns the services X depends on"); on a labelled synthetic wiki, multi-hop evidence recall 0.24 → 0.60

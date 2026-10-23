@@ -1,8 +1,9 @@
 """Document validation, text extraction and structure-aware chunking.
 
-Supported in this release: Markdown (.md), plain text (.txt) and text-layer PDF (.pdf, via
-pypdf). Scanned PDFs without a text layer are rejected with ``no_extractable_text`` rather
-than silently indexed as empty (OCR is out of scope).
+Supported: Markdown (.md), plain text (.txt), HTML (.html/.htm), Word (.docx) and text-layer PDF (.pdf, via
+pypdf). HTML and Word are converted to Markdown first (convert.py), so headings, anchors and links work the
+same way for all of them. Scanned PDFs without a text layer are rejected with ``no_extractable_text``
+rather than silently indexed as empty (OCR is out of scope).
 """
 
 import io
@@ -12,11 +13,12 @@ from dataclasses import dataclass, field
 import yaml
 from markdown_it import MarkdownIt
 
-PARSER_VERSION = "parse-v2"  # v2: CRLF/CR line endings normalised (Windows front matter)
+PARSER_VERSION = "parse-v3"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links
 CHUNKER_VERSION = "chunk-v2"  # size/overlap are runtime settings, recorded in the index signature
 
-MEDIA_TYPES = {".md": "text/markdown", ".txt": "text/plain", ".pdf": "application/pdf"}
-
+DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+MEDIA_TYPES = {".md": "text/markdown", ".markdown": "text/markdown", ".txt": "text/plain",
+               ".html": "text/html", ".htm": "text/html", ".docx": DOCX, ".pdf": "application/pdf"}
 
 
 class ParseError(Exception):
@@ -93,19 +95,23 @@ _WIKI_LINK = re.compile(r"\[\[([^\]|#\n]{1,200})(?:#([^\]|\n]{1,200}))?(?:\|([^\
 
 
 def normalize_target(target: str) -> str:
-    """'../api/Orders.md' -> 'orders.md'; 'Payments Service' -> 'payments service'."""
-    t = target.strip().replace("\\", "/").split("/")[-1]
-    return t.lower()
+    """'../api/Orders.md' -> 'orders.md'; 'Payments Service' -> 'payments service';
+    doc-site style '../orders/' or 'orders/index.html' -> 'orders'; '?query' is dropped."""
+    parts = [x for x in target.strip().split("?")[0].replace("\\", "/").replace("%20", " ").split("/")
+             if x not in ("", ".", "..")]
+    if len(parts) > 1 and re.fullmatch(r"(?i)index\.html?", parts[-1]):
+        parts.pop()
+    return parts[-1].lower() if parts else ""
 
 
 def extract_links(text: str) -> list[Link]:
     """Internal Markdown links and [[wiki links]]; external URLs and images are ignored."""
     out = []
     for label, href in _MD_LINK.findall(text):
-        if re.match(r"^[a-z][a-z0-9+.-]*:", href, re.I):  # http:, mailto:, ...
+        if re.match(r"^[a-z][a-z0-9+.-]*:", href, re.IGNORECASE):  # http:, mailto:, ...
             continue
         path, _, anchor = href.partition("#")
-        if path:
+        if normalize_target(path):
             out.append(Link("links_to", normalize_target(path), slugify(anchor) if anchor else None, label.strip()))
     for page, anchor, label in _WIKI_LINK.findall(text):
         out.append(Link("links_to", normalize_target(page), slugify(anchor) if anchor else None,
@@ -141,7 +147,11 @@ def _split_frontmatter(text: str) -> tuple[dict, str]:
 
 
 def parse_markdown(data: bytes, filename: str) -> ParsedDocument:
-    raw_meta, body = _split_frontmatter(_decode_text(data))
+    return _parse_markdown_text(_decode_text(data), filename)
+
+
+def _parse_markdown_text(text: str, filename: str, title: str = "") -> ParsedDocument:
+    raw_meta, body = _split_frontmatter(text)
     relations = _relations(raw_meta)
     meta = {k: (v if isinstance(v, (str, int, float, bool)) else str(v)) for k, v in raw_meta.items()}
     tokens = MarkdownIt("commonmark").enable("table").parse(body)
@@ -151,7 +161,7 @@ def parse_markdown(data: bytes, filename: str) -> ParsedDocument:
     for i, t in enumerate(tokens):
         if t.type == "heading_open" and t.map:
             heads.append((t.map[0], int(t.tag[1]), tokens[i + 1].content.strip()))
-    title = str(meta.get("title") or next((h[2] for h in heads if h[1] == 1), "") or filename)
+    title = str(meta.get("title") or title or next((h[2] for h in heads if h[1] == 1), "") or filename)
     sections: list[Section] = []
     stack: list[tuple[int, str]] = []
     used_anchors: dict[str, int] = {}
@@ -210,6 +220,43 @@ def parse_pdf(data: bytes, filename: str, max_pages: int) -> ParsedDocument:
     return ParsedDocument(title=title, metadata={}, sections=sections)
 
 
+def _decode_html(data: bytes) -> str:
+    """UTF-8, else the charset the page declares, else Windows-1252 (old wiki exports)."""
+    try:
+        return _decode_text(data)
+    except ParseError as e:
+        if e.code != "invalid_encoding":
+            raise
+    m = re.search(rb"""charset=["']?([\w-]{2,40})""", data[:4096], re.IGNORECASE)
+    for enc in ([m.group(1).decode()] if m else []) + ["cp1252"]:
+        try:
+            return data.decode(enc).replace("\r\n", "\n").replace("\r", "\n")
+        except (LookupError, UnicodeDecodeError):
+            continue
+    raise ParseError("invalid_encoding", "cannot decode the HTML page")
+
+
+def parse_html(data: bytes, filename: str) -> ParsedDocument:
+    from .convert import html_to_markdown
+
+    title, md = html_to_markdown(_decode_html(data))
+    return _parse_markdown_text(md, filename, title)
+
+
+def parse_docx(data: bytes, filename: str) -> ParsedDocument:
+    import zipfile
+
+    from .convert import docx_to_markdown
+
+    if not data.startswith(b"PK"):
+        raise ParseError("invalid_docx", "not a .docx file (legacy .doc is not supported; save as .docx)")
+    try:
+        title, md = docx_to_markdown(data)
+    except (zipfile.BadZipFile, KeyError, ValueError, SyntaxError) as e:  # ElementTree.ParseError ⊂ SyntaxError
+        raise ParseError("invalid_docx", f"{type(e).__name__}: {str(e)[:200]}") from e
+    return _parse_markdown_text(md, filename, title)
+
+
 def parse_document(data: bytes, filename: str, max_pages: int = 2000, max_chars: int = 5_000_000) -> ParsedDocument:
     if not data:
         raise ParseError("empty_file", "file is empty")
@@ -218,6 +265,10 @@ def parse_document(data: bytes, filename: str, max_pages: int = 2000, max_chars:
         doc = parse_pdf(data, filename, max_pages)
     elif mt == "text/markdown":
         doc = parse_markdown(data, filename)
+    elif mt == "text/html":
+        doc = parse_html(data, filename)
+    elif mt == DOCX:
+        doc = parse_docx(data, filename)
     else:
         doc = parse_text(data, filename)
     if not doc.sections:
