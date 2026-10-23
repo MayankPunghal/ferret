@@ -82,6 +82,7 @@ def test_summaries_topics_and_clearer_title_only_for_vague_titles(client, corpus
     assert st == {"summarised": total, "pending": 0, "failed": 0}
     assert calls[0]["response_format"] == {"type": "json_object"} and calls[0]["temperature"] == 0
     assert "Document title:" in calls[0]["messages"][0]["content"]
+    assert sum("not descriptive" in c["messages"][0]["content"] for c in calls) == 2  # 'Overview', ledger-config.txt
     for i, en in rows.items():
         assert en["summary"] == "How payments are retried. Covers backoff."
         assert en["topics"] == ["payments", "retries"]  # case-insensitive duplicates dropped
@@ -153,6 +154,26 @@ def test_vague_titles(title, vague):
     assert enrich.vague_title(title) is vague
 
 
+def test_clearer_title_only_when_it_is_clearer():
+    assert enrich.clearer_title("beta.txt", "Cobalt Gate Opening Schedule") == "Cobalt Gate Opening Schedule"
+    assert enrich.clearer_title("beta.txt", "beta.txt") is None and enrich.clearer_title("ledger-config.txt", "Ledger Config") is None
+    assert enrich.clearer_title("Overview", "Overview") is None and enrich.clearer_title("Overview", "") is None
+    assert enrich.clearer_title("Ledger Service", "Ledger Service Guide") is None  # own title is fine
+
+
 def test_parse_reply_tolerates_thinking_and_extra_text():
     raw = '<think>hmm</think>Here you go: {"title": "T", "summary": " A  b. ", "topics": ["x", "", "y"]}'
     assert enrich.parse_reply(raw) == {"title": "T", "summary": "A b.", "topics": ["x", "y"]}
+
+
+def test_a_model_server_that_cannot_start_is_reported_not_retried(client, corpus, drain, fake_llm, tmp_path):
+    drain()
+    (tmp_path / "llm" / "bin" / "b1").mkdir(parents=True)
+    (tmp_path / "llm" / "bin" / "b1" / "llama-server").write_text("not a program")  # not executable
+    (tmp_path / "llm" / "tiny.gguf").write_bytes(b"GGUF")
+    e = enrich.Enricher(state.settings.model_copy(update={"llm_url": "", "model_cache": tmp_path}))
+    assert e.available and e.model == "tiny.gguf"
+    assert not e.run_once() and e.state.startswith("error: the local language model could not start")
+    assert not e.run_once() and e.server.proc is None  # not retried until the app restarts
+    with db.pool().connection() as c:
+        assert not c.execute("SELECT 1 FROM documents WHERE enrich_claimed_at IS NOT NULL OR enrichment IS NOT NULL").fetchone()

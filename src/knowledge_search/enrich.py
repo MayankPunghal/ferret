@@ -34,7 +34,7 @@ from . import db, runtime
 
 log = logging.getLogger(__name__)
 
-PROMPT_VERSION = 1
+PROMPT_VERSION = 2
 SOURCE_CHARS = 3000  # opening text given to the model (plus the headings outline)
 MAX_ATTEMPTS = 3
 CLAIM_MINUTES = 15
@@ -43,7 +43,7 @@ PROMPT = """You index internal technical documentation for search. Read the docu
  "summary": "<2 sentences, at most 50 words: what the document is about and what it explains>",
  "topics": ["<up to 6 systems, services, components or concepts the document relies on or relates to>"]}}
 
-Document title: {title}
+Document title: {title}{title_note}
 {outline}
 {text}"""
 GENERIC = {"", "home", "index", "overview", "introduction", "intro", "untitled", "document", "presentation",
@@ -56,6 +56,15 @@ def vague_title(title: str) -> bool:
     t = " ".join(title.lower().replace("_", " ").split())
     return (t in GENERIC or re.fullmatch(r"[\w\- .()]+\.(pdf|docx?|pptx?|md|markdown|txt|html?)", t) is not None
             or re.fullmatch(r"(doc|document|file|scan|img|image|page|slide|untitled)?[\s\-#]*\d+", t) is not None)
+
+
+def clearer_title(original: str, proposed: str) -> str | None:
+    """The model's title, only when the original is vague and the proposal is not (nor the file name again)."""
+    def norm(t):
+        return re.sub(r"\.(pdf|docx?|pptx?|md|markdown|txt|html?)$", "", " ".join(t.lower().replace("_", " ").replace("-", " ").split()))
+    if not proposed or not vague_title(original) or vague_title(proposed) or norm(proposed) == norm(original):
+        return None
+    return proposed
 
 
 # --- the model ----------------------------------------------------------------------------------------------
@@ -143,7 +152,8 @@ class LocalServer:
     """llama-server on a free localhost port, for as long as the app runs."""
 
     def __init__(self, exe: Path, model: Path, threads: int, log_dir: Path):
-        self.exe, self.model, self.threads, self.log_dir = exe, model, threads, log_dir
+        # absolute: the server runs in its own folder (KS_MODEL_CACHE is relative by default)
+        self.exe, self.model, self.threads, self.log_dir = exe.resolve(), model.resolve(), threads, log_dir
         self.proc: subprocess.Popen | None = None
         self.url = ""
 
@@ -234,6 +244,7 @@ class Enricher:
         self.model = settings.llm_model
         self.state = "off"  # off | no model | starting | waiting for indexing | working | idle | error: ...
         self.stopping = False
+        self.broken = ""  # the installed model server could not start: reported, not retried until restart
         if not self.url:
             found = installed(settings)
             if found:
@@ -247,21 +258,33 @@ class Enricher:
     def available(self) -> bool:
         return bool(self.url or self.server)
 
-    def _ensure_server(self) -> None:
+    def _ensure_server(self) -> bool:
         if self.server and (self.server.proc is None or self.server.proc.poll() is not None):
             self.state = "starting"
-            self.url = self.server.start()
+            try:
+                self.url = self.server.start()
+            except (OSError, LLMError) as e:
+                self.broken = f"error: the local language model could not start ({e})"[:300]
+                log.error("%s; see logs/llm-server.log. Summaries are paused until the app restarts.", self.broken)
+                return False
+        return True
 
     def run_once(self) -> bool:
         """Summarise one document. False when there is nothing to do (or indexing comes first)."""
         with db.pool().connection() as conn:
             rt = runtime.load(conn)
             conn.commit()
+            if self.broken:
+                self.state = self.broken
+                return False
             if not rt.enrich_enabled or not self.available:
                 self.state = "off" if self.available else "no model"
                 return False
             if conn.execute("SELECT 1 FROM jobs WHERE status IN ('queued', 'running') LIMIT 1").fetchone():
                 self.state = "waiting for indexing"
+                return False
+            if not self._ensure_server():
+                self.state = self.broken
                 return False
             with conn.transaction():
                 doc = conn.execute(
@@ -278,9 +301,10 @@ class Enricher:
             base = {"version_id": str(doc["indexed_version_id"]), "model": self.model, "prompt": PROMPT_VERSION}
             t = time.perf_counter()
             try:
-                self._ensure_server()
                 self.state = "working"
-                out = parse_reply(chat(self.url, self.model, PROMPT.format(title=title or doc["title"],
+                note = (" (not descriptive: write a specific title of at most 8 words from the content, not a file name)"
+                        if vague_title(doc["title"]) else "")
+                out = parse_reply(chat(self.url, self.model, PROMPT.format(title=title or doc["title"], title_note=note,
                                                                           outline=outline, text=text)))
             except LLMError as e:
                 if self.stopping:  # the app is closing: not the document's fault
@@ -295,7 +319,7 @@ class Enricher:
                 self._store(conn, doc["id"], {**base, "error": str(e)[:300], "attempts": attempts})
                 return True
             own = doc["metadata"].get("description") or doc["metadata"].get("summary")
-            better = out["title"] if out["title"] and vague_title(doc["title"]) else None
+            better = clearer_title(doc["title"], out["title"])
             self._store(conn, doc["id"], {**base, "summary": out["summary"], "topics": out["topics"],
                                           "title": better, "seconds": round(time.perf_counter() - t, 1)})
             if rt.context_chars and not own:  # put the summary into this document's passage embeddings
