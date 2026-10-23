@@ -43,7 +43,7 @@ def main():
     ap.add_argument("--context-chars", type=int, default=0, help="document summary added to each passage's embedding")
     a = ap.parse_args()
     corpus, name = Path(a.corpus), Path(a.corpus).name
-    tag = a.model.replace("/", "_") + (f"-ctx{a.context_chars}" if a.context_chars else "")
+    tag = ("" if name == "kubernetes" else f"{name}-") + a.model.replace("/", "_") + (f"-ctx{a.context_chars}" if a.context_chars else "")
     admin_url, _ = db.start_embedded(ROOT / "data" / f"corpus-pg-{tag}", database="postgres")
     if not a.reuse:
         with psycopg.connect(admin_url, autocommit=True) as c:
@@ -128,7 +128,7 @@ def main():
     val = [x for x in rows if x[0]["split"] == "val"]
     test = [x for x in rows if x[0]["split"] == "test"]
     out["gates_chosen_on_val"] = choose(val, test, is_relevant, a.max_far)
-    base = str(ROOT / "eval" / "results" / f"corpus-{name}-{tag}{'-rr-' + a.reranker.split('/')[-1] if a.reranker else ''}")
+    base = str(ROOT / "eval" / "results" / f"corpus-{tag if name != 'kubernetes' else name + '-' + tag}{'-rr-' + a.reranker.split('/')[-1] if a.reranker else ''}")
     Path(base + ".json").write_text(json.dumps(out, indent=2))
     Path(base + ".txt").write_text("\n".join(table) + "\n")
     dump_rows(Path(base + ".rows.json"), rows, is_relevant)

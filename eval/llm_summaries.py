@@ -22,7 +22,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 PROMPT = """You index internal technical documentation for search. Read the page below and reply with JSON:
-{{"summary": "<2 sentences, at most 50 words: what the page is about and what it explains>",
+{{"title": "<the page title; if it is vague or generic (Overview, Introduction, Home, Page 1), a short specific one>",
+ "summary": "<2 sentences, at most 50 words: what the page is about and what it explains>",
  "topics": ["<up to 6 systems, services, components or concepts the page relies on or relates to>"]}}
 
 Page title: {title}
@@ -67,7 +68,8 @@ def main():
         raw = chat(a.url, PROMPT.format(title=title, text=body.strip()[: a.chars]), 200)
         try:
             out = json.loads(raw)
-            out = {"summary": " ".join(str(out.get("summary", "")).split()),
+            out = {"title": " ".join(str(out.get("title", "")).split())[:200],
+                   "summary": " ".join(str(out.get("summary", "")).split()),
                    "topics": [str(x) for x in out.get("topics", [])][:6]}
         except (json.JSONDecodeError, AttributeError):
             out = {"summary": " ".join(raw.split())[:400], "topics": [], "unparsed": True}
