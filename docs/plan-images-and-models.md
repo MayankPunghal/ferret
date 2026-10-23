@@ -1,6 +1,6 @@
 # Plan: images and local language models (deferred)
 
-**Status (2026-10-23): on hold, by decision of the owner.** Ingestion stays fast and uses one model only,
+**Status (2026-10-23): images on hold, by decision of the owner; document summaries since built (step 5).** Ingestion stays fast and uses one model only,
 the embedding model. Text from PDF, Word, PowerPoint, HTML, Markdown and plain text is the focus. This page
 records what was measured, so the work can resume without repeating it.
 
@@ -66,8 +66,9 @@ searchable, never something that delays search.
    - Write an answer from the passages search found, with every claim tied to a cited passage, after the
      evidence check has passed.
    - Not used for ranking or for deciding whether to answer (measured worse).
-5. **Summaries, titles and tags at ingest:** only if the Gemma-summary test shows a measurable gain, and
-   then as the same kind of background job as step 2.
+5. **Summaries, titles and tags:** **built** (2026-10-23, owner's request) as an optional background job
+   after indexing, with Qwen3.5-0.8B by default — `src/knowledge_search/enrich.py`, `docs/HANDOFF.md` §4f.
+   Images (steps 1–3) remain on hold; the same job and model server can take them on later.
 
 ## Candidate models (October 2026)
 

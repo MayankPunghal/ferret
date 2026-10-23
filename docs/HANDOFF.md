@@ -9,7 +9,7 @@ goal), `docs/requirements-brief.md` (every owner ask and its status), `README.md
 git clone https://github.com/MayankPunghal/knowledge-search && cd knowledge-search
 ./setup.sh --demo --no-start          # Windows: setup.bat -Demo -NoStart
 uv sync                               # adds dev tools
-uv run pytest -q                      # expect 62 passed (embedded PostgreSQL; no Docker)
+uv run pytest -q                      # expect 76 passed (embedded PostgreSQL; no Docker)
 uv run --group eval python eval/run_eval.py --reranker Xenova/ms-marco-MiniLM-L-6-v2
 ./start.sh                            # or start.bat → http://127.0.0.1:8000
 ```
@@ -22,20 +22,24 @@ reranker); every search returns ranked passages with source links **and an expli
 (`evidence_found`, `conflicting_evidence`, `no_adequate_evidence`, `index_coverage_incomplete`,
 `no_searchable_scope`, `retrieval_degraded`, `retrieval_failure`). One-click setup with an embedded
 PostgreSQL (no Docker). Admin UI for models, chunking, reranker, thresholds, users and access.
-No LLM generation yet (deliberately — see §7).
+Each result also lists its related documents (links to / referenced by / mentions / related in meaning).
+Optional: a small local language model (Qwen3.5-0.8B via llama.cpp, `setup --summaries`) writes a
+summary, topics and, for vague titles, a clearer title per document in the background (§4f). No answer
+generation yet (deliberately — see §7).
 
 Code map: `src/knowledge_search/` — `api.py` (routes), `admin.py` (admin routes), `search.py`
 (retrieval + gate), `ingest.py` (versions, worker, progress), `parsing.py`, `embedder.py` (model
 registry + per-model thresholds), `runtime.py` (settings, model cache, reranker), `vectors.py`
 (in-memory vector search), `auth.py`, `db.py` (embedded PG, migrations, Windows DLL fix), `cli.py`,
-`static/` (UI), `graph.py` (link graph), `migrations/0001-0004`. Tests in `tests/`, evaluation in `eval/`.
+`static/` (UI), `graph.py` (link graph), `enrich.py` (background summaries by the local model),
+`migrations/0001-0006`. Tests in `tests/`, evaluation in `eval/`.
 
 ## 3. Verification status (what was actually run)
 
 | Item | Status | Evidence |
 |---|---|---|
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
-| Test suite | **verified** | `uv run pytest -q` → 62 passed (search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Test suite | **verified** | `uv run pytest -q` → 76 passed (summaries against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **verified by the owner** on Windows 11: install, model download, DB init and indexing; searches crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93, 2026-10-22 18:01); owner after that: "setup worked now, search returns results on Windows" (2026-10-23 00:15) | owner messages |
 | UI walkthrough | **verified** (Playwright/Chromium, `scripts/ui_check.py`): first-run admin, settings save + reindex, collections/grants/users, multi-file upload incl. rejection, clean state after sign-out/in, search outcomes, passage drawer, source open, mobile width | `docs/screenshots/` |
@@ -180,7 +184,7 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   without the document fill); worth a look when the gate is re-tuned.
 - **Kubernetes without descriptions, MiniLM reranker:** top result right 94.6% (96.4% without the
   reranker); 0 false answers. The reranker helps only together with page descriptions (100%).
-- **Local language models: trialled, none shipped.** Details and the resumable plan are in
+- **Local language models: trialled** (summaries later shipped as an option, §4f). Details and the resumable plan are in
   `docs/plan-images-and-models.md`. llama.cpp `llama-server`, eval scripts only:
   - **Gemma 4 E2B answers** (`eval/llm_answers.py`): it writes answers well, but is no better as an
     evidence check or ranker (its first cited passage was right 61% of the time vs 95% for search's top
@@ -189,8 +193,35 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
     Not worth it.
   - **Vision trial** (`eval/image_set.py`, `eval/image_ocr.py`): stopped by the owner after 4 images. All
     4 were perfect with PaddleOCR-VL-1.6, at 60–70 s per image on 2 cores.
-  - **Owner decision:** ingestion stays fast with one model (the embedding model); images, OCR and LLM
-    features are deferred.
+  - **Owner decision (earlier):** ingestion stays fast with one model; images and OCR deferred. **Later
+    the same day:** background summaries by a local model wanted, never blocking (§4f).
+
+## 4f. Document summaries by a local language model (owner decision 2026-10-23)
+
+- **What:** `enrich.py`. For each indexed document, one at a time and only while no indexing job waits, the
+  model gets the title, the headings and the first ~3,000 characters and returns JSON: a 2-sentence summary,
+  up to 6 topics, and a title. The title is used only when the document's own is vague ("Overview", a file
+  name, "Page 3"; `vague_title`) and the proposal is not (`clearer_title`). Stored in `documents.enrichment`
+  per indexed version, model and prompt version; failures retried 3 times; claims expire after 15 min.
+- **Where it runs:** where indexing runs: the app (laptop) or `knowledge-search worker` (server profile).
+  The app starts llama.cpp's `llama-server` on a free 127.0.0.1 port (half the cores, `-np 1`) and stops it
+  on exit, even mid-request. `KS_LLM_URL` points it at another local OpenAI-compatible server instead.
+- **Install:** `knowledge-search download-llm` / `setup --summaries` (asked by default): llama.cpp release
+  **b11836** CPU build (the build used for every measurement here; all 6 platform files checked to exist)
+  + `unsloth/Qwen3.5-0.8B-GGUF` Q4_K_M (~0.5 GB; `--model gemma-4-e2b` for Gemma 4 E2B, ~3.1 GB).
+  **Verified on Linux x64** (download 11 s, server start 3 s, summaries in the app). Windows and macOS
+  downloads: file names checked, **not run**.
+- **Shown:** results and the passage view, labelled "Summary (local model)", topics as chips that search for
+  themselves, clearer title with the original in the tooltip. Never evidence; the gate ignores it.
+- **In the embeddings:** only with "Document summary in each passage" (`context_chars` > 0) and only for
+  documents without their own description: the document is re-indexed once with the summary.
+- **Live run (demo data, real model):** 20 of 20 documents summarised, ~5 s each (1 s reading, 4 s writing,
+  2 threads while an evaluation used the other cores). Found and fixed: relative model-cache path broke the
+  server start; a server that cannot start counted against documents; the model repeated file names as
+  "clearer" titles (prompt v2 + `clearer_title`). On a one-line document it embellishes slightly — the
+  reason for the label.
+- **Not built (each needs a measured test first):** LLM-extracted relations between documents, topic-based
+  links, answer writing.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 
@@ -212,7 +243,7 @@ auto-migrations on start; GraphRAG deferred in favour of a deterministic link-gr
 | Concurrency (single/multi process) | Large corpora (10⁵+ chunks), HNSW |
 | HTML (main-content extraction, links → graph), DOCX, PPTX, PDF via PDFium — implemented | XLSX, legacy .doc/.ppt, OCR (plan: docs/plan-images-and-models.md), Docling for complex PDFs |
 | Graph navigation v1 (links, impact, Connections UI) + link-aware search, evaluated on a synthetic wiki | Graph: real-corpus multi-hop evaluation, shared-identifier/entity edges, Graphify import, MCP tools |
-| Local LLMs (Gemma 4 E2B answers and summaries; vision models for images): trialled, not shipped | **Local LLM answers with citations ("second brain")**, on a GPU or as an opt-in |
+| Local LLMs: answers and images trialled, not shipped; **document summaries shipped (optional, §4f)** | **Local LLM answers with citations ("second brain")**; LLM-extracted relations; topic links |
 
 ## 7. Next steps (highest value first)
 
@@ -220,7 +251,8 @@ Owner direction (2026-10-23): **accuracy before speed**; plan for an organisatio
 multi-MB PDFs). Ranked search-improvement plan with sources: docs/research-search.md (reranker and
 embedding bake-offs → contextual passages → learned sparse → entity edges + PageRank → scale test).
 
-1. **Owner retry on Windows** (`git pull`, `start.bat`): confirm search works.
+1. **Owner test on the intranet files (Windows):** `git pull`, `setup.bat --summaries`, upload the crawl
+   folder; check summaries appear (Index status) and that `download-llm` worked on Windows (unverified here).
 2. **Real-corpus evaluation:** done for public docs (Kubernetes, §4d). Still needed: the owner's own
    documents (runbooks, codebase wiki) with 50–100 labelled questions incl. unanswerable ones; then tune the
    gate on fixtures + Kubernetes + owner labels pooled (`eval/pooled_gates.py`, add the owner's rows file).
@@ -231,8 +263,7 @@ embedding bake-offs → contextual passages → learned sparse → entity edges 
 4. **Second brain:** local LLM (Ollama/llama.cpp via an OpenAI-compatible endpoint, opt-in) answering only
    from retrieved passages with checked citations; abstains on `no_adequate_evidence`; surfaces conflicts.
    Expose `search`/`get_passage`/`get_links` as REST/MCP tools for agent navigation.
-5. XLSX/Docling parsing, OCR for scanned PDFs and images (plan ready), OIDC, Docker build verification,
-   backup/restore rehearsal.
+5. XLSX/Docling parsing, OCR for scanned PDFs and images (plan ready), OIDC, Docker build verification.
 
 ## 8. Gotchas
 
@@ -243,4 +274,6 @@ embedding bake-offs → contextual passages → learned sparse → entity edges 
 - Never `pkill -f "knowledge-search serve"` from a shell command line that contains that text.
 - The cloud environment rewrote the literal `NUL` in shell commands; Windows scripts were written with the
   editor tool and `.gitattributes` forces CRLF for `.bat/.ps1`.
-- The embedded PG refuses to run as root on Linux; the package creates a `pgserver` user automatically.
+- The embedded PG refuses to run as root on Linux; the package creates a `pgserver` user automatically. In the
+  cloud container that user lost access to a data dir under the session scratchpad (`/tmp/claude-0/…`)
+  mid-run (PANIC on `pg_control`); use a data dir under the repo's `data/` instead.
