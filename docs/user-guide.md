@@ -100,6 +100,17 @@ its summary and topics, the progress (*N of M documents*) and each document's st
 after all indexing), *writing summary…*, *summarised*, or *summary could not be written*. The Documents page
 shows a summary being written, or one that failed, under the document. Clicking a topic anywhere shows only the documents with that topic. **Show all** clears it.
 
+Topics stay consistent across a collection: the model is shown the topics already used most in the
+collection and asked to reuse those names, and a topic that differs from a known one only in capitals,
+hyphens or a plural ("Payment-Services", "payment service") takes the known spelling. The topic filter
+ignores those differences too.
+
+**Overnight only.** On a machine that is busy during the day, an administrator can set
+**Settings → Local language model → Only between these hours** (for example `22-6`, local time). Outside
+those hours the model is stopped and its memory freed. Search, indexing and the summaries already written
+keep working. A new model or prompt version rewrites the labels in the background; a summary already
+written for the same version of a document is kept, so nothing is re-indexed for it.
+
 ## Uploading documents
 
 **Documents** page (needs write access to a collection): pick the collection under **Into collection**, then

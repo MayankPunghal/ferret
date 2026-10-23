@@ -40,7 +40,7 @@ def fake_llm():
     server.shutdown()
     with db.pool().connection() as c:
         c.execute("UPDATE documents SET enrichment = NULL, enrich_claimed_at = NULL")
-        c.execute("DELETE FROM app_settings WHERE key IN ('enrich_enabled', 'context_chars')")
+        c.execute("DELETE FROM app_settings WHERE key IN ('enrich_enabled', 'context_chars', 'enrich_hours')")
 
 
 def enricher(url):
@@ -163,7 +163,7 @@ def test_clearer_title_only_when_it_is_clearer():
 
 def test_parse_reply_tolerates_thinking_and_extra_text():
     raw = '<think>hmm</think>Here you go: {"title": "T", "summary": " A  b. ", "topics": ["x", "", "y"]}'
-    assert enrich.parse_reply(raw) == {"title": "T", "summary": "A b.", "topics": ["x", "y"]}
+    assert enrich.parse_reply(raw) == {"title": "T", "summary": "A b.", "topics": ["x", "y"], "type": "other"}
 
 
 def test_a_model_server_that_cannot_start_is_reported_not_retried(client, corpus, drain, fake_llm, tmp_path):
@@ -223,3 +223,74 @@ def test_documents_list_shows_the_summary_stage(client, corpus, drain, fake_llm,
     with db.pool().connection() as c:
         runtime.save(c, {"enrich_enabled": False}, None)
     assert all(d["summary_stage"] is None for d in client.get("/api/documents", headers=root).json())
+
+
+def test_type_and_topics_reuse_the_collections_names(client, corpus, drain, fake_llm):
+    url, calls, reply = fake_llm
+    reply["content"] = json.dumps({**REPLY, "type": "Runbook"})
+    e = enricher(url)
+    run_all(e)
+    assert "runbook (operational steps" in calls[0]["messages"][0]["content"]
+    assert any("Reuse these topic names" in c["messages"][0]["content"] and "payments; retries" in c["messages"][0]["content"]
+               for c in calls[1:])  # later documents of a collection see its topics
+    root = token(client, "root")
+    r = search(client, root, "ERR-PAY-4012")["results"][0]
+    assert r["doc_type"] == "runbook"
+    assert {d["doc_type"] for d in client.get("/api/documents", headers=root).json() if d["status"] == "indexed"} == {"runbook"}
+
+    # a new prompt version: labels are rewritten, the summary already in the embeddings stays (no re-index)
+    doc = one_doc()
+    reply["content"] = json.dumps({"title": "x", "type": "how to", "summary": "A different summary.",
+                                   "topics": ["Payment", "RETRIES", "ledger"]})
+    with db.pool().connection() as c:
+        runtime.save(c, {"context_chars": 300}, None)
+        c.execute("UPDATE documents SET enrichment = jsonb_set(enrichment, '{prompt}', '2') WHERE id = %s", (doc["id"],))
+        jobs = c.execute("SELECT count(*) AS n FROM jobs").fetchone()["n"]
+    assert e.run_once() and not e.run_once()
+    with db.pool().connection() as c:
+        en = c.execute("SELECT enrichment FROM documents WHERE id = %s", (doc["id"],)).fetchone()["enrichment"]
+        assert c.execute("SELECT count(*) AS n FROM jobs").fetchone()["n"] == jobs
+        runtime.save(c, {"context_chars": 0}, None)
+    assert en["summary"] == "How payments are retried. Covers backoff." and en["prompt"] == enrich.PROMPT_VERSION
+    assert en["type"] == "how-to" and en["topics"] == ["payments", "retries", "ledger"]  # known spellings
+
+
+def test_only_within_its_hours(client, corpus, drain, fake_llm):
+    import time
+
+    url, calls, _ = fake_llm
+    e = enricher(url)
+    now = time.localtime().tm_hour
+    with db.pool().connection() as c:
+        runtime.save(c, runtime.validate({"enrich_hours": f"{(now + 1) % 24}-{(now + 2) % 24}"}), None)
+    assert not e.run_once() and e.state.startswith("waiting for its hours") and not calls
+    with db.pool().connection() as c:
+        runtime.save(c, runtime.validate({"enrich_hours": f"{now}:00 - {(now + 1) % 24}"}), None)
+    assert e.run_once() and calls
+
+
+@pytest.mark.parametrize("window, hour, inside", [("", 3, True), ("22-6", 23, True), ("22-6", 5, True),
+                                                  ("22-6", 6, False), ("22-6", 12, False), ("9-17", 9, True),
+                                                  ("9-17", 17, False)])
+def test_hours_window(window, hour, inside):
+    assert enrich.in_hours(window, hour) is inside
+
+
+def test_hours_setting_is_checked():
+    assert runtime.validate({"enrich_hours": " 22:00 – 06:00 "}) == {"enrich_hours": "22-6"}
+    assert runtime.validate({"enrich_hours": ""}) == {"enrich_hours": ""}
+    for bad in ("22", "25-6", "6-6", "night"):
+        with pytest.raises(ValueError):
+            runtime.validate({"enrich_hours": bad})
+
+
+def test_types_and_topic_spellings():
+    def kind(t):
+        return enrich.parse_reply(json.dumps({"summary": "s", "type": t}))["type"]
+
+    assert [kind(t) for t in ("Runbook", "How to", "decision_record", "blog post", "")] == \
+        ["runbook", "how-to", "decision record", "other", "other"]
+    assert enrich.topic_key("Payment-Services") == enrich.topic_key("payment services") == "payment service"
+    assert enrich.topic_key("access") == "access"  # not a plural
+    assert enrich.align_topics(["Payment Services", "payment-service", "Ledger"], ["payment services"]) == \
+        ["payment services", "Ledger"]

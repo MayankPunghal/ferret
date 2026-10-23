@@ -5,6 +5,7 @@ Changing the embedding model, chunking or passage context changes the *index sig
 different signature are reported as outdated (coverage incomplete) until reindexed.
 """
 
+import re
 import threading
 from dataclasses import asdict, dataclass, fields
 
@@ -44,6 +45,7 @@ class Runtime:
     fusion_lexical_weight: float
     graph_expansion: bool  # add passages of linked documents to the results (search._linked)
     enrich_enabled: bool  # background summaries/topics/titles by the local language model (enrich.py)
+    enrich_hours: str  # "22-6" = only between 22:00 and 06:00 local time; "" = any time
 
     def signature(self) -> str:
         ctx = f"|ctx={self.context_chars}" if self.context_chars else ""
@@ -82,7 +84,7 @@ def defaults(model: str | None = None) -> Runtime:
         gate_dense_high=high, gate_dense_min=low,
         gate_lex_coverage=lex, gate_rerank_min=s.gate_rerank_min,
         gate_mode=s.gate_mode, gate_lexical=s.gate_lexical, gate_all_terms_min=full, fusion_lexical_weight=s.fusion_lexical_weight,
-        graph_expansion=s.graph_expansion, enrich_enabled=s.enrich_enabled,
+        graph_expansion=s.graph_expansion, enrich_enabled=s.enrich_enabled, enrich_hours=s.enrich_hours,
     )
 
 
@@ -114,6 +116,12 @@ def validate(changes: dict) -> dict:
             raise ValueError("gate_mode must be similarity, rerank or rerank_and_similarity")
         if k == "gate_lexical" and v not in ("coverage", "idf"):
             raise ValueError("gate_lexical must be coverage or idf")
+        if k == "enrich_hours":
+            v = "".join(str(v).split()).replace("–", "-")
+            m = re.fullmatch(r"(\d{1,2})(?::00)?-(\d{1,2})(?::00)?", v)
+            if v and not (m and int(m[1]) < 24 and int(m[2]) < 24 and m[1] != m[2]):
+                raise ValueError("enrich_hours must be empty or two different hours like 22-6")
+            v = f"{int(m[1])}-{int(m[2])}" if v else ""
         if names[k] in (int, "int"):
             v = int(v)
         elif names[k] in (float, "float"):

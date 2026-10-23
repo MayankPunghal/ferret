@@ -284,7 +284,9 @@ td.actions-cell { width: 1%; text-align: right; }
 .subtab:hover { background: none; color: var(--text); }
 .subtab[aria-selected=true] { color: var(--text); font-weight: 500; border-bottom-color: var(--text); }
 .subtab .count { color: var(--muted); font-weight: 400; margin-left: 6px; font-variant-numeric: tabular-nums; }
-#doc-filter { width: 260px; margin-bottom: 8px; }
+#doc-filter { width: 260px; }
+.tabs-row > .actions { margin-bottom: 8px; }
+.kind { text-transform: capitalize; }
 .progress { height: 4px; background: var(--active); border-radius: 2px; overflow: hidden; margin-top: 6px; min-width: 120px; max-width: 240px; }
 .progress span { display: block; height: 100%; background: var(--accent); transition: width .4s; }
 .progress.indeterminate span { width: 35%; animation: slide 1.2s ease-in-out infinite; }

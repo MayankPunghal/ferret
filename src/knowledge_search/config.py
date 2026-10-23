@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     fusion_lexical_weight: float = 0.1  # keyword-branch weight in rank fusion (dense/identifier = 1); see evaluation
     graph_expansion: bool = True  # follow links of the documents a query names (multi-hop questions); see evaluation
     enrich_enabled: bool = True  # summaries/topics/titles by the local language model, when one is available
+    enrich_hours: str = ""  # "22-6": the local model only works between these hours (local time); "" = any time
 
     # Local language model for document summaries (enrich.py), OpenAI-compatible. Empty llm_url = the model
     # installed by setup (`knowledge-search download-llm`, run by the app itself) if present, else off.

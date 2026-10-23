@@ -1,5 +1,6 @@
-"""Background enrichment by a LOCAL language model: for every indexed document, a 2-sentence summary, up to 6
-topics and, when the document's own title is vague ("Overview", "Home", a file name), a clearer title.
+"""Background enrichment by a LOCAL language model: for every indexed document, a 2-sentence summary, a document
+type from a fixed list (runbook, how-to, policy, ...), up to 6 topics and, when the document's own title is
+vague ("Overview", "Home", a file name), a clearer title.
 
 - Optional. The model is the one installed by setup (`knowledge-search download-llm`: llama.cpp's
   llama-server + a small GGUF model, started by the app on 127.0.0.1) or any OpenAI-compatible local
@@ -11,6 +12,12 @@ topics and, when the document's own title is vague ("Overview", "Home", a file n
   own description is re-indexed once so that line is the summary — measured: Kubernetes pages without
   descriptions, top result 96.4% -> 98.2% with Gemma 4 E2B summaries (eval/llm_summaries.py).
 - Cost is per document (its opening text and headings), not per page: ~10-20 s on a 4-core CPU.
+- Consistent topics: the model is shown the topics already used most in the document's collection and asked
+  to reuse those names; a topic that differs from a known one only in case, hyphens or a plural takes the
+  known spelling. The type and topics are labels for finding and filtering; they are not used in ranking
+  (not measured to help yet).
+- Hours: with the setting "enrich_hours" (e.g. 22-6) the model only works in that window, for machines
+  that are busy during the day.
 """
 
 import json
@@ -35,18 +42,39 @@ from .parsing import GENERIC
 
 log = logging.getLogger(__name__)
 
-PROMPT_VERSION = 2
+PROMPT_VERSION = 3
 SOURCE_CHARS = 3000  # opening text given to the model (plus the headings outline)
 MAX_ATTEMPTS = 3
 CLAIM_MINUTES = 15
+DOC_TYPES = {  # type: what it means (shown to the model)
+    "runbook": "operational steps for a service: deploy, roll back, on-call",
+    "how-to": "steps to do one task",
+    "troubleshooting": "symptoms, causes and fixes; error codes and what to do",
+    "reference": "facts to look up: an API, settings, a service's description, a schema",
+    "concept": "explains an idea or how something works",
+    "design": "architecture or a proposal for how to build something",
+    "decision record": "a decision and why it was made",
+    "policy": "rules people must follow: HR, expenses, security, compliance",
+    "process": "a business workflow: who does what, in which order",
+    "release notes": "what changed in a version",
+    "incident report": "what went wrong, why, and follow-ups",
+    "meeting notes": "notes or minutes of a meeting",
+    "org chart": "who reports to whom, teams and roles",
+    "onboarding": "getting started for new people",
+    "presentation": "slides about a topic",
+    "other": "none of these",
+}
 PROMPT = """You index internal technical documentation for search. Read the document below and reply with JSON:
 {{"title": "<a short, specific title for the document>",
+ "type": "<the type below that fits best>",
  "summary": "<2 sentences, at most 50 words: what the document is about and what it explains>",
  "topics": ["<up to 6 systems, services, components or concepts the document relies on or relates to>"]}}
-
+Types: {types}
+{known}
 Document title: {title}{title_note}
 {outline}
 {text}"""
+KNOWN_TOPICS = 40  # most used topics of the collection, shown to the model so it reuses their names
 
 
 def vague_title(title: str) -> bool:
@@ -101,7 +129,43 @@ def parse_reply(raw: str) -> dict:
         t = " ".join(str(t).split())[:60]
         if t and t.lower() not in {x.lower() for x in topics}:
             topics.append(t)
-    return {"title": " ".join(str(out.get("title", "")).split())[:120], "summary": summary[:500], "topics": topics[:6]}
+    kind = " ".join(str(out.get("type", "")).lower().replace("_", " ").split())
+    kind = kind if kind in DOC_TYPES else next((t for t in DOC_TYPES if t.replace("-", " ") == kind.replace("-", " ")), "other")
+    return {"title": " ".join(str(out.get("title", "")).split())[:120], "summary": summary[:500], "topics": topics[:6],
+            "type": kind}
+
+
+def topic_key(topic: str) -> str:
+    """Spelling-insensitive key: case, hyphens/underscores/slashes and a plural last word do not matter."""
+    words = re.sub(r"[-_/]+", " ", topic.lower()).split()
+    if words and len(words[-1]) > 3 and words[-1].endswith("s") and not words[-1].endswith("ss"):
+        words[-1] = words[-1][:-1]
+    return " ".join(words)
+
+
+def known_topics(conn: Connection, collection_id: int, limit: int = KNOWN_TOPICS) -> list[str]:
+    """The collection's most used topics, each in its most common spelling."""
+    rows = conn.execute(
+        "SELECT t, count(*) AS n FROM documents d, jsonb_array_elements_text(d.enrichment->'topics') t "
+        "WHERE d.collection_id = %s AND d.enrichment ? 'summary' GROUP BY t ORDER BY n DESC, t LIMIT 400",
+        (collection_id,)).fetchall()
+    best: dict[str, tuple[str, int]] = {}
+    for r in rows:
+        k = topic_key(r["t"])
+        n = best.get(k, ("", 0))[1] + r["n"]
+        best[k] = (best.get(k, (r["t"], 0))[0], n)  # first row of a key is its most common spelling
+    return [t for t, _ in sorted(best.values(), key=lambda x: -x[1])[:limit]]
+
+
+def align_topics(topics: list[str], known: list[str]) -> list[str]:
+    """Use the known spelling of a topic the collection already has; drop duplicates."""
+    by_key = {topic_key(t): t for t in known}
+    out = []
+    for t in topics:
+        t = by_key.get(topic_key(t), t)
+        if topic_key(t) not in {topic_key(x) for x in out}:
+            out.append(t)
+    return out
 
 
 def source_text(conn: Connection, document_id) -> tuple[str, str, str]:
@@ -126,8 +190,17 @@ def shown(enrichment: dict | None, indexed_version_id) -> dict:
     """What results show: the summary, topics and clearer title, only if written for the indexed version."""
     e = enrichment or {}
     if not e.get("summary") or e.get("version_id") != str(indexed_version_id):
-        return {"summary": None, "topics": [], "clearer_title": None}
-    return {"summary": e["summary"], "topics": e.get("topics") or [], "clearer_title": e.get("title")}
+        return {"summary": None, "topics": [], "clearer_title": None, "doc_type": None}
+    return {"summary": e["summary"], "topics": e.get("topics") or [], "clearer_title": e.get("title"),
+            "doc_type": e.get("type")}
+
+
+def in_hours(window: str, hour: int) -> bool:
+    """Whether `hour` (0-23, local time) is inside "start-end" (e.g. "22-6" wraps past midnight); "" = always."""
+    if not window:
+        return True
+    start, end = (int(x) for x in window.split("-"))
+    return start <= hour < end if start < end else hour >= start or hour < end
 
 
 # --- the model installed by setup (llama.cpp's llama-server, started by the app) ----------------------------
@@ -304,6 +377,10 @@ class Enricher:
             if not rt.enrich_enabled or not self.available:
                 self.state = "off" if self.available else (self.state if self.download_failed else "no model")
                 return False
+            if not in_hours(rt.enrich_hours, time.localtime().tm_hour):
+                self.state = "waiting for its hours ({}:00 to {}:00)".format(*rt.enrich_hours.split("-"))
+                self.stop_server()
+                return False
             if conn.execute("SELECT 1 FROM jobs WHERE status IN ('queued', 'running') LIMIT 1").fetchone():
                 self.state = "waiting for indexing"
                 return False
@@ -312,7 +389,7 @@ class Enricher:
                 return False
             with conn.transaction():
                 doc = conn.execute(
-                    "SELECT d.id, d.title, d.metadata, d.indexed_version_id, d.enrichment FROM documents d WHERE "
+                    "SELECT d.id, d.title, d.metadata, d.collection_id, d.indexed_version_id, d.enrichment FROM documents d WHERE "
                     + PENDING + "AND (d.enrich_claimed_at IS NULL OR d.enrich_claimed_at < now() - "
                     "make_interval(mins => %(claim)s)) ORDER BY d.updated_at LIMIT 1 FOR UPDATE SKIP LOCKED",
                     _args(self.model, claim=CLAIM_MINUTES)).fetchone()
@@ -321,6 +398,7 @@ class Enricher:
                     return False
                 conn.execute("UPDATE documents SET enrich_claimed_at = now() WHERE id = %s", (doc["id"],))
             title, outline, text = source_text(conn, doc["id"])
+            known = known_topics(conn, doc["collection_id"])
             conn.commit()
             base = {"version_id": str(doc["indexed_version_id"]), "model": self.model, "prompt": PROMPT_VERSION}
             t = time.perf_counter()
@@ -328,8 +406,11 @@ class Enricher:
                 self.state = "working"
                 note = (" (not descriptive: write a specific title of at most 8 words from the content, not a file name)"
                         if vague_title(doc["title"]) else "")
-                out = parse_reply(chat(self.url, self.model, PROMPT.format(title=title or doc["title"], title_note=note,
-                                                                          outline=outline, text=text)))
+                hint = ("Reuse these topic names when one fits (they are already used in this collection): "
+                        + "; ".join(known) + "\n") if known else ""
+                out = parse_reply(chat(self.url, self.model, PROMPT.format(
+                    title=title or doc["title"], title_note=note, outline=outline, text=text,
+                    types="; ".join(f"{k} ({v})" for k, v in DOC_TYPES.items()), known=hint)))
             except LLMError as e:
                 if self.stopping:  # the app is closing: not the document's fault
                     conn.execute("UPDATE documents SET enrich_claimed_at = NULL WHERE id = %s", (doc["id"],))
@@ -344,9 +425,15 @@ class Enricher:
                 return True
             own = doc["metadata"].get("description") or doc["metadata"].get("summary")
             better = clearer_title(doc["title"], out["title"])
-            self._store(conn, doc["id"], {**base, "summary": out["summary"], "topics": out["topics"],
-                                          "title": better, "seconds": round(time.perf_counter() - t, 1)})
-            if rt.context_chars and not own:  # put the summary into this document's passage embeddings
+            prev = doc["enrichment"] or {}
+            # Only the prompt changed (a new label, say): keep the summary already in this version's passage
+            # embeddings, so the whole archive is not re-indexed for it.
+            keep = prev.get("summary") and prev.get("version_id") == base["version_id"] and prev.get("model") == self.model
+            self._store(conn, doc["id"], {**base, "summary": prev["summary"] if keep else out["summary"],
+                                          "title": prev.get("title") if keep else better, "type": out["type"],
+                                          "topics": align_topics(out["topics"], known),
+                                          "seconds": round(time.perf_counter() - t, 1)})
+            if rt.context_chars and not own and not keep:  # put the summary into this document's passage embeddings
                 from .ingest import requeue
 
                 requeue(conn, doc["id"])
@@ -361,7 +448,11 @@ class Enricher:
     def stop(self) -> None:
         """Stop the model server now, even mid-request (the document is picked up again next time)."""
         self.stopping = True
-        if self.server:
+        self.stop_server()
+
+    def stop_server(self) -> None:
+        """Free the model's memory (outside its hours, or when the app closes); it starts again when needed."""
+        if self.server and self.server.proc and self.server.proc.poll() is None:
             self.server.stop()
 
     def loop(self, stop: threading.Event, poll: float = 5.0) -> None:

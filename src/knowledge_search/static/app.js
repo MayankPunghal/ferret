@@ -232,7 +232,8 @@ function resultItem(r) {
     el("div", { className: "r-body" },
       el("div", { className: "r-head" },
         el("a", { className: "r-title", href: r.source_url, target: "_blank", rel: "noopener", title: "Open the document" }, docTitle(r.title, r.clearer_title)), badges),
-      el("div", { className: "meta", textContent: loc }),
+      el("div", { className: "meta" }, r.doc_type ? el("span", { className: "kind", textContent: r.doc_type, title: "Type written by the local model" }) : "",
+        r.doc_type && loc ? " · " : "", loc),
       el("p", { className: "snippet" }, inline(r.snippet.replace(/\s*\n\s*/g, " "))),
       writtenSummary(r),
       related,
@@ -562,6 +563,7 @@ const DOC_FILTERS = [
   ["outdated", "Outdated settings", (d) => d.needs_reindex],
 ];
 $("#doc-filter").addEventListener("input", () => loadDocs());
+$("#doc-type").addEventListener("change", () => loadDocs());
 async function loadDocs() {
   if ($("#docs details.menu[open]")) return;
   const docs = await api("/api/documents");
@@ -581,7 +583,12 @@ async function loadDocs() {
   }));
   const pass = DOC_FILTERS.find(([key]) => key === docFilter)[2];
   const needle = $("#doc-filter").value.trim().toLowerCase();
-  const shown = docs.filter((d) => pass(d) && (!needle || `${d.clearer_title || ""} ${d.title} ${d.source_key}`.toLowerCase().includes(needle)));
+  const typeBox = $("#doc-type"), kinds = [...new Set(docs.map((d) => d.doc_type).filter(Boolean))].sort();
+  const kind = kinds.includes(typeBox.value) ? typeBox.value : "";
+  typeBox.replaceChildren(el("option", { value: "", textContent: "All types" }),
+    ...kinds.map((k) => el("option", { value: k, textContent: k[0].toUpperCase() + k.slice(1) })));
+  typeBox.value = kind; typeBox.hidden = !kinds.length;
+  const shown = docs.filter((d) => pass(d) && (!kind || d.doc_type === kind) && (!needle || `${d.clearer_title || ""} ${d.title} ${d.source_key}`.toLowerCase().includes(needle)));
   const empty = $("#docs-empty");
   empty.hidden = shown.length > 0;
   empty.textContent = !docs.length ? "No documents yet. Upload files, or drop them on this page." : "No documents match.";
@@ -601,14 +608,17 @@ async function loadDocs() {
     const ver = d.indexed_version && d.indexed_version !== d.latest_version ? `v${d.latest_version} (indexed v${d.indexed_version})` : `v${d.latest_version}`;
     const updated = new Date(d.updated_at);
     return el("tr", {},
-      el("td", {}, sourceLink(d), el("div", { className: "sub" }, el("span", { className: "phone", textContent: `${d.collection} · ${fileType(d.media_type)} · ` }), `${d.source_key} · ${ver}`)),
-      el("td", { className: "wide", textContent: fileType(d.media_type) }), el("td", { className: "wide", textContent: d.collection }), status,
+      el("td", {}, sourceLink(d), el("div", { className: "sub" }, el("span", { className: "phone", textContent: `${d.collection} · ${d.doc_type ? d.doc_type + " · " : ""}${fileType(d.media_type)} · ` }), `${d.source_key} · ${ver}`)),
+      typeCell(d), el("td", { className: "wide", textContent: d.collection }), status,
       el("td", { className: "num wide", textContent: d.chunks ?? "—" }),
       el("td", { className: "num wide muted", textContent: ago(updated), title: updated.toLocaleString() }),
       el("td", { className: "actions-cell" }, docMenu(d)));
   }));
 }
 
+// The type written by the local model (runbook, policy, ...) over the file format.
+const typeCell = (d) => el("td", { className: "wide" }, d.doc_type ? el("div", { className: "kind", textContent: d.doc_type, title: "Type written by the local model" }) : "",
+  el("div", { className: d.doc_type ? "muted small" : "", textContent: fileType(d.media_type) }));
 const STATUS = { indexed: "Indexed", pending: "Waiting", processing: "Indexing", failed: "Failed" };
 function docMenu(d) {
   const items = [el("a", { href: `/api/documents/${d.id}/view`, target: "_blank", rel: "noopener", textContent: "Open" }),
@@ -658,6 +668,12 @@ function summaryStage(d) {  // after indexing: the local model's summary (option
 }
 
 // ---------------------------------------------------------------- summaries
+// Same key as enrich.topic_key: case, hyphens and a plural last word do not matter.
+function topicKey(t) {
+  const w = t.toLowerCase().replace(/[-_/]+/g, " ").split(/\s+/).filter(Boolean);
+  if (w.length && w.at(-1).length > 3 && w.at(-1).endsWith("s") && !w.at(-1).endsWith("ss")) w[w.length - 1] = w.at(-1).slice(0, -1);
+  return w.join(" ");
+}
 // What the local model wrote for each document: progress first, then the documents being written or waiting,
 // then the summaries. Same permissions as the Documents tab.
 async function loadSummaries() {
@@ -669,23 +685,23 @@ async function loadSummaries() {
     ? el("div", { className: "progress" }, el("span", { style: `width:${Math.round((100 * done) / indexed.length)}%` })) : "";
   const head = [el("div", { className: "summary-progress" }, bar, el("span", { className: "muted figures", textContent: line }))];
   const order = { writing: 0, failed: 1, waiting: 2, done: 3 };
-  const topic = topicFilter?.toLowerCase();
+  const topic = topicFilter && topicKey(topicFilter);
   if (topic) {
     const all = el("button", { className: "link", type: "button", textContent: "Show all" });
     all.addEventListener("click", () => { topicFilter = null; loadSummaries(); });
     const find = el("button", { className: "link", type: "button", textContent: `Search the text for “${topicFilter}”` });
     find.addEventListener("click", () => { const q = topicFilter; topicFilter = null; openTab("search"); $("#q").value = q; $("#search-form").requestSubmit(); });
-    const n = indexed.filter((d) => (d.topics || []).some((x) => x.toLowerCase() === topic)).length;
+    const n = indexed.filter((d) => (d.topics || []).some((x) => topicKey(x) === topic)).length;
     head.unshift(el("div", { className: "topic-filter" }, el("strong", { textContent: `Topic “${topicFilter}”: ${n} document${n === 1 ? "" : "s"}` }),
       el("span", { className: "muted", textContent: "Topics are written by the local model." }), all, find));
   }
-  const rows = indexed.filter((d) => (d.summary_stage || d.summary_text) && (!topic || (d.topics || []).some((x) => x.toLowerCase() === topic)))
+  const rows = indexed.filter((d) => (d.summary_stage || d.summary_text) && (!topic || (d.topics || []).some((x) => topicKey(x) === topic)))
     .sort((a, b) => (order[a.summary_stage] ?? 3) - (order[b.summary_stage] ?? 3) || a.title.localeCompare(b.title));
   $("#summaries").replaceChildren(...head, rows.length ? el("table", { className: "data summaries" },
     el("thead", {}, el("tr", {}, ...["Document", "Type", "Summary and topics by the local model", ""].map((h, i) => el("th", { className: i === 1 ? "wide" : "", textContent: h })))),
     el("tbody", {}, ...rows.map((d) => el("tr", {},
       el("td", {}, sourceLink(d), el("div", { className: "sub", textContent: d.collection })),
-      el("td", { className: "wide", textContent: fileType(d.media_type) }),
+      typeCell(d),
       el("td", {}, writtenSummary({ summary: d.summary_text, topics: d.topics }, false) || el("span", { className: "meta", textContent: "—" })),
       el("td", {}, ...(d.summary_stage && d.summary_stage !== "done" ? summaryStage(d) : [])))))) : el("p", { className: "empty", textContent: "No summaries yet." }));
 }
@@ -730,7 +746,7 @@ function fillSettings(v) {
   $("#s-ctx").value = v.context_chars;
   $("#s-rerank-on").checked = v.rerank_enabled; $("#s-rerank").value = v.rerank_model; $("#s-rerank-n").value = v.rerank_candidates;
   $("#s-graph-on").checked = v.graph_expansion;
-  $("#s-enrich-on").checked = v.enrich_enabled;
+  $("#s-enrich-on").checked = v.enrich_enabled; $("#s-hours").value = v.enrich_hours || "";
   $("#s-g-high").value = v.gate_dense_high; $("#s-g-min").value = v.gate_dense_min; $("#s-g-cov").value = v.gate_lex_coverage;
   $("#s-g-all").value = v.gate_all_terms_min;
   $("#s-g-rr").value = v.gate_rerank_min; $("#s-g-mode").value = v.gate_mode; $("#s-g-lex").value = v.gate_lexical;
@@ -757,7 +773,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
     embed_model: $("#s-model").value, chunk_size: +$("#s-chunk").value,
     chunk_overlap: $("#s-overlap-on").checked ? +$("#s-overlap").value : 0, context_chars: +$("#s-ctx").value,
     rerank_enabled: $("#s-rerank-on").checked, rerank_model: $("#s-rerank").value, rerank_candidates: +$("#s-rerank-n").value,
-    graph_expansion: $("#s-graph-on").checked, enrich_enabled: $("#s-enrich-on").checked,
+    graph_expansion: $("#s-graph-on").checked, enrich_enabled: $("#s-enrich-on").checked, enrich_hours: $("#s-hours").value.trim(),
     gate_dense_high: +$("#s-g-high").value, gate_dense_min: +$("#s-g-min").value, gate_lex_coverage: +$("#s-g-cov").value, gate_all_terms_min: +$("#s-g-all").value,
     gate_rerank_min: +$("#s-g-rr").value, gate_mode: $("#s-g-mode").value, gate_lexical: $("#s-g-lex").value,
   };

@@ -132,7 +132,10 @@
         <ul id="upload-list" class="upload-list"></ul>
         <div class="tabs-row">
           <div class="subtabs" role="tablist" id="doc-filters"></div>
-          <input id="doc-filter" type="search" placeholder="Filter by name" aria-label="Filter documents by name">
+          <div class="actions">
+            <select id="doc-type" aria-label="Filter by document type" hidden><option value="">All types</option></select>
+            <input id="doc-filter" type="search" placeholder="Filter by name" aria-label="Filter documents by name">
+          </div>
         </div>
         <table class="data docs-table">
           <thead><tr><th>Document</th><th class="wide">Type</th><th class="wide">Collection</th><th>Status</th><th class="num wide">Passages</th><th class="num wide">Updated</th><th><span class="sr">Actions</span></th></tr></thead>
@@ -222,9 +225,12 @@
                 labelled as the model's and never used as evidence. Progress is on Index status.</p>
             </div>
             <div class="setting-panel">
-              <label class="check"><input type="checkbox" name="enrich_enabled" id="s-enrich-on"> Summarise each document in the background</label>
-              <p class="muted small">A two-sentence summary, up to six topics and, only when a document's own title is vague,
-                a clearer title; one document at a time while no files are waiting to be indexed. With the line about the
+              <label class="check"><input type="checkbox" name="enrich_enabled" id="s-enrich-on"> Summarise and label each document in the background</label>
+              <label><span>Only between these hours <span class="muted">local time, e.g. 22-6; empty = any time</span></span> <input name="enrich_hours" id="s-hours" placeholder="22-6"></label>
+              <p class="muted small">A two-sentence summary, a document type (runbook, how-to, policy, design, …), up to six
+                topics that reuse the names already common in the collection and, only when a document's own title is vague,
+                a clearer title; one document at a time while no files are waiting to be indexed. Outside its hours the
+                model is stopped and its memory freed. With the line about the
                 whole document on, a document without its own description is re-indexed once to use the summary.</p>
             </div>
           </section>

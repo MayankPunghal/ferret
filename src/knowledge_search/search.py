@@ -103,6 +103,7 @@ class Result:
     summary: str | None = None
     topics: list[str] = field(default_factory=list)
     clearer_title: str | None = None  # only when the document's own title is vague
+    doc_type: str | None = None  # runbook, how-to, policy, ... (enrich.DOC_TYPES)
 
 
 @dataclass

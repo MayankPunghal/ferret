@@ -305,7 +305,8 @@ def _routes(app: FastAPI) -> None:
         for r in rows:
             r = dict(r, id=str(r["id"]), can_write=r["collection_id"] in p.writable, summary_stage=summary.get(r["id"]))
             shown = enrich.shown(r.pop("enrichment"), r.pop("indexed_version_id"))
-            out.append(r | {"summary_text": shown["summary"], "topics": shown["topics"], "clearer_title": shown["clearer_title"]})
+            out.append(r | {"summary_text": shown["summary"], "topics": shown["topics"], "clearer_title": shown["clearer_title"],
+                            "doc_type": shown["doc_type"]})
         return out
 
     @app.post("/api/documents", status_code=202)
