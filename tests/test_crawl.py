@@ -139,10 +139,12 @@ def _docx(text: str) -> bytes:
 
 
 def test_embedded_google_drive_documents_are_saved_and_linked(tmp_path):
-    pdf_id, doc_id, video_id = "1" + "a" * 30, "1" + "b" * 30, "1" + "c" * 30
+    pdf_id, doc_id, video_id, deck_id, big_id = ("1" + c * 30 for c in "abcde")
     hr = ("<html><head><title>HR Corner</title></head><body><main><h1>HR Corner</h1><p>Policies.</p>"
           f"<a href='/hr/pip'>PIP policy</a><div data-url='https://docs.google.com/document/d/{doc_id}/edit'></div>"
-          f"<iframe src='https://drive.google.com/file/d/{video_id}/preview'></iframe></main></body></html>")
+          f"<iframe src='https://drive.google.com/file/d/{video_id}/preview'></iframe>"
+          f"<iframe src='https://drive.google.com/file/d/{deck_id}/preview'></iframe>"
+          f"<iframe src='https://drive.google.com/file/d/{big_id}/preview'></iframe></main></body></html>")
     pip = ("<html><head><title>PIP Policy</title></head><body><main><h1>PIP Policy</h1>"
            f'<iframe src="https://drive.google.com/file/d/{pdf_id}/preview"></iframe></main></body></html>')
     pdf = (Path(__file__).parent.parent / "fixtures/corpus/engineering/incident-2025-031-postmortem.pdf").read_bytes()
@@ -151,12 +153,16 @@ def test_embedded_google_drive_documents_are_saved_and_linked(tmp_path):
               "https://intranet.example/hr/pip": (pip.encode(), "text/html", ""),
               EXPORT["file"].format(pdf_id): (pdf, "application/pdf", "SF PIP Policy.docx.pdf"),
               EXPORT["document"].format(doc_id): (_docx("Twenty days of paid leave."), docx, "Leave Policy.docx"),
-              EXPORT["file"].format(video_id): (b"\0" * 10, "video/mp4", "Show and tell.mp4")}
+              EXPORT["file"].format(video_id): (b"\0" * 10, "application/octet-stream", "Self Review.mov"),
+              EXPORT["file"].format(deck_id): (b"PK pptx", "application/octet-stream", "Induction on LTA.pptx"),
+              EXPORT["file"].format(big_id): (b"<html>Google Drive can't scan this file for viruses.</html>",
+                                              "text/html; charset=utf-8", "")}
     downloaded = []
 
     class Intranet(Crawler):
         def _head(self, url):
-            return served[url][1], len(served[url][0])
+            data, ctype, filename = served[url]
+            return ctype, len(data), filename
 
         def _get(self, url, page=False):
             if url not in served:
@@ -170,9 +176,11 @@ def test_embedded_google_drive_documents_are_saved_and_linked(tmp_path):
     assert m["files"] == {EXPORT["file"].format(pdf_id): "SF PIP Policy.pdf",
                           EXPORT["document"].format(doc_id): "Leave Policy.docx"}
     assert (tmp_path / "SF PIP Policy.pdf").read_bytes() == pdf
-    # a video is recognised before downloading and skipped
-    assert EXPORT["file"].format(video_id) not in downloaded
-    assert "video/mp4" in m["skipped"][EXPORT["file"].format(video_id)]
+    # videos and slide decks uploaded to Drive are recognised by name before downloading and skipped
+    assert EXPORT["file"].format(video_id) not in downloaded and EXPORT["file"].format(deck_id) not in downloaded
+    assert m["skipped"][EXPORT["file"].format(deck_id)] == "embedded PPTX is not a PDF or Word file: Induction on LTA.pptx"
+    assert "MOV" in m["skipped"][EXPORT["file"].format(video_id)]
+    assert "virus scan" in m["skipped"][EXPORT["file"].format(big_id)]  # Drive's page for files over 100 MB
     # every page keeps its own text and links its documents, so search finds both and they are connected
     assert sorted(p.name for p in tmp_path.glob("*.md")) == ["hr-pip.md", "hr.md"]
     pip_md = (tmp_path / "hr-pip.md").read_text()

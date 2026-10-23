@@ -76,8 +76,8 @@ Later runs drop `--login`. Browser mode also renders pages that build their cont
 - **Embedded documents:** Google Drive files, Docs and Slides that a page embeds or links to are
   downloaded with the same sign-in (Docs as Word, Slides as PDF). They are linked from the page under
   "Attached documents". They are saved as they are and read by ingest (PDF page by page), so a search finds
-  the page and its documents, connected in the graph. Embedded videos and files over 50 MB are skipped
-  without downloading them.
+  the page and its documents, connected in the graph. Only PDF and Word files are kept: videos, uploaded slide
+  decks and spreadsheets, and files over 50 MB are skipped without downloading them.
 - **Duplicates:** a page reached under several URLs (`index.html`, tracking parameters) is saved once.
 - **Links and titles:** links between crawled pages are rewritten to the local files, so the **graph works
   after ingest**. A site-wide title suffix (" | Company Wiki") is removed from titles.

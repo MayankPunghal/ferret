@@ -59,7 +59,8 @@ site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --brows
   is converted, so nothing can be lost; a search index reads them itself (knowledge-search does, page by page).
 - Downloads the Google Drive files, Docs (as Word) and Slides (as PDF) a page embeds or links to — the PDF
   viewers on Google Sites pages — with the same sign-in, and links them from the page ("Attached documents").
-  Embedded videos and files over 50 MB are recognised before downloading and skipped.
+  Only PDF and Word files are kept: videos, slide decks and spreadsheets uploaded to Drive, and files over
+  50 MB, are recognised by name before downloading and skipped (listed in the manifest).
 - `--save-html` also keeps the HTML each page was converted from (in `<out>-html/`), to check what a page
   held.
 - Saves a page reached under several URLs once; rewrites links between crawled pages to the local files;

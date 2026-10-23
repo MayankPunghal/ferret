@@ -148,10 +148,13 @@ class BrowserFetcher:
             raise ValueError("larger than 50 MB")
         return r.body(), r.headers.get("content-type", ""), r.url, _filename(r.headers.get("content-disposition", ""))
 
-    def head(self, url: str) -> tuple[str, int]:
-        """(content type, size) without downloading the body; ("", 0) when the server does not say."""
+    def head(self, url: str) -> tuple[str, int, str]:
+        """(content type, size, file name) without downloading the body; empty when the server does not say."""
         r = self.ctx.request.head(url, timeout=60_000)
-        return (r.headers.get("content-type", ""), int(r.headers.get("content-length") or 0)) if r.ok else ("", 0)
+        if not r.ok:
+            return "", 0, ""
+        h = r.headers
+        return h.get("content-type", ""), int(h.get("content-length") or 0), _filename(h.get("content-disposition", ""))
 
     def close(self) -> None:
         self.ctx.close()
@@ -330,15 +333,16 @@ class Crawler:
                 raise ValueError("larger than 50 MB")
             return data, r.headers.get("Content-Type", ""), r.geturl(), r.headers.get_filename() or ""
 
-    def _head(self, url: str) -> tuple[str, int]:
+    def _head(self, url: str) -> tuple[str, int, str]:
         try:
             if self.browser:
                 return self.browser.head(url)
             req = urllib.request.Request(url, headers=self.headers, method="HEAD")
             with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                return r.headers.get("Content-Type", ""), int(r.headers.get("Content-Length") or 0)
+                return (r.headers.get("Content-Type", ""), int(r.headers.get("Content-Length") or 0),
+                        r.headers.get_filename() or "")
         except Exception:  # noqa: BLE001 - HEAD not supported: decide after downloading
-            return "", 0
+            return "", 0, ""
 
     def sitemap_urls(self) -> list[str]:
         root = "{0.scheme}://{0.netloc}".format(urlsplit(self.start))
@@ -412,11 +416,17 @@ class Crawler:
             if url in self.seen:
                 return None
             self.seen.add(url)
-        ctype, size = self._head(url)  # videos and other large files are not downloaded only to be dropped
-        if (ctype and not DOCUMENT.search(ctype)) or size > MAX_BYTES:
+        # decided before downloading: only PDF and Word files are kept (videos, slide decks and spreadsheets
+        # uploaded to Drive are skipped), and nothing over 50 MB
+        ctype, size, filename = self._head(url)
+        ext = Path(filename).suffix.lower()
+        reason = (f"embedded {ext[1:].upper() or 'file'} is not a PDF or Word file: {filename}"
+                  if filename and ext not in (".pdf", ".docx") else
+                  f"embedded file of type {ctype}" if ctype and not DOCUMENT.search(ctype) else
+                  f"embedded file larger than 50 MB ({size // 1_000_000} MB)" if size > MAX_BYTES else "")
+        if reason:
             with self.lock:
-                self.manifest["skipped"][url] = (f"embedded file of type {ctype}" if ctype and not DOCUMENT.search(ctype)
-                                                 else f"embedded file larger than 50 MB ({size // 1_000_000} MB)")
+                self.manifest["skipped"][url] = reason
             return None
         try:
             data, ctype, _, filename = self._get(url)
@@ -426,9 +436,13 @@ class Crawler:
             return None
         kind = "pdf" if "pdf" in ctype or data[:5] == b"%PDF-" else "docx" if "wordprocessingml" in ctype else None
         if not kind:
+            scan = "html" in ctype and b"virus" in data[:50_000].lower()  # Drive: "too large to scan for viruses"
             with self.lock:
-                self.manifest["skipped"][url] = ("embedded file not downloadable (sign-in, or download disabled)"
-                                                 if "html" in ctype else f"embedded file of type {ctype or 'unknown'}")
+                self.manifest["skipped"][url] = (
+                    "embedded file too large for Google's virus scan (over 100 MB, usually a video): not downloaded"
+                    if scan else "embedded file not downloadable (sign-in, or download disabled)" if "html" in ctype
+                    else f"embedded {Path(filename).suffix[1:].upper() or 'file'} is not a PDF or Word file: "
+                         f"{filename or ctype or 'unknown type'}")
             return None
         return url, data, kind, filename
 
