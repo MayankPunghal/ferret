@@ -45,7 +45,7 @@ p044 keyword       ANSWER  ok  kube-proxy iptables mode                         
 p045 keyword       ANSWER  ok  spread pods across zones                                   top=topology-spread-constraints            sim=0.7443 cov=1.0 rr=None
 p046 keyword       ANSWER  ok  node affinity                                              top=assign-pod-node                        sim=0.7384 cov=1.0 rr=None
 p047 keyword       ANSWER  ok  pod priority and preemption                                top=pod-priority-preemption                sim=0.8521 cov=1.0 rr=None
-p048 question      abstain BAD namespace stuck in terminating because of finalizers       top=finalizer                              sim=0.7013 cov=0.75 rr=None
+p048 question      ANSWER  BAD namespace stuck in terminating because of finalizers       top=finalizer                              sim=0.7013 cov=0.75 rr=None
 p049 keyword       ANSWER  ok  resource quota per namespace                               top=resource-quotas                        sim=0.7827 cov=0.75 rr=None
 p050 keyword       ANSWER  ok  default memory limit for a namespace                       top=memory-default-namespace               sim=0.8314 cov=1.0 rr=None
 p051 keyword       ANSWER  ok  ingress TLS certificate                                    top=ingress                                sim=0.7806 cov=1.0 rr=None

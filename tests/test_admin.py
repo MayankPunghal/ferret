@@ -82,7 +82,8 @@ def test_reranker_search_path(client, corpus):
             "gate_mode": "rerank_and_similarity", "gate_rerank_min": 0.0})
         res = search(client, alice, "how do I roll back the orders service")
         assert res["index"]["reranker"] == "Xenova/ms-marco-MiniLM-L-6-v2" and "rerank" in res["timings_ms"]
-        assert all(r["signals"]["rerank_score"] is not None for r in res["results"])
+        assert all(r["signals"]["rerank_score"] is not None for r in res["results"]
+                   if "more_documents" not in r["signals"]["branches"])
         assert res["results"][0]["title"] == "Orders Service Deployment Runbook"
         top = res["results"][0]
         assert top["text"] and top["passage_url"] == f"/api/chunks/{top['chunk_id']}"

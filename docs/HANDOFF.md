@@ -160,6 +160,24 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   (links and mentions) and what is related in meaning, up to 4 per group, each opening that document's
   passage (`relatedDocs` in `app.js`, from `/api/documents/{id}/links`). In the passage view the graph
   is behind "Show as graph". UI walkthrough verified (`docs/screenshots/15-related.png`).
+- **Results cover 10 documents** (`FILL_DOCUMENTS` in `search.py`): after the top 10 passages, the best
+  passage of each next document is added until 10 documents are listed (often 2–3 of the top passages are
+  from one page). Nothing is removed or re-ordered; the added passages are not reranked (branch
+  `more_documents`; with a reranker gate they count as weaker matches). New labelled set
+  `eval/k8s_relational.jsonl` (24 questions needing 2–3 pages each) and `eval/relational_eval.py`:
+  - all needed pages in the results 41.7% → **58.3%** (needed pages found 70% → 81%);
+  - Kubernetes 72 questions, fixtures and the multi-hop wiki (`graph_eval.py`): identical numbers with
+    and without it (top result, false answers, coverage, evidence recall).
+  - Tried and rejected: *one* passage per document (multi-hop wiki: right passage in the top 10 fell
+    100% → 58%); two per document (the reranker then promoted wrong pages: 94.6% → 91.1%).
+  - Related documents ranked by the question (top 2 per result) reach 79–88% with ~14 documents on screen;
+    a plain list of the 13 best documents reaches 92%. On Kubernetes the graph adds little beyond more
+    distinct documents; it is kept for browsing and for true multi-hop links (fixture wiki: dependency
+    evidence 0.24 → 0.60 with link expansion).
+- **Fixture drift found:** the committed fixture results predate parse-v5 (PDFium). Re-run: document
+  hit@1 1.0 → 0.982 (k024 "incident response targets" now ranks the post-mortem PDF first) and passage
+  hit@1 0.982 → 0.893 (the PDF's passages compete more). Not caused by later changes (same with and
+  without the document fill); worth a look when the gate is re-tuned.
 - **Kubernetes without descriptions, MiniLM reranker:** top result right 94.6% (96.4% without the
   reranker); 0 false answers. The reranker helps only together with page descriptions (100%).
 - **Local language models: trialled, none shipped.** Details and the resumable plan are in

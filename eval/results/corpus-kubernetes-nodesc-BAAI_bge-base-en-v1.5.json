@@ -3,8 +3,6 @@
   "model": "BAAI/bge-base-en-v1.5",
   "reranker": null,
   "context_chars": 0,
-  "documents": 623,
-  "ingest_seconds": 1698.5,
   "passages": 8514,
   "retrieval": {
     "n": 56,
@@ -13,8 +11,8 @@
     "mrr@10": 0.982
   },
   "latency_ms": {
-    "p50": 190.6,
-    "p95": 334.9
+    "p50": 271.7,
+    "p95": 445.4
   },
   "shipped_gate": {
     "gate": {
@@ -29,23 +27,22 @@
     "unanswerable_n": 16,
     "answerable_n": 56,
     "false_answer_rate": 0.0,
-    "answer_coverage": 0.893,
-    "precision_among_answered": 0.98,
+    "answer_coverage": 0.911,
+    "precision_among_answered": 0.961,
     "false_answers": [],
     "abstained_answerable": [
       "p013",
       "p016",
       "p022",
       "p023",
-      "p034",
-      "p048"
+      "p034"
     ],
     "answered_by_category": {
       "identifier": 0.83,
       "keyword": 1.0,
       "near_negative": 0.0,
       "negative": 0.0,
-      "question": 0.71
+      "question": 0.76
     }
   },
   "gates_chosen_on_val": {
@@ -63,8 +60,8 @@
         "unanswerable_n": 8,
         "answerable_n": 28,
         "false_answer_rate": 0.0,
-        "answer_coverage": 0.929,
-        "precision_among_answered": 0.962
+        "answer_coverage": 0.964,
+        "precision_among_answered": 0.963
       },
       "test": {
         "unanswerable_n": 8,

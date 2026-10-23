@@ -1,0 +1,24 @@
+{"id": "r01", "query": "what do I need to set up so that a pod's service account can read secrets", "needs": [["service-accounts", "configure-service-account", "service-accounts-admin"], ["access-authn-authz-rbac", "rbac-good-practices"], ["secret", "distribute-credentials-secure", "secrets-good-practices"]]}
+{"id": "r02", "query": "how does the kubelet connect to the control plane and how is that connection secured", "needs": [["control-plane-node-communication"], ["kubelet-authn-authz"], ["kubelet-tls-bootstrapping", "certificate-rotation"]]}
+{"id": "r03", "query": "what happens to pods when a node runs out of memory and how do I protect important pods", "needs": [["node-pressure-eviction"], ["pod-priority-preemption"], ["quality-service-pod", "pod-qos"]]}
+{"id": "r04", "query": "upgrading a kubeadm cluster together with its etcd", "needs": [["kubeadm-upgrade"], ["configure-upgrade-etcd", "setup-ha-etcd-with-kubeadm"]]}
+{"id": "r05", "query": "limit how much CPU and memory a team's namespace can use and set defaults for containers", "needs": [["resource-quotas", "quota-memory-cpu-namespace"], ["limit-range", "memory-default-namespace", "cpu-default-namespace"]]}
+{"id": "r06", "query": "keep my application available while nodes are drained for maintenance", "needs": [["safely-drain-node"], ["configure-pdb", "disruptions"]]}
+{"id": "r07", "query": "how does a Service send traffic to its pods and what keeps track of the pod addresses", "needs": [["service", "connect-applications-service"], ["endpoint-slices"], ["virtual-ips"]]}
+{"id": "r08", "query": "how do pods get persistent storage provisioned automatically", "needs": [["persistent-volumes"], ["storage-classes"], ["dynamic-provisioning"]]}
+{"id": "r09", "query": "what replaces PodSecurityPolicy and how do I migrate", "needs": [["migrate-from-psp", "psp-to-pod-security-standards"], ["pod-security-admission"], ["pod-security-standards"]]}
+{"id": "r10", "query": "autoscale an application on CPU usage and where the metrics come from", "needs": [["horizontal-pod-autoscale", "horizontal-pod-autoscale-walkthrough"], ["resource-metrics-pipeline"]]}
+{"id": "r11", "query": "run a database with stable network identity and its own persistent volume per replica", "needs": [["statefulset", "basic-stateful-set", "run-replicated-stateful-application"], ["persistent-volumes"]]}
+{"id": "r12", "query": "give containers configuration and credentials as files in a volume", "needs": [["configure-pod-configmap", "configmap"], ["secret", "distribute-credentials-secure"], ["projected-volumes", "configure-projected-volume-storage"]]}
+{"id": "r13", "query": "move nodes from dockershim to containerd", "needs": [["migrating-from-dockershim", "check-if-dockershim-removal-affects-you"], ["change-runtime-containerd"], ["container-runtimes"]]}
+{"id": "r14", "query": "write an admission webhook and what to watch out for", "needs": [["extensible-admission-controllers"], ["admission-webhooks-good-practices"]]}
+{"id": "r15", "query": "how does the scheduler place a pod that has node affinity and must tolerate taints", "needs": [["assign-pod-node", "assign-pods-nodes-using-node-affinity"], ["taint-and-toleration"], ["kube-scheduler", "scheduling-framework"]]}
+{"id": "r16", "query": "restrict network traffic between pods and which network plugin is needed for it", "needs": [["network-policies", "declare-network-policy"], ["network-plugins"]]}
+{"id": "r17", "query": "what checks does an API request go through after the user is authenticated", "needs": [["authorization"], ["admission-controllers", "extensible-admission-controllers"], ["controlling-access"]]}
+{"id": "r18", "query": "encrypt secrets stored in etcd using an external key management service", "needs": [["encrypt-data"], ["kms-provider"]]}
+{"id": "r19", "query": "how do pods find services by DNS name and how do I debug lookups that fail", "needs": [["dns-pod-service"], ["dns-debugging-resolution"]]}
+{"id": "r20", "query": "add my own resource type to the API and a controller that manages it", "needs": [["custom-resources", "custom-resource-definitions"], ["controller"]]}
+{"id": "r21", "query": "a pod keeps crashing, how do I find out why it failed", "needs": [["debug-pods", "debug-running-pod"], ["determine-reason-pod-failure"]]}
+{"id": "r22", "query": "run a job on a schedule and delete finished jobs automatically", "needs": [["cron-jobs", "automated-tasks-with-cron-jobs"], ["ttlafterfinished"]]}
+{"id": "r23", "query": "how are kubelet client certificates issued and renewed", "needs": [["kubelet-tls-bootstrapping"], ["certificate-signing-requests"], ["certificate-rotation"]]}
+{"id": "r24", "query": "make GPUs available to pods", "needs": [["scheduling-gpus"], ["device-plugins"]]}

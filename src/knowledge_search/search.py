@@ -24,6 +24,10 @@ RRF_K = 60
 BRANCH_LIMIT = 50
 GRAPH_SEEDS = 3  # link expansion: follow the links of up to this many documents ...
 GRAPH_SLOTS = 5  # ... and reserve this many of the result slots for passages of linked documents
+# After the top `limit` passages, the best passage of each next document is added until the results cover
+# `limit` documents: often 2-3 of the top passages come from one page. Relationship questions needing several
+# pages had all of them in the results 42% -> 58% of the time; nothing is removed (eval/relational_eval.py).
+FILL_DOCUMENTS = True
 
 # Outcomes (stable API contract)
 EVIDENCE_FOUND = "evidence_found"
@@ -280,6 +284,7 @@ def search(
             pool = (pool[:keep] + extra + [c for c in pool[keep:] if c not in extra])[: len(pool)]
         timings["linked"] = (time.perf_counter() - t) * 1000
 
+    fill = _other_documents(conn, order, pool, limit) if FILL_DOCUMENTS else []
     rows_by_id: dict[int, dict] = {}
     if pool:
         rows = conn.execute(
@@ -295,7 +300,7 @@ def search(
             "FROM chunks c JOIN documents d ON d.id = c.document_id "
             "JOIN document_versions v ON v.id = c.version_id JOIN collections col ON col.id = c.collection_id "
             "WHERE c.id = ANY(%(ids)s) AND c.collection_id = ANY(%(scope)s)",
-            {"qv": qvec, "lx": lexemes, "tq": _or_tsquery(lexemes) if lexemes else "''", "ids": pool,
+            {"qv": qvec, "lx": lexemes, "tq": _or_tsquery(lexemes) if lexemes else "''", "ids": pool + fill,
              "scope": scope, "mk": model_key, "mem": in_memory},
         ).fetchall()
         rows_by_id = {r["id"]: r for r in rows}
@@ -305,6 +310,7 @@ def search(
                 if cid in sims:
                     r["sim"] = sims[cid]
     pool = [c for c in pool if c in rows_by_id]
+    fill = [c for c in fill if c in rows_by_id]
 
     rerank: dict[int, float] = {}
     if rt.rerank_enabled and pool:
@@ -322,8 +328,18 @@ def search(
     idf = _idf(conn, scope, lexemes) if lexemes else {}
     idf_total = sum(idf.values()) or 1.0
     q_ident_set = set(q_idents)
+    shown = pool[:limit]
+    docs = {rows_by_id[c]["document_id"] for c in shown}
+    for c in fill:
+        if len(docs) >= limit:
+            break
+        if rows_by_id[c]["document_id"] not in docs:
+            docs.add(rows_by_id[c]["document_id"])
+            shown.append(c)
+    if len(shown) > limit:
+        ranked["more_documents"] = shown[limit:]  # not reranked: with a reranker gate they count as weaker matches
     results: list[Result] = []
-    for rank, cid in enumerate(pool[:limit], start=1):
+    for rank, cid in enumerate(shown, start=1):
         r = rows_by_id[cid]
         hits = set(r["lex_hit"] or [])
         signals = {
@@ -372,6 +388,22 @@ def search(
         query=query, outcome=outcome, message=MESSAGES[outcome], reason_codes=reasons, results=results,
         coverage=cov, index=index_info, timings_ms={k: round(v, 2) for k, v in timings.items()},
     )
+
+
+def _other_documents(conn: Connection, order: list[int], pool: list[int], limit: int) -> list[int]:
+    """The best passage (fused order) of each of the next `limit` documents that have no passage in `pool`."""
+    if not order:
+        return []
+    doc_of = {r["id"]: r["document_id"] for r in conn.execute(
+        "SELECT id, document_id FROM chunks WHERE id = ANY(%s)", (order,))}
+    seen = {doc_of.get(c) for c in pool}
+    out = []
+    for c in order:
+        d = doc_of.get(c)
+        if d is not None and d not in seen and len(out) < limit:
+            seen.add(d)
+            out.append(c)
+    return out
 
 
 def _fuse(ranked: dict[str, list[int]], weights: dict[str, float]) -> dict[int, float]:
