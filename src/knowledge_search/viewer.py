@@ -102,3 +102,17 @@ def slides_page(filename: str, slides: list[dict], download: str = "", text_view
         for s in slides)
     return _page(filename, f"{len(slides)} slides", content,
                  _links(("Text view", text_view), ("Download original", download)), main='main class="slides"')
+
+
+def pdf_page(filename: str, source: str, download: str) -> str:
+    """The PDF viewer (static/pdfview.js with the vendored PDF.js); the browser's own viewer stays a link away."""
+    name = html.escape(filename)
+    links = _links(("Browser's PDF viewer", source), ("Download original", download))
+    zoom = ('<span class="zoom" role="group" aria-label="Zoom"><button id="zoom-out" title="Zoom out">&minus;</button>'
+            '<button id="zoom-fit" title="Fit to width">Fit</button><button id="zoom-in" title="Zoom in">+</button></span>')
+    return (f'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, '
+            f'initial-scale=1"><title>{name}</title><link rel="stylesheet" href="/pdfview.css"></head><body>'
+            f'<header><strong>{name}</strong><span id="pages" class="meta"></span>{zoom}{links}</header>'
+            f'<main id="doc" data-src="{html.escape(source)}"><p id="status">Loading&hellip; '
+            "<noscript>This viewer needs JavaScript: use the links above.</noscript></p></main>"
+            '<script type="module" src="/pdfview.js"></script></body></html>')

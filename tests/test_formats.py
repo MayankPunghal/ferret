@@ -380,3 +380,20 @@ def test_whole_document_text_in_reading_order_for_readers_only(client, corpus):
     assert doc["title"] == "Payments Service Error Code Reference" and len(doc["passages"]) >= 2
     assert "ERR-PAY-4012" in " ".join(x["text"] for x in doc["passages"])
     assert client.get(f"/api/documents/{docs['compensation-bands.md']}/text", headers=bob).status_code == 404
+
+
+def test_pdfs_open_in_the_built_in_viewer(client, corpus):
+    root = token(client, "root")
+    docs = {d["source_key"]: d["id"] for d in client.get("/api/documents", headers=root).json()}
+    pdf = docs["incident-2025-031-postmortem.pdf"]
+    page = client.get(f"/api/documents/{pdf}/view", headers=root)
+    csp = page.headers["content-security-policy"]
+    assert "script-src 'self' 'wasm-unsafe-eval'" in csp and "unsafe-eval'" not in csp.replace("wasm-unsafe-eval", "")
+    assert "connect-src 'self'" in csp and "frame-ancestors 'none'" in csp
+    assert f'data-src="/api/documents/{pdf}/source?version=indexed"' in page.text
+    assert '<script type="module" src="/pdfview.js">' in page.text and "Download original" in page.text
+    # the viewer and PDF.js are served by the app (offline), as JavaScript modules
+    for path in ("/pdfview.js", "/vendor/pdfjs/pdf.min.mjs", "/vendor/pdfjs/pdf.worker.min.mjs"):
+        r = client.get(path)
+        assert r.status_code == 200 and r.headers["content-type"].startswith("text/javascript"), path
+    assert client.get(f"/api/documents/{pdf}/source", headers=root).headers["content-type"] == "application/pdf"

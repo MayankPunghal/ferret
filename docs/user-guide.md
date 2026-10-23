@@ -37,7 +37,9 @@ evidence**. The right passage is often among them (especially for paraphrased qu
   meaning** — up to four each; click one to open its passage (the passage view lists them all);
 - **View passage**: the passage, highlighted, with the passages before and after it, formatted (lists,
   code, tables), then the summary and the document's connections. **Esc** or a click outside closes it;
-- **Open document**: the document in your browser: PDFs open at the page, HTML as itself (scripts and external
+- **Open document**: the document in your browser: PDFs in the app's own viewer (works offline; selectable
+  text, Ctrl+F across the whole file, zoom, links), at the result's page, with a link to the browser's PDF
+  viewer; HTML as itself (scripts and external
   content disabled); PowerPoint as its slides, drawn in the page (shapes, pictures, tables, SmartArt such as
   organisation charts, speaker notes under each slide) and opened at the slide the result came from, with a
   **Text view** link; Markdown, text and Word as a readable page (formatted, links to other documents open them)

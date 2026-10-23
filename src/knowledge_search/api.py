@@ -1,6 +1,7 @@
 """HTTP API (OpenAPI at /docs) and static UI. One process; optional in-process ingestion workers."""
 
 import logging
+import mimetypes
 import re
 import threading
 from contextlib import asynccontextmanager
@@ -23,6 +24,12 @@ from .ingest import BlobStore, Worker, delete_document, reindex, retry_document,
 from .parsing import CHUNKER_VERSION, DOCX, PARSER_VERSION, PPTX, ParseError
 from .search import MESSAGES, RETRIEVAL_FAILURE, coverage_for, search
 
+mimetypes.add_type("text/javascript", ".mjs")  # PDF.js modules; some systems map .mjs to nothing
+# The PDF viewer page: our own scripts only (PDF.js with eval off; WebAssembly for JPEG 2000 images), the PDF
+# fetched from this server, fonts PDF.js builds from the file, no framing.
+PDF_VIEWER_CSP = ("default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; "
+                  "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; "
+                  "frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
 log = logging.getLogger(__name__)
 LOOPBACK = {"127.0.0.1", "::1", "localhost", "testclient"}
 
@@ -385,15 +392,21 @@ def _routes(app: FastAPI) -> None:
         """The document readable in the browser: PDF and HTML as themselves; PowerPoint as its slides (or
         `text=1`: as text); Markdown, text and Word rendered as a page (raw HTML escaped, nothing can run)."""
         v, path = _original(conn, p, document_id, version, audit=False)
-        if v["media_type"] in ("application/pdf", "text/html"):  # the browser shows these itself
-            return RedirectResponse(f"/api/documents/{document_id}/source?version={version}", status_code=303)
+        source = f"/api/documents/{document_id}/source?version={version}"
+        download = f"/api/documents/{document_id}/source?download=1&version={version}"
+        if v["media_type"] == "text/html":  # the browser shows it itself (sandboxed by /source)
+            return RedirectResponse(source, status_code=303)
+        if v["media_type"] == "application/pdf":  # PDF.js page; it fetches /source, which audits the opening
+            from .viewer import pdf_page
+
+            return Response(pdf_page(v["filename"], source, download), media_type="text/html; charset=utf-8",
+                            headers={"Cache-Control": "private, no-store", "Content-Security-Policy": PDF_VIEWER_CSP})
         auth.audit(conn, p.user_id, "open_source", str(document_id))
         conn.commit()
         from .convert import docx_to_markdown, pptx_to_markdown
         from .viewer import page
 
         data = path.read_bytes()
-        download = f"/api/documents/{document_id}/source?download=1&version={version}"
         here = f"/api/documents/{document_id}/view?version={version}"
         if v["media_type"] == PPTX and not text:
             from .slides import render

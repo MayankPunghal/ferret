@@ -1,0 +1,3 @@
+pdfjs-dist 4.10.38 (legacy build, for older browsers), from https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-4.10.38.tgz
+Files: legacy/build/pdf.min.mjs, legacy/build/pdf.worker.min.mjs, cmaps/, standard_fonts/, LICENSE (Apache-2.0).
+Used by ../../pdfview.js; served from the app so PDFs open offline.

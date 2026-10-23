@@ -9,7 +9,7 @@ goal), `docs/requirements-brief.md` (every owner ask and its status), `README.md
 git clone https://github.com/MayankPunghal/knowledge-search && cd knowledge-search
 ./setup.sh --demo --no-start          # Windows: setup.bat -Demo -NoStart
 uv sync                               # adds dev tools
-uv run pytest -q                      # expect 98 passed (embedded PostgreSQL; no Docker)
+uv run pytest -q                      # expect 99 passed (embedded PostgreSQL; no Docker)
 uv run --group eval python eval/run_eval.py --reranker Xenova/ms-marco-MiniLM-L-6-v2
 ./start.sh                            # or start.bat → http://127.0.0.1:8000
 ```
@@ -39,7 +39,7 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 | Item | Status | Evidence |
 |---|---|---|
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
-| Test suite | **verified** | `uv run pytest -q` → 98 passed (summaries against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Test suite | **verified** | `uv run pytest -q` → 99 passed (summaries against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **verified by the owner** on Windows 11: install, model download, DB init and indexing; searches crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93, 2026-10-22 18:01); owner after that: "setup worked now, search returns results on Windows" (2026-10-23 00:15). **Regression
 found by the owner 2026-10-23 22:36:** the upgrade to migration 0005 (document vectors, `avg(embedding)` in SQL)
@@ -158,6 +158,13 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   - **PowerPoint (.pptx)** is read as one section per slide, with tables and speaker notes. parse-v7: SmartArt
     text (was missing entirely) and hand-drawn org charts (boxes joined by glued connectors; the upper box is
     the parent) become nested lists where each item says what it is under. Unglued lines carry no hierarchy.
+  - **PDF view**: `/view` serves a page that draws the PDF with PDF.js 4.10.38 (legacy build, vendored in
+    `static/vendor/pdfjs` with cmaps and standard fonts, 4.2 MB, so it works offline), `static/pdfview.js`:
+    pages drawn as they scroll into view, a text layer for every page (laid out in the background so Ctrl+F
+    finds text anywhere), web and in-document links, zoom and fit, `#page=N`. Its CSP allows only our own
+    scripts (eval off; `wasm-unsafe-eval` for JPEG 2000 images) and fetching from this server. Verified in
+    Chromium on a 24-page PDF, including the narrow layout. The browser's own viewer is a link on the page.
+    Not done: highlighting the result's passage on the page.
   - **Slide view** (`slides.py`): `/view` draws each slide as HTML/CSS/SVG (positions in % of the slide,
     lengths in `cqw`), with no scripts and no external loads (same CSP as the readable view). It covers theme
     colours and fonts, master/layout inheritance, preset shapes (clipped so gradients and pictures fill
