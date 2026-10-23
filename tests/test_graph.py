@@ -69,6 +69,16 @@ def test_links_impact_and_permissions(client, drain):
         assert client.get(f"/api/documents/{secret_id}/links", headers=sam).status_code == 404
         assert client.get(f"/api/documents/{secret_id}/impact", headers=sam).status_code == 404
 
+        g = client.get(f"/api/documents/{ids['service-b.md']}/graph?depth=2", headers=sam).json()
+        titles = {n["title"]: n["depth"] for n in g["nodes"]}
+        assert titles == {"Service B": 0, "Service A": 1, "Frontend": 2, "Platform Overview": 2}
+        by_id = {n["id"]: n["title"] for n in g["nodes"]}
+        edges = {(by_id[e["source"]], by_id[e["target"]], e["kind"]) for e in g["edges"]}
+        assert ("Service A", "Service B", "depends_on") in edges and ("Frontend", "Service A", "depends_on") in edges
+        g_root = client.get(f"/api/documents/{ids['service-b.md']}/graph", headers=root).json()
+        assert "Secret Project" in {n["title"] for n in g_root["nodes"]}  # readable for root only
+        assert client.get(f"/api/documents/{secret_id}/graph", headers=sam).status_code == 404
+
         # deleting a document removes its edges; re-uploading restores them
         client.delete(f"/api/documents/{ids['frontend.md']}", headers=sam)
         imp = client.get(f"/api/documents/{ids['service-b.md']}/impact?depth=3", headers=sam).json()

@@ -123,3 +123,39 @@ def impact(document_id: UUID, p: User, conn: Conn, depth: int = Query(2, ge=1, l
         frontier = nxt
     return {"document": {"id": str(root["id"]), "title": root["title"]}, "depth": depth, "nodes": nodes,
             "truncated": len(nodes) >= MAX_NODES}
+
+
+MAX_GRAPH_NODES = 60
+
+
+@router.get("/{document_id}/graph")
+def neighbourhood(document_id: UUID, p: User, conn: Conn, depth: int = Query(1, ge=1, le=2)):
+    """Nodes and typed edges around one document (links in both directions, up to `depth` hops), for the
+    graph view. Readable documents only; at most MAX_GRAPH_NODES nodes (nearest first)."""
+    scope = list(p.readable)
+    root = _check_readable(conn, scope, document_id)
+    level = {document_id: 0}
+    frontier = [document_id]
+    for d in range(1, depth + 1):
+        nxt = []
+        for doc, _seed in sorted(neighbours(conn, scope, frontier), key=lambda x: str(x[0])):
+            if doc not in level and len(level) < MAX_GRAPH_NODES:
+                level[doc] = d
+                nxt.append(doc)
+        frontier = nxt
+    ids = list(level)
+    docs = {r["id"]: r for r in conn.execute(
+        "SELECT d.id, d.title, col.name AS collection, "
+        "(SELECT c.id FROM chunks c WHERE c.document_id = d.id ORDER BY c.ordinal LIMIT 1) AS chunk_id "
+        "FROM documents d JOIN collections col ON col.id = d.collection_id WHERE d.id = ANY(%s)", (ids,))}
+    edges = conn.execute(
+        "SELECT DISTINCT l.document_id AS source, t.id AS target, l.kind FROM doc_links l JOIN documents t ON "
+        + _resolves("t", "l") + " WHERE l.document_id = ANY(%(ids)s) AND t.id = ANY(%(ids)s) AND t.id <> l.document_id "
+        "ORDER BY 1, 2, 3", {"ids": ids}).fetchall()
+    return {
+        "document": {"id": str(root["id"]), "title": root["title"]}, "depth": depth,
+        "nodes": [{"id": str(i), "title": docs[i]["title"], "collection": docs[i]["collection"], "depth": level[i],
+                   "chunk_id": docs[i]["chunk_id"]} for i in ids if i in docs],
+        "edges": [{"source": str(e["source"]), "target": str(e["target"]), "kind": e["kind"]} for e in edges],
+        "truncated": len(level) >= MAX_GRAPH_NODES,
+    }
