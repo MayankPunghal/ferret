@@ -1,0 +1,387 @@
+"""Background enrichment by a LOCAL language model: for every indexed document, a 2-sentence summary, up to 6
+topics and, when the document's own title is vague ("Overview", "Home", a file name), a clearer title.
+
+- Optional. The model is the one installed by setup (`knowledge-search download-llm`: llama.cpp's
+  llama-server + a small GGUF model, started by the app on 127.0.0.1) or any OpenAI-compatible local
+  endpoint (`KS_LLM_URL`: Ollama, LM Studio). Without one, nothing changes and nothing is sent anywhere.
+- Never in the way: one document at a time, only while no indexing job is waiting, so new files become
+  searchable first; search never waits for it.
+- Trust: summaries and topics are labelled as written by the model and are never cited as evidence.
+  With the "document summary in each passage" setting on, a document without its own description gets the
+  summary in its passage embeddings (re-indexed once) — measured: Kubernetes pages without descriptions,
+  top result 96.4% -> 98.2% with Gemma 4 E2B summaries (eval/llm_summaries.py).
+- Cost is per document (its opening text and headings), not per page: ~10-20 s on a 4-core CPU.
+"""
+
+import json
+import logging
+import os
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import threading
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+from psycopg import Connection
+from psycopg.types.json import Jsonb
+
+from . import db, runtime
+
+log = logging.getLogger(__name__)
+
+PROMPT_VERSION = 1
+SOURCE_CHARS = 3000  # opening text given to the model (plus the headings outline)
+MAX_ATTEMPTS = 3
+CLAIM_MINUTES = 15
+PROMPT = """You index internal technical documentation for search. Read the document below and reply with JSON:
+{{"title": "<a short, specific title for the document>",
+ "summary": "<2 sentences, at most 50 words: what the document is about and what it explains>",
+ "topics": ["<up to 6 systems, services, components or concepts the document relies on or relates to>"]}}
+
+Document title: {title}
+{outline}
+{text}"""
+GENERIC = {"", "home", "index", "overview", "introduction", "intro", "untitled", "document", "presentation",
+           "powerpoint presentation", "slide 1", "page 1", "readme", "main", "welcome", "new page", "draft",
+           "start", "about", "notes", "details", "summary", "general", "info", "information", "test"}
+
+
+def vague_title(title: str) -> bool:
+    """Titles that say nothing about the document (a clearer one written by the model is shown instead)."""
+    t = " ".join(title.lower().replace("_", " ").split())
+    return (t in GENERIC or re.fullmatch(r"[\w\- .()]+\.(pdf|docx?|pptx?|md|markdown|txt|html?)", t) is not None
+            or re.fullmatch(r"(doc|document|file|scan|img|image|page|slide|untitled)?[\s\-#]*\d+", t) is not None)
+
+
+# --- the model ----------------------------------------------------------------------------------------------
+
+class LLMError(Exception):
+    pass
+
+
+def chat(url: str, model: str, prompt: str, max_tokens: int = 300, timeout: float = 600) -> str:
+    body = {"messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens, "temperature": 0,
+            "response_format": {"type": "json_object"}, "chat_template_kwargs": {"enable_thinking": False}}
+    if model:
+        body["model"] = model
+    req = urllib.request.Request(url.rstrip("/") + "/chat/completions", json.dumps(body).encode(),
+                                 {"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.load(r)["choices"][0]["message"]["content"] or ""
+    except (urllib.error.URLError, OSError, KeyError, IndexError, ValueError) as e:
+        raise LLMError(f"{type(e).__name__}: {e}"[:300]) from e
+
+
+def parse_reply(raw: str) -> dict:
+    """The model's JSON reply, checked and trimmed; raises LLMError when it is not usable."""
+    raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+    m = re.search(r"\{.*\}", raw, re.DOTALL)
+    try:
+        out = json.loads(m.group(0) if m else raw)
+    except json.JSONDecodeError as e:
+        raise LLMError("reply is not JSON") from e
+    summary = " ".join(str(out.get("summary", "")).split())
+    if not summary:
+        raise LLMError("reply has no summary")
+    topics = []
+    for t in out.get("topics") or []:
+        t = " ".join(str(t).split())[:60]
+        if t and t.lower() not in {x.lower() for x in topics}:
+            topics.append(t)
+    return {"title": " ".join(str(out.get("title", "")).split())[:120], "summary": summary[:500], "topics": topics[:6]}
+
+
+def source_text(conn: Connection, document_id) -> tuple[str, str, str]:
+    """(title, headings outline, opening text) of the indexed version, from its passages."""
+    rows = conn.execute(
+        "SELECT doc_title, heading_path, text FROM chunks WHERE document_id = %s ORDER BY ordinal", (document_id,)
+    ).fetchall()
+    if not rows:
+        return "", "", ""
+    heads = list(dict.fromkeys(r["heading_path"] for r in rows if r["heading_path"]))[:40]
+    text, n = [], 0
+    for r in rows:  # passages overlap; the model only needs the gist
+        if n >= SOURCE_CHARS:
+            break
+        text.append(r["text"])
+        n += len(r["text"])
+    outline = ("Sections: " + "; ".join(heads) + "\n") if heads else ""
+    return rows[0]["doc_title"], outline, "\n\n".join(text)[:SOURCE_CHARS]
+
+
+def shown(enrichment: dict | None, indexed_version_id) -> dict:
+    """What results show: the summary, topics and clearer title, only if written for the indexed version."""
+    e = enrichment or {}
+    if not e.get("summary") or e.get("version_id") != str(indexed_version_id):
+        return {"summary": None, "topics": [], "clearer_title": None}
+    return {"summary": e["summary"], "topics": e.get("topics") or [], "clearer_title": e.get("title")}
+
+
+# --- the model installed by setup (llama.cpp's llama-server, started by the app) ----------------------------
+
+def llm_dir(settings) -> Path:
+    return Path(settings.model_cache) / "llm"
+
+
+def installed(settings) -> tuple[Path, Path] | None:
+    """(llama-server executable, .gguf model) installed by `knowledge-search download-llm`, if present."""
+    d = llm_dir(settings)
+    exe = next((p for p in (d / "bin").rglob("llama-server.exe" if sys.platform == "win32" else "llama-server")
+                if p.is_file()), None) if (d / "bin").is_dir() else None
+    chosen = settings.llm_model or ((d / "selected.txt").read_text().strip() if (d / "selected.txt").is_file() else "")
+    model = d / chosen if chosen else next(iter(sorted(d.glob("*.gguf"))), None)
+    return (exe, model) if exe and model and model.is_file() else None
+
+
+class LocalServer:
+    """llama-server on a free localhost port, for as long as the app runs."""
+
+    def __init__(self, exe: Path, model: Path, threads: int, log_dir: Path):
+        self.exe, self.model, self.threads, self.log_dir = exe, model, threads, log_dir
+        self.proc: subprocess.Popen | None = None
+        self.url = ""
+
+    def start(self, wait: float = 300) -> str:
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        env = dict(os.environ)  # the release's shared libraries sit next to the executable
+        for var in ("LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"):
+            env[var] = os.pathsep.join(filter(None, [str(self.exe.parent), env.get(var)]))
+        self._log = open(self.log_dir / "llm-server.log", "ab")  # noqa: SIM115 - the server writes to it until stop()
+        # -t: llama.cpp threads busy-wait, so only the cores we leave it (measured: 4 threads on 2 free cores
+        # made one request 6x slower). One request at a time; 8k context fits the prompt.
+        self.proc = subprocess.Popen(
+            [str(self.exe), "-m", str(self.model), "--host", "127.0.0.1", "--port", str(port), "-c", "8192",
+             "-np", "1", "-t", str(self.threads), "--jinja"],
+            stdout=self._log, stderr=subprocess.STDOUT, cwd=str(self.exe.parent), env=env,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        self.url = f"http://127.0.0.1:{port}/v1"
+        end = time.monotonic() + wait
+        while time.monotonic() < end and self.proc.poll() is None:
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/health", timeout=5) as r:
+                    if r.status == 200:
+                        return self.url
+            except OSError:
+                pass
+            time.sleep(1)
+        self.stop()
+        raise LLMError("the local language model did not start; see logs/llm-server.log")
+
+    def stop(self) -> None:
+        if self.proc and self.proc.poll() is None:
+            self.proc.terminate()
+            try:
+                self.proc.wait(10)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+        if getattr(self, "_log", None):
+            self._log.close()
+
+
+# --- the background job -------------------------------------------------------------------------------------
+
+# Indexed documents whose summary is missing, or was written for another version, model or prompt, or failed
+# fewer than MAX_ATTEMPTS times.
+PENDING = ("d.status = 'indexed' AND d.indexed_version_id IS NOT NULL "
+           "AND (d.enrichment IS NULL OR d.enrichment->>'version_id' IS DISTINCT FROM d.indexed_version_id::text "
+           "  OR d.enrichment->>'model' IS DISTINCT FROM %(model)s "
+           "  OR (d.enrichment->>'prompt')::int IS DISTINCT FROM %(prompt)s "
+           "  OR (d.enrichment ? 'error' AND (d.enrichment->>'attempts')::int < %(max)s)) ")
+
+
+def _args(model: str, **kw) -> dict:
+    return {"model": model, "prompt": PROMPT_VERSION, "max": MAX_ATTEMPTS, **kw}
+
+
+def status(conn: Connection, model: str, collections: list[int] | None = None) -> dict:
+    """Counts of indexed documents summarised / waiting / given up on, within `collections` (None = all)."""
+    scope = "" if collections is None else "AND d.collection_id = ANY(%(cols)s) "
+    args = _args(model, cols=collections)
+    n = conn.execute(
+        "SELECT count(*) FILTER (WHERE " + PENDING + ") AS pending, "
+        "count(*) FILTER (WHERE NOT (" + PENDING + ") AND d.enrichment ? 'error') AS failed, "
+        "count(*) FILTER (WHERE NOT (" + PENDING + ") AND d.enrichment ? 'summary') AS summarised "
+        "FROM documents d WHERE d.status = 'indexed' AND d.indexed_version_id IS NOT NULL " + scope, args).fetchone()
+    return {"summarised": n["summarised"], "pending": n["pending"], "failed": n["failed"]}
+
+
+def describe(enricher, conn: Connection, enabled: bool, collections: list[int]) -> str:
+    """One line for the status page."""
+    if enricher is None or not enricher.available:
+        return "no local language model installed (optional: run setup with --summaries)"
+    if not enabled:
+        return "off (Settings)"
+    c = status(conn, enricher.model, collections)
+    total = sum(c.values())
+    failed = f", {c['failed']} could not be summarised" if c["failed"] else ""
+    return f"{enricher.model}: {c['summarised']} of {total} documents{failed} · {enricher.state}"
+
+
+class Enricher:
+    def __init__(self, settings):
+        self.settings = settings
+        self.server: LocalServer | None = None
+        self.url = settings.llm_url
+        self.model = settings.llm_model
+        self.state = "off"  # off | no model | starting | waiting for indexing | working | idle | error: ...
+        self.stopping = False
+        if not self.url:
+            found = installed(settings)
+            if found:
+                threads = settings.llm_threads or max(1, (os.cpu_count() or 2) // 2)
+                self.server = LocalServer(found[0], found[1], threads, Path(settings.data_dir) / "logs")
+                self.model = found[1].name
+            else:
+                self.state = "no model"
+
+    @property
+    def available(self) -> bool:
+        return bool(self.url or self.server)
+
+    def _ensure_server(self) -> None:
+        if self.server and (self.server.proc is None or self.server.proc.poll() is not None):
+            self.state = "starting"
+            self.url = self.server.start()
+
+    def run_once(self) -> bool:
+        """Summarise one document. False when there is nothing to do (or indexing comes first)."""
+        with db.pool().connection() as conn:
+            rt = runtime.load(conn)
+            conn.commit()
+            if not rt.enrich_enabled or not self.available:
+                self.state = "off" if self.available else "no model"
+                return False
+            if conn.execute("SELECT 1 FROM jobs WHERE status IN ('queued', 'running') LIMIT 1").fetchone():
+                self.state = "waiting for indexing"
+                return False
+            with conn.transaction():
+                doc = conn.execute(
+                    "SELECT d.id, d.title, d.metadata, d.indexed_version_id, d.enrichment FROM documents d WHERE "
+                    + PENDING + "AND (d.enrich_claimed_at IS NULL OR d.enrich_claimed_at < now() - "
+                    "make_interval(mins => %(claim)s)) ORDER BY d.updated_at LIMIT 1 FOR UPDATE SKIP LOCKED",
+                    _args(self.model, claim=CLAIM_MINUTES)).fetchone()
+                if not doc:
+                    self.state = "idle"
+                    return False
+                conn.execute("UPDATE documents SET enrich_claimed_at = now() WHERE id = %s", (doc["id"],))
+            title, outline, text = source_text(conn, doc["id"])
+            conn.commit()
+            base = {"version_id": str(doc["indexed_version_id"]), "model": self.model, "prompt": PROMPT_VERSION}
+            t = time.perf_counter()
+            try:
+                self._ensure_server()
+                self.state = "working"
+                out = parse_reply(chat(self.url, self.model, PROMPT.format(title=title or doc["title"],
+                                                                          outline=outline, text=text)))
+            except LLMError as e:
+                if self.stopping:  # the app is closing: not the document's fault
+                    conn.execute("UPDATE documents SET enrich_claimed_at = NULL WHERE id = %s", (doc["id"],))
+                    conn.commit()
+                    return False
+                prev = doc["enrichment"] or {}
+                attempts = (prev.get("attempts", 0) if "error" in prev and prev.get("version_id") == base["version_id"]
+                            else 0) + 1
+                log.warning("summary failed for document %s (attempt %d): %s", doc["id"], attempts, e)
+                self.state = f"error: {e}"[:200]
+                self._store(conn, doc["id"], {**base, "error": str(e)[:300], "attempts": attempts})
+                return True
+            own = doc["metadata"].get("description") or doc["metadata"].get("summary")
+            better = out["title"] if out["title"] and vague_title(doc["title"]) else None
+            self._store(conn, doc["id"], {**base, "summary": out["summary"], "topics": out["topics"],
+                                          "title": better, "seconds": round(time.perf_counter() - t, 1)})
+            if rt.context_chars and not own:  # put the summary into this document's passage embeddings
+                from .ingest import requeue
+
+                requeue(conn, doc["id"])
+            return True
+
+    @staticmethod
+    def _store(conn: Connection, document_id, enrichment: dict) -> None:
+        with conn.transaction():
+            conn.execute("UPDATE documents SET enrichment = %s, enrich_claimed_at = NULL WHERE id = %s",
+                         (Jsonb(enrichment), document_id))
+
+    def stop(self) -> None:
+        """Stop the model server now, even mid-request (the document is picked up again next time)."""
+        self.stopping = True
+        if self.server:
+            self.server.stop()
+
+    def loop(self, stop: threading.Event, poll: float = 5.0) -> None:
+        while not stop.is_set():
+            try:
+                worked = self.run_once()
+            except Exception:  # noqa: BLE001 - keep the job alive; the error is logged and shown in status
+                log.exception("summary job failed")
+                self.state = "error: see the log"
+                worked = False
+            if not worked:
+                stop.wait(poll)
+        self.stop()
+
+
+# --- download (setup --summaries / `knowledge-search download-llm`) ----------------------------------------
+
+# The llama.cpp build the summaries were measured with; every platform's CPU build is published per release.
+LLAMA_CPP_TAG = "b11836"
+LLMS = {  # name: (Hugging Face repo, file, note)
+    "qwen3.5-0.8b": ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q4_K_M.gguf", "~0.5 GB, Apache-2.0"),
+    "gemma-4-e2b": ("unsloth/gemma-4-E2B-it-GGUF", "gemma-4-E2B-it-Q4_K_M.gguf", "~3.1 GB, Gemma terms of use"),
+}
+DEFAULT_LLM = "qwen3.5-0.8b"
+
+
+def asset_name(tag: str = LLAMA_CPP_TAG) -> str:
+    """File name of llama.cpp's CPU build for this platform in release `tag`."""
+    import platform
+
+    arch = "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x64"
+    if sys.platform == "win32":
+        return f"llama-{tag}-bin-win-cpu-{arch}.zip"
+    return f"llama-{tag}-bin-{'macos' if sys.platform == 'darwin' else 'ubuntu'}-{arch}.tar.gz"
+
+
+def unpack(archive: Path, dest: Path) -> None:
+    shutil.rmtree(dest, ignore_errors=True)
+    dest.mkdir(parents=True)
+    if archive.suffix == ".zip":
+        shutil.unpack_archive(str(archive), str(dest))
+    else:
+        shutil.unpack_archive(str(archive), str(dest), filter="data")
+    for p in dest.rglob("llama-server*"):
+        p.chmod(p.stat().st_mode | 0o111)
+
+
+def download(settings, name: str = DEFAULT_LLM) -> Path:
+    """Fetch the llama.cpp server (once) and the model `name`; selects that model. Returns the model file."""
+    from huggingface_hub import hf_hub_download
+
+    repo, file, _ = LLMS[name]
+    d = llm_dir(settings)
+    d.mkdir(parents=True, exist_ok=True)
+    if not (d / "bin" / LLAMA_CPP_TAG).is_dir():
+        url = f"https://github.com/ggml-org/llama.cpp/releases/download/{LLAMA_CPP_TAG}/{asset_name()}"
+        archive = d / asset_name()
+        print("downloading", url, flush=True)
+        req = urllib.request.Request(url, headers={"User-Agent": "knowledge-search"})
+        with urllib.request.urlopen(req, timeout=120) as r, open(archive, "wb") as f:
+            shutil.copyfileobj(r, f, 1 << 20)
+        unpack(archive, d / "bin" / "partial")
+        (d / "bin" / "partial").rename(d / "bin" / LLAMA_CPP_TAG)  # complete only once fully unpacked
+        archive.unlink()
+        for old in (d / "bin").iterdir():  # earlier builds
+            if old.name != LLAMA_CPP_TAG:
+                shutil.rmtree(old, ignore_errors=True)
+    print(f"downloading {repo}/{file}", flush=True)
+    path = Path(hf_hub_download(repo, file, local_dir=d))
+    (d / "selected.txt").write_text(file)
+    return path

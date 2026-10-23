@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass, field
 
 from psycopg import Connection
 
-from . import graph, runtime, vectors
+from . import enrich, graph, runtime, vectors
 from .auth import Principal
 from .config import memory_vectors
 from .embedder import Embedder
@@ -99,6 +99,10 @@ class Result:
     source_uri: str | None
     source_url: str
     passage_url: str
+    # written by the local language model (enrich.py), shown as such; never evidence
+    summary: str | None = None
+    topics: list[str] = field(default_factory=list)
+    clearer_title: str | None = None  # only when the document's own title is vague
 
 
 @dataclass
@@ -289,7 +293,7 @@ def search(
     if pool:
         rows = conn.execute(
             "SELECT c.id, c.document_id, c.doc_title, c.heading_path, c.page, c.anchor, c.idents, c.text, "
-            "col.name AS collection, d.metadata, d.source_uri, v.version_no, v.media_type, "
+            "col.name AS collection, d.metadata, d.source_uri, d.enrichment, d.indexed_version_id, v.version_no, v.media_type, "
             "(d.indexed_version_id IS DISTINCT FROM d.latest_version_id) AS outdated, "
             "CASE WHEN %(qv)s::vector IS NULL OR %(mem)s OR c.embedding_model <> %(mk)s THEN NULL "
             "     ELSE 1 - (c.embedding <=> %(qv)s::vector) END AS sim, "
@@ -363,6 +367,7 @@ def search(
                 media_type=r["media_type"], source_uri=r["source_uri"],
                 source_url=f"/api/documents/{doc_id}/source" + (f"#page={r['page']}" if r["page"] else ""),
                 passage_url=f"/api/chunks/{cid}",
+                **enrich.shown(r["enrichment"], r["indexed_version_id"]),
             )
         )
 

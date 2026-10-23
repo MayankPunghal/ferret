@@ -375,11 +375,12 @@ def chunk_document(doc: ParsedDocument, size: int = 900, overlap: int = 150) -> 
     return chunks
 
 
-def doc_summary(doc: ParsedDocument, limit: int) -> str:
-    """Front-matter description/summary, else the document's first paragraph, cut to `limit` characters."""
+def doc_summary(doc: ParsedDocument, limit: int, written: str = "") -> str:
+    """Front-matter description/summary, else `written` (by the local language model, enrich.py), else the
+    document's first paragraph, cut to `limit` characters."""
     if limit <= 0:
         return ""
-    s = str(doc.metadata.get("description") or doc.metadata.get("summary") or "")
+    s = str(doc.metadata.get("description") or doc.metadata.get("summary") or written or "")
     for sec in doc.sections if not s else []:
         s = next((p for p in sec.text.split("\n\n") if p.strip() and not p.lstrip().startswith(("```", "|"))), "")
         if s:

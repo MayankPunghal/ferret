@@ -43,6 +43,7 @@ class Runtime:
     gate_all_terms_min: float
     fusion_lexical_weight: float
     graph_expansion: bool  # add passages of linked documents to the results (search._linked)
+    enrich_enabled: bool  # background summaries/topics/titles by the local language model (enrich.py)
 
     def signature(self) -> str:
         ctx = f"|ctx={self.context_chars}" if self.context_chars else ""
@@ -81,7 +82,7 @@ def defaults(model: str | None = None) -> Runtime:
         gate_dense_high=high, gate_dense_min=low,
         gate_lex_coverage=lex, gate_rerank_min=s.gate_rerank_min,
         gate_mode=s.gate_mode, gate_lexical=s.gate_lexical, gate_all_terms_min=full, fusion_lexical_weight=s.fusion_lexical_weight,
-        graph_expansion=s.graph_expansion,
+        graph_expansion=s.graph_expansion, enrich_enabled=s.enrich_enabled,
     )
 
 

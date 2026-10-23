@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin, auth, db, graph, runtime
+from . import admin, auth, db, enrich, graph, runtime
 from .auth import Principal
 from .config import Settings, get_settings
 from .deps import COOKIE, Conn, User, state
@@ -64,6 +64,17 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
                 runtime.rerank_scores(rt.rerank_model, "warm up", ["warm up"])
             except runtime.RerankError as e:
                 log.warning("reranker not available yet: %s", e)
+        # Summaries run where indexing runs: here, or in `knowledge-search worker` (KS_INPROCESS_WORKERS=0).
+        state.enricher = enrich.Enricher(settings) if start_workers else None
+        if state.enricher and settings.inprocess_workers > 0:
+            if state.enricher.available:
+                log.warning("document summaries: local language model %s (runs while indexing is idle)",
+                            state.enricher.model or state.enricher.url)
+            t = threading.Thread(target=state.enricher.loop, args=(state.stop,), name="enrich", daemon=True)
+            t.start()
+            state.threads.append(t)
+        elif state.enricher:
+            state.enricher.state = "runs in the worker process"
         if start_workers:
             for i in range(settings.inprocess_workers):
                 w = Worker(state.blobs, settings.max_pdf_pages, settings.max_extracted_chars)
@@ -74,6 +85,8 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
                 state.threads.append(t)
         yield
         state.stop.set()
+        if state.enricher:  # even mid-request: the model server must not outlive the app
+            state.enricher.stop()
         for t in state.threads:
             t.join(timeout=10)
         db.close_pool()
@@ -357,7 +370,8 @@ def _routes(app: FastAPI) -> None:
     def passage(chunk_id: int, p: User, conn: Conn):
         c = conn.execute(
             "SELECT c.id, c.document_id, c.ordinal, c.heading_path, c.page, c.anchor, c.text, c.doc_title, "
-            "c.version_id, col.name AS collection, v.version_no, v.media_type, d.source_uri "
+            "c.version_id, col.name AS collection, v.version_no, v.media_type, d.source_uri, d.enrichment, "
+            "d.indexed_version_id "
             "FROM chunks c JOIN collections col ON col.id = c.collection_id "
             "JOIN document_versions v ON v.id = c.version_id JOIN documents d ON d.id = c.document_id "
             "WHERE c.id = %s AND c.collection_id = ANY(%s)",
@@ -370,7 +384,9 @@ def _routes(app: FastAPI) -> None:
             "AND ordinal BETWEEN %s AND %s ORDER BY ordinal",
             (c["version_id"], c["ordinal"] - 1, c["ordinal"] + 1),
         ).fetchall()
-        return {**dict(c), "document_id": str(c["document_id"]), "context": ctx}
+        c = dict(c)
+        written = enrich.shown(c.pop("enrichment"), c.pop("indexed_version_id"))
+        return {**c, **written, "document_id": str(c["document_id"]), "context": ctx}
 
     @app.get("/api/status")
     def status(p: User, conn: Conn):
@@ -390,6 +406,8 @@ def _routes(app: FastAPI) -> None:
                  "reranker": rt.rerank_model if rt.rerank_enabled else "off",
                  "evidence_gate": rt.gate_mode if rt.rerank_enabled else "similarity",
                  "parser_version": PARSER_VERSION}
+        index["summaries_by_local_model"] = enrich.describe(getattr(state, "enricher", None), conn, rt.enrich_enabled,
+                                                            list(p.readable))
         out = {"coverage": cov, "collections": per, "index": index}
         if p.is_admin:
             out["models"] = runtime.model_states()

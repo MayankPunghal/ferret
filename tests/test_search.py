@@ -132,9 +132,11 @@ def test_authentication_and_csrf(client, corpus):
 
 
 def test_search_makes_no_outbound_network_calls(client, corpus, monkeypatch):
-    """No generator/cloud settings exist, and a search completes with outbound sockets blocked."""
+    """No cloud/provider settings exist, the local language model is off unless installed or configured, and a
+    search completes with outbound sockets blocked."""
     fields = " ".join(Settings.model_fields).lower()
-    assert not any(w in fields for w in ("openai", "api_key", "generat", "llm", "provider"))
+    assert not any(w in fields for w in ("openai", "api_key", "provider", "token"))
+    assert Settings.model_fields["llm_url"].default == ""
 
     def blocked(*a, **k):
         raise AssertionError("outbound network call attempted")

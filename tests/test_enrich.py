@@ -1,0 +1,158 @@
+"""Background summaries by a local language model (enrich.py), against a fake OpenAI-compatible server on
+localhost: what is stored, when a clearer title is used, that indexing comes first, failures and switches."""
+
+import json
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import pytest
+
+from knowledge_search import db, enrich, runtime
+from knowledge_search.api import state
+from knowledge_search.ingest import requeue
+
+from .conftest import search, token
+
+REPLY = {"title": "Payment Retry Runbook", "summary": "How payments are retried.  Covers backoff.",
+         "topics": ["payments", "Payments", "retries"]}
+
+
+@pytest.fixture
+def fake_llm():
+    calls, reply = [], {"content": json.dumps(REPLY)}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            calls.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+            body = json.dumps({"choices": [{"message": {"content": reply["content"]}}]}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *a):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{server.server_port}/v1", calls, reply
+    server.shutdown()
+    with db.pool().connection() as c:
+        c.execute("UPDATE documents SET enrichment = NULL, enrich_claimed_at = NULL")
+        c.execute("DELETE FROM app_settings WHERE key IN ('enrich_enabled', 'context_chars')")
+
+
+def enricher(url):
+    return enrich.Enricher(state.settings.model_copy(update={"llm_url": url, "llm_model": "fake"}))
+
+
+def run_all(e, limit=500):
+    n = 0
+    while e.run_once():
+        n += 1
+        assert n < limit
+    return n
+
+
+def one_doc():
+    """An indexed document without a description of its own."""
+    with db.pool().connection() as c:
+        return c.execute("SELECT id, title FROM documents WHERE status = 'indexed' AND NOT metadata ? 'description' "
+                         "AND NOT metadata ? 'summary' ORDER BY title LIMIT 1").fetchone()
+
+
+def test_summaries_topics_and_clearer_title_only_for_vague_titles(client, corpus, drain, fake_llm):
+    url, calls, _ = fake_llm
+    doc = one_doc()
+    with db.pool().connection() as c:
+        c.execute("UPDATE documents SET title = 'Overview' WHERE id = %s", (doc["id"],))
+    try:
+        e = enricher(url)
+        n = run_all(e)
+        with db.pool().connection() as c:
+            total = c.execute("SELECT count(*) AS n FROM documents WHERE status = 'indexed'").fetchone()["n"]
+            rows = {r["id"]: r["enrichment"] for r in c.execute("SELECT id, enrichment FROM documents WHERE status = 'indexed'")}
+            titles = {r["id"]: r["title"] for r in c.execute("SELECT id, title FROM documents")}
+            st = enrich.status(c, e.model)
+    finally:
+        with db.pool().connection() as c:
+            c.execute("UPDATE documents SET title = %s WHERE id = %s", (doc["title"], doc["id"]))
+    assert n == total == len(calls) and e.state == "idle"
+    assert st == {"summarised": total, "pending": 0, "failed": 0}
+    assert calls[0]["response_format"] == {"type": "json_object"} and calls[0]["temperature"] == 0
+    assert "Document title:" in calls[0]["messages"][0]["content"]
+    for i, en in rows.items():
+        assert en["summary"] == "How payments are retried. Covers backoff."
+        assert en["topics"] == ["payments", "retries"]  # case-insensitive duplicates dropped
+        vague = i == doc["id"] or titles[i] == "ledger-config.txt"  # a bare file name is vague too
+        assert en["title"] == ("Payment Retry Runbook" if vague else None), titles[i]
+    assert not e.run_once()  # nothing left: each document is summarised once per indexed version
+
+    root = token(client, "root")
+    r = search(client, root, "ERR-PAY-4012")["results"][0]
+    assert r["summary"] == "How payments are retried. Covers backoff." and r["topics"] == ["payments", "retries"]
+    p = client.get(r["passage_url"], headers=root).json()
+    assert p["summary"] == r["summary"] and "enrichment" not in p
+
+
+def test_indexing_comes_first_and_summary_goes_into_embeddings_when_enabled(client, corpus, drain, fake_llm):
+    url, calls, _ = fake_llm
+    e = enricher(url)
+    doc = one_doc()
+    with db.pool().connection() as c:
+        assert requeue(c, doc["id"])
+    assert not e.run_once() and e.state == "waiting for indexing" and not calls
+    drain()
+    with db.pool().connection() as c:
+        runtime.save(c, {"context_chars": 300}, None)
+        # only `doc` is left to summarise
+        c.execute("UPDATE documents SET enrichment = jsonb_build_object('summary', 'x', 'version_id', "
+                  "indexed_version_id::text, 'model', 'fake', 'prompt', %s) WHERE id <> %s",
+                  (enrich.PROMPT_VERSION, doc["id"]))
+    assert e.run_once() and not e.run_once()
+    with db.pool().connection() as c:
+        job = c.execute("SELECT status FROM jobs WHERE document_id = %s ORDER BY id DESC LIMIT 1", (doc["id"],)).fetchone()
+        runtime.save(c, {"context_chars": 0}, None)
+    assert job["status"] == "queued"  # re-indexed once, with the summary in its passage embeddings
+    drain()
+    with db.pool().connection() as c:
+        en = c.execute("SELECT enrichment FROM documents WHERE id = %s", (doc["id"],)).fetchone()["enrichment"]
+    assert en["summary"]  # same version: the summary stays valid after the re-index, no loop
+    assert not e.run_once()
+
+
+def test_failures_are_retried_then_given_up(client, corpus, fake_llm):
+    url, _, reply = fake_llm
+    reply["content"] = "Sure! Here is a summary of the document."
+    e = enricher(url)
+    with db.pool().connection() as c:
+        total = c.execute("SELECT count(*) AS n FROM documents WHERE status = 'indexed'").fetchone()["n"]
+    assert e.run_once() and e.state == "error: reply is not JSON"
+    assert run_all(e) + 1 == total * enrich.MAX_ATTEMPTS
+    with db.pool().connection() as c:
+        assert enrich.status(c, "fake") == {"summarised": 0, "pending": 0, "failed": total}
+        en = c.execute("SELECT enrichment FROM documents WHERE status = 'indexed' LIMIT 1").fetchone()["enrichment"]
+    assert en["attempts"] == enrich.MAX_ATTEMPTS and "not JSON" in en["error"]
+
+
+def test_off_when_disabled_or_without_a_model(client, corpus, fake_llm, tmp_path):
+    url, calls, _ = fake_llm
+    with db.pool().connection() as c:
+        runtime.save(c, {"enrich_enabled": False}, None)
+    e = enricher(url)
+    assert not e.run_once() and e.state == "off" and not calls
+    none = enrich.Enricher(state.settings.model_copy(update={"llm_url": "", "model_cache": tmp_path}))
+    assert not none.available and not none.run_once() and none.state == "no model"
+
+
+@pytest.mark.parametrize("title,vague", [("Overview", True), ("index", True), ("Q3 report final.docx", True),
+                                         ("Page 3", True), ("12", True), ("Payment retry runbook", False),
+                                         ("Kubernetes Services", False)])
+def test_vague_titles(title, vague):
+    assert enrich.vague_title(title) is vague
+
+
+def test_parse_reply_tolerates_thinking_and_extra_text():
+    raw = '<think>hmm</think>Here you go: {"title": "T", "summary": " A  b. ", "topics": ["x", "", "y"]}'
+    assert enrich.parse_reply(raw) == {"title": "T", "summary": "A b.", "topics": ["x", "y"]}

@@ -157,6 +157,18 @@ def reindex(conn: Connection, signature: str, everything: bool = False) -> int:
     return len(rows)
 
 
+def requeue(conn: Connection, document_id: UUID) -> bool:
+    """Index an indexed document again with the current settings (e.g. to embed its new summary)."""
+    with conn.transaction():
+        doc = conn.execute("SELECT latest_version_id FROM documents WHERE id = %s AND status = 'indexed' FOR UPDATE",
+                           (document_id,)).fetchone()
+        if not doc or doc["latest_version_id"] is None:
+            return False
+        conn.execute("INSERT INTO jobs(document_id, version_id) VALUES (%s, %s)", (document_id, doc["latest_version_id"]))
+        conn.execute("UPDATE documents SET status = 'pending', updated_at = now() WHERE id = %s", (document_id,))
+    return True
+
+
 def retry_document(conn: Connection, document_id: UUID) -> bool:
     with conn.transaction():
         doc = conn.execute(
@@ -225,7 +237,10 @@ class Worker:
                 self._progress(conn, job, "reading file")
                 parsed = parse_document(self.blobs.get(job["sha256"]), job["filename"], self.max_pages, self.max_chars)
                 chunks = chunk_document(parsed, rt.chunk_size, rt.chunk_overlap)
-                summary = doc_summary(parsed, rt.context_chars)
+                written = conn.execute("SELECT enrichment->>'summary' AS s FROM documents WHERE id = %s",
+                                       (job["document_id"],)).fetchone()["s"] if rt.context_chars else None
+                conn.commit()
+                summary = doc_summary(parsed, rt.context_chars, written or "")
                 texts = [embedding_text(parsed.title, c, summary) for c in chunks]
                 step = max(embedder.batch_size * 2, 8)
                 order = sorted(range(len(texts)), key=lambda i: len(texts[i]))  # similar lengths batched together

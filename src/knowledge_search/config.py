@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     gate_rerank_min: float = 0.0
     fusion_lexical_weight: float = 0.1  # keyword-branch weight in rank fusion (dense/identifier = 1); see evaluation
     graph_expansion: bool = True  # follow links of the documents a query names (multi-hop questions); see evaluation
+    enrich_enabled: bool = True  # summaries/topics/titles by the local language model, when one is available
+
+    # Local language model for document summaries (enrich.py), OpenAI-compatible. Empty llm_url = the model
+    # installed by setup (`knowledge-search download-llm`, run by the app itself) if present, else off.
+    # Ollama: llm_url=http://127.0.0.1:11434/v1, llm_model=qwen3.5:0.8b. Nothing is sent anywhere else.
+    llm_url: str = ""
+    llm_model: str = ""
+    llm_threads: int = 0  # 0 = half the CPU cores (the app and indexing keep the rest)
 
     max_upload_mb: int = 500  # large manuals and decks are mostly images; their text is what counts
     max_pdf_pages: int = 2000
