@@ -114,6 +114,26 @@ gate unchanged (1/12 false answers, 56% coverage, precision 0.90), query latency
 (entailment) problem; it belongs to the answer-generation stage (LLM/NLI check of each cited claim).
 Rerankers are therefore used for **ordering** (default), with the similarity gate deciding evidence.
 
+**Bake-off on technical Q&A (2026-10-23):** CQADupStack *unix* (StackExchange; 5,000-post subset, 200
+seeded test queries), bge-base first stage, each reranker reorders the top 10 or 30 (`eval/beir_screen.py`,
+`eval/results/beir-cqadupstack-unix-rerank-bakeoff.json`; latencies contended with an indexing job):
+
+| Reranker | Licence | nDCG@10 top-10 / top-30 | Recall@10 top-10 / top-30 | Rerank p50 top-10 / top-30 |
+|---|---|---|---|---|
+| none (bge-base) | — | **0.597** | **0.737** | — |
+| ms-marco-MiniLM-L-6-v2 (default) | Apache-2.0 | 0.560 / 0.525 | 0.737 / 0.665 | 1.3 s / 3.7 s |
+| ms-marco-MiniLM-L-12-v2 | Apache-2.0 | 0.567 / 0.539 | 0.737 / 0.675 | 2.7 s / 7.7 s |
+| jina-reranker-v1-turbo-en | Apache-2.0 | 0.572 / 0.543 | 0.737 / 0.690 | 1.8 s / 5.2 s |
+| bge-reranker-base | MIT | 0.570 / 0.530 | 0.737 / 0.669 | 2.5 s / 7.7 s |
+| answerai-colbert-small-v1 (20-query smoke) | Apache-2.0 | 0.613 vs 0.677 base / 0.593 | — | 2.9 s / 7.7 s |
+| bge-reranker-v2-m3 (full precision) | Apache-2.0 | killed: ~14 GB RAM on this 16 GB machine | | |
+
+**Every reranker lowered quality, and more candidates lowered it further**, at 1–8 s per query. Caveat: here
+the "documents" are other users' questions and relevance means "duplicate question", which MS MARCO-trained
+cross-encoders were not trained for; SciFact (above) showed small gains at top 10. The decisive test is the
+real documentation corpus (§7). The full bge-reranker-v2-m3 does not fit a laptop CPU; only its int8 variant
+remains a candidate.
+
 ## 5. Load (earlier run, bge-small, single API process, client on the same 4 vCPUs)
 
 | Concurrency | Throughput | p50 | p95 | p99 | Errors |

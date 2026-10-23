@@ -1,0 +1,64 @@
+{
+  "dataset": "cqadupstack/unix",
+  "documents": 5000,
+  "subsampled": true,
+  "queries": 20,
+  "models": [
+    {
+      "model": "BAAI/bge-base-en-v1.5",
+      "license": "MIT",
+      "dim": 768,
+      "model_load_s": 2.8,
+      "ndcg@10": 0.6766,
+      "recall@10": 0.7875,
+      "recall@100": 0.9625,
+      "mrr@10": 0.6617,
+      "query_embed_ms_p50": 83.0,
+      "query_embed_ms_p95": 142.6,
+      "corpus_embed_s": 1229.4,
+      "docs_per_s": 4.1
+    }
+  ],
+  "rerankers": [
+    {
+      "reranker": "Xenova/ms-marco-MiniLM-L-6-v2",
+      "candidates": 10,
+      "ndcg@10": 0.633,
+      "recall@10": 0.7875,
+      "mrr@10": 0.5979,
+      "rerank_ms_p50": 546.9,
+      "rerank_ms_p95": 675.2,
+      "base": "BAAI/bge-base-en-v1.5"
+    },
+    {
+      "reranker": "Xenova/ms-marco-MiniLM-L-6-v2",
+      "candidates": 30,
+      "ndcg@10": 0.5992,
+      "recall@10": 0.6875,
+      "mrr@10": 0.5829,
+      "rerank_ms_p50": 1790.1,
+      "rerank_ms_p95": 1959.9,
+      "base": "BAAI/bge-base-en-v1.5"
+    },
+    {
+      "reranker": "answerdotai/answerai-colbert-small-v1",
+      "candidates": 10,
+      "ndcg@10": 0.6132,
+      "recall@10": 0.7875,
+      "mrr@10": 0.5685,
+      "rerank_ms_p50": 2882.0,
+      "rerank_ms_p95": 3349.5,
+      "base": "BAAI/bge-base-en-v1.5"
+    },
+    {
+      "reranker": "answerdotai/answerai-colbert-small-v1",
+      "candidates": 30,
+      "ndcg@10": 0.5926,
+      "recall@10": 0.725,
+      "mrr@10": 0.5579,
+      "rerank_ms_p50": 7732.1,
+      "rerank_ms_p95": 8270.7,
+      "base": "BAAI/bge-base-en-v1.5"
+    }
+  ]
+}

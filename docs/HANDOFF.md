@@ -95,6 +95,25 @@ pgvector/in-memory parity), Playwright walkthrough (screenshot `13-linked-search
 real corpus. Also found: the evidence gate rejects most correct answers on terse wiki sections
 (similarity 0.6–0.7 vs threshold 0.72) — re-tune thresholds on real data.
 
+## 4d. Mentions, keyword gate, real-corpus stress test (2026-10-23, later)
+
+- **Mentions** (`graph.mentions`, commit d122885): pages are linked when a passage names another page's
+  title (stemmed phrase, titles ≥ 2 words, computed at query time). With every declared link stripped from
+  the wiki, mentions alone match declared links (deps 0.25 → 0.64). Used by search expansion, the
+  Connections list and the graph view (dotted edges). Not yet: aliases / identifiers / one-word titles.
+- **Keyword gate** (26afcfd): owner reported "exact words, still no evidence" (Qwen3 + bge-reranker-base,
+  untuned thresholds). Short queries have cosine 0.54–0.71 with every model. New rule: all query terms in the
+  passage + similarity ≥ `gate_all_terms_min`; 40 keyword queries added to `eval/queries.jsonl`; Qwen3 tuned
+  (0.78/0.64/0.20/0.45): fixtures test answered 0.86, false answers 1/20; bge-base 0.68 and 3/20. Switching
+  the reranker now resets a stored reranker-score threshold. Recommend gate mode **similarity**.
+- **Real corpus** (ed5c956): `eval/make_k8s_corpus.py` (623 Kubernetes pages), `eval/k8s_queries.jsonl`
+  (56 answerable, 16 must-refuse), `eval/corpus_eval.py` (per-query table). bge-base: 56/56 in top 5, 1/16
+  false answers, 87.5% answered. It exposed 4 parser/gate bugs, fixed in parse-v4 (bare "2.0" as identifier,
+  `{#id}` headings, camelCase keys, loose front matter). Re-measurement with parse-v4, document-summary
+  context (`--context-chars`) and Qwen3: see docs/evaluation.md §7 (pending at time of writing).
+- **Bake-off harness:** `eval/beir_screen.py` takes `cqadupstack/<forum>` (technical StackExchange Q&A),
+  several `--rerank-candidates`, `--max-queries`, and ColBERT (late-interaction) models.
+
 ## 5. Decisions made this session (details: docs/architecture.md)
 
 Embedded PostgreSQL + vendored Windows DLL; in-memory vector search for laptops; runtime-editable
