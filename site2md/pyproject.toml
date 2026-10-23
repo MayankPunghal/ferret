@@ -1,6 +1,6 @@
 [project]
 name = "site2md"
-version = "0.1.0"
+version = "0.2.0"
 description = "Save a website or intranet as Markdown files, one per page (for search indexes and LLM tools)"
 readme = "README.md"
 requires-python = ">=3.11"

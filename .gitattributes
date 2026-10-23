@@ -5,3 +5,4 @@
 fixtures/**/*.md text eol=lf
 fixtures/**/*.txt text eol=lf
 *.pdf binary
+*.command text eol=lf

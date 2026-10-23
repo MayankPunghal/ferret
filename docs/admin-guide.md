@@ -86,8 +86,9 @@ Later runs drop `--login`. Browser mode also renders pages that build their cont
   - Embedded Google Sheets, videos and Drive files whose owner disabled downloads are not saved.
   - Access rights are not copied: put pages with different audiences into different collections and grant
     them as usual.
-- **Sharing the crawler:** `uv build --package site2md -o dist` builds a wheel. Others install it with
-  `uv tool install "site2md[browser] @ ./site2md-0.1.0-py3-none-any.whl"`.
+- **Sharing the crawler:** zip the `site2md/` folder. People who are not technical double-click
+  `Crawl Website.bat` (Windows) or `Crawl Website.command` (macOS). It installs what it needs on first use,
+  asks for the address, opens a browser for the sign-in, and saves the pages in `site2md/output/<name>/`.
 
 ## Index status and jobs
 
