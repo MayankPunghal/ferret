@@ -118,44 +118,46 @@ def _docx(text: str) -> bytes:
     return buf.getvalue()
 
 
-def test_embedded_google_drive_documents_are_saved_as_markdown(tmp_path):
-    pdf_id, doc_id = "1" + "a" * 30, "1" + "b" * 30
-    text = "Employees can claim expenses within 30 days. Managers approve claims in the HR system. " * 3
-    hr = ("<html><head><title>HR Corner</title></head><body><main><h1>HR Corner</h1>"
-          f"<p>{text}</p><a href='/hr/pip'>PIP policy</a>"
-          f'<div data-url="https://docs.google.com/document/d/{doc_id}/edit"></div></main></body></html>')
-    pip = ("<html><head><title>Postmortem</title></head><body><main><h1>Postmortem</h1>"
+def test_embedded_google_drive_documents_are_saved_and_linked(tmp_path):
+    pdf_id, doc_id, video_id = "1" + "a" * 30, "1" + "b" * 30, "1" + "c" * 30
+    hr = ("<html><head><title>HR Corner</title></head><body><main><h1>HR Corner</h1><p>Policies.</p>"
+          f"<a href='/hr/pip'>PIP policy</a><div data-url='https://docs.google.com/document/d/{doc_id}/edit'></div>"
+          f"<iframe src='https://drive.google.com/file/d/{video_id}/preview'></iframe></main></body></html>")
+    pip = ("<html><head><title>PIP Policy</title></head><body><main><h1>PIP Policy</h1>"
            f'<iframe src="https://drive.google.com/file/d/{pdf_id}/preview"></iframe></main></body></html>')
     pdf = (Path(__file__).parent.parent / "fixtures/corpus/engineering/incident-2025-031-postmortem.pdf").read_bytes()
     docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     served = {"https://intranet.example/hr": (hr.encode(), "text/html", ""),
               "https://intranet.example/hr/pip": (pip.encode(), "text/html", ""),
-              EXPORT["file"].format(pdf_id): (pdf, "application/pdf", "Incident 2025-031.docx.pdf"),
-              EXPORT["document"].format(doc_id): (_docx("Twenty days of paid leave."), docx, "Leave Policy.docx")}
+              EXPORT["file"].format(pdf_id): (pdf, "application/pdf", "SF PIP Policy.docx.pdf"),
+              EXPORT["document"].format(doc_id): (_docx("Twenty days of paid leave."), docx, "Leave Policy.docx"),
+              EXPORT["file"].format(video_id): (b"\0" * 10, "video/mp4", "Show and tell.mp4")}
+    downloaded = []
 
     class Intranet(Crawler):
+        def _head(self, url):
+            return served[url][1], len(served[url][0])
+
         def _get(self, url, page=False):
             if url not in served:
                 raise urllib.error.HTTPError(url, 404, "not found", None, None)
+            downloaded.append(url)
             data, ctype, filename = served[url]
             return data, ctype, url, filename
 
     m = Intranet("https://intranet.example/hr", tmp_path, delay=0, robots=False, log=lambda *_: None).run()
-    assert m["files"] == {EXPORT["file"].format(pdf_id): "incident-2025-031.md",
-                          EXPORT["document"].format(doc_id): "leave-policy.md"}
-    # a heading around a viewer is not saved as a page: the document is, with the page's title and URL
-    assert m["pages"]["https://intranet.example/hr/pip"] == {"file": "incident-2025-031.md", "title": "Postmortem",
-                                                             "document_only": True}
-    incident = (tmp_path / "incident-2025-031.md").read_text()
-    assert 'title: "Postmortem"' in incident and 'source_url: "https://intranet.example/hr/pip"' in incident
-    assert "## Page 1" in incident and "document_url:" in incident
-    leave = (tmp_path / "leave-policy.md").read_text()
-    assert "Twenty days of paid leave." in leave and 'source_url: "https://intranet.example/hr"' in leave
-    # a page with text of its own links its documents
-    assert sorted(p.name for p in tmp_path.glob("*")) == ["hr.md", "incident-2025-031.md", "leave-policy.md",
-                                                         "manifest.json"]
+    # documents are saved as they are (the indexer reads PDF and Word itself), named after the file
+    assert m["files"] == {EXPORT["file"].format(pdf_id): "sf-pip-policy.pdf",
+                          EXPORT["document"].format(doc_id): "leave-policy.docx"}
+    assert (tmp_path / "sf-pip-policy.pdf").read_bytes() == pdf
+    # a video is recognised before downloading and skipped
+    assert EXPORT["file"].format(video_id) not in downloaded
+    assert "video/mp4" in m["skipped"][EXPORT["file"].format(video_id)]
+    # every page keeps its own text and links its documents, so search finds both and they are connected
+    assert sorted(p.name for p in tmp_path.glob("*.md")) == ["hr-pip.md", "hr.md"]
+    assert "- [SF PIP Policy.docx.pdf](sf-pip-policy.pdf)" in (tmp_path / "hr-pip.md").read_text()
     md = (tmp_path / "hr.md").read_text()
-    assert "[PIP policy](incident-2025-031.md)" in md and "- [Leave Policy.docx](leave-policy.md)" in md
+    assert "[PIP policy](hr-pip.md)" in md and "- [Leave Policy.docx](leave-policy.docx)" in md
 
 
 def test_page_text_outside_the_main_element_is_kept():
@@ -164,7 +166,16 @@ def test_page_text_outside_the_main_element_is_kept():
                              "a year.</p></article></body>")
     assert "Sick Leave" in md and "Fifteen days" in md and "Menu" not in md
     # a "main" element holding only the title banner (site builders): the page text is not lost
-    body = "Every employee is eligible for fifteen days of medical leave a year. " * 5
+    body = "Every employee is eligible for fifteen days of medical leave a year. " * 2
     _, md = html_to_markdown(f"<body><div role='main'><h1>Medical Leave</h1></div><section><p>{body}</p>"
                              "</section></body>")
     assert "fifteen days of medical leave" in md
+    # Google Sites: the banner in "main", the sessions in sections after it; the site footer is not content
+    sessions = "".join(f"<section><h2>Team {n} - June 2023</h2><p>Here's the presentation by team {n}</p></section>"
+                       for n in range(3))
+    _, md = html_to_markdown("<body><nav><a href='/'>Home</a></nav><div role='main'><p>We want to hear what you "
+                             f"have been doing!</p></div>{sessions}<footer>Report abuse. Page details.</footer></body>")
+    assert "## Team 2 - June 2023" in md and "Report abuse" not in md
+    # a docs page: the text outside <main> is only a footer note, so <main> alone is kept
+    _, md = html_to_markdown(f"<body><main><h1>Runbook</h1><p>{body}</p></main><div>Built with MkDocs</div></body>")
+    assert "Built with MkDocs" not in md

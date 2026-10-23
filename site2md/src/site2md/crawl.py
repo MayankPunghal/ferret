@@ -1,6 +1,6 @@
-"""Website → Markdown crawler: point it at a URL, get one Markdown file per page, and per PDF / Word file the
-site links to or embeds. Standard library plus pypdf; ``--browser`` (optional ``playwright`` package) drives
-a real browser for sites behind a login or that build pages with JavaScript.
+"""Website → Markdown crawler: point it at a URL, get one Markdown file per page, plus the original PDF / Word
+files the site links to or embeds. Standard library only; ``--browser`` (optional ``playwright`` package)
+drives a real browser for sites behind a login or that build pages with JavaScript.
 
     site2md https://wiki.example.internal/ --out wiki-docs
     site2md https://sites.google.com/acme.com/intranet/home --out intranet --browser --login   # sign in once
@@ -36,7 +36,6 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import parse_qsl, urldefrag, urlencode, urljoin, urlsplit, urlunsplit
 
-from .docs import document_to_markdown
 from .html import html_to_markdown
 
 USER_AGENT = "site2md/1 (documentation crawler)"
@@ -51,7 +50,8 @@ SKIP_TYPES = re.compile(r"\.(png|jpe?g|gif|svg|webp|ico|css|js|mjs|json|xml|zip|
 TRACKING = re.compile(r"^(utm_\w+|fbclid|gclid|mc_cid|mc_eid|_ga|ref|sessionid|jsessionid|phpsessid|sid|authuser)$",
                       re.IGNORECASE)  # authuser: Google's account selector, same page
 MAX_BYTES = 50_000_000
-THIN_PAGE = 200  # characters of text besides headings: below this, a page with embedded documents is not saved
+DOCUMENT = re.compile(r"pdf|wordprocessingml|octet-stream|html", re.IGNORECASE)  # worth downloading (html: an
+# answer such as "download disabled", recorded as such)
 # Google Drive / Docs / Slides files embedded in a page (Google Sites viewers, iframes, links): downloaded
 # with the same sign-in, saved next to the page and linked from it
 EMBED = re.compile(r"https://(?:drive|docs)\.google\.com/(?:a/[\w.-]+/)?(file|document|presentation)/d/([\w-]{20,})")
@@ -135,7 +135,14 @@ class BrowserFetcher:
         r = self.ctx.request.get(url, timeout=120_000)  # files and non-HTML: same cookies, no rendering
         if r.status >= 400:
             raise urllib.error.HTTPError(url, r.status, r.status_text, None, None)
+        if len(r.body()) > MAX_BYTES:
+            raise ValueError("larger than 50 MB")
         return r.body(), r.headers.get("content-type", ""), r.url, _filename(r.headers.get("content-disposition", ""))
+
+    def head(self, url: str) -> tuple[str, int]:
+        """(content type, size) without downloading the body; ("", 0) when the server does not say."""
+        r = self.ctx.request.head(url, timeout=60_000)
+        return (r.headers.get("content-type", ""), int(r.headers.get("content-length") or 0)) if r.ok else ("", 0)
 
     def close(self) -> None:
         self.ctx.close()
@@ -155,9 +162,8 @@ def embedded_documents(html: str) -> list[str]:
     return list(dict.fromkeys(EXPORT[kind].format(doc_id) for kind, doc_id in EMBED.findall(html.replace("\\/", "/"))))
 
 
-def _front(title: str, source_url: str, document_url: str = "") -> str:
-    doc = f"document_url: {json.dumps(document_url)}\n" if document_url else ""
-    return (f"---\ntitle: {json.dumps(title)}\nsource_url: {json.dumps(source_url)}\n{doc}"
+def _front(title: str, source_url: str) -> str:
+    return (f"---\ntitle: {json.dumps(title)}\nsource_url: {json.dumps(source_url)}\n"
             f"crawled_at: {datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}\n---\n\n")
 
 
@@ -242,7 +248,8 @@ def slug_for(url: str, used: set[str], root: str = "") -> str:
 class Crawler:
     def __init__(self, start: str, out: Path, *, prefixes: list[str] | None = None, allow_hosts: list[str] | None = None,
                  max_pages: int = 10_000, workers: int = 4, delay: float = 0.2, headers: dict | None = None,
-                 robots: bool = True, files: bool = True, timeout: float = 30, log=print, browser=None):
+                 robots: bool = True, files: bool = True, timeout: float = 30, log=print, browser=None,
+                 save_html: Path | None = None):
         self.start, self.out = normalize(start), Path(out)
         host = urlsplit(self.start).netloc
         folder = self.start if self.start.endswith("/") else self.start.rsplit("/", 1)[0] + "/"
@@ -253,6 +260,7 @@ class Crawler:
         self.max_pages, self.workers, self.delay, self.timeout = max_pages, workers, delay, timeout
         self.headers = {"User-Agent": USER_AGENT, **(headers or {})}
         self.robots, self.files, self.log = robots, files, log
+        self.save_html = Path(save_html) if save_html else None  # the HTML each page was converted from
         self.browser = browser  # BrowserFetcher: pages are rendered in a signed-in browser (one at a time)
         if browser:
             self.workers = 1
@@ -296,6 +304,16 @@ class Crawler:
             if len(data) > MAX_BYTES:
                 raise ValueError("larger than 50 MB")
             return data, r.headers.get("Content-Type", ""), r.geturl(), r.headers.get_filename() or ""
+
+    def _head(self, url: str) -> tuple[str, int]:
+        try:
+            if self.browser:
+                return self.browser.head(url)
+            req = urllib.request.Request(url, headers=self.headers, method="HEAD")
+            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                return r.headers.get("Content-Type", ""), int(r.headers.get("Content-Length") or 0)
+        except Exception:  # noqa: BLE001 - HEAD not supported: decide after downloading
+            return "", 0
 
     def sitemap_urls(self) -> list[str]:
         root = "{0.scheme}://{0.netloc}".format(urlsplit(self.start))
@@ -369,6 +387,12 @@ class Crawler:
             if url in self.seen:
                 return None
             self.seen.add(url)
+        ctype, size = self._head(url)  # videos and other large files are not downloaded only to be dropped
+        if (ctype and not DOCUMENT.search(ctype)) or size > MAX_BYTES:
+            with self.lock:
+                self.manifest["skipped"][url] = (f"embedded file of type {ctype}" if ctype and not DOCUMENT.search(ctype)
+                                                 else f"embedded file larger than 50 MB ({size // 1_000_000} MB)")
+            return None
         try:
             data, ctype, _, filename = self._get(url)
         except Exception as e:  # noqa: BLE001 - e.g. download disabled by the owner
@@ -383,52 +407,30 @@ class Crawler:
             return None
         return url, data, kind, filename
 
-    def _save_file(self, url: str, data: bytes, kind: str, filename: str = "", title: str = "",
-                   page_url: str = "") -> str:
-        """Save a linked or embedded document. PDF and Word files become Markdown (front matter: title,
-        source_url = the page showing it, document_url); a file without text (scanned PDF) is kept as it is."""
+    def _save_file(self, url: str, data: bytes, kind: str, filename: str = "") -> str:
+        """Save a linked or embedded document as it is (the indexer reads PDF and Word files itself)."""
         digest = hashlib.sha256(data).hexdigest()
+        stem = re.sub(r"(?i)(\.(pdf|docx?|pptx?|xlsx?))+$", "", filename).strip()
         with self.lock:
             if digest in self.hashes:
                 self.manifest["files"].setdefault(url, self.hashes[digest])
                 return self.hashes[digest]
-        doc_title, md = "", ""
-        if kind in ("pdf", "docx"):
-            try:
-                doc_title, md = document_to_markdown(data, kind)
-            except Exception:  # noqa: BLE001, S110 - damaged or protected: the original is kept
-                pass
-        stem = re.sub(r"(?i)(\.(pdf|docx?|pptx?|xlsx?))+$", "", filename).strip()
-        with self.lock:
-            if digest in self.hashes:  # saved by another worker meanwhile
-                self.manifest["files"].setdefault(url, self.hashes[digest])
-                return self.hashes[digest]
             name = slug_for("/" + re.sub(r"[?#]", " ", stem), self.used) if stem else slug_for(url, self.used, self.root)
-            name += ".md" if md.strip() else "." + kind
+            name += "." + kind
             self.hashes[digest] = name
             self.manifest["files"][url] = name
-        if md.strip():
-            title = title or doc_title or stem or name.removesuffix(".md")
-            (self.out / name).write_text(_front(title, page_url or url, url if page_url else "") + md + "\n",
-                                         encoding="utf-8")
-        else:
-            (self.out / name).write_bytes(data)
+        (self.out / name).write_bytes(data)
         return name
 
     def _save_page(self, url: str, html: str, attached: list[tuple] = ()) -> None:
         title, md = html_to_markdown(html)
-        # only a heading around a document viewer: the document is saved (with the page's title and URL)
-        # instead of a title-only page, and links to the page lead to it
-        thin = bool(attached) and len(re.sub(r"(?m)^#+ .*$", "", md).strip()) < THIN_PAGE
-        docs = []
+        docs = []  # (label, url, local file)
         for doc_url, data, kind, filename in attached:
-            name = filename if data is None else self._save_file(
-                doc_url, data, kind, filename, title=title if thin and len(attached) == 1 else "", page_url=url)
-            docs.append((name if data is None else filename or name, doc_url, name))
-        if thin:
-            with self.lock:
-                self.manifest["pages"][url] = {"file": docs[0][2], "title": title, "document_only": True}
-            return
+            if data is None:  # saved from an earlier page: filename is the local file
+                docs.append((filename, doc_url, filename))
+            else:
+                name = self._save_file(doc_url, data, kind, filename)
+                docs.append((filename or name, doc_url, name))
         if docs:  # embedded documents: linked, so they are connected to this page after ingest
             md += "\n\n## Attached documents\n\n" + "\n".join(f"- [{label}]({u})" for label, u, _ in docs)
         digest = hashlib.sha256(md.encode()).hexdigest()
@@ -442,6 +444,9 @@ class Crawler:
                                            **({"attached": [name for _, _, name in docs]} if docs else {})}
         title = title or (re.search(r"(?m)^#\s+(.+)$", md) or [None, urlsplit(url).path])[1]
         (self.out / name).write_text(_front(title, url) + md + "\n", encoding="utf-8")
+        if self.save_html:
+            self.save_html.mkdir(parents=True, exist_ok=True)
+            (self.save_html / name.replace(".md", ".html")).write_text(html, encoding="utf-8")
 
     # -- crawl -----------------------------------------------------------------------------------------------
     def run(self, resume: bool = False) -> dict:
@@ -458,8 +463,6 @@ class Crawler:
         if resume and mpath.exists():
             self.manifest = json.loads(mpath.read_text())
             for url, v in self.manifest["pages"].items():
-                if v.get("document_only"):
-                    continue
                 self.used.add(v["file"].removesuffix(".md"))
                 self.hashes[hashlib.sha256((self.out / v["file"]).read_bytes()).hexdigest()] = v["file"]
             for name in self.manifest["files"].values():
@@ -502,8 +505,6 @@ class Crawler:
         with self.lock:
             if url in m["pages"]:
                 page = m["pages"][url]
-                if page.get("document_only"):
-                    return "-> no page text, only the embedded document " + page["file"]
                 extra = f" + {len(page['attached'])} attached document(s)" if page.get("attached") else ""
                 return "-> " + page["file"] + (" (no text)" if page.get("empty") and not extra else "") + extra
             for key, label in (("files", "-> "), ("failed", "FAILED: "), ("skipped", "skipped: ")):
@@ -544,8 +545,6 @@ class Crawler:
 
         suffix = self.site_suffix()
         for url, v in self.manifest["pages"].items():
-            if v.get("document_only"):
-                continue
             path = self.out / v["file"]
             text = path.read_text(encoding="utf-8")
             new = re.sub(r"\]\(([^)\s]+)\)", lambda m, u=url: f"]({fix(u, m.group(1))})", text)

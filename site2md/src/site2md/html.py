@@ -1,6 +1,6 @@
 """HTML → Markdown for documentation and wiki pages (MkDocs, Sphinx, Confluence, Google Sites, generated
 wikis). Standard library only. When the page has <main>/<article>/role="main" elements only those are used
-(unless most of the text is outside them), so menus and footers are not kept; <script>, <style>, <nav>,
+(unless they miss a good part of the page's own text), so menus and footers are not kept; <script>, <style>, <nav>,
 navigation roles and sidebars are always dropped. <a href> becomes a Markdown link."""
 
 import re
@@ -45,7 +45,8 @@ class _Html(HTMLParser):
         elif self.skip:
             self.skip[1] += tag == self.skip[0]
             return
-        elif tag in SKIP or a.get("role") in SKIP_ROLES or SKIP_CLASSES & set(a.get("class", "").split()):
+        elif (tag in SKIP or a.get("role") in SKIP_ROLES or SKIP_CLASSES & set(a.get("class", "").split())
+              or (tag == "footer" and not self.only_main)):  # whole page: the site footer is not content
             self.skip = [tag, 1]
             return
         elif self.main:
@@ -128,9 +129,9 @@ def _own_text(md: str) -> int:
 def html_to_markdown(html: str) -> tuple[str, str]:
     """(title, markdown)."""
     p = _convert(html, only_main=bool(_MAIN.search(html)))
-    if p.only_main:  # a "main" element that holds only part of the text (site builders): use the whole page
-        whole = _convert(html, only_main=False)
-        if _own_text("".join(whole.out)) > 2 * _own_text("".join(p.out)) + 200:
+    if p.only_main:  # text outside <main> that is not menus or footer (site builders put sections there):
+        whole = _convert(html, only_main=False)  # keep the whole page rather than miss content
+        if _own_text("".join(whole.out)) > 1.25 * _own_text("".join(p.out)) + 100:
             p = whole
     md = "".join(p.out)
     md = re.sub(r"[\ue000-\uf8ff¶]", "", md)  # icon-font glyphs and pilcrow permalinks

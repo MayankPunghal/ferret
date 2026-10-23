@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -30,6 +30,8 @@ def main(argv: list[str] | None = None) -> None:
                    "(default: ~/.site2md/profile-<channel>, one per browser)")
     b.add_argument("--show-browser", action="store_true", help="show the browser window while crawling")
     b.add_argument("--browser-path", default="", help="path to a Chromium/Chrome executable")
+    ap.add_argument("--save-html", action="store_true", help="also keep the HTML each page was converted from, "
+                    "in <out>-html (to check what a page held)")
     a = ap.parse_args(argv)
     fetcher = None
     a.profile = a.profile or str(Path.home() / ".site2md" / f"profile-{a.channel}")
@@ -44,7 +46,8 @@ def main(argv: list[str] | None = None) -> None:
     try:
         Crawler(a.url, Path(a.out), prefixes=a.prefix, allow_hosts=a.allow_host, max_pages=a.max_pages,
                 workers=a.workers, delay=a.delay, headers={k.strip(): v.strip() for k, v in headers.items()},
-                robots=not a.ignore_robots, files=not a.no_files, browser=fetcher).run(resume=a.resume)
+                robots=not a.ignore_robots, files=not a.no_files, browser=fetcher,
+                save_html=Path(str(Path(a.out)) + "-html") if a.save_html else None).run(resume=a.resume)
     finally:
         if fetcher:
             fetcher.close()
