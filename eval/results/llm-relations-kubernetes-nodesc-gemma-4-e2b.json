@@ -1,0 +1,381 @@
+{
+ "corpus": "kubernetes-nodesc",
+ "llm": "gemma-4-e2b",
+ "documents_read": 66,
+ "relations_kept": 135,
+ "relations_dropped_no_evidence": 154,
+ "median_seconds": 39.0,
+ "llm_relations": {
+  "need_recall": 0.868,
+  "all_needs": 0.667,
+  "shown_median": 14.0
+ },
+ "llm_relations_and_needs": {
+  "need_recall": 0.91,
+  "all_needs": 0.75,
+  "shown_median": 18.0
+ },
+ "rows": [
+  {
+   "id": "r01",
+   "rel": [
+    1.0,
+    true,
+    19
+   ],
+   "need": [
+    1.0,
+    true,
+    21
+   ],
+   "missing": []
+  },
+  {
+   "id": "r02",
+   "rel": [
+    0.6666666666666666,
+    false,
+    22
+   ],
+   "need": [
+    0.6666666666666666,
+    false,
+    26
+   ],
+   "missing": [
+    [
+     "kubelet-authn-authz"
+    ]
+   ]
+  },
+  {
+   "id": "r03",
+   "rel": [
+    0.3333333333333333,
+    false,
+    12
+   ],
+   "need": [
+    0.6666666666666666,
+    false,
+    18
+   ],
+   "missing": [
+    [
+     "pod-priority-preemption"
+    ]
+   ]
+  },
+  {
+   "id": "r04",
+   "rel": [
+    1.0,
+    true,
+    12
+   ],
+   "need": [
+    1.0,
+    true,
+    17
+   ],
+   "missing": []
+  },
+  {
+   "id": "r05",
+   "rel": [
+    1.0,
+    true,
+    14
+   ],
+   "need": [
+    1.0,
+    true,
+    18
+   ],
+   "missing": []
+  },
+  {
+   "id": "r06",
+   "rel": [
+    1.0,
+    true,
+    19
+   ],
+   "need": [
+    1.0,
+    true,
+    22
+   ],
+   "missing": []
+  },
+  {
+   "id": "r07",
+   "rel": [
+    0.6666666666666666,
+    false,
+    14
+   ],
+   "need": [
+    0.6666666666666666,
+    false,
+    16
+   ],
+   "missing": [
+    [
+     "endpoint-slices"
+    ]
+   ]
+  },
+  {
+   "id": "r08",
+   "rel": [
+    1.0,
+    true,
+    14
+   ],
+   "need": [
+    1.0,
+    true,
+    18
+   ],
+   "missing": []
+  },
+  {
+   "id": "r09",
+   "rel": [
+    0.6666666666666666,
+    false,
+    16
+   ],
+   "need": [
+    1.0,
+    true,
+    22
+   ],
+   "missing": []
+  },
+  {
+   "id": "r10",
+   "rel": [
+    1.0,
+    true,
+    15
+   ],
+   "need": [
+    1.0,
+    true,
+    17
+   ],
+   "missing": []
+  },
+  {
+   "id": "r11",
+   "rel": [
+    1.0,
+    true,
+    15
+   ],
+   "need": [
+    1.0,
+    true,
+    21
+   ],
+   "missing": []
+  },
+  {
+   "id": "r12",
+   "rel": [
+    1.0,
+    true,
+    13
+   ],
+   "need": [
+    1.0,
+    true,
+    18
+   ],
+   "missing": []
+  },
+  {
+   "id": "r13",
+   "rel": [
+    1.0,
+    true,
+    11
+   ],
+   "need": [
+    1.0,
+    true,
+    15
+   ],
+   "missing": []
+  },
+  {
+   "id": "r14",
+   "rel": [
+    1.0,
+    true,
+    13
+   ],
+   "need": [
+    1.0,
+    true,
+    17
+   ],
+   "missing": []
+  },
+  {
+   "id": "r15",
+   "rel": [
+    0.6666666666666666,
+    false,
+    16
+   ],
+   "need": [
+    0.6666666666666666,
+    false,
+    19
+   ],
+   "missing": [
+    [
+     "kube-scheduler",
+     "scheduling-framework"
+    ]
+   ]
+  },
+  {
+   "id": "r16",
+   "rel": [
+    1.0,
+    true,
+    15
+   ],
+   "need": [
+    1.0,
+    true,
+    19
+   ],
+   "missing": []
+  },
+  {
+   "id": "r17",
+   "rel": [
+    0.6666666666666666,
+    false,
+    14
+   ],
+   "need": [
+    1.0,
+    true,
+    17
+   ],
+   "missing": []
+  },
+  {
+   "id": "r18",
+   "rel": [
+    1.0,
+    true,
+    18
+   ],
+   "need": [
+    1.0,
+    true,
+    21
+   ],
+   "missing": []
+  },
+  {
+   "id": "r19",
+   "rel": [
+    1.0,
+    true,
+    14
+   ],
+   "need": [
+    1.0,
+    true,
+    20
+   ],
+   "missing": []
+  },
+  {
+   "id": "r20",
+   "rel": [
+    0.5,
+    false,
+    13
+   ],
+   "need": [
+    0.5,
+    false,
+    15
+   ],
+   "missing": [
+    [
+     "controller"
+    ]
+   ]
+  },
+  {
+   "id": "r21",
+   "rel": [
+    1.0,
+    true,
+    12
+   ],
+   "need": [
+    1.0,
+    true,
+    16
+   ],
+   "missing": []
+  },
+  {
+   "id": "r22",
+   "rel": [
+    1.0,
+    true,
+    13
+   ],
+   "need": [
+    1.0,
+    true,
+    19
+   ],
+   "missing": []
+  },
+  {
+   "id": "r23",
+   "rel": [
+    0.6666666666666666,
+    false,
+    14
+   ],
+   "need": [
+    0.6666666666666666,
+    false,
+    18
+   ],
+   "missing": [
+    [
+     "certificate-signing-requests"
+    ]
+   ]
+  },
+  {
+   "id": "r24",
+   "rel": [
+    1.0,
+    true,
+    15
+   ],
+   "need": [
+    1.0,
+    true,
+    17
+   ],
+   "missing": []
+  }
+ ]
+}

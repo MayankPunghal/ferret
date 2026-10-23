@@ -1,0 +1,3397 @@
+{
+ "4dbcfd7a-ba3f-4983-9c5a-2ff224e5c153": {
+  "relations": [
+   {
+    "to": "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+    "type": "related",
+    "evidence": "By default, user accounts don't exist in the Kubernetes API server; instead, the API server treats user identities as opaque data."
+   },
+   {
+    "to": "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+    "type": "related",
+    "evidence": "Access control Kubernetes RBAC or other [authorization mechanisms](/docs/reference/access-authn-authz/authorization/#authorization-modules)"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "3f084512-f65c-4621-8f97-8b22a9ce5003",
+    "type": "explains",
+    "evidence": "A _ServiceAccount_ provides an identity for processes that run in a Pod."
+   }
+  ],
+  "needs": [
+   "Kubernetes RBAC",
+   "authentication",
+   "Kubernetes API"
+  ],
+  "candidates": [
+   "da7cc9f8-f316-4993-bccc-61c3bae99646",
+   "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+   "82f5052f-a102-47c3-8144-93239747f47f",
+   "6ac900fd-2b98-4c13-8a24-1bd8a0bbd60b",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "7d7af0a0-9d40-4676-bbb2-d07067aebb60",
+   "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+   "a1b744dd-e229-4614-8e2a-bcd003e08591",
+   "7c2a2dea-9740-41b9-afe8-d49f61d8ccac",
+   "3f084512-f65c-4621-8f97-8b22a9ce5003",
+   "57546f9f-08ec-47e3-80f1-b4c68424ae94",
+   "ddcfc235-a295-4e7e-8e4f-e45207420246",
+   "057bb598-263c-48f5-861a-47de09ce5444",
+   "072b437d-7771-4cee-b397-9ef374a117fd"
+  ],
+  "seconds": 31.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 11,\n      \"type\": \"explains\",\n      \"evidence\": \"A _ServiceAccount_ provides an identity for processes that run in a Pod.\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"related\",\n      \"evidence\": \"By default, user accounts don't exist in the Kubernetes API server; instead, the API server treats user identities as opaque data.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"related\",\n      \"evidence\": \"Access control Kubernetes RBAC or other [authorization mechanisms](/docs/reference/access-authn-authz/authorization/#authorization-modules)\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes RBAC\",\n    \"authentication\",\n    \"Kubernetes API\"\n  ]\n}"
+ },
+ "e2bfe3f2-d833-45ae-8f68-b6866100256c": {
+  "relations": [
+   {
+    "to": "9c0258ff-aa78-45bd-9d2f-8a79a7548c0e",
+    "type": "related",
+    "evidence": "The [Role Based Access Control Good Practices](/docs/concepts/security/rbac-good-practices/) are followed for guidance related to authentication and authorization."
+   },
+   {
+    "to": "3a793d2e-5e1a-4bf0-b983-e6539a4cff1b",
+    "type": "uses",
+    "evidence": "CNI plugins in use support network policies."
+   },
+   {
+    "to": "350e53b3-bacb-4660-b780-13b44c809b60",
+    "type": "explains",
+    "evidence": "This is most commonly done through [Network Policies](/docs/concepts/services-networking/network-policies/) which provide a namespaced resource to define rules."
+   },
+   {
+    "to": "d560be54-65ae-49fd-a2c4-24f3e7be1aa0",
+    "type": "explains",
+    "evidence": "Seccomp stands for secure computing mode and has been a feature of the Linux kernel since version 2.6.12."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+    "type": "explains",
+    "evidence": "This page provides an overview of _admission controllers_."
+   },
+   {
+    "to": "b78c825c-33a1-4d8c-b672-a37376837874",
+    "type": "explains",
+    "evidence": "The Pod Security Standards define three different _policies_ to broadly cover the security spectrum."
+   },
+   {
+    "to": "e82b3713-1ba9-490b-a41f-ef7c5ba6e4ae",
+    "type": "explains",
+    "evidence": "The Kubernetes [Pod Security Standards](/docs/concepts/security/pod-security-standards/) define different isolation levels for Pods."
+   },
+   {
+    "to": "9dc703f1-b1f3-447d-84da-0290422560e1",
+    "type": "explains",
+    "evidence": "This page shows you how to load AppArmor profiles on your nodes and enforce those profiles in Pods."
+   }
+  ],
+  "needs": [
+   "Kubernetes RBAC is a key security control to ensure that cluster users and workloads have only the access to resources required to execute their roles.",
+   "Container Network Interface (CNI) (CNI)",
+   "Kubernetes NetworkPolicies"
+  ],
+  "candidates": [
+   "9c0258ff-aa78-45bd-9d2f-8a79a7548c0e",
+   "3a793d2e-5e1a-4bf0-b983-e6539a4cff1b",
+   "350e53b3-bacb-4660-b780-13b44c809b60",
+   "60864a23-abbf-4e0b-97d0-d2c0b6e3deba",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "b78c825c-33a1-4d8c-b672-a37376837874",
+   "e82b3713-1ba9-490b-a41f-ef7c5ba6e4ae",
+   "52bcbeee-ddd2-40b9-ad86-acc554990bf2",
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+   "d560be54-65ae-49fd-a2c4-24f3e7be1aa0",
+   "9dc703f1-b1f3-447d-84da-0290422560e1",
+   "fd2cea96-1be6-4b7c-8cfa-46f21db787c1",
+   "52ecbd98-5314-434d-86c0-e81f0821fb12",
+   "0fbfee4f-62b0-4556-8134-6f6fcf37d7e9",
+   "3f084512-f65c-4621-8f97-8b22a9ce5003"
+  ],
+  "seconds": 56.9,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"related\",\n      \"evidence\": \"The [Role Based Access Control Good Practices](/docs/concepts/security/rbac-good-practices/) are followed for guidance related to authentication and authorization.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"uses\",\n      \"evidence\": \"CNI plugins in use support network policies.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"explains\",\n      \"evidence\": \"This is most commonly done through [Network Policies](/docs/concepts/services-networking/network-policies/) which provide a namespaced resource to define rules.\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"explains\",\n      \"evidence\": \"This page provides an overview of _admission controllers_.\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"explains\",\n      \"evidence\": \"The Pod Security Standards define three different _policies_ to broadly cover the security spectrum.\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"explains\",\n      \"evidence\": \"The Kubernetes [Pod Security Standards](/docs/concepts/security/pod-security-standards/) define different isolation levels for Pods.\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"explains\",\n      \"evidence\": \"Seccomp stands for secure computing mode and has been a feature of the Linux kernel since version 2.6.12.\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"explains\",\n      \"evidence\": \"This page shows you how to load AppArmor profiles on your nodes and enforce those profiles in Pods.\"\n    }\n  ],\n  \"needs\": [\n    \"K"
+ },
+ "ddcfc235-a295-4e7e-8e4f-e45207420246": {
+  "relations": [
+   {
+    "to": "2c3f6663-7c63-4a04-89e6-58f8e415c80e",
+    "type": "depends on",
+    "evidence": "1. [Enable Encryption at Rest](/docs/tasks/administer-cluster/encrypt-data/) for Secrets."
+   },
+   {
+    "to": "2093b6e8-1455-4063-83c5-9695b8a34c86",
+    "type": "related",
+    "evidence": "For more guidelines to manage and improve the security of your Secrets, refer to [Good practices for Kubernetes Secrets](/docs/concepts/security/secrets-good-practices)."
+   },
+   {
+    "to": "a864d60a-59cf-4888-a033-efa188b1336d",
+    "type": "uses",
+    "evidence": "Set environment variables for a container](/docs/tasks/inject-data-application/distribute-credentials-secure/#define-container-environment-variables-using-secret-data)."
+   },
+   {
+    "to": "0d97a537-94b4-47f1-8210-c37d264d771f",
+    "type": "uses",
+    "evidence": "Allow the kubelet to pull container images from private registries](/docs/tasks/configure-pod-container/pull-image-private-registry/)."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "7ac36939-c7ac-4f43-815f-e98ecc8af2e5",
+    "type": "related",
+    "evidence": "This page shows you how to create, edit, manage, and delete Kubernetes Secrets using the `kubectl` command-line tool."
+   }
+  ],
+  "needs": [
+   "Encryption at Rest",
+   "RBAC rules",
+   "External Secret store providers"
+  ],
+  "candidates": [
+   "2c3f6663-7c63-4a04-89e6-58f8e415c80e",
+   "da7cc9f8-f316-4993-bccc-61c3bae99646",
+   "2093b6e8-1455-4063-83c5-9695b8a34c86",
+   "a864d60a-59cf-4888-a033-efa188b1336d",
+   "0d97a537-94b4-47f1-8210-c37d264d771f",
+   "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+   "39e03ef8-f540-45de-bcaf-a4bdbb28950b",
+   "2f6ac2bd-54a2-4b88-9562-475101814f46",
+   "3f084512-f65c-4621-8f97-8b22a9ce5003",
+   "82f5052f-a102-47c3-8144-93239747f47f",
+   "4dbcfd7a-ba3f-4983-9c5a-2ff224e5c153",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "7c2a2dea-9740-41b9-afe8-d49f61d8ccac",
+   "be3bb5db-e795-41d5-ba4f-c9ae09626e05",
+   "7ac36939-c7ac-4f43-815f-e98ecc8af2e5"
+  ],
+  "seconds": 44.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"depends on\",\n      \"evidence\": \"1. [Enable Encryption at Rest](/docs/tasks/administer-cluster/encrypt-data/) for Secrets.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"related\",\n      \"evidence\": \"For more guidelines to manage and improve the security of your Secrets, refer to [Good practices for Kubernetes Secrets](/docs/concepts/security/secrets-good-practices).\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"uses\",\n      \"evidence\": \"Set environment variables for a container](/docs/tasks/inject-data-application/distribute-credentials-secure/#define-container-environment-variables-using-secret-data).\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"uses\",\n      \"evidence\": \"Allow the kubelet to pull container images from private registries](/docs/tasks/configure-pod-container/pull-image-private-registry/).\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"related\",\n      \"evidence\": \"This page shows you how to create, edit, manage, and delete Kubernetes Secrets using the `kubectl` command-line tool.\"\n    }\n  ],\n  \"needs\": [\n    \"Encryption at Rest\",\n    \"RBAC rules\",\n    \"External Secret store providers\"\n  ]\n}"
+ },
+ "741b0f75-3c58-4160-9749-1f408d8915b8": {
+  "relations": [
+   {
+    "to": "a50c160b-6c44-41d9-8da9-fe6466932f28",
+    "type": "part of",
+    "evidence": "This document catalogs the communication paths between the API server and the Kubernetes ."
+   },
+   {
+    "to": "da7cc9f8-f316-4993-bccc-61c3bae99646",
+    "type": "related",
+    "evidence": "One or more forms of [authorization](/docs/reference/access-authn-authz/authorization/) should be enabled"
+   },
+   {
+    "to": "caf878bf-6c33-4b38-acfd-f398ff435f9d",
+    "type": "configures",
+    "evidence": "Nodes should be provisioned with the public root certificate for the cluster such that they can connect securely to the API server"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "caf878bf-6c33-4b38-acfd-f398ff435f9d",
+    "type": "depends on",
+    "evidence": "In a Kubernetes cluster, the components on the worker nodes - kubelet and kube-proxy - need to communicate with Kubernetes control plane components, specificall"
+   },
+   {
+    "to": "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+    "type": "related",
+    "evidence": "One or more forms of [authentication](/docs/reference/access-authn-authz/authentication/) enabled."
+   },
+   {
+    "to": "a50c160b-6c44-41d9-8da9-fe6466932f28",
+    "type": "explains",
+    "evidence": "The API server is a component of the Kubernetes control plane that exposes the Kubernetes API."
+   }
+  ],
+  "needs": [
+   "Kubernetes API",
+   "kubelet TLS bootstrapping",
+   "Service Accounts"
+  ],
+  "candidates": [
+   "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+   "da7cc9f8-f316-4993-bccc-61c3bae99646",
+   "caf878bf-6c33-4b38-acfd-f398ff435f9d",
+   "c4441f51-eb2d-4542-90b4-b22bcfbab08e",
+   "4218ac6d-f158-4928-b6d8-ef96d5963793",
+   "8052a625-9688-4fd1-8863-61a2fa2eff8f",
+   "29e532f6-9f93-4569-8c41-c25cd5f03c22",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "cb6cde4d-a875-4f41-ba14-e033ac3ad735",
+   "2b1a075b-348f-405f-95ac-93a05562a59c",
+   "c18a7601-1714-4a58-9905-40cf0b432ab0",
+   "3c441e53-19be-48f1-bb93-71707782078d",
+   "4dbcfd7a-ba3f-4983-9c5a-2ff224e5c153",
+   "62eda4f5-8284-4924-be8c-28205351cf4e",
+   "a50c160b-6c44-41d9-8da9-fe6466932f28"
+  ],
+  "seconds": 46.4,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 15,\n      \"type\": \"part of\",\n      \"evidence\": \"This document catalogs the communication paths between the API server and the Kubernetes .\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"depends on\",\n      \"evidence\": \"In a Kubernetes cluster, the components on the worker nodes - kubelet and kube-proxy - need to communicate with Kubernetes control plane components, specificall\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"related\",\n      \"evidence\": \"One or more forms of [authentication](/docs/reference/access-authn-authz/authentication/) enabled.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"related\",\n      \"evidence\": \"One or more forms of [authorization](/docs/reference/access-authn-authz/authorization/) should be enabled\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"configures\",\n      \"evidence\": \"Nodes should be provisioned with the public root certificate for the cluster such that they can connect securely to the API server\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"explains\",\n      \"evidence\": \"The API server is a component of the Kubernetes control plane that exposes the Kubernetes API.\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes API\",\n    \"kubelet TLS bootstrapping\",\n    \"Service Accounts\"\n  ]\n}"
+ },
+ "ae78f02e-e689-4aea-bbb6-00a649cc4355": {
+  "relations": [
+   {
+    "to": "57546f9f-08ec-47e3-80f1-b4c68424ae94",
+    "type": "related",
+    "evidence": "Read [Cloud Native Security and Kubernetes](/docs/concepts/security/cloud-native-security/) for the broader context"
+   },
+   {
+    "to": "a31de986-f2ca-46ac-9bf9-7384402ef1f9",
+    "type": "explains",
+    "evidence": "A key security mechanism for any Kubernetes cluster is to [control access to the Kubernetes API](/docs/concepts/security/controlling-access)."
+   },
+   {
+    "to": "a1b744dd-e229-4614-8e2a-bcd003e08591",
+    "type": "configures",
+    "evidence": "Kubernetes expects you to configure and use TLS to provide [data encryption in transit](/docs/tasks/tls/managing-tls-in-a-cluster/)"
+   },
+   {
+    "to": "2c3f6663-7c63-4a04-89e6-58f8e415c80e",
+    "type": "configures",
+    "evidence": "You can also enable [encryption at rest](/docs/tasks/administer-cluster/encrypt-data/) for the data stored within Kubernetes control plane"
+   },
+   {
+    "to": "ddcfc235-a295-4e7e-8e4f-e45207420246",
+    "type": "uses",
+    "evidence": "The [Secret](/docs/concepts/configuration/secret/) API provides basic protection for configuration values that require confidentiality."
+   },
+   {
+    "to": "b78c825c-33a1-4d8c-b672-a37376837874",
+    "type": "enforces",
+    "evidence": "Enforce [Pod security standards](/docs/concepts/security/pod-security-standards/) to ensure that Pods and their containers are isolated appropriately."
+   },
+   {
+    "to": "0fbfee4f-62b0-4556-8134-6f6fcf37d7e9",
+    "type": "uses",
+    "evidence": "You can also use [RuntimeClasses](/docs/concepts/containers/runtime-class) to define custom isolation if you need it."
+   },
+   {
+    "to": "350e53b3-bacb-4660-b780-13b44c809b60",
+    "type": "lets you control",
+    "evidence": "[Network policies](/docs/concepts/services-networking/network-policies/) let you control network traffic between Pods"
+   },
+   {
+    "to": "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+    "type": "uses",
+    "evidence": "[Admission controllers](/docs/reference/access-authn-authz/admission-controllers/) are plugins that intercept Kubernetes API requests"
+   },
+   {
+    "to": "c96696e3-4fc4-49af-a4c7-082ccf82f265",
+    "type": "provides",
+    "evidence": "Kubernetes [audit logging](/docs/tasks/debug/debug-cluster/audit/) provides a security-relevant, chronological set of records"
+   },
+   {
+    "to": "aecd1a9e-794a-4736-bf6f-646e69aeedf5",
+    "type": "defines",
+    "evidence": "Kubernetes includes several APIs and security controls, as well as ways to define [policies](#policies) that can form part of how you manage information security."
+   }
+  ],
+  "dropped": [],
+  "needs": [
+   "Understanding of TLS for data encryption in transit",
+   "Knowledge of Pod security standards for workload isolation",
+   "Familiarity with admission controllers for request validation/mutation"
+  ],
+  "candidates": [
+   "57546f9f-08ec-47e3-80f1-b4c68424ae94",
+   "a31de986-f2ca-46ac-9bf9-7384402ef1f9",
+   "a1b744dd-e229-4614-8e2a-bcd003e08591",
+   "2c3f6663-7c63-4a04-89e6-58f8e415c80e",
+   "ddcfc235-a295-4e7e-8e4f-e45207420246",
+   "b78c825c-33a1-4d8c-b672-a37376837874",
+   "0fbfee4f-62b0-4556-8134-6f6fcf37d7e9",
+   "350e53b3-bacb-4660-b780-13b44c809b60",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "07741c35-18f2-4c6a-a621-9422dbfcd69e",
+   "c96696e3-4fc4-49af-a4c7-082ccf82f265",
+   "f741602f-7f3d-4c57-9f4a-51c1b047b5e6",
+   "aecd1a9e-794a-4736-bf6f-646e69aeedf5",
+   "29e532f6-9f93-4569-8c41-c25cd5f03c22",
+   "5cd2d3ce-ce03-4fc8-a13c-b72542904d76"
+  ],
+  "seconds": 81.7,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"related\",\n      \"evidence\": \"Read [Cloud Native Security and Kubernetes](/docs/concepts/security/cloud-native-security/) for the broader context\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"explains\",\n      \"evidence\": \"A key security mechanism for any Kubernetes cluster is to [control access to the Kubernetes API](/docs/concepts/security/controlling-access).\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"configures\",\n      \"evidence\": \"Kubernetes expects you to configure and use TLS to provide [data encryption in transit](/docs/tasks/tls/managing-tls-in-a-cluster/)\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"configures\",\n      \"evidence\": \"You can also enable [encryption at rest](/docs/tasks/administer-cluster/encrypt-data/) for the data stored within Kubernetes control plane\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"uses\",\n      \"evidence\": \"The [Secret](/docs/concepts/configuration/secret/) API provides basic protection for configuration values that require confidentiality.\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"enforces\",\n      \"evidence\": \"Enforce [Pod security standards](/docs/concepts/security/pod-security-standards/) to ensure that Pods and their containers are isolated appropriately.\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"uses\",\n      \"evidence\": \"You can also use [RuntimeClasses](/docs/concepts/containers/runtime-class) to define custom isolation if you need it.\"\n    },\n    {\n      \"to\": 8,\n      \"type\":"
+ },
+ "57546f9f-08ec-47e3-80f1-b4c68424ae94": {
+  "relations": [
+   {
+    "to": "120886b3-c08b-4764-ba79-4dcddcb8596f",
+    "type": "part of",
+    "evidence": "Ensure the security of the supply chain for container images you execute."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "29e532f6-9f93-4569-8c41-c25cd5f03c22",
+    "type": "explains",
+    "evidence": "This document covers topics related to protecting a cluster from accidental or malicious access"
+   },
+   {
+    "to": "b78c825c-33a1-4d8c-b672-a37376837874",
+    "type": "configures",
+    "evidence": "The Pod Security Standards define three different _policies_ to broadly cover the security spectrum."
+   },
+   {
+    "to": "d560be54-65ae-49fd-a2c4-24f3e7be1aa0",
+    "type": "configures",
+    "evidence": "Restrict a Container's Syscalls with seccomp: Seccomp stands for secure computing mode and has been a feature of the Linux kernel"
+   },
+   {
+    "to": "350e53b3-bacb-4660-b780-13b44c809b60",
+    "type": "configures",
+    "evidence": "If you want to control traffic flow at the IP address or port level for TCP, UDP, and SCTP protocols, then you might consider using Kubernetes NetworkPolicies"
+   }
+  ],
+  "needs": [
+   "cloud native information security",
+   "lifecycle phases",
+   "threat model"
+  ],
+  "candidates": [
+   "120886b3-c08b-4764-ba79-4dcddcb8596f",
+   "e2bfe3f2-d833-45ae-8f68-b6866100256c",
+   "a31de986-f2ca-46ac-9bf9-7384402ef1f9",
+   "4dbcfd7a-ba3f-4983-9c5a-2ff224e5c153",
+   "39e03ef8-f540-45de-bcaf-a4bdbb28950b",
+   "b78c825c-33a1-4d8c-b672-a37376837874",
+   "f78fade1-87be-4481-b4e3-72498a8656a3",
+   "53c35f88-60ea-4876-a61d-02db7919e962",
+   "fd2cea96-1be6-4b7c-8cfa-46f21db787c1",
+   "9dc703f1-b1f3-447d-84da-0290422560e1",
+   "d560be54-65ae-49fd-a2c4-24f3e7be1aa0",
+   "2c3f6663-7c63-4a04-89e6-58f8e415c80e",
+   "350e53b3-bacb-4660-b780-13b44c809b60",
+   "ae78f02e-e689-4aea-bbb6-00a649cc4355",
+   "29e532f6-9f93-4569-8c41-c25cd5f03c22"
+  ],
+  "seconds": 42.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"Ensure the security of the supply chain for container images you execute.\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"explains\",\n      \"evidence\": \"This document covers topics related to protecting a cluster from accidental or malicious access\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"configures\",\n      \"evidence\": \"The Pod Security Standards define three different _policies_ to broadly cover the security spectrum.\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"configures\",\n      \"evidence\": \"Restrict a Container's Syscalls with seccomp: Seccomp stands for secure computing mode and has been a feature of the Linux kernel\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"configures\",\n      \"evidence\": \"If you want to control traffic flow at the IP address or port level for TCP, UDP, and SCTP protocols, then you might consider using Kubernetes NetworkPolicies\"\n    }\n  ],\n  \"needs\": [\n    \"cloud native information security\",\n    \"lifecycle phases\",\n    \"threat model\"\n  ]\n}"
+ },
+ "78bac207-db63-4201-97c8-89e340b29236": {
+  "relations": [
+   {
+    "to": "6985b833-4446-4e1f-9cd4-e06248a20e7e",
+    "type": "uses",
+    "evidence": "This page describes what happens to Pods and to the node when the kubelet, the container runtime, or the node as a whole restarts."
+   },
+   {
+    "to": "12dea1e0-4017-43ac-bf5e-0d6a29f8a90c",
+    "type": "related",
+    "evidence": "Node heartbeats pause while the kubelet is down and resume once it has restarted and finished initializing, when the kubelet renews its `Lease` object and posts node status again."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+    "type": "related",
+    "evidence": "The `ChangeContainerStatusOnKubeletRestart` [feature gate] lets you revert to that behavior"
+   }
+  ],
+  "needs": [
+   "Pod behavior during kubelet restarts",
+   "Node heartbeats"
+  ],
+  "candidates": [
+   "d8be7ea9-e766-4660-b0e4-64606fea96f5",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "36a12bf1-9571-4b20-8a28-28122d557329",
+   "4d14512b-20c0-4629-9ce9-f6f0e8972506",
+   "52ecbd98-5314-434d-86c0-e81f0821fb12",
+   "2f6ac2bd-54a2-4b88-9562-475101814f46",
+   "072b437d-7771-4cee-b397-9ef374a117fd",
+   "d9df2d52-464c-4781-836f-48d4d06e3519",
+   "07afddd8-3439-4d46-919e-69c7a86e0ede",
+   "6985b833-4446-4e1f-9cd4-e06248a20e7e",
+   "31f106b4-3efc-4a3a-ba29-7497968b1b93",
+   "dfba0a88-bf8d-4a49-ab01-cf04b9fb554a",
+   "fc9d105a-fa8b-4258-b78d-0e2c3011af64",
+   "12dea1e0-4017-43ac-bf5e-0d6a29f8a90c"
+  ],
+  "seconds": 30.8,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 11,\n      \"type\": \"uses\",\n      \"evidence\": \"This page describes what happens to Pods and to the node when the kubelet, the container runtime, or the node as a whole restarts.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"related\",\n      \"evidence\": \"The `ChangeContainerStatusOnKubeletRestart` [feature gate] lets you revert to that behavior\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"related\",\n      \"evidence\": \"Node heartbeats pause while the kubelet is down and resume once it has restarted and finished initializing, when the kubelet renews its `Lease` object and posts node status again.\"\n    }\n  ],\n  \"needs\": [\n    \"Pod behavior during kubelet restarts\",\n    \"Node heartbeats\"\n  ]\n}"
+ },
+ "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "e5a06dfe-0b2f-4173-836b-461de637df74",
+    "type": "explains",
+    "evidence": "This page introduces _Quality of Service (QoS) classes_ in Kubernetes, and explains how Kubernetes assigns a QoS class to each Pod"
+   },
+   {
+    "to": "82db16ba-10b3-4cfa-b425-50e4f5f15004",
+    "type": "explains",
+    "evidence": "This page explains how to change the CPU and memory resources set at the Pod level without recreating the Pod"
+   },
+   {
+    "to": "ad6e1e1a-6928-466f-a3aa-2c43ed21395b",
+    "type": "explains",
+    "evidence": "This page explains how to change the CPU and memory resource requests and limits assigned to a container *without recreating the Pod*"
+   }
+  ],
+  "needs": [
+   "Quality of Service Classes",
+   "Resource units in Kubernetes",
+   "cgroups"
+  ],
+  "candidates": [
+   "e5a06dfe-0b2f-4173-836b-461de637df74",
+   "7076dd11-e362-4871-ab86-c93c7ed298c0",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "68cb2501-f751-471e-8691-913652760a56",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "47c30b96-bcfc-4c37-9ef0-16b03ce07b1e",
+   "82db16ba-10b3-4cfa-b425-50e4f5f15004",
+   "7a4898b5-ad7d-4560-b30e-dbb4aa6daf9b",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "ad6e1e1a-6928-466f-a3aa-2c43ed21395b",
+   "e795e466-5f94-4edc-8820-e3c644bdfb67",
+   "b3b76891-decb-4dc6-9558-1109132b23fc",
+   "6e10106a-bbd5-4e21-93f0-a03431912751",
+   "899cfef3-e0f6-4e21-bb4b-70e9e9c6727b",
+   "f78fade1-87be-4481-b4e3-72498a8656a3"
+  ],
+  "seconds": 32.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"explains\",\n      \"evidence\": \"This page introduces _Quality of Service (QoS) classes_ in Kubernetes, and explains how Kubernetes assigns a QoS class to each Pod\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"explains\",\n      \"evidence\": \"This page explains how to change the CPU and memory resources set at the Pod level without recreating the Pod\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"explains\",\n      \"evidence\": \"This page explains how to change the CPU and memory resource requests and limits assigned to a container *without recreating the Pod*\"\n    }\n  ],\n  \"needs\": [\n    \"Quality of Service Classes\",\n    \"Resource units in Kubernetes\",\n    \"cgroups\"\n  ]\n}"
+ },
+ "802cfc99-ed9b-477c-aae1-d34a3491b008": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "3f14460d-e8ff-402a-9fca-1f52da389685",
+    "type": "uses",
+    "evidence": "A few of the steps on this page require you to run the [metrics-server] service in your cluster."
+   },
+   {
+    "to": "4cebc6e6-c1fc-4e7c-a9b2-884a996caaba",
+    "type": "uses",
+    "evidence": "Use Pod-Level Resources with kubelet Resource Managers: This tutorial demonstrates how to configure the kubelet's resource managers (topology, CPU, and memory) to support pod-level resource specifications."
+   }
+  ],
+  "needs": [
+   "memory units",
+   "metrics-server",
+   "namespace"
+  ],
+  "candidates": [
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "ceac2e58-df0a-430c-9c16-5df438e35493",
+   "ca77ddbb-6ef3-4bd4-b9a6-4546ba989b99",
+   "e14a3631-8847-4f3e-92e5-1a3d2442fcdd",
+   "ad6e1e1a-6928-466f-a3aa-2c43ed21395b",
+   "82321ece-33dc-41a4-85d0-4b9e363e44af",
+   "d3d53a9a-1db8-45f3-a5d7-82134faecc8b",
+   "d71c9aa3-1c55-4830-a468-aac174801c49",
+   "dec57ab2-9cfc-450a-9540-d92314e12ceb",
+   "5df3bea3-ff6e-412d-b7de-b17611a69d86",
+   "f812624e-9d06-4807-aef7-47dc066f9cb3",
+   "0e1f83d1-f6a4-4083-9ff2-e4fd4543af56",
+   "07afddd8-3439-4d46-919e-69c7a86e0ede",
+   "2f458a33-a505-4c0c-a429-298cb5ae25d7",
+   "4cebc6e6-c1fc-4e7c-a9b2-884a996caaba"
+  ],
+  "seconds": 27.7,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"A few of the steps on this page require you to run the [metrics-server] service in your cluster.\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"uses\",\n      \"evidence\": \"Use Pod-Level Resources with kubelet Resource Managers: This tutorial demonstrates how to configure the kubelet's resource managers (topology, CPU, and memory) to support pod-level resource specifications.\"\n    }\n  ],\n  \"needs\": [\n    \"memory units\",\n    \"metrics-server\",\n    \"namespace\"\n  ]\n}"
+ },
+ "32b41acc-19c5-4c80-9bf8-14070827c7af": {
+  "relations": [
+   {
+    "to": "31f106b4-3efc-4a3a-ba29-7497968b1b93",
+    "type": "depends on",
+    "evidence": "If you are performing a **minor** version upgrade for any kubelet, you **must** first drain the node (or nodes) that you are upgrading."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "579326c3-c7fb-4bc3-a2ef-d10bae9a221c",
+    "type": "explains",
+    "evidence": "This page explains how to upgrade a Linux Worker Nodes created with kubeadm."
+   },
+   {
+    "to": "ca04750c-56c4-4d06-ae22-889723d5fa6e",
+    "type": "explains",
+    "evidence": "This page provides an overview of the steps you should follow to upgrade a Kubernetes cluster."
+   }
+  ],
+  "needs": [
+   "release notes",
+   "Draining nodes",
+   "kubelet and kubeadm versions"
+  ],
+  "candidates": [
+   "31f106b4-3efc-4a3a-ba29-7497968b1b93",
+   "a2247a44-1180-42b7-8ade-cf376c31874c",
+   "13906468-5e6b-477e-a67a-f4e2b12f3030",
+   "4ff49311-18ae-4deb-9f72-28cf043ba1a7",
+   "e73e1056-58b1-4ad3-b77c-b73bcfb21a4e",
+   "91fa24ed-b2d2-45a0-9705-a1e7c3f65eea",
+   "ebc34517-8c18-4af0-88c0-55de970e429f",
+   "579326c3-c7fb-4bc3-a2ef-d10bae9a221c",
+   "5963adea-4884-4d54-a2cd-baf3e490bff3",
+   "130ccdfb-8f93-4315-92a9-f99974ad2286",
+   "c7019c3c-9c0a-49b1-bb8a-49cdecce8fb0",
+   "c7d9f11f-b62c-4f2e-b274-f6ac59f3cd1e",
+   "ca04750c-56c4-4d06-ae22-889723d5fa6e",
+   "15bdb343-4ba3-46ce-a5f3-1b70e0841385",
+   "5643aa96-e0aa-44f5-89b4-8cd8c8bdbd77"
+  ],
+  "seconds": 29.9,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"depends on\",\n      \"evidence\": \"If you are performing a **minor** version upgrade for any kubelet, you **must** first drain the node (or nodes) that you are upgrading.\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"explains\",\n      \"evidence\": \"This page explains how to upgrade a Linux Worker Nodes created with kubeadm.\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"explains\",\n      \"evidence\": \"This page provides an overview of the steps you should follow to upgrade a Kubernetes cluster.\"\n    }\n  ],\n  \"needs\": [\n    \"release notes\",\n    \"Draining nodes\",\n    \"kubelet and kubeadm versions\"\n  ]\n}"
+ },
+ "45d55ec9-9e50-4a21-9124-418c62ed28b6": {
+  "relations": [
+   {
+    "to": "da7a9c70-feaa-4646-b42a-cc95a7509bd6",
+    "type": "uses",
+    "evidence": "`docker ps` and investigating each container by running `docker logs`"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "a43c8448-660c-4400-b8cc-88765b1b7037",
+    "type": "part of",
+    "evidence": "You need to install a container runtime into each node in the cluster"
+   },
+   {
+    "to": "a2247a44-1180-42b7-8ade-cf376c31874c",
+    "type": "explains",
+    "evidence": "Using `kubeadm`, you can create a minimum viable Kubernetes cluster"
+   },
+   {
+    "to": "c7d9f11f-b62c-4f2e-b274-f6ac59f3cd1e",
+    "type": "explains",
+    "evidence": "This page shows how to install the `kubeadm` toolbox"
+   }
+  ],
+  "needs": [
+   "RBAC",
+   "ebtables",
+   "ethtool"
+  ],
+  "candidates": [
+   "da7a9c70-feaa-4646-b42a-cc95a7509bd6",
+   "91fa24ed-b2d2-45a0-9705-a1e7c3f65eea",
+   "68cb2501-f751-471e-8691-913652760a56",
+   "47e59bb9-008f-48cc-94b4-97daffe5b35f",
+   "e73e1056-58b1-4ad3-b77c-b73bcfb21a4e",
+   "a43c8448-660c-4400-b8cc-88765b1b7037",
+   "a2247a44-1180-42b7-8ade-cf376c31874c",
+   "c7d9f11f-b62c-4f2e-b274-f6ac59f3cd1e",
+   "282ec94a-65bf-4522-b053-06879a6a8581",
+   "3c441e53-19be-48f1-bb93-71707782078d",
+   "5643aa96-e0aa-44f5-89b4-8cd8c8bdbd77",
+   "5e252656-2c29-4309-a4fa-76d5ddc1218b",
+   "62eda4f5-8284-4924-be8c-28205351cf4e",
+   "ae244810-00d7-4be1-a98f-64f771bd5898",
+   "bef3a380-435e-4eca-a8a6-545987ffa151"
+  ],
+  "seconds": 30.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"`docker ps` and investigating each container by running `docker logs`\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"part of\",\n      \"evidence\": \"You need to install a container runtime into each node in the cluster\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"explains\",\n      \"evidence\": \"Using `kubeadm`, you can create a minimum viable Kubernetes cluster\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"explains\",\n      \"evidence\": \"This page shows how to install the `kubeadm` toolbox\"\n    }\n  ],\n  \"needs\": [\n    \"RBAC\",\n    \"ebtables\",\n    \"ethtool\"\n  ]\n}"
+ },
+ "e88b16e0-888b-4304-8353-8bd2146f6161": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "b586e78f-157e-4a1c-9f5c-9e509caefcee",
+    "type": "explains",
+    "evidence": "etcd: Consistent and highly-available key value store used as Kubernetes' backing store for all cluster data."
+   },
+   {
+    "to": "8464ada7-39b4-4eb8-9e4a-41660c702898",
+    "type": "depends on",
+    "evidence": "Set up a High Availability etcd Cluster with kubeadm: By default, kubeadm runs a local etcd instance on each control plane node."
+   },
+   {
+    "to": "130ccdfb-8f93-4315-92a9-f99974ad2286",
+    "type": "related",
+    "evidence": "Production environment: A production-quality Kubernetes cluster requires planning and preparation."
+   },
+   {
+    "to": "5e252656-2c29-4309-a4fa-76d5ddc1218b",
+    "type": "part of",
+    "evidence": "This page provides a high-level overview of the essential components that make up a Kubernetes cluster."
+   },
+   {
+    "to": "ae244810-00d7-4be1-a98f-64f771bd5898",
+    "type": "part of",
+    "evidence": "Control Plane: The container orchestration layer that exposes the API and interfaces to define, deploy, and manage the lifecycle of containers."
+   }
+  ],
+  "needs": [
+   "etcd documentation",
+   "resource requirement reference",
+   "etcdctl tool"
+  ],
+  "candidates": [
+   "8464ada7-39b4-4eb8-9e4a-41660c702898",
+   "130ccdfb-8f93-4315-92a9-f99974ad2286",
+   "60e7248c-c765-4dd0-9ca6-c227dabb6f3d",
+   "b586e78f-157e-4a1c-9f5c-9e509caefcee",
+   "270ff878-57b0-4e09-8ff3-633c20e3e03a",
+   "29e532f6-9f93-4569-8c41-c25cd5f03c22",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "5643aa96-e0aa-44f5-89b4-8cd8c8bdbd77",
+   "5e252656-2c29-4309-a4fa-76d5ddc1218b",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "a50c160b-6c44-41d9-8da9-fe6466932f28",
+   "ae244810-00d7-4be1-a98f-64f771bd5898",
+   "ae6c0a94-ab26-4f30-9c36-e32865abb28b",
+   "bed4e0ca-59fc-4ee1-828e-a44371e3c740",
+   "ca04750c-56c4-4d06-ae22-889723d5fa6e"
+  ],
+  "seconds": 37.9,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 4,\n      \"type\": \"explains\",\n      \"evidence\": \"etcd: Consistent and highly-available key value store used as Kubernetes' backing store for all cluster data.\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"depends on\",\n      \"evidence\": \"Set up a High Availability etcd Cluster with kubeadm: By default, kubeadm runs a local etcd instance on each control plane node.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"related\",\n      \"evidence\": \"Production environment: A production-quality Kubernetes cluster requires planning and preparation.\"\n    },\n    {\n      \"to\": 9,\n      \"type\": \"part of\",\n      \"evidence\": \"This page provides a high-level overview of the essential components that make up a Kubernetes cluster.\"\n    },\n    {\n      \"to\": 12,\n      \"type\": \"part of\",\n      \"evidence\": \"Control Plane: The container orchestration layer that exposes the API and interfaces to define, deploy, and manage the lifecycle of containers.\"\n    }\n  ],\n  \"needs\": [\n    \"etcd documentation\",\n    \"resource requirement reference\",\n    \"etcdctl tool\"\n  ]\n}"
+ },
+ "d3d53a9a-1db8-45f3-a5d7-82134faecc8b": {
+  "relations": [
+   {
+    "to": "53c35f88-60ea-4876-a61d-02db7919e962",
+    "type": "relates to",
+    "evidence": "Here's a manifest for an example LimitRange."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "ceac2e58-df0a-430c-9c16-5df438e35493",
+    "type": "explains",
+    "evidence": "Assign a CPU request and a CPU limit to a container."
+   },
+   {
+    "to": "ad6e1e1a-6928-466f-a3aa-2c43ed21395b",
+    "type": "explains",
+    "evidence": "This page explains how to change the CPU and memory resource requests and limits assigned to a container without recreating the Pod."
+   }
+  ],
+  "needs": [
+   "meaning of CPU",
+   "how to create namespaces",
+   "how to create a LimitRange"
+  ],
+  "candidates": [
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+   "b3b76891-decb-4dc6-9558-1109132b23fc",
+   "82321ece-33dc-41a4-85d0-4b9e363e44af",
+   "d71c9aa3-1c55-4830-a468-aac174801c49",
+   "dec57ab2-9cfc-450a-9540-d92314e12ceb",
+   "5df3bea3-ff6e-412d-b7de-b17611a69d86",
+   "f812624e-9d06-4807-aef7-47dc066f9cb3",
+   "0e1f83d1-f6a4-4083-9ff2-e4fd4543af56",
+   "802cfc99-ed9b-477c-aae1-d34a3491b008",
+   "ceac2e58-df0a-430c-9c16-5df438e35493",
+   "ca77ddbb-6ef3-4bd4-b9a6-4546ba989b99",
+   "e14a3631-8847-4f3e-92e5-1a3d2442fcdd",
+   "53c35f88-60ea-4876-a61d-02db7919e962",
+   "82db16ba-10b3-4cfa-b425-50e4f5f15004",
+   "ad6e1e1a-6928-466f-a3aa-2c43ed21395b"
+  ],
+  "seconds": 30.6,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 10,\n      \"type\": \"explains\",\n      \"evidence\": \"Assign a CPU request and a CPU limit to a container.\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"explains\",\n      \"evidence\": \"This page explains how to change the CPU and memory resource requests and limits assigned to a container without recreating the Pod.\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"relates to\",\n      \"evidence\": \"Here's a manifest for an example LimitRange.\"\n    }\n  ],\n  \"needs\": [\n    \"meaning of CPU\",\n    \"how to create namespaces\",\n    \"how to create a LimitRange\"\n  ]\n}"
+ },
+ "5df3bea3-ff6e-412d-b7de-b17611a69d86": {
+  "relations": [
+   {
+    "to": "f812624e-9d06-4807-aef7-47dc066f9cb3",
+    "type": "uses",
+    "evidence": "You specify quotas in a [ResourceQuota](/docs/reference/kubernetes-api/core/resource-quota-v1/) object."
+   },
+   {
+    "to": "802cfc99-ed9b-477c-aae1-d34a3491b008",
+    "type": "explains",
+    "evidence": "For every Pod in the namespace, each container must have a memory request, memory limit, cpu request, and cpu limit."
+   },
+   {
+    "to": "ceac2e58-df0a-430c-9c16-5df438e35493",
+    "type": "explains",
+    "evidence": "For every Pod in the namespace, each container must have a memory request, memory limit, cpu request, and cpu limit."
+   },
+   {
+    "to": "ca77ddbb-6ef3-4bd4-b9a6-4546ba989b99",
+    "type": "explains",
+    "evidence": "The ResourceQuota places these requirements on the quota-mem-cpu-example namespace:"
+   }
+  ],
+  "dropped": [],
+  "needs": [
+   "meaning of CPU",
+   "ResourceQuota"
+  ],
+  "candidates": [
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+   "53c35f88-60ea-4876-a61d-02db7919e962",
+   "ad6e1e1a-6928-466f-a3aa-2c43ed21395b",
+   "82321ece-33dc-41a4-85d0-4b9e363e44af",
+   "d3d53a9a-1db8-45f3-a5d7-82134faecc8b",
+   "d71c9aa3-1c55-4830-a468-aac174801c49",
+   "dec57ab2-9cfc-450a-9540-d92314e12ceb",
+   "f812624e-9d06-4807-aef7-47dc066f9cb3",
+   "0e1f83d1-f6a4-4083-9ff2-e4fd4543af56",
+   "802cfc99-ed9b-477c-aae1-d34a3491b008",
+   "ceac2e58-df0a-430c-9c16-5df438e35493",
+   "ca77ddbb-6ef3-4bd4-b9a6-4546ba989b99",
+   "e14a3631-8847-4f3e-92e5-1a3d2442fcdd",
+   "82db16ba-10b3-4cfa-b425-50e4f5f15004",
+   "f78fade1-87be-4481-b4e3-72498a8656a3"
+  ],
+  "seconds": 37.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 8,\n      \"type\": \"uses\",\n      \"evidence\": \"You specify quotas in a [ResourceQuota](/docs/reference/kubernetes-api/core/resource-quota-v1/) object.\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"explains\",\n      \"evidence\": \"For every Pod in the namespace, each container must have a memory request, memory limit, cpu request, and cpu limit.\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"explains\",\n      \"evidence\": \"For every Pod in the namespace, each container must have a memory request, memory limit, cpu request, and cpu limit.\"\n    },\n    {\n      \"to\": 12,\n      \"type\": \"explains\",\n      \"evidence\": \"The ResourceQuota places these requirements on the quota-mem-cpu-example namespace:\"\n    }\n  ],\n  \"needs\": [\n    \"meaning of CPU\",\n    \"ResourceQuota\"\n  ]\n}"
+ },
+ "82321ece-33dc-41a4-85d0-4b9e363e44af": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+    "type": "uses",
+    "evidence": "Configure Default Memory Requests and Limits for a Namespace > Create a LimitRange and a Pod"
+   },
+   {
+    "to": "802cfc99-ed9b-477c-aae1-d34a3491b008",
+    "type": "explains",
+    "evidence": "Assign Memory Resources to Containers and Pods: This page shows how to assign a memory *request* and a memory *limit* to a Container."
+   }
+  ],
+  "needs": [
+   "Understanding of Kubernetes namespaces",
+   "Understanding of Pods and containers"
+  ],
+  "candidates": [
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+   "53c35f88-60ea-4876-a61d-02db7919e962",
+   "d3d53a9a-1db8-45f3-a5d7-82134faecc8b",
+   "d71c9aa3-1c55-4830-a468-aac174801c49",
+   "dec57ab2-9cfc-450a-9540-d92314e12ceb",
+   "5df3bea3-ff6e-412d-b7de-b17611a69d86",
+   "f812624e-9d06-4807-aef7-47dc066f9cb3",
+   "0e1f83d1-f6a4-4083-9ff2-e4fd4543af56",
+   "802cfc99-ed9b-477c-aae1-d34a3491b008",
+   "ceac2e58-df0a-430c-9c16-5df438e35493",
+   "ca77ddbb-6ef3-4bd4-b9a6-4546ba989b99",
+   "e14a3631-8847-4f3e-92e5-1a3d2442fcdd",
+   "29e532f6-9f93-4569-8c41-c25cd5f03c22",
+   "2ac78a03-20c0-4881-ada2-44144a042c20",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be"
+  ],
+  "seconds": 28.0,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"Configure Default Memory Requests and Limits for a Namespace > Create a LimitRange and a Pod\"\n    },\n    {\n      \"to\": 9,\n      \"type\": \"explains\",\n      \"evidence\": \"Assign Memory Resources to Containers and Pods: This page shows how to assign a memory *request* and a memory *limit* to a Container.\"\n    }\n  ],\n  \"needs\": [\n    \"Understanding of Kubernetes namespaces\",\n    \"Understanding of Pods and containers\"\n  ]\n}"
+ },
+ "31f106b4-3efc-4a3a-ba29-7497968b1b93": {
+  "relations": [
+   {
+    "to": "a4da09cd-22c0-40b0-b65b-1ae95adfad38",
+    "type": "depends on",
+    "evidence": "optionally respecting the PodDisruptionBudget you have defined"
+   },
+   {
+    "to": "07afddd8-3439-4d46-919e-69c7a86e0ede",
+    "type": "related",
+    "evidence": "You have read about the [PodDisruptionBudget](/docs/concepts/workloads/pods/disruptions/) concept"
+   },
+   {
+    "to": "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+    "type": "explains",
+    "evidence": "It is recommended to set `AlwaysAllow` [Unhealthy Pod Eviction Policy](/docs/tasks/run-application/configure-pdb/#unhealthy-pod-eviction-policy)"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "f5b9e004-1834-4699-9eba-6c92715d3d9f",
+    "type": "uses",
+    "evidence": "Use `kubectl drain` to remove a node from service"
+   },
+   {
+    "to": "a8858c1e-60af-4245-a86c-fee1d022b2bc",
+    "type": "configures",
+    "evidence": "configure PodDisruptionBudgets](/docs/tasks/run-application/configure-pdb/) for applications that need them"
+   },
+   {
+    "to": "d8be7ea9-e766-4660-b0e4-64606fea96f5",
+    "type": "part of",
+    "evidence": "Kubernetes runs your workload by placing containers into Pods to run on _Nodes_."
+   }
+  ],
+  "needs": [
+   "PodDisruptionBudget",
+   "configure PodDisruptionBudgets",
+   "PodDisruption"
+  ],
+  "candidates": [
+   "07afddd8-3439-4d46-919e-69c7a86e0ede",
+   "a8858c1e-60af-4245-a86c-fee1d022b2bc",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "fd2cea96-1be6-4b7c-8cfa-46f21db787c1",
+   "f5b9e004-1834-4699-9eba-6c92715d3d9f",
+   "0b136cd3-146a-4f57-8e89-39d68f1424aa",
+   "32b41acc-19c5-4c80-9bf8-14070827c7af",
+   "41d53781-4168-49ac-9b4b-234c9a1bdf75",
+   "78bac207-db63-4201-97c8-89e340b29236",
+   "a313342c-ad3a-4ce8-9ea3-af2393619b6e",
+   "ca04750c-56c4-4d06-ae22-889723d5fa6e",
+   "d8be7ea9-e766-4660-b0e4-64606fea96f5",
+   "0c145391-f9b0-469c-b760-71211377b833",
+   "a4da09cd-22c0-40b0-b65b-1ae95adfad38",
+   "ae244810-00d7-4be1-a98f-64f771bd5898"
+  ],
+  "seconds": 44.8,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 5,\n      \"type\": \"uses\",\n      \"evidence\": \"Use `kubectl drain` to remove a node from service\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"depends on\",\n      \"evidence\": \"optionally respecting the PodDisruptionBudget you have defined\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"related\",\n      \"evidence\": \"You have read about the [PodDisruptionBudget](/docs/concepts/workloads/pods/disruptions/) concept\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"configures\",\n      \"evidence\": \"configure PodDisruptionBudgets](/docs/tasks/run-application/configure-pdb/) for applications that need them\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"explains\",\n      \"evidence\": \"It is recommended to set `AlwaysAllow` [Unhealthy Pod Eviction Policy](/docs/tasks/run-application/configure-pdb/#unhealthy-pod-eviction-policy)\"\n    },\n    {\n      \"to\": 12,\n      \"type\": \"part of\",\n      \"evidence\": \"Kubernetes runs your workload by placing containers into Pods to run on _Nodes_.\"\n    }\n  ],\n  \"needs\": [\n    \"PodDisruptionBudget\",\n    \"configure PodDisruptionBudgets\",\n    \"PodDisruption\"\n  ]\n}"
+ },
+ "07afddd8-3439-4d46-919e-69c7a86e0ede": {
+  "relations": [
+   {
+    "to": "36a12bf1-9571-4b20-8a28-28122d557329",
+    "type": "depends on",
+    "evidence": "eviction of a pod due to the node being [out-of-resources](/docs/concepts/scheduling-eviction/node-pressure-eviction/)."
+   },
+   {
+    "to": "31f106b4-3efc-4a3a-ba29-7497968b1b93",
+    "type": "related",
+    "evidence": "Cluster administrator actions include: [Draining a node](/docs/tasks/administer-cluster/safely-drain-node/)"
+   },
+   {
+    "to": "86abfd2d-2762-46c2-91fa-ace3cfdfd12f",
+    "type": "related",
+    "evidence": "Draining a node from a cluster to scale the cluster down (learn about [Node Autoscaling](/docs/concepts/cluster-administration/node-autoscaling/))."
+   },
+   {
+    "to": "802cfc99-ed9b-477c-aae1-d34a3491b008",
+    "type": "related",
+    "evidence": "Ensure your pod [requests the resources](/docs/tasks/configure-pod-container/assign-memory-resource) it needs."
+   },
+   {
+    "to": "af34295a-3612-4fe0-a62e-9d32d838b1f5",
+    "type": "related",
+    "evidence": "Replicate your application if you need higher availability. (Learn about running replicated [stateless](/docs/tasks/run-application/run-stateless-application-deployment/)"
+   }
+  ],
+  "dropped": [],
+  "needs": [
+   "PodDisruptionBudget example",
+   "Pod disruption conditions",
+   "Pod disruption budgets"
+  ],
+  "candidates": [
+   "36a12bf1-9571-4b20-8a28-28122d557329",
+   "31f106b4-3efc-4a3a-ba29-7497968b1b93",
+   "86abfd2d-2762-46c2-91fa-ace3cfdfd12f",
+   "802cfc99-ed9b-477c-aae1-d34a3491b008",
+   "af34295a-3612-4fe0-a62e-9d32d838b1f5",
+   "550e2d9c-be81-47e4-83fb-e61842646e18",
+   "fd2cea96-1be6-4b7c-8cfa-46f21db787c1",
+   "e9469212-7529-4380-ac53-1539023d27af",
+   "7a4898b5-ad7d-4560-b30e-dbb4aa6daf9b",
+   "a8858c1e-60af-4245-a86c-fee1d022b2bc",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "d8be7ea9-e766-4660-b0e4-64606fea96f5",
+   "fe3b4cab-39b4-407a-95b7-eea3ff201f50",
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09"
+  ],
+  "seconds": 43.1,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"depends on\",\n      \"evidence\": \"eviction of a pod due to the node being [out-of-resources](/docs/concepts/scheduling-eviction/node-pressure-eviction/).\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"related\",\n      \"evidence\": \"Cluster administrator actions include: [Draining a node](/docs/tasks/administer-cluster/safely-drain-node/)\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"related\",\n      \"evidence\": \"Draining a node from a cluster to scale the cluster down (learn about [Node Autoscaling](/docs/concepts/cluster-administration/node-autoscaling/)).\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"related\",\n      \"evidence\": \"Ensure your pod [requests the resources](/docs/tasks/configure-pod-container/assign-memory-resource) it needs.\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"related\",\n      \"evidence\": \"Replicate your application if you need higher availability. (Learn about running replicated [stateless](/docs/tasks/run-application/run-stateless-application-deployment/)\"\n    }\n  ],\n  \"needs\": [\n    \"PodDisruptionBudget example\",\n    \"Pod disruption conditions\",\n    \"Pod disruption budgets\"\n  ]\n}"
+ },
+ "550e2d9c-be81-47e4-83fb-e61842646e18": {
+  "relations": [
+   {
+    "to": "d42d659b-ee0f-447c-8bf6-3acc605ec3a0",
+    "type": "part of",
+    "evidence": "This page shows how to run a replicated stateful application using a statefulset."
+   },
+   {
+    "to": "edc88dcf-e199-451f-87e4-a2a507f97126",
+    "type": "uses",
+    "evidence": "This ConfigMap provides `my.cnf` overrides that let you independently control configuration"
+   },
+   {
+    "to": "68cb2501-f751-471e-8691-913652760a56",
+    "type": "uses",
+    "evidence": "The client Service, called `mysql-read`, is a normal Service with its own cluster IP"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+    "type": "part of",
+    "evidence": "Whether your workload is a single component or several that work together, on Kubernetes you run it inside a set of _pods_"
+   }
+  ],
+  "needs": [
+   "PersistentVolumes",
+   "Pods",
+   "StatefulSets"
+  ],
+  "candidates": [
+   "d9df2d52-464c-4781-836f-48d4d06e3519",
+   "d42d659b-ee0f-447c-8bf6-3acc605ec3a0",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "68cb2501-f751-471e-8691-913652760a56",
+   "edc88dcf-e199-451f-87e4-a2a507f97126",
+   "52c62665-7192-48ee-8570-59d7b539d6d1",
+   "fbe4aa88-2ecb-4ed8-91d5-30033f737a4f",
+   "b2e7bccf-901c-4167-a8a1-643305ee6d9b",
+   "787379c9-dd42-4b9f-92fe-180f9d890458",
+   "b05c714d-da7e-4418-9bd4-a748918a2c76",
+   "d3ba9d71-bd1e-492f-8d76-d91ec6815292",
+   "07afddd8-3439-4d46-919e-69c7a86e0ede",
+   "5434de7b-5a72-49df-9c08-717e5d45d1fc",
+   "a8858c1e-60af-4245-a86c-fee1d022b2bc",
+   "da36a274-c7c2-424a-808a-5e7a23d5dd48"
+  ],
+  "seconds": 33.7,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"part of\",\n      \"evidence\": \"This page shows how to run a replicated stateful application using a statefulset.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"part of\",\n      \"evidence\": \"Whether your workload is a single component or several that work together, on Kubernetes you run it inside a set of _pods_\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"uses\",\n      \"evidence\": \"This ConfigMap provides `my.cnf` overrides that let you independently control configuration\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"uses\",\n      \"evidence\": \"The client Service, called `mysql-read`, is a normal Service with its own cluster IP\"\n    }\n  ],\n  \"needs\": [\n    \"PersistentVolumes\",\n    \"Pods\",\n    \"StatefulSets\"\n  ]\n}"
+ },
+ "1b73e1d2-1b2a-4f23-927f-fd2444a84ca3": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "dc1d90dc-5178-432b-996d-33a847ce7829",
+    "type": "uses",
+    "evidence": "This document makes use of the following terms: [kube-proxy] ... A network daemon that orchestrates Service VIP management on every node"
+   },
+   {
+    "to": "62eda4f5-8284-4924-be8c-28205351cf4e",
+    "type": "explains",
+    "evidence": "kube-proxy is a network proxy that runs on each node in your cluster, implementing part of the Kubernetes service concept."
+   },
+   {
+    "to": "1a225c39-c25b-46ae-babd-be87c7bc6804",
+    "type": "explains",
+    "evidence": "This page shows how to create a Kubernetes Service object that external clients can use to access an application running in a cluster."
+   },
+   {
+    "to": "e9d1e966-dbc4-4c27-88ec-98d16a670b5b",
+    "type": "explains",
+    "evidence": "In Kubernetes, [Services](/docs/concepts/services-networking/service/) are an abstract way to expose an application running on a set of Pods."
+   }
+  ],
+  "needs": [
+   "Network address translation",
+   "Source NAT",
+   "Destination NAT"
+  ],
+  "candidates": [
+   "68cb2501-f751-471e-8691-913652760a56",
+   "dc1d90dc-5178-432b-996d-33a847ce7829",
+   "5944748c-cc5f-4d80-b48c-5222538c97a6",
+   "212caca6-361b-4c1b-a510-bd98c87ba8af",
+   "6b4b2982-1e66-45f8-b29a-59209e9155bf",
+   "c47d45b6-ad7a-4a42-9372-4d6667e31b25",
+   "3c441e53-19be-48f1-bb93-71707782078d",
+   "62eda4f5-8284-4924-be8c-28205351cf4e",
+   "ae244810-00d7-4be1-a98f-64f771bd5898",
+   "2e956152-28d0-4736-9543-71f2d1105f33",
+   "47e59bb9-008f-48cc-94b4-97daffe5b35f",
+   "d4215cbe-e3ef-4982-9f1b-d70ca3ccc90b",
+   "1a225c39-c25b-46ae-babd-be87c7bc6804",
+   "e9d1e966-dbc4-4c27-88ec-98d16a670b5b",
+   "d8949719-72e3-4c87-9c19-10e7211e9870"
+  ],
+  "seconds": 39.6,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"uses\",\n      \"evidence\": \"This document makes use of the following terms: [kube-proxy] ... A network daemon that orchestrates Service VIP management on every node\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"explains\",\n      \"evidence\": \"kube-proxy is a network proxy that runs on each node in your cluster, implementing part of the Kubernetes service concept.\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"explains\",\n      \"evidence\": \"This page shows how to create a Kubernetes Service object that external clients can use to access an application running in a cluster.\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"explains\",\n      \"evidence\": \"In Kubernetes, [Services](/docs/concepts/services-networking/service/) are an abstract way to expose an application running on a set of Pods.\"\n    }\n  ],\n  \"needs\": [\n    \"Network address translation\",\n    \"Source NAT\",\n    \"Destination NAT\"\n  ]\n}"
+ },
+ "68cb2501-f751-471e-8691-913652760a56": {
+  "relations": [
+   {
+    "to": "d54acdc7-f748-43e1-8ba1-ce9ff7fadb4a",
+    "type": "explains",
+    "evidence": "Each Service object defines a logical set of endpoints (usually these endpoints are Pods) along with a policy about how to make those pods accessible."
+   },
+   {
+    "to": "f043c427-536d-4114-8916-0f2bb2fca60c",
+    "type": "related",
+    "evidence": "Canary deployments are a common use case for Services."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "75f91ad0-c4af-4a9b-8d62-494b44a33953",
+    "type": "related",
+    "evidence": "Kubernetes creates DNS records for Services and Pods. You can contact Services with consistent DNS names instead of IP addresses."
+   },
+   {
+    "to": "212caca6-361b-4c1b-a510-bd98c87ba8af",
+    "type": "uses",
+    "evidence": "Kubernetes assumes that pods can communicate with other pods, r"
+   }
+  ],
+  "needs": [
+   "Pod definitions",
+   "Selectors"
+  ],
+  "candidates": [
+   "f043c427-536d-4114-8916-0f2bb2fca60c",
+   "be3bb5db-e795-41d5-ba4f-c9ae09626e05",
+   "dc1d90dc-5178-432b-996d-33a847ce7829",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "885a3e72-a304-44d1-8cab-a719201f0caa",
+   "4a760a9b-3d35-444f-8256-ca64b8d6489c",
+   "1aecc8a8-ce7c-4d65-882c-a6cc688156e9",
+   "d54acdc7-f748-43e1-8ba1-ce9ff7fadb4a",
+   "75f91ad0-c4af-4a9b-8d62-494b44a33953",
+   "91fa24ed-b2d2-45a0-9705-a1e7c3f65eea",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "212caca6-361b-4c1b-a510-bd98c87ba8af",
+   "79a19412-d940-44f2-93ac-67f0578973d4",
+   "01b73038-d7b8-4a4e-a269-ff1cac89dca9",
+   "078d5fea-4af6-48d1-8076-83b5fa4c7293"
+  ],
+  "seconds": 36.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 8,\n      \"type\": \"explains\",\n      \"evidence\": \"Each Service object defines a logical set of endpoints (usually these endpoints are Pods) along with a policy about how to make those pods accessible.\"\n    },\n    {\n      \"to\": 9,\n      \"type\": \"related\",\n      \"evidence\": \"Kubernetes creates DNS records for Services and Pods. You can contact Services with consistent DNS names instead of IP addresses.\"\n    },\n    {\n      \"to\": 12,\n      \"type\": \"uses\",\n      \"evidence\": \"Kubernetes assumes that pods can communicate with other pods, r\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"related\",\n      \"evidence\": \"Canary deployments are a common use case for Services.\"\n    }\n  ],\n  \"needs\": [\n    \"Pod definitions\",\n    \"Selectors\"\n  ]\n}"
+ },
+ "6b4b2982-1e66-45f8-b29a-59209e9155bf": {
+  "relations": [
+   {
+    "to": "d54acdc7-f748-43e1-8ba1-ce9ff7fadb4a",
+    "type": "explains",
+    "evidence": "A Kubernetes Service is an abstraction layer which defines a logical set of Pods and enables external traffic exposure, load balancing and service discovery for those Pods."
+   },
+   {
+    "to": "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+    "type": "relates",
+    "evidence": "The set of Pods targeted by a Service is usually determined by a _label selector_ (see below for why you might want a Service without including a `selector` in the spec)."
+   },
+   {
+    "to": "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+    "type": "part of",
+    "evidence": "Pods are mortal. Pods have a lifecycle."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "9c21fe68-08a3-4f76-9d51-31e161bfc2e8",
+    "type": "related",
+    "evidence": "A ReplicaSet's purpose is to maintain a stable set of replica Pods running at any given time."
+   }
+  ],
+  "needs": [
+   "label selector",
+   "Pod lifecycle",
+   "Kubernetes Service"
+  ],
+  "candidates": [
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "9c21fe68-08a3-4f76-9d51-31e161bfc2e8",
+   "68cb2501-f751-471e-8691-913652760a56",
+   "1b73e1d2-1b2a-4f23-927f-fd2444a84ca3",
+   "212caca6-361b-4c1b-a510-bd98c87ba8af",
+   "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+   "089212f1-f501-4fa5-b606-fec8ebf1425a",
+   "d15492f0-0465-4a52-b259-5bf5b2c296f9",
+   "e9f779ee-8ca0-473f-be0e-7b90abb8f947",
+   "5944748c-cc5f-4d80-b48c-5222538c97a6",
+   "b3b76891-decb-4dc6-9558-1109132b23fc",
+   "1a225c39-c25b-46ae-babd-be87c7bc6804",
+   "2e956152-28d0-4736-9543-71f2d1105f33",
+   "d54acdc7-f748-43e1-8ba1-ce9ff7fadb4a"
+  ],
+  "seconds": 48.3,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 15,\n      \"type\": \"explains\",\n      \"evidence\": \"A Kubernetes Service is an abstraction layer which defines a logical set of Pods and enables external traffic exposure, load balancing and service discovery for those Pods.\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"relates\",\n      \"evidence\": \"The set of Pods targeted by a Service is usually determined by a _label selector_ (see below for why you might want a Service without including a `selector` in the spec).\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"Pods are mortal. Pods have a lifecycle.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"related\",\n      \"evidence\": \"A ReplicaSet's purpose is to maintain a stable set of replica Pods running at any given time.\"\n    }\n  ],\n  \"needs\": [\n    \"label selector\",\n    \"Pod lifecycle\",\n    \"Kubernetes Service\"\n  ]\n}"
+ },
+ "71537382-98b0-43ea-a125-3ce49c17e579": {
+  "relations": [
+   {
+    "to": "d9df2d52-464c-4781-836f-48d4d06e3519",
+    "type": "part of",
+    "evidence": "Familiarize yourself with the material in [Persistent Volumes](/docs/concepts/storage/persistent-volumes/)."
+   },
+   {
+    "to": "7862943b-be92-44c2-bb05-7045fdb5a29b",
+    "type": "explains",
+    "evidence": "In your shell on that Node, create a /mnt/data directory:"
+   },
+   {
+    "to": "42a9edf8-7e89-42c7-a11f-89af2a3b6514",
+    "type": "uses",
+    "evidence": "the kubectl command-line tool must be configured to communicate with your cluster."
+   },
+   {
+    "to": "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+    "type": "part of",
+    "evidence": "In your shell on that Node, create a /mnt/data directory:"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "90400016-1116-4a7a-8147-23236d974d4e",
+    "type": "explains",
+    "evidence": "This page shows you how to configure a Pod to use a Volume for storage."
+   },
+   {
+    "to": "072b437d-7771-4cee-b397-9ef374a117fd",
+    "type": "part of",
+    "evidence": "Kubernetes _volumes_ provide a way for containers in a Pod to access and share data via the filesystem."
+   }
+  ],
+  "needs": [
+   "Persistent Volumes",
+   "The Kubernetes API",
+   "Pods"
+  ],
+  "candidates": [
+   "d9df2d52-464c-4781-836f-48d4d06e3519",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "69d5d940-b134-46b5-a64c-7df3ec7ea911",
+   "36e37ff8-eeac-4096-a1a8-ccab170adef6",
+   "d42d659b-ee0f-447c-8bf6-3acc605ec3a0",
+   "42a9edf8-7e89-42c7-a11f-89af2a3b6514",
+   "7862943b-be92-44c2-bb05-7045fdb5a29b",
+   "ae244810-00d7-4be1-a98f-64f771bd5898",
+   "c18a7601-1714-4a58-9905-40cf0b432ab0",
+   "f3f2907c-ae6e-4bca-9f0e-0865a839c03a",
+   "90400016-1116-4a7a-8147-23236d974d4e",
+   "71c0f55a-4de8-4a8c-b38c-1491415798f3",
+   "072b437d-7771-4cee-b397-9ef374a117fd",
+   "496d9669-cbdb-4401-828a-cc0d58123ea8",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9"
+  ],
+  "seconds": 210.3,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"Familiarize yourself with the material in [Persistent Volumes](/docs/concepts/storage/persistent-volumes/).\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"explains\",\n      \"evidence\": \"In your shell on that Node, create a /mnt/data directory:\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"uses\",\n      \"evidence\": \"the kubectl command-line tool must be configured to communicate with your cluster.\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"explains\",\n      \"evidence\": \"This page shows you how to configure a Pod to use a Volume for storage.\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"part of\",\n      \"evidence\": \"Kubernetes _volumes_ provide a way for containers in a Pod to access and share data via the filesystem.\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"part of\",\n      \"evidence\": \"In your shell on that Node, create a /mnt/data directory:\"\n    }\n  ],\n  \"needs\": [\n    \"Persistent Volumes\",\n    \"The Kubernetes API\",\n    \"Pods\"\n  ]\n}"
+ },
+ "8c0f1e5f-1634-49d8-a89c-3600d6e3d830": {
+  "relations": [
+   {
+    "to": "d42d659b-ee0f-447c-8bf6-3acc605ec3a0",
+    "type": "uses",
+    "evidence": "This tutorial demonstrates running [Apache Zookeeper](https://zookeeper.apache.org) on Kubernetes using [StatefulSets](/docs/concepts/workloads/controllers/statefulset/)"
+   },
+   {
+    "to": "0c145391-f9b0-469c-b760-71211377b833",
+    "type": "uses",
+    "evidence": "How to use PodDisruptionBudgets to ensure service availability during planned maintenance."
+   },
+   {
+    "to": "d9df2d52-464c-4781-836f-48d4d06e3519",
+    "type": "assumes",
+    "evidence": "This tutorial assumes that you have configured your cluster to dynamically provision PersistentVolumes."
+   }
+  ],
+  "dropped": [],
+  "needs": [
+   "Kubernetes concepts",
+   "Apache ZooKeeper",
+   "Zab consensus protocol"
+  ],
+  "candidates": [
+   "d42d659b-ee0f-447c-8bf6-3acc605ec3a0",
+   "07afddd8-3439-4d46-919e-69c7a86e0ede",
+   "fd2cea96-1be6-4b7c-8cfa-46f21db787c1",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "75f91ad0-c4af-4a9b-8d62-494b44a33953",
+   "68cb2501-f751-471e-8691-913652760a56",
+   "d9df2d52-464c-4781-836f-48d4d06e3519",
+   "42a9edf8-7e89-42c7-a11f-89af2a3b6514",
+   "f7689575-74d1-421c-9e6e-3f47a9bd9dca",
+   "52bcbeee-ddd2-40b9-ad86-acc554990bf2",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "c47d45b6-ad7a-4a42-9372-4d6667e31b25",
+   "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+   "0c145391-f9b0-469c-b760-71211377b833",
+   "607dd867-1313-42f0-b89b-2665a5f26715"
+  ],
+  "seconds": 39.5,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"This tutorial demonstrates running [Apache Zookeeper](https://zookeeper.apache.org) on Kubernetes using [StatefulSets](/docs/concepts/workloads/controllers/statefulset/)\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"uses\",\n      \"evidence\": \"How to use PodDisruptionBudgets to ensure service availability during planned maintenance.\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"assumes\",\n      \"evidence\": \"This tutorial assumes that you have configured your cluster to dynamically provision PersistentVolumes.\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes concepts\",\n    \"Apache ZooKeeper\",\n    \"Zab consensus protocol\"\n  ]\n}"
+ },
+ "69d5d940-b134-46b5-a64c-7df3ec7ea911": {
+  "relations": [
+   {
+    "to": "6d799dfd-dcf6-491d-8997-4a1e0c3fe96f",
+    "type": "part of",
+    "evidence": "The implementation of dynamic volume provisioning is based on the API object `StorageClass`"
+   },
+   {
+    "to": "71537382-98b0-43ea-a125-3ce49c17e579",
+    "type": "uses",
+    "evidence": "Users request dynamically provisioned storage by including a storage class in their `PersistentVolumeClaim`."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "457864c3-51e3-4a13-a59d-6b03952a66ce",
+    "type": "explains",
+    "evidence": "Dynamic Volume Provisioning allows users to request automatic creation of storage Volumes."
+   }
+  ],
+  "needs": [
+   "PersistentVolumeClaim",
+   "StorageClass",
+   "PersistentVolume"
+  ],
+  "candidates": [
+   "d9df2d52-464c-4781-836f-48d4d06e3519",
+   "6d799dfd-dcf6-491d-8997-4a1e0c3fe96f",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "4a760a9b-3d35-444f-8256-ca64b8d6489c",
+   "e9469212-7529-4380-ac53-1539023d27af",
+   "36e37ff8-eeac-4096-a1a8-ccab170adef6",
+   "51d33f1f-8908-4dff-963d-072aa18d294f",
+   "71537382-98b0-43ea-a125-3ce49c17e579",
+   "8fced82f-7f54-4428-b354-6d16319ff15f",
+   "a646b5ed-f742-473a-8bca-b5f35358a66e",
+   "d42d659b-ee0f-447c-8bf6-3acc605ec3a0",
+   "457864c3-51e3-4a13-a59d-6b03952a66ce",
+   "477812bb-a1c5-4522-a960-b4f87a85d00d",
+   "986f6a3b-ccc6-4a74-a186-9faf2e091b54"
+  ],
+  "seconds": 30.3,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"part of\",\n      \"evidence\": \"The implementation of dynamic volume provisioning is based on the API object `StorageClass`\"\n    },\n    {\n      \"to\": 9,\n      \"type\": \"uses\",\n      \"evidence\": \"Users request dynamically provisioned storage by including a storage class in their `PersistentVolumeClaim`.\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"explains\",\n      \"evidence\": \"Dynamic Volume Provisioning allows users to request automatic creation of storage Volumes.\"\n    }\n  ],\n  \"needs\": [\n    \"PersistentVolumeClaim\",\n    \"StorageClass\",\n    \"PersistentVolume\"\n  ]\n}"
+ },
+ "a736c997-ceee-45fb-9f46-2c988281f4fa": {
+  "relations": [
+   {
+    "to": "e82b3713-1ba9-490b-a41f-ef7c5ba6e4ae",
+    "type": "depends on",
+    "evidence": "This page assumes you are already familiar with the basic [Pod Security Admission](/docs/concepts/security/pod-security-admission/) concepts."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "8ad593ac-e240-4324-91fe-32c51945ff1c",
+    "type": "explains",
+    "evidence": "Kubernetes provides a built-in [admission controller](/docs/reference/access-authn-authz/admission-controllers/#podsecurity) to enforce the [Pod Security Standa"
+   },
+   {
+    "to": "46119244-130e-4bbd-815c-3806db27c426",
+    "type": "replaces",
+    "evidence": "PodSecurityPolicy was [deprecated](/blog/2021/04/08/kubernetes-1-21-release-announcement/#podsecuritypolicy-deprecation) in Kubernetes v1.21, and removed from K"
+   },
+   {
+    "to": "986f6a3b-ccc6-4a74-a186-9faf2e091b54",
+    "type": "related",
+    "evidence": "Admission Controller: A piece of code that intercepts requests to the Kubernetes API server prior to persistence of the object."
+   },
+   {
+    "to": "86e82f06-5b8d-41a2-a591-0c39ca4f19b6",
+    "type": "explains",
+    "evidence": "This page provides an overview of best practices when it comes to enforcing [Pod Security Standards](/docs/concepts/security/pod-security-standards)."
+   }
+  ],
+  "needs": [
+   "basic Pod Security Admission concepts",
+   "Pod Security Standards",
+   "Mutating Admission Webhook"
+  ],
+  "candidates": [
+   "e82b3713-1ba9-490b-a41f-ef7c5ba6e4ae",
+   "9e8e17e7-ea05-45f7-8ccc-6687457ed9bc",
+   "b78c825c-33a1-4d8c-b672-a37376837874",
+   "0fbfee4f-62b0-4556-8134-6f6fcf37d7e9",
+   "f873b9b7-604b-42eb-aae4-1b46eec661e4",
+   "6a690bef-0a75-4b06-b54c-ed56b9ec4d75",
+   "8ad593ac-e240-4324-91fe-32c51945ff1c",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "46119244-130e-4bbd-815c-3806db27c426",
+   "4dbcfd7a-ba3f-4983-9c5a-2ff224e5c153",
+   "986f6a3b-ccc6-4a74-a186-9faf2e091b54",
+   "a50c160b-6c44-41d9-8da9-fe6466932f28",
+   "86e82f06-5b8d-41a2-a591-0c39ca4f19b6",
+   "4861f08c-33df-42df-ba6f-55e7d9f37f40",
+   "e2bfe3f2-d833-45ae-8f68-b6866100256c"
+  ],
+  "seconds": 77.5,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 7,\n      \"type\": \"explains\",\n      \"evidence\": \"Kubernetes provides a built-in [admission controller](/docs/reference/access-authn-authz/admission-controllers/#podsecurity) to enforce the [Pod Security Standa\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"depends on\",\n      \"evidence\": \"This page assumes you are already familiar with the basic [Pod Security Admission](/docs/concepts/security/pod-security-admission/) concepts.\"\n    },\n    {\n      \"to\": 9,\n      \"type\": \"replaces\",\n      \"evidence\": \"PodSecurityPolicy was [deprecated](/blog/2021/04/08/kubernetes-1-21-release-announcement/#podsecuritypolicy-deprecation) in Kubernetes v1.21, and removed from K\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"related\",\n      \"evidence\": \"Admission Controller: A piece of code that intercepts requests to the Kubernetes API server prior to persistence of the object.\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"explains\",\n      \"evidence\": \"This page provides an overview of best practices when it comes to enforcing [Pod Security Standards](/docs/concepts/security/pod-security-standards).\"\n    }\n  ],\n  \"needs\": [\n    \"basic Pod Security Admission concepts\",\n    \"Pod Security Standards\",\n    \"Mutating Admission Webhook\"\n  ]\n}"
+ },
+ "072b437d-7771-4cee-b397-9ef374a117fd": {
+  "relations": [
+   {
+    "to": "d9df2d52-464c-4781-836f-48d4d06e3519",
+    "type": "related",
+    "evidence": "Before you learn about volumes, PersistentVolumes, and PersistentVolumeClaims"
+   },
+   {
+    "to": "edc88dcf-e199-451f-87e4-a2a507f97126",
+    "type": "uses",
+    "evidence": "populating a configuration file based on a ConfigMap or a Secret"
+   },
+   {
+    "to": "b9adb2a0-5935-4e4e-80dc-d9c043d0ad88",
+    "type": "explains",
+    "evidence": "passing configuration information to an app running in a container, based on details of the Pod"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "22bf5ffc-241f-4c3c-be80-86dff9a4b325",
+    "type": "part of",
+    "evidence": "types of volumes > emptyDir"
+   }
+  ],
+  "needs": [
+   "Pods",
+   "ConfigMap",
+   "Secret"
+  ],
+  "candidates": [
+   "22bf5ffc-241f-4c3c-be80-86dff9a4b325",
+   "d9df2d52-464c-4781-836f-48d4d06e3519",
+   "edc88dcf-e199-451f-87e4-a2a507f97126",
+   "b9adb2a0-5935-4e4e-80dc-d9c043d0ad88",
+   "7076dd11-e362-4871-ab86-c93c7ed298c0",
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+   "ad6e1e1a-6928-466f-a3aa-2c43ed21395b",
+   "52c62665-7192-48ee-8570-59d7b539d6d1",
+   "aecd1a9e-794a-4736-bf6f-646e69aeedf5",
+   "f741602f-7f3d-4c57-9f4a-51c1b047b5e6",
+   "52bcbeee-ddd2-40b9-ad86-acc554990bf2",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "120886b3-c08b-4764-ba79-4dcddcb8596f",
+   "496d9669-cbdb-4401-828a-cc0d58123ea8",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4"
+  ],
+  "seconds": 49.1,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"types of volumes > emptyDir\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"related\",\n      \"evidence\": \"Before you learn about volumes, PersistentVolumes, and PersistentVolumeClaims\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"uses\",\n      \"evidence\": \"populating a configuration file based on a ConfigMap or a Secret\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"explains\",\n      \"evidence\": \"passing configuration information to an app running in a container, based on details of the Pod\"\n    }\n  ],\n  \"needs\": [\n    \"Pods\",\n    \"ConfigMap\",\n    \"Secret\"\n  ]\n}"
+ },
+ "4a760a9b-3d35-444f-8256-ca64b8d6489c": {
+  "relations": [
+   {
+    "to": "765d24f9-6b08-4267-900c-e718f5d75593",
+    "type": "related",
+    "evidence": "One of the [recommended labels](/docs/concepts/overview/working-with-objects/common-labels/#labels)."
+   },
+   {
+    "to": "ffbe4d67-6ad1-49ad-8aa2-7bd3571c741f",
+    "type": "related",
+    "evidence": "One of the [recommended labels](/docs/concepts/overview/working-with-objects/common-labels/#labels)."
+   }
+  ],
+  "dropped": [],
+  "needs": [
+   "workload resources",
+   "common labels"
+  ],
+  "candidates": [
+   "ffbe4d67-6ad1-49ad-8aa2-7bd3571c741f",
+   "765d24f9-6b08-4267-900c-e718f5d75593",
+   "bec9b15d-7b70-41c5-9aa0-5367cd919abc",
+   "d42d659b-ee0f-447c-8bf6-3acc605ec3a0",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "8fced82f-7f54-4428-b354-6d16319ff15f",
+   "9dc703f1-b1f3-447d-84da-0290422560e1",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "53c35f88-60ea-4876-a61d-02db7919e962",
+   "9c21fe68-08a3-4f76-9d51-31e161bfc2e8",
+   "47c30b96-bcfc-4c37-9ef0-16b03ce07b1e",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "d9df2d52-464c-4781-836f-48d4d06e3519",
+   "6d799dfd-dcf6-491d-8997-4a1e0c3fe96f",
+   "919bfa72-eaf6-43fd-ad7e-1834c5255f2a"
+  ],
+  "seconds": 32.9,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"related\",\n      \"evidence\": \"One of the [recommended labels](/docs/concepts/overview/working-with-objects/common-labels/#labels).\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"related\",\n      \"evidence\": \"One of the [recommended labels](/docs/concepts/overview/working-with-objects/common-labels/#labels).\"\n    }\n  ],\n  \"needs\": [\n    \"workload resources\",\n    \"common labels\"\n  ]\n}"
+ },
+ "65ce8cfd-b2b1-4443-87db-7d5c266dd605": {
+  "relations": [
+   {
+    "to": "2d94013e-b346-4c24-bd7f-abae5f58e7e7",
+    "type": "explains",
+    "evidence": "A [HorizontalPodAutoscaler](/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/) (HPA for short) automatically updates a workload resource"
+   },
+   {
+    "to": "bed4e0ca-59fc-4ee1-828e-a44371e3c740",
+    "type": "uses",
+    "evidence": "The Kubernetes Metrics Server collects resource metrics from the kubelets in your cluster, and exposes those metrics through the [Kubernetes API](/docs/concepts/overview/kubernetes-api/)"
+   },
+   {
+    "to": "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+    "type": "part of",
+    "evidence": "The HPA controller will increase and decrease the number of replicas (by updating the Deployment)"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "899cfef3-e0f6-4e21-bb4b-70e9e9c6727b",
+    "type": "depends on",
+    "evidence": "To follow this walkthrough, you also need to use a cluster that has a [Metrics Server] deployed and configured."
+   },
+   {
+    "to": "dcee9c91-9139-433a-b4c9-62bf133115c3",
+    "type": "explains",
+    "evidence": "create a HorizontalPodAutoscaler that maintains between 1 and 10 replicas of the Pods"
+   }
+  ],
+  "needs": [
+   "Metrics Server",
+   "Deployment",
+   "kubectl autoscale"
+  ],
+  "candidates": [
+   "2d94013e-b346-4c24-bd7f-abae5f58e7e7",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "367068bb-3f6d-4e81-acdb-a3848991aab7",
+   "124ec955-5135-45fa-96fc-43b42e89bc60",
+   "1c21d0d4-96a2-42a7-80c2-344cc32346e6",
+   "74abbbc0-9c8f-4c49-b132-2bae2711fb73",
+   "bed4e0ca-59fc-4ee1-828e-a44371e3c740",
+   "c18a7601-1714-4a58-9905-40cf0b432ab0",
+   "dcee9c91-9139-433a-b4c9-62bf133115c3",
+   "e795e466-5f94-4edc-8820-e3c644bdfb67",
+   "899cfef3-e0f6-4e21-bb4b-70e9e9c6727b",
+   "86abfd2d-2762-46c2-91fa-ace3cfdfd12f",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "0af953b5-1aab-434f-8b20-317e093cce82",
+   "17ce1b59-122f-4444-8a59-eab31b8de8b4"
+  ],
+  "seconds": 46.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"explains\",\n      \"evidence\": \"A [HorizontalPodAutoscaler](/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/) (HPA for short) automatically updates a workload resource\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"uses\",\n      \"evidence\": \"The Kubernetes Metrics Server collects resource metrics from the kubelets in your cluster, and exposes those metrics through the [Kubernetes API](/docs/concepts/overview/kubernetes-api/)\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"depends on\",\n      \"evidence\": \"To follow this walkthrough, you also need to use a cluster that has a [Metrics Server] deployed and configured.\"\n    },\n    {\n      \"to\": 9,\n      \"type\": \"explains\",\n      \"evidence\": \"create a HorizontalPodAutoscaler that maintains between 1 and 10 replicas of the Pods\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"part of\",\n      \"evidence\": \"The HPA controller will increase and decrease the number of replicas (by updating the Deployment)\"\n    }\n  ],\n  \"needs\": [\n    \"Metrics Server\",\n    \"Deployment\",\n    \"kubectl autoscale\"\n  ]\n}"
+ },
+ "2d94013e-b346-4c24-bd7f-abae5f58e7e7": {
+  "relations": [
+   {
+    "to": "c9baf8fc-d800-47ba-99f8-769c5456c4d4",
+    "type": "depends on",
+    "evidence": "HorizontalPodAutoscaler instructs the workload resource (the Deployment, StatefulSet, or other similar resource) to scale back down."
+   },
+   {
+    "to": "899cfef3-e0f6-4e21-bb4b-70e9e9c6727b",
+    "type": "uses",
+    "evidence": "The controller manager queries the resource utilization against the metrics specified in each HorizontalPodAutoscaler definition."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "65ce8cfd-b2b1-4443-87db-7d5c266dd605",
+    "type": "explains",
+    "evidence": "HorizontalPodAutoscaler automatically updates a workload resource (such as a Deployment or StatefulSet)"
+   },
+   {
+    "to": "1c21d0d4-96a2-42a7-80c2-344cc32346e6",
+    "type": "explains",
+    "evidence": "In Kubernetes, you can scale a workload depending on the current demand of resources."
+   }
+  ],
+  "needs": [
+   "Deployment",
+   "Pod",
+   "kube-controller-manager"
+  ],
+  "candidates": [
+   "65ce8cfd-b2b1-4443-87db-7d5c266dd605",
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+   "899cfef3-e0f6-4e21-bb4b-70e9e9c6727b",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "b0d2e103-faee-4b11-bb47-720bbdb0229d",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "c9baf8fc-d800-47ba-99f8-769c5456c4d4",
+   "86abfd2d-2762-46c2-91fa-ace3cfdfd12f",
+   "e795e466-5f94-4edc-8820-e3c644bdfb67",
+   "1c21d0d4-96a2-42a7-80c2-344cc32346e6",
+   "6e10106a-bbd5-4e21-93f0-a03431912751",
+   "9a4214ce-c27d-45c3-aa31-111091cc52ad",
+   "9c21fe68-08a3-4f76-9d51-31e161bfc2e8"
+  ],
+  "seconds": 42.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"explains\",\n      \"evidence\": \"HorizontalPodAutoscaler automatically updates a workload resource (such as a Deployment or StatefulSet)\"\n    },\n    {\n      \"to\": 9,\n      \"type\": \"depends on\",\n      \"evidence\": \"HorizontalPodAutoscaler instructs the workload resource (the Deployment, StatefulSet, or other similar resource) to scale back down.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"uses\",\n      \"evidence\": \"The controller manager queries the resource utilization against the metrics specified in each HorizontalPodAutoscaler definition.\"\n    },\n    {\n      \"to\": 12,\n      \"type\": \"explains\",\n      \"evidence\": \"In Kubernetes, you can scale a workload depending on the current demand of resources.\"\n    }\n  ],\n  \"needs\": [\n    \"Deployment\",\n    \"Pod\",\n    \"kube-controller-manager\"\n  ]\n}"
+ },
+ "dcee9c91-9139-433a-b4c9-62bf133115c3": {
+  "relations": [
+   {
+    "to": "2d94013e-b346-4c24-bd7f-abae5f58e7e7",
+    "type": "depends on",
+    "evidence": "HorizontalPodAutoscaler (HPA) is typically used with Deployments, or ReplicaSets."
+   },
+   {
+    "to": "9c21fe68-08a3-4f76-9d51-31e161bfc2e8",
+    "type": "depends on",
+    "evidence": "HorizontalPodAutoscaler (HPA) is typically used with Deployments, or ReplicaSets."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "65ce8cfd-b2b1-4443-87db-7d5c266dd605",
+    "type": "explains",
+    "evidence": "A [HorizontalPodAutoscaler](/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/) (HPA for short) automatically updates a workload resource"
+   },
+   {
+    "to": "1c21d0d4-96a2-42a7-80c2-344cc32346e6",
+    "type": "explains",
+    "evidence": "In Kubernetes, you can _scale_ a workload depending on the current demand of resources."
+   }
+  ],
+  "needs": [
+   "Deployments",
+   "ReplicaSets",
+   "Pods"
+  ],
+  "candidates": [
+   "2d94013e-b346-4c24-bd7f-abae5f58e7e7",
+   "65ce8cfd-b2b1-4443-87db-7d5c266dd605",
+   "65ded1d4-9525-4fee-a99a-e311c6b0c997",
+   "6e10106a-bbd5-4e21-93f0-a03431912751",
+   "919bfa72-eaf6-43fd-ad7e-1834c5255f2a",
+   "9c21fe68-08a3-4f76-9d51-31e161bfc2e8",
+   "9c273b69-2a5c-4974-b9df-10966e9e4fa6",
+   "1c21d0d4-96a2-42a7-80c2-344cc32346e6",
+   "e795e466-5f94-4edc-8820-e3c644bdfb67",
+   "124ec955-5135-45fa-96fc-43b42e89bc60",
+   "86abfd2d-2762-46c2-91fa-ace3cfdfd12f",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "60e7248c-c765-4dd0-9ca6-c227dabb6f3d",
+   "0af953b5-1aab-434f-8b20-317e093cce82",
+   "01cc640c-d41c-42d0-9aa5-1ec11f86ab0e"
+  ],
+  "seconds": 53.3,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"depends on\",\n      \"evidence\": \"HorizontalPodAutoscaler (HPA) is typically used with Deployments, or ReplicaSets.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"explains\",\n      \"evidence\": \"A [HorizontalPodAutoscaler](/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/) (HPA for short) automatically updates a workload resource\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"depends on\",\n      \"evidence\": \"HorizontalPodAutoscaler (HPA) is typically used with Deployments, or ReplicaSets.\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"explains\",\n      \"evidence\": \"In Kubernetes, you can _scale_ a workload depending on the current demand of resources.\"\n    }\n  ],\n  \"needs\": [\n    \"Deployments\",\n    \"ReplicaSets\",\n    \"Pods\"\n  ]\n}"
+ },
+ "d9df2d52-464c-4781-836f-48d4d06e3519": {
+  "relations": [
+   {
+    "to": "072b437d-7771-4cee-b397-9ef374a117fd",
+    "type": "uses",
+    "evidence": "Familiarity with [volumes](/docs/concepts/storage/volumes/)"
+   },
+   {
+    "to": "71537382-98b0-43ea-a125-3ce49c17e579",
+    "type": "explains",
+    "evidence": "See the [detailed walkthrough with working examples](/docs/tutorials/configuration/configure-persistent-volume-storage)."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "6d799dfd-dcf6-491d-8997-4a1e0c3fe96f",
+    "type": "familiarity with",
+    "evidence": "Familiarity with [StorageClasses](/docs/concepts/storage/storage-classes/) and [VolumeAttributesClasses](/docs/concepts/storage/volume-attributes-classes/)"
+   }
+  ],
+  "needs": [
+   "volumes",
+   "StorageClasses",
+   "VolumeAttributesClasses"
+  ],
+  "candidates": [
+   "072b437d-7771-4cee-b397-9ef374a117fd",
+   "6d799dfd-dcf6-491d-8997-4a1e0c3fe96f",
+   "693010a9-d34f-4437-a00b-7bb277c1fa3a",
+   "71537382-98b0-43ea-a125-3ce49c17e579",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "a50c160b-6c44-41d9-8da9-fe6466932f28",
+   "b1d75b0b-f89a-4933-b40d-53e3b30cf33a",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "ae6c0a94-ab26-4f30-9c36-e32865abb28b",
+   "1a065e3f-6c01-46a3-8111-c1a90c919f25",
+   "5addf3e7-94a5-43d3-9fcd-46477caad533",
+   "12379c91-704e-4e60-8905-cfb0d0d49b58"
+  ],
+  "seconds": 31.8,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"Familiarity with [volumes](/docs/concepts/storage/volumes/)\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"familiarity with\",\n      \"evidence\": \"Familiarity with [StorageClasses](/docs/concepts/storage/storage-classes/) and [VolumeAttributesClasses](/docs/concepts/storage/volume-attributes-classes/)\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"explains\",\n      \"evidence\": \"See the [detailed walkthrough with working examples](/docs/tutorials/configuration/configure-persistent-volume-storage).\"\n    }\n  ],\n  \"needs\": [\n    \"volumes\",\n    \"StorageClasses\",\n    \"VolumeAttributesClasses\"\n  ]\n}"
+ },
+ "fbbeed44-ddab-45f2-bc9a-74ae2e8ffdf3": {
+  "relations": [
+   {
+    "to": "c9baf8fc-d800-47ba-99f8-769c5456c4d4",
+    "type": "part of",
+    "evidence": "This page shows you how to run a single-instance stateful application in Kubernetes using a PersistentVolume and a Deployment."
+   },
+   {
+    "to": "7862943b-be92-44c2-bb05-7045fdb5a29b",
+    "type": "depends on",
+    "evidence": "Create a PersistentVolume referencing a disk in your environment."
+   },
+   {
+    "to": "089212f1-f501-4fa5-b606-fec8ebf1425a",
+    "type": "explains",
+    "evidence": "kubectl apply -f https://k8s.io/examples/application/mysql/mysql-pv.yaml"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "072b437d-7771-4cee-b397-9ef374a117fd",
+    "type": "uses",
+    "evidence": "You can run a stateful application by creating a Kubernetes Deployment and connecting it to an existing PersistentVolumeClaim."
+   }
+  ],
+  "needs": [
+   "Kubernetes Deployment",
+   "PersistentVolumeClaim",
+   "PersistentVolume"
+  ],
+  "candidates": [
+   "ddcfc235-a295-4e7e-8e4f-e45207420246",
+   "d42d659b-ee0f-447c-8bf6-3acc605ec3a0",
+   "c9baf8fc-d800-47ba-99f8-769c5456c4d4",
+   "af34295a-3612-4fe0-a62e-9d32d838b1f5",
+   "072b437d-7771-4cee-b397-9ef374a117fd",
+   "d9df2d52-464c-4781-836f-48d4d06e3519",
+   "5434de7b-5a72-49df-9c08-717e5d45d1fc",
+   "7862943b-be92-44c2-bb05-7045fdb5a29b",
+   "550e2d9c-be81-47e4-83fb-e61842646e18",
+   "d15492f0-0465-4a52-b259-5bf5b2c296f9",
+   "51d33f1f-8908-4dff-963d-072aa18d294f",
+   "8ab0a4c9-70e8-4f7e-a8a4-6c10f7b35cf8",
+   "26cc937c-59d7-4012-b3c7-5d8a2a3376da",
+   "089212f1-f501-4fa5-b606-fec8ebf1425a",
+   "9c273b69-2a5c-4974-b9df-10966e9e4fa6"
+  ],
+  "seconds": 34.7,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 3,\n      \"type\": \"part of\",\n      \"evidence\": \"This page shows you how to run a single-instance stateful application in Kubernetes using a PersistentVolume and a Deployment.\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"uses\",\n      \"evidence\": \"You can run a stateful application by creating a Kubernetes Deployment and connecting it to an existing PersistentVolumeClaim.\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"depends on\",\n      \"evidence\": \"Create a PersistentVolume referencing a disk in your environment.\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"explains\",\n      \"evidence\": \"kubectl apply -f https://k8s.io/examples/application/mysql/mysql-pv.yaml\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes Deployment\",\n    \"PersistentVolumeClaim\",\n    \"PersistentVolume\"\n  ]\n}"
+ },
+ "a864d60a-59cf-4888-a033-efa188b1336d": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "ddcfc235-a295-4e7e-8e4f-e45207420246",
+    "type": "part of",
+    "evidence": "A Secret is an object that contains a small amount of sensitive data such as a password, a token, or a key."
+   },
+   {
+    "to": "072b437d-7771-4cee-b397-9ef374a117fd",
+    "type": "uses",
+    "evidence": "Create a Pod that has access to the secret data through a Volume"
+   },
+   {
+    "to": "7ac36939-c7ac-4f43-815f-e98ecc8af2e5",
+    "type": "explains",
+    "evidence": "This page shows you how to create, edit, manage, and delete Kubernetes Secrets using the `kubectl` command-line tool."
+   },
+   {
+    "to": "75c411cd-fa1d-49fc-bac3-de717939835f",
+    "type": "configures",
+    "evidence": "You can define the `Secret` object in a manifest first, in JSON or YAML format, and then create that object."
+   }
+  ],
+  "needs": [
+   "base64 encoding",
+   "kubectl commands",
+   "Kubernetes Pods"
+  ],
+  "candidates": [
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "ddcfc235-a295-4e7e-8e4f-e45207420246",
+   "072b437d-7771-4cee-b397-9ef374a117fd",
+   "628bc2f7-3c7f-4d92-af5f-80c9af459ba6",
+   "82f5052f-a102-47c3-8144-93239747f47f",
+   "9935db43-8069-4903-8418-9c573dc2590a",
+   "edc88dcf-e199-451f-87e4-a2a507f97126",
+   "4b0ed7b8-ae6d-4161-96d1-373ecd274936",
+   "4dbcfd7a-ba3f-4983-9c5a-2ff224e5c153",
+   "82e53bdf-e175-45f8-b06c-e006ab2939cf",
+   "a50c160b-6c44-41d9-8da9-fe6466932f28",
+   "7ac36939-c7ac-4f43-815f-e98ecc8af2e5",
+   "75c411cd-fa1d-49fc-bac3-de717939835f",
+   "2093b6e8-1455-4063-83c5-9695b8a34c86",
+   "f742076c-2a05-4dc0-9e05-78305360e5fa"
+  ],
+  "seconds": 37.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"part of\",\n      \"evidence\": \"A Secret is an object that contains a small amount of sensitive data such as a password, a token, or a key.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"uses\",\n      \"evidence\": \"Create a Pod that has access to the secret data through a Volume\"\n    },\n    {\n      \"to\": 12,\n      \"type\": \"explains\",\n      \"evidence\": \"This page shows you how to create, edit, manage, and delete Kubernetes Secrets using the `kubectl` command-line tool.\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"configures\",\n      \"evidence\": \"You can define the `Secret` object in a manifest first, in JSON or YAML format, and then create that object.\"\n    }\n  ],\n  \"needs\": [\n    \"base64 encoding\",\n    \"kubectl commands\",\n    \"Kubernetes Pods\"\n  ]\n}"
+ },
+ "71c0f55a-4de8-4a8c-b38c-1491415798f3": {
+  "relations": [
+   {
+    "to": "072b437d-7771-4cee-b397-9ef374a117fd",
+    "type": "part of",
+    "evidence": "This page shows how to use a [`projected`](/docs/concepts/storage/volumes/#projected) Volume to mount several existing volume sources into the same directory."
+   },
+   {
+    "to": "ddcfc235-a295-4e7e-8e4f-e45207420246",
+    "type": "uses",
+    "evidence": "Currently, `secret`, `configMap`, `downwardAPI`, and `serviceAccountToken` volumes can be projected."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "6ac900fd-2b98-4c13-8a24-1bd8a0bbd60b",
+    "type": "explains",
+    "evidence": "This document describes _projected volumes_ in Kubernetes. Familiarity with [volumes](/docs/concepts/storage/volumes/) is suggested."
+   },
+   {
+    "to": "90400016-1116-4a7a-8147-23236d974d4e",
+    "type": "explains",
+    "evidence": "This page shows how to configure a Pod to use a Volume for storage."
+   },
+   {
+    "to": "a864d60a-59cf-4888-a033-efa188b1336d",
+    "type": "explains",
+    "evidence": "This page shows how to securely inject sensitive data, such as passwords and encryption keys, into Pods."
+   }
+  ],
+  "needs": [
+   "projected volumes",
+   "Secrets",
+   "Pod"
+  ],
+  "candidates": [
+   "072b437d-7771-4cee-b397-9ef374a117fd",
+   "82f5052f-a102-47c3-8144-93239747f47f",
+   "6ac900fd-2b98-4c13-8a24-1bd8a0bbd60b",
+   "e85c41aa-b156-4890-b0b1-23a8450f1b47",
+   "90400016-1116-4a7a-8147-23236d974d4e",
+   "71537382-98b0-43ea-a125-3ce49c17e579",
+   "496d9669-cbdb-4401-828a-cc0d58123ea8",
+   "edc88dcf-e199-451f-87e4-a2a507f97126",
+   "9f876c95-7ecd-473b-bd35-100961dd723f",
+   "f4f0a6d0-226b-49c0-aa5e-cf8d74c5a784",
+   "52bcbeee-ddd2-40b9-ad86-acc554990bf2",
+   "b9adb2a0-5935-4e4e-80dc-d9c043d0ad88",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "ddcfc235-a295-4e7e-8e4f-e45207420246",
+   "a864d60a-59cf-4888-a033-efa188b1336d"
+  ],
+  "seconds": 38.9,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"This page shows how to use a [`projected`](/docs/concepts/storage/volumes/#projected) Volume to mount several existing volume sources into the same directory.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"explains\",\n      \"evidence\": \"This document describes _projected volumes_ in Kubernetes. Familiarity with [volumes](/docs/concepts/storage/volumes/) is suggested.\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"explains\",\n      \"evidence\": \"This page shows how to configure a Pod to use a Volume for storage.\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"uses\",\n      \"evidence\": \"Currently, `secret`, `configMap`, `downwardAPI`, and `serviceAccountToken` volumes can be projected.\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"explains\",\n      \"evidence\": \"This page shows how to securely inject sensitive data, such as passwords and encryption keys, into Pods.\"\n    }\n  ],\n  \"needs\": [\n    \"projected volumes\",\n    \"Secrets\",\n    \"Pod\"\n  ]\n}"
+ },
+ "c0a488aa-f65b-4a09-bdd8-427042a20280": {
+  "relations": [
+   {
+    "to": "a43c8448-660c-4400-b8cc-88765b1b7037",
+    "type": "part of",
+    "evidence": "Install containerd."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "60839c5e-ed01-40b6-b2e5-2a9d095859df",
+    "type": "replaces",
+    "evidence": "Changing the Container Runtime on a Node from Docker Engine to containerd"
+   },
+   {
+    "to": "bef3a380-435e-4eca-a8a6-545987ffa151",
+    "type": "explains",
+    "evidence": "Container Runtime: A fundamental component that empowers Kubernetes to run containers effectively."
+   },
+   {
+    "to": "56f42f31-7fc1-4ce8-aaf5-25b51ab656e4",
+    "type": "related",
+    "evidence": "Articles on dockershim Removal and on Using CRI-compatible Runtimes"
+   }
+  ],
+  "needs": [
+   "Understanding of Kubernetes 1.23 or earlier",
+   "Knowledge of how to drain a node",
+   "Knowledge of stopping the Docker daemon"
+  ],
+  "candidates": [
+   "a43c8448-660c-4400-b8cc-88765b1b7037",
+   "3045de1a-8573-4b9f-b20e-56973e3d8c7a",
+   "3663041d-63fd-4861-9306-28a3dc8f4fc0",
+   "7806d984-0385-4964-8d90-12144679058d",
+   "92b30ad7-8eac-4fa2-bf1c-a3b5c42d7b50",
+   "bef3a380-435e-4eca-a8a6-545987ffa151",
+   "cf7bea48-9447-4ead-89ae-6352c24ae014",
+   "a89b8652-16b7-46cc-936f-caac5410dcee",
+   "0fbfee4f-62b0-4556-8134-6f6fcf37d7e9",
+   "9147f4b7-e982-4bc4-ac9c-9a3e4bfe0668",
+   "60839c5e-ed01-40b6-b2e5-2a9d095859df",
+   "e85c41aa-b156-4890-b0b1-23a8450f1b47",
+   "16234e00-b022-43f3-b03e-2f2d34ad1772",
+   "c6c5ab8f-7383-4838-bb9a-dd4dadec864b",
+   "56f42f31-7fc1-4ce8-aaf5-25b51ab656e4"
+  ],
+  "seconds": 33.4,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 11,\n      \"type\": \"replaces\",\n      \"evidence\": \"Changing the Container Runtime on a Node from Docker Engine to containerd\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"Install containerd.\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"explains\",\n      \"evidence\": \"Container Runtime: A fundamental component that empowers Kubernetes to run containers effectively.\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"related\",\n      \"evidence\": \"Articles on dockershim Removal and on Using CRI-compatible Runtimes\"\n    }\n  ],\n  \"needs\": [\n    \"Understanding of Kubernetes 1.23 or earlier\",\n    \"Knowledge of how to drain a node\",\n    \"Knowledge of stopping the Docker daemon\"\n  ]\n}"
+ },
+ "a43c8448-660c-4400-b8cc-88765b1b7037": {
+  "relations": [
+   {
+    "to": "ebc34517-8c18-4af0-88c0-55de970e429f",
+    "type": "explains",
+    "evidence": "To interface with control groups, the kubelet and the container runtime need to use a *cgroup driver*."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "56f42f31-7fc1-4ce8-aaf5-25b51ab656e4",
+    "type": "related",
+    "evidence": "Articles on dockershim Removal and on Using CRI-compatible Runtimes: This is a list of articles and other pages that are either about the Kubernetes' deprecation and removal of _dockershim_, or about using CRI-compatible containe"
+   },
+   {
+    "to": "3045de1a-8573-4b9f-b20e-56973e3d8c7a",
+    "type": "related",
+    "evidence": "Find Out What Container Runtime is Used on a Node: This page outlines steps to find out what [container runtime](/docs/setup/production-environment/container-runtimes/) the nodes in your cluster use."
+   }
+  ],
+  "needs": [
+   "Container Runtime Interface (CRI)",
+   "cgroup drivers",
+   "containerd"
+  ],
+  "candidates": [
+   "c40303f6-0c39-4711-9c94-944d0a71d7c1",
+   "3663041d-63fd-4861-9306-28a3dc8f4fc0",
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+   "ebc34517-8c18-4af0-88c0-55de970e429f",
+   "9cb1e9a5-39de-4d85-8344-8d8dc7ecae82",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "0d9219ac-1f10-400f-94a8-0bd07f514f74",
+   "0fbfee4f-62b0-4556-8134-6f6fcf37d7e9",
+   "120886b3-c08b-4764-ba79-4dcddcb8596f",
+   "130ccdfb-8f93-4315-92a9-f99974ad2286",
+   "16234e00-b022-43f3-b03e-2f2d34ad1772",
+   "3045de1a-8573-4b9f-b20e-56973e3d8c7a",
+   "45d55ec9-9e50-4a21-9124-418c62ed28b6",
+   "56f42f31-7fc1-4ce8-aaf5-25b51ab656e4",
+   "5e252656-2c29-4309-a4fa-76d5ddc1218b"
+  ],
+  "seconds": 36.8,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 14,\n      \"type\": \"related\",\n      \"evidence\": \"Articles on dockershim Removal and on Using CRI-compatible Runtimes: This is a list of articles and other pages that are either about the Kubernetes' deprecation and removal of _dockershim_, or about using CRI-compatible containe\"\n    },\n    {\n      \"to\": 12,\n      \"type\": \"related\",\n      \"evidence\": \"Find Out What Container Runtime is Used on a Node: This page outlines steps to find out what [container runtime](/docs/setup/production-environment/container-runtimes/) the nodes in your cluster use.\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"explains\",\n      \"evidence\": \"To interface with control groups, the kubelet and the container runtime need to use a *cgroup driver*.\"\n    }\n  ],\n  \"needs\": [\n    \"Container Runtime Interface (CRI)\",\n    \"cgroup drivers\",\n    \"containerd\"\n  ]\n}"
+ },
+ "3663041d-63fd-4861-9306-28a3dc8f4fc0": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "a43c8448-660c-4400-b8cc-88765b1b7037",
+    "type": "uses",
+    "evidence": "Check out the [container runtimes](/docs/setup/production-environment/container-runtimes/) section to know your options for an alternative."
+   },
+   {
+    "to": "c40303f6-0c39-4711-9c94-944d0a71d7c1",
+    "type": "explains",
+    "evidence": "The `dockershim` component of Kubernetes allows the use of Docker as a Kubernetes's container runtime."
+   },
+   {
+    "to": "416362ac-b1b9-44ad-8d3c-f761784298e0",
+    "type": "explains",
+    "evidence": "Kubernetes' support for direct integration with Docker Engine is deprecated and has been removed."
+   },
+   {
+    "to": "56f42f31-7fc1-4ce8-aaf5-25b51ab656e4",
+    "type": "related",
+    "evidence": "This is a list of articles and other pages that are either about the Kubernetes' deprecation and removal of _dockershim_, or about using CRI-compatible containe"
+   },
+   {
+    "to": "bef3a380-435e-4eca-a8a6-545987ffa151",
+    "type": "part of",
+    "evidence": "A fundamental component that empowers Kubernetes to run containers effectively."
+   },
+   {
+    "to": "00cc05cf-b221-4f3a-80e0-8425e4b4b27d",
+    "type": "is part of",
+    "evidence": "The dockershim is a component of Kubernetes version 1.23 and earlier."
+   }
+  ],
+  "needs": [
+   "Understanding of container runtimes",
+   "Knowledge of Kubernetes version lifecycle and support",
+   "Understanding of Docker Engine integration with Kubernetes"
+  ],
+  "candidates": [
+   "a43c8448-660c-4400-b8cc-88765b1b7037",
+   "c40303f6-0c39-4711-9c94-944d0a71d7c1",
+   "416362ac-b1b9-44ad-8d3c-f761784298e0",
+   "56f42f31-7fc1-4ce8-aaf5-25b51ab656e4",
+   "bef3a380-435e-4eca-a8a6-545987ffa151",
+   "c0a488aa-f65b-4a09-bdd8-427042a20280",
+   "00cc05cf-b221-4f3a-80e0-8425e4b4b27d",
+   "ca04750c-56c4-4d06-ae22-889723d5fa6e",
+   "3045de1a-8573-4b9f-b20e-56973e3d8c7a",
+   "060ec952-44ca-4f54-a5cf-5e36d4e11f47",
+   "cbfb5c45-eab9-45e0-9f2e-026f159afed1",
+   "12dd9543-8c46-46d4-8643-047d8bde06d4",
+   "9c273b69-2a5c-4974-b9df-10966e9e4fa6",
+   "45d55ec9-9e50-4a21-9124-418c62ed28b6",
+   "ad8adaa3-79af-4067-a6b6-9cbe4000d57a"
+  ],
+  "seconds": 45.9,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"Check out the [container runtimes](/docs/setup/production-environment/container-runtimes/) section to know your options for an alternative.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"explains\",\n      \"evidence\": \"The `dockershim` component of Kubernetes allows the use of Docker as a Kubernetes's container runtime.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"explains\",\n      \"evidence\": \"Kubernetes' support for direct integration with Docker Engine is deprecated and has been removed.\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"related\",\n      \"evidence\": \"This is a list of articles and other pages that are either about the Kubernetes' deprecation and removal of _dockershim_, or about using CRI-compatible containe\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"part of\",\n      \"evidence\": \"A fundamental component that empowers Kubernetes to run containers effectively.\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"is part of\",\n      \"evidence\": \"The dockershim is a component of Kubernetes version 1.23 and earlier.\"\n    }\n  ],\n  \"needs\": [\n    \"Understanding of container runtimes\",\n    \"Knowledge of Kubernetes version lifecycle and support\",\n    \"Understanding of Docker Engine integration with Kubernetes\"\n  ]\n}"
+ },
+ "9e8e17e7-ea05-45f7-8ccc-6687457ed9bc": {
+  "relations": [
+   {
+    "to": "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+    "type": "part of",
+    "evidence": "In addition to [compiled-in admission plugins](/docs/reference/access-authn-authz/admission-controllers/)"
+   },
+   {
+    "to": "f741602f-7f3d-4c57-9f4a-51c1b047b5e6",
+    "type": "explains",
+    "evidence": "You can define two types of admission webhooks, [validating admission webhook](/docs/reference/access-authn-authz/admission-controllers/#validatingadmissionwebhook)"
+   },
+   {
+    "to": "d91d6cf8-85fd-41d2-8347-cd46bb1209a7",
+    "type": "explains",
+    "evidence": "Mutating admission webhooks are invoked first, and can modify objects sent to the API server"
+   },
+   {
+    "to": "3f14460d-e8ff-402a-9fca-1f52da389685",
+    "type": "uses",
+    "evidence": "The webhook handles the `AdmissionReview` request sent by the API servers"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "eeffefb1-88b5-4182-a75b-a691094d1fee",
+    "type": "relates to",
+    "evidence": "Manifest-based admission control lets you load [admission webhooks](/docs/ref"
+   },
+   {
+    "to": "07741c35-18f2-4c6a-a621-9422dbfcd69e",
+    "type": "explains",
+    "evidence": "This page provides good practices and considerations when designing _admission webhooks_ in Kubernetes."
+   }
+  ],
+  "needs": [
+   "Understanding of admission controllers",
+   "Understanding of validating admission webhooks",
+   "Understanding of mutating admission webhooks"
+  ],
+  "candidates": [
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "eeffefb1-88b5-4182-a75b-a691094d1fee",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "f741602f-7f3d-4c57-9f4a-51c1b047b5e6",
+   "d91d6cf8-85fd-41d2-8347-cd46bb1209a7",
+   "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+   "7465c81f-5fd1-4816-8696-67152afadf30",
+   "c96696e3-4fc4-49af-a4c7-082ccf82f265",
+   "07741c35-18f2-4c6a-a621-9422dbfcd69e",
+   "22bf5ffc-241f-4c3c-be80-86dff9a4b325",
+   "3f084512-f65c-4621-8f97-8b22a9ce5003",
+   "51b183c0-0901-4bfa-8156-ab772c83f519",
+   "75f91ad0-c4af-4a9b-8d62-494b44a33953"
+  ],
+  "seconds": 45.7,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"In addition to [compiled-in admission plugins](/docs/reference/access-authn-authz/admission-controllers/)\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"relates to\",\n      \"evidence\": \"Manifest-based admission control lets you load [admission webhooks](/docs/ref\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"explains\",\n      \"evidence\": \"You can define two types of admission webhooks, [validating admission webhook](/docs/reference/access-authn-authz/admission-controllers/#validatingadmissionwebhook)\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"explains\",\n      \"evidence\": \"Mutating admission webhooks are invoked first, and can modify objects sent to the API server\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"explains\",\n      \"evidence\": \"This page provides good practices and considerations when designing _admission webhooks_ in Kubernetes.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"uses\",\n      \"evidence\": \"The webhook handles the `AdmissionReview` request sent by the API servers\"\n    }\n  ],\n  \"needs\": [\n    \"Understanding of admission controllers\",\n    \"Understanding of validating admission webhooks\",\n    \"Understanding of mutating admission webhooks\"\n  ]\n}"
+ },
+ "07741c35-18f2-4c6a-a621-9422dbfcd69e": {
+  "relations": [
+   {
+    "to": "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+    "type": "depends on",
+    "evidence": "Before reading this page, ensure that you're familiar with the following concepts: * [Admission controllers](/docs/reference/access-authn-authz/admission-controllers/)"
+   },
+   {
+    "to": "9e8e17e7-ea05-45f7-8ccc-6687457ed9bc",
+    "type": "related",
+    "evidence": "Admission controllers intercept requests that match specific criteria that you define."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "d937910d-7a49-40da-b1e6-06e692e2a73d",
+    "type": "explains",
+    "evidence": "Webhook Mode: A WebHook is an HTTP callback: an HTTP POST that occurs when something happens; a simple event-notification via HTTP POST."
+   },
+   {
+    "to": "d91d6cf8-85fd-41d2-8347-cd46bb1209a7",
+    "type": "explains",
+    "evidence": "MutatingAdmissionPolicies allow you to change what happens when someone writes a change to the Ku"
+   },
+   {
+    "to": "1582a492-58c3-443e-91ba-7e236cc81006",
+    "type": "configures",
+    "evidence": "Kubernetes provides two ways to add custom resources to your cluster: - The [CustomResourceDefinition](/d"
+   },
+   {
+    "to": "3f14460d-e8ff-402a-9fca-1f52da389685",
+    "type": "part of",
+    "evidence": "The core of Kubernetes' control plane is the API server. The API server exposes an HTTP API that lets end users, different parts of your cluster, and external c"
+   }
+  ],
+  "needs": [
+   "Admission controllers",
+   "Admission webhooks",
+   "CustomResourceDefinition"
+  ],
+  "candidates": [
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "9e8e17e7-ea05-45f7-8ccc-6687457ed9bc",
+   "6cea3635-9320-46ec-a90d-8692cb2ef445",
+   "ea07b130-8573-44e1-9b01-e265b14fed25",
+   "f741602f-7f3d-4c57-9f4a-51c1b047b5e6",
+   "d937910d-7a49-40da-b1e6-06e692e2a73d",
+   "d91d6cf8-85fd-41d2-8347-cd46bb1209a7",
+   "ae78f02e-e689-4aea-bbb6-00a649cc4355",
+   "c18a7601-1714-4a58-9905-40cf0b432ab0",
+   "1582a492-58c3-443e-91ba-7e236cc81006",
+   "23cd0eaa-545e-4025-83cb-e6129f0bcea0",
+   "3a793d2e-5e1a-4bf0-b983-e6539a4cff1b",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "477812bb-a1c5-4522-a960-b4f87a85d00d",
+   "52c62665-7192-48ee-8570-59d7b539d6d1"
+  ],
+  "seconds": 44.4,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"depends on\",\n      \"evidence\": \"Before reading this page, ensure that you're familiar with the following concepts: * [Admission controllers](/docs/reference/access-authn-authz/admission-controllers/)\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"related\",\n      \"evidence\": \"Admission controllers intercept requests that match specific criteria that you define.\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"explains\",\n      \"evidence\": \"Webhook Mode: A WebHook is an HTTP callback: an HTTP POST that occurs when something happens; a simple event-notification via HTTP POST.\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"explains\",\n      \"evidence\": \"MutatingAdmissionPolicies allow you to change what happens when someone writes a change to the Ku\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"configures\",\n      \"evidence\": \"Kubernetes provides two ways to add custom resources to your cluster: - The [CustomResourceDefinition](/d\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"part of\",\n      \"evidence\": \"The core of Kubernetes' control plane is the API server. The API server exposes an HTTP API that lets end users, different parts of your cluster, and external c\"\n    }\n  ],\n  \"needs\": [\n    \"Admission controllers\",\n    \"Admission webhooks\",\n    \"CustomResourceDefinition\"\n  ]\n}"
+ },
+ "51b183c0-0901-4bfa-8156-ab772c83f519": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "a50c160b-6c44-41d9-8da9-fe6466932f28",
+    "type": "part of",
+    "evidence": "The API server is a component of the Kubernetes control plane that exposes the Kubernetes API."
+   },
+   {
+    "to": "60864a23-abbf-4e0b-97d0-d2c0b6e3deba",
+    "type": "uses",
+    "evidence": "It makes sure that containers are running in a Pod."
+   },
+   {
+    "to": "62eda4f5-8284-4924-be8c-28205351cf4e",
+    "type": "uses",
+    "evidence": "kube-proxy is a network proxy that runs on each node in your cluster, implementing part of the Kubernetes service concept."
+   },
+   {
+    "to": "f78fade1-87be-4481-b4e3-72498a8656a3",
+    "type": "explains",
+    "evidence": "When several users or teams share a cluster with a fixed number of nodes, there is a concern that one team could use more than its fair share of resources."
+   },
+   {
+    "to": "350e53b3-bacb-4660-b780-13b44c809b60",
+    "type": "explains",
+    "evidence": "If you want to control traffic flow at the IP address or port level for TCP, UDP, and SCTP protocols, then you might consider using Kubernetes NetworkPolicies"
+   },
+   {
+    "to": "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+    "type": "explains",
+    "evidence": "Manages authorization decisions, allowing admins to dynamically configure access policies through the Kubernetes API."
+   },
+   {
+    "to": "dad920b7-37b3-4766-8b5d-09ae03cacd11",
+    "type": "explains",
+    "evidence": "Custom resources are instances of resource types added to Kubernetes through API extensions."
+   },
+   {
+    "to": "367068bb-3f6d-4e81-acdb-a3848991aab7",
+    "type": "explains",
+    "evidence": "The aggregation layer allows Kubernetes to be extended with additional APIs, beyond what is offered by the core Kubernetes APIs."
+   }
+  ],
+  "needs": [
+   "Configuration files",
+   "Command arguments",
+   "Extension points"
+  ],
+  "candidates": [
+   "a50c160b-6c44-41d9-8da9-fe6466932f28",
+   "607dd867-1313-42f0-b89b-2665a5f26715",
+   "60864a23-abbf-4e0b-97d0-d2c0b6e3deba",
+   "62eda4f5-8284-4924-be8c-28205351cf4e",
+   "f78fade1-87be-4481-b4e3-72498a8656a3",
+   "350e53b3-bacb-4660-b780-13b44c809b60",
+   "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+   "3a793d2e-5e1a-4bf0-b983-e6539a4cff1b",
+   "f73ce760-7e54-47a4-a5b5-6a68f5033d67",
+   "fd2cea96-1be6-4b7c-8cfa-46f21db787c1",
+   "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+   "dad920b7-37b3-4766-8b5d-09ae03cacd11",
+   "367068bb-3f6d-4e81-acdb-a3848991aab7",
+   "9a4214ce-c27d-45c3-aa31-111091cc52ad",
+   "a31de986-f2ca-46ac-9bf9-7384402ef1f9"
+  ],
+  "seconds": 49.8,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"The API server is a component of the Kubernetes control plane that exposes the Kubernetes API.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"uses\",\n      \"evidence\": \"It makes sure that containers are running in a Pod.\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"uses\",\n      \"evidence\": \"kube-proxy is a network proxy that runs on each node in your cluster, implementing part of the Kubernetes service concept.\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"explains\",\n      \"evidence\": \"When several users or teams share a cluster with a fixed number of nodes, there is a concern that one team could use more than its fair share of resources.\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"explains\",\n      \"evidence\": \"If you want to control traffic flow at the IP address or port level for TCP, UDP, and SCTP protocols, then you might consider using Kubernetes NetworkPolicies\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"explains\",\n      \"evidence\": \"Manages authorization decisions, allowing admins to dynamically configure access policies through the Kubernetes API.\"\n    },\n    {\n      \"to\": 12,\n      \"type\": \"explains\",\n      \"evidence\": \"Custom resources are instances of resource types added to Kubernetes through API extensions.\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"explains\",\n      \"evidence\": \"The aggregation layer allows Kubernetes to be extended with additional APIs, beyond what is offered by the c"
+ },
+ "52ecbd98-5314-434d-86c0-e81f0821fb12": {
+  "relations": [
+   {
+    "to": "fd2cea96-1be6-4b7c-8cfa-46f21db787c1",
+    "type": "configures",
+    "evidence": "Taints and tolerations work together to ensure that pods are not scheduled onto inappropriate nodes."
+   },
+   {
+    "to": "8d90f83f-19e5-48bc-87f5-7d3bff01740e",
+    "type": "related",
+    "evidence": "The default Kubernetes scheduler takes taints and tolerations into account when selecting a node to run a particular Pod."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "c91924cb-c38f-46f7-87b0-01ca608a01f8",
+    "type": "explains",
+    "evidence": "This page describes device taints and tolerations in DRA, which let drivers and admins keep Pods off specific devices, or evict Pods already using them."
+   }
+  ],
+  "needs": [
+   "the definition of a taint",
+   "the definition of a toleration",
+   "how the scheduler uses taints and tolerations"
+  ],
+  "candidates": [
+   "fd2cea96-1be6-4b7c-8cfa-46f21db787c1",
+   "7a4898b5-ad7d-4560-b30e-dbb4aa6daf9b",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "94ed3ed4-c7e7-4a56-ab6e-a6147200976a",
+   "36a12bf1-9571-4b20-8a28-28122d557329",
+   "c91924cb-c38f-46f7-87b0-01ca608a01f8",
+   "8fced82f-7f54-4428-b354-6d16319ff15f",
+   "12dea1e0-4017-43ac-bf5e-0d6a29f8a90c",
+   "26cc937c-59d7-4012-b3c7-5d8a2a3376da",
+   "29e532f6-9f93-4569-8c41-c25cd5f03c22",
+   "4a760a9b-3d35-444f-8256-ca64b8d6489c",
+   "6d799dfd-dcf6-491d-8997-4a1e0c3fe96f",
+   "78bac207-db63-4201-97c8-89e340b29236",
+   "8d90f83f-19e5-48bc-87f5-7d3bff01740e",
+   "9c0258ff-aa78-45bd-9d2f-8a79a7548c0e"
+  ],
+  "seconds": 44.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"configures\",\n      \"evidence\": \"Taints and tolerations work together to ensure that pods are not scheduled onto inappropriate nodes.\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"related\",\n      \"evidence\": \"The default Kubernetes scheduler takes taints and tolerations into account when selecting a node to run a particular Pod.\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"explains\",\n      \"evidence\": \"This page describes device taints and tolerations in DRA, which let drivers and admins keep Pods off specific devices, or evict Pods already using them.\"\n    }\n  ],\n  \"needs\": [\n    \"the definition of a taint\",\n    \"the definition of a toleration\",\n    \"how the scheduler uses taints and tolerations\"\n  ]\n}"
+ },
+ "fd2cea96-1be6-4b7c-8cfa-46f21db787c1": {
+  "relations": [
+   {
+    "to": "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+    "type": "uses",
+    "evidence": "recommended approaches all use [label selectors](/docs/concepts/overview/working-with-objects/labels/)"
+   },
+   {
+    "to": "09508f31-3cc8-4a94-a763-14708d708592",
+    "type": "uses",
+    "evidence": "You can use _topology spread constraints_ to control how Pods are spread across your cluster"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "58408107-e043-4692-a400-db9f96de93e9",
+    "type": "relates",
+    "evidence": "Affinity and anti-affinity > Node affinity"
+   }
+  ],
+  "needs": [
+   "node labels",
+   "nodeSelector",
+   "Affinity and anti-affinity"
+  ],
+  "candidates": [
+   "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+   "64cf1093-550f-4d85-b701-64fb2d5a6b23",
+   "c9e48ee1-b733-49dc-bac8-beac6e04409a",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "7d7af0a0-9d40-4676-bbb2-d07067aebb60",
+   "52ecbd98-5314-434d-86c0-e81f0821fb12",
+   "58408107-e043-4692-a400-db9f96de93e9",
+   "94ed3ed4-c7e7-4a56-ab6e-a6147200976a",
+   "4a760a9b-3d35-444f-8256-ca64b8d6489c",
+   "09508f31-3cc8-4a94-a763-14708d708592",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "8c0f1e5f-1634-49d8-a89c-3600d6e3d830",
+   "f72000c5-6c69-48b4-b2fd-3ec1dc2d9ef8",
+   "01cc640c-d41c-42d0-9aa5-1ec11f86ab0e",
+   "07afddd8-3439-4d46-919e-69c7a86e0ede"
+  ],
+  "seconds": 64.5,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"recommended approaches all use [label selectors](/docs/concepts/overview/working-with-objects/labels/)\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"relates\",\n      \"evidence\": \"Affinity and anti-affinity > Node affinity\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"uses\",\n      \"evidence\": \"You can use _topology spread constraints_ to control how Pods are spread across your cluster\"\n    }\n  ],\n  \"needs\": [\n    \"node labels\",\n    \"nodeSelector\",\n    \"Affinity and anti-affinity\"\n  ]\n}"
+ },
+ "29e532f6-9f93-4569-8c41-c25cd5f03c22": {
+  "relations": [
+   {
+    "to": "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+    "type": "uses",
+    "evidence": "Kubernetes expects that all API communication in the cluster is encrypted by default with TLS"
+   },
+   {
+    "to": "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+    "type": "explains",
+    "evidence": "Kubernetes ships an integrated [Role-Based Access Control (RBAC)](/docs/reference/access-authn-authz/rbac/) component that matches an incoming user or group to a set of permissions"
+   },
+   {
+    "to": "7d7af0a0-9d40-4676-bbb2-d07067aebb60",
+    "type": "uses",
+    "evidence": "It is recommended that you use the [Node](/docs/reference/access-authn-authz/node/) and [RBAC](/docs/reference/access-authn-authz/rbac/) authorizers together"
+   },
+   {
+    "to": "3f084512-f65c-4621-8f97-8b22a9ce5003",
+    "type": "uses",
+    "evidence": "All API clients must be authenticated, even those that are part of the infrastructure like nodes, proxies, the scheduler, and volume plugins. These clients are typically [service accounts](/docs/reference/access-authn-authz/service-accounts-admin/)"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "da7cc9f8-f316-4993-bccc-61c3bae99646",
+    "type": "relates",
+    "evidence": "Kubernetes authorization takes place following [authentication](/docs/reference/access-authn-authz/authentication/)"
+   }
+  ],
+  "needs": [
+   "authentication",
+   "RBAC (Role-Based Access Control)",
+   "Node"
+  ],
+  "candidates": [
+   "3f084512-f65c-4621-8f97-8b22a9ce5003",
+   "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+   "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+   "7d7af0a0-9d40-4676-bbb2-d07067aebb60",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "da7cc9f8-f316-4993-bccc-61c3bae99646",
+   "8fced82f-7f54-4428-b354-6d16319ff15f",
+   "bc6ec3fa-1fd1-42f5-8c2c-86d58e4fdfda",
+   "c4441f51-eb2d-4542-90b4-b22bcfbab08e",
+   "f78fade1-87be-4481-b4e3-72498a8656a3",
+   "82321ece-33dc-41a4-85d0-4b9e363e44af",
+   "52bcbeee-ddd2-40b9-ad86-acc554990bf2",
+   "e82b3713-1ba9-490b-a41f-ef7c5ba6e4ae",
+   "b78c825c-33a1-4d8c-b672-a37376837874",
+   "cea77c81-9189-4c4c-a6b7-c6410fc4426a"
+  ],
+  "seconds": 75.4,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"uses\",\n      \"evidence\": \"Kubernetes expects that all API communication in the cluster is encrypted by default with TLS\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"explains\",\n      \"evidence\": \"Kubernetes ships an integrated [Role-Based Access Control (RBAC)](/docs/reference/access-authn-authz/rbac/) component that matches an incoming user or group to a set of permissions\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"uses\",\n      \"evidence\": \"It is recommended that you use the [Node](/docs/reference/access-authn-authz/node/) and [RBAC](/docs/reference/access-authn-authz/rbac/) authorizers together\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"relates\",\n      \"evidence\": \"Kubernetes authorization takes place following [authentication](/docs/reference/access-authn-authz/authentication/)\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"All API clients must be authenticated, even those that are part of the infrastructure like nodes, proxies, the scheduler, and volume plugins. These clients are typically [service accounts](/docs/reference/access-authn-authz/service-accounts-admin/)\"\n    }\n  ],\n  \"needs\": [\n    \"authentication\",\n    \"RBAC (Role-Based Access Control)\",\n    \"Node\"\n  ]\n}"
+ },
+ "a646b5ed-f742-473a-8bca-b5f35358a66e": {
+  "relations": [
+   {
+    "to": "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+    "type": "uses",
+    "evidence": "Kubernetes policies such as RBAC, quotas, and network policies are essential"
+   },
+   {
+    "to": "f78fade1-87be-4481-b4e3-72498a8656a3",
+    "type": "uses",
+    "evidence": "Kubernetes policies such as RBAC, quotas, and network policies are essential"
+   },
+   {
+    "to": "350e53b3-bacb-4660-b780-13b44c809b60",
+    "type": "uses",
+    "evidence": "Kubernetes policies such as RBAC, quotas, and network policies are essential"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+    "type": "explains",
+    "evidence": "When you specify a pod, you can optionally specify how much of each resource a container needs."
+   }
+  ],
+  "needs": [
+   "understanding of use case",
+   "RBAC",
+   "quotas"
+  ],
+  "candidates": [
+   "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+   "f78fade1-87be-4481-b4e3-72498a8656a3",
+   "350e53b3-bacb-4660-b780-13b44c809b60",
+   "3a793d2e-5e1a-4bf0-b983-e6539a4cff1b",
+   "69d5d940-b134-46b5-a64c-7df3ec7ea911",
+   "6d799dfd-dcf6-491d-8997-4a1e0c3fe96f",
+   "d9df2d52-464c-4781-836f-48d4d06e3519",
+   "fd2cea96-1be6-4b7c-8cfa-46f21db787c1",
+   "ffbe4d67-6ad1-49ad-8aa2-7bd3571c741f",
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+   "7a4898b5-ad7d-4560-b30e-dbb4aa6daf9b",
+   "3b87e9e2-354d-4e72-ab5e-e9f834939e20",
+   "e2bfe3f2-d833-45ae-8f68-b6866100256c",
+   "130ccdfb-8f93-4315-92a9-f99974ad2286",
+   "3c441e53-19be-48f1-bb93-71707782078d"
+  ],
+  "seconds": 193.7,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"Kubernetes policies such as RBAC, quotas, and network policies are essential\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"uses\",\n      \"evidence\": \"Kubernetes policies such as RBAC, quotas, and network policies are essential\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"uses\",\n      \"evidence\": \"Kubernetes policies such as RBAC, quotas, and network policies are essential\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"explains\",\n      \"evidence\": \"When you specify a pod, you can optionally specify how much of each resource a container needs.\"\n    }\n  ],\n  \"needs\": [\n    \"understanding of use case\",\n    \"RBAC\",\n    \"quotas\"\n  ]\n}"
+ },
+ "350e53b3-bacb-4660-b780-13b44c809b60": {
+  "relations": [
+   {
+    "to": "cea77c81-9189-4c4c-a6b7-c6410fc4426a",
+    "type": "explains",
+    "evidence": "Network policies are implemented by the [network plugin](/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/). To use network policies, you must be using a networking solution which supports NetworkPolicy."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "ae78f02e-e689-4aea-bbb6-00a649cc4355",
+    "type": "related",
+    "evidence": "This section of the Kubernetes documentation aims to help you learn to run workloads more securely, and about the essential aspects of keeping a Kubernetes clus"
+   },
+   {
+    "to": "aecd1a9e-794a-4736-bf6f-646e69aeedf5",
+    "type": "related",
+    "evidence": "Kubernetes policies are configurations that manage other configurations or runtime behaviors. Kubernetes offers various forms of policies, described below:"
+   }
+  ],
+  "needs": [
+   "understanding of pod isolation",
+   "understanding of ingress and egress traffic",
+   "understanding of selectors"
+  ],
+  "candidates": [
+   "3a793d2e-5e1a-4bf0-b983-e6539a4cff1b",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "edc88dcf-e199-451f-87e4-a2a507f97126",
+   "6c97443d-5d6b-4a90-a0f1-ded61310d70e",
+   "cea77c81-9189-4c4c-a6b7-c6410fc4426a",
+   "52c62665-7192-48ee-8570-59d7b539d6d1",
+   "3aa95d55-1d58-448d-a65d-1ca48c8830a6",
+   "47e59bb9-008f-48cc-94b4-97daffe5b35f",
+   "51b183c0-0901-4bfa-8156-ab772c83f519",
+   "57546f9f-08ec-47e3-80f1-b4c68424ae94",
+   "91fa24ed-b2d2-45a0-9705-a1e7c3f65eea",
+   "a2247a44-1180-42b7-8ade-cf376c31874c",
+   "a646b5ed-f742-473a-8bca-b5f35358a66e",
+   "ae78f02e-e689-4aea-bbb6-00a649cc4355",
+   "aecd1a9e-794a-4736-bf6f-646e69aeedf5"
+  ],
+  "seconds": 41.9,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 5,\n      \"type\": \"explains\",\n      \"evidence\": \"Network policies are implemented by the [network plugin](/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/). To use network policies, you must be using a networking solution which supports NetworkPolicy.\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"related\",\n      \"evidence\": \"This section of the Kubernetes documentation aims to help you learn to run workloads more securely, and about the essential aspects of keeping a Kubernetes clus\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"related\",\n      \"evidence\": \"Kubernetes policies are configurations that manage other configurations or runtime behaviors. Kubernetes offers various forms of policies, described below:\"\n    }\n  ],\n  \"needs\": [\n    \"understanding of pod isolation\",\n    \"understanding of ingress and egress traffic\",\n    \"understanding of selectors\"\n  ]\n}"
+ },
+ "1a37baee-2ae4-48a8-855e-97e05fcb0aec": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "a50c160b-6c44-41d9-8da9-fe6466932f28",
+    "type": "part of",
+    "evidence": "The API server is a component of the Kubernetes control plane that exposes the Kubernetes API."
+   },
+   {
+    "to": "da7cc9f8-f316-4993-bccc-61c3bae99646",
+    "type": "depends on",
+    "evidence": "Authorization takes place following [authentication](/docs/reference/access-authn-authz/authentication/)."
+   },
+   {
+    "to": "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+    "type": "explains",
+    "evidence": "RBAC (Role-Based Access Control): Manages authorization decisions, allowing admins to dynamically configure access policies through the Kubernetes API."
+   },
+   {
+    "to": "1e4c7c5b-2d10-4c75-8c0d-9095007599d1",
+    "type": "explains",
+    "evidence": "Kubernetes lets you use a public key infrastructure (PKI) to authenticate to your cluster as a client."
+   }
+  ],
+  "needs": [
+   "Kubernetes API",
+   "Role-Based Access Control (RBAC)",
+   "X.509 client certificates"
+  ],
+  "candidates": [
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "da7cc9f8-f316-4993-bccc-61c3bae99646",
+   "4dbcfd7a-ba3f-4983-9c5a-2ff224e5c153",
+   "046c98df-150c-43d6-9b84-ffd5e48b0a84",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "ad187114-c88d-4462-a6be-638a30529356",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "7465c81f-5fd1-4816-8696-67152afadf30",
+   "7f100a77-4df4-43e9-befa-795ec228ebe7",
+   "40603aca-3a44-433f-a733-0bd76224b00a",
+   "a50c160b-6c44-41d9-8da9-fe6466932f28",
+   "ae8c45b5-8fc9-4e4c-8b1a-2a50e790ed0b",
+   "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+   "1e4c7c5b-2d10-4c75-8c0d-9095007599d1",
+   "130ccdfb-8f93-4315-92a9-f99974ad2286"
+  ],
+  "seconds": 35.9,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 11,\n      \"type\": \"part of\",\n      \"evidence\": \"The API server is a component of the Kubernetes control plane that exposes the Kubernetes API.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"depends on\",\n      \"evidence\": \"Authorization takes place following [authentication](/docs/reference/access-authn-authz/authentication/).\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"explains\",\n      \"evidence\": \"RBAC (Role-Based Access Control): Manages authorization decisions, allowing admins to dynamically configure access policies through the Kubernetes API.\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"explains\",\n      \"evidence\": \"Kubernetes lets you use a public key infrastructure (PKI) to authenticate to your cluster as a client.\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes API\",\n    \"Role-Based Access Control (RBAC)\",\n    \"X.509 client certificates\"\n  ]\n}"
+ },
+ "a31de986-f2ca-46ac-9bf9-7384402ef1f9": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "3f14460d-e8ff-402a-9fca-1f52da389685",
+    "type": "part of",
+    "evidence": "The core of Kubernetes' control plane is the API server."
+   },
+   {
+    "to": "82f5052f-a102-47c3-8144-93239747f47f",
+    "type": "depends on",
+    "evidence": "Kubernetes offers two distinct ways for clients that run within your cluster"
+   },
+   {
+    "to": "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+    "type": "explains",
+    "evidence": "This page provides an overview of authentication in Kubernetes"
+   },
+   {
+    "to": "da7cc9f8-f316-4993-bccc-61c3bae99646",
+    "type": "depends on",
+    "evidence": "Kubernetes authorization takes place following authentication"
+   },
+   {
+    "to": "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+    "type": "related",
+    "evidence": "This page provides an overview of _admission controllers_."
+   },
+   {
+    "to": "c96696e3-4fc4-49af-a4c7-082ccf82f265",
+    "type": "related",
+    "evidence": "Kubernetes _auditing_ provides a security-relevant, chronological set of records"
+   },
+   {
+    "to": "ad187114-c88d-4462-a6be-638a30529356",
+    "type": "related",
+    "evidence": "Bootstrap tokens are a simple bearer token that is meant to be used when creating new clusters"
+   },
+   {
+    "to": "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+    "type": "explains",
+    "evidence": "Manages authorization decisions, allowing admins to dynamically configure access policies"
+   },
+   {
+    "to": "3f084512-f65c-4621-8f97-8b22a9ce5003",
+    "type": "related",
+    "evidence": "_ServiceAccount_ provides an identity for processes that run in a Pod."
+   }
+  ],
+  "needs": [
+   "Kubernetes API",
+   "Authentication",
+   "Authorization"
+  ],
+  "candidates": [
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "82f5052f-a102-47c3-8144-93239747f47f",
+   "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+   "da7cc9f8-f316-4993-bccc-61c3bae99646",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "c96696e3-4fc4-49af-a4c7-082ccf82f265",
+   "ad187114-c88d-4462-a6be-638a30529356",
+   "9e8e17e7-ea05-45f7-8ccc-6687457ed9bc",
+   "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+   "4dcbdcf1-895b-47ff-a1c1-136a2d71f6af",
+   "7d7af0a0-9d40-4676-bbb2-d07067aebb60",
+   "d937910d-7a49-40da-b1e6-06e692e2a73d",
+   "39e03ef8-f540-45de-bcaf-a4bdbb28950b",
+   "3f084512-f65c-4621-8f97-8b22a9ce5003",
+   "ddcfc235-a295-4e7e-8e4f-e45207420246"
+  ],
+  "seconds": 49.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"The core of Kubernetes' control plane is the API server.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"depends on\",\n      \"evidence\": \"Kubernetes offers two distinct ways for clients that run within your cluster\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"explains\",\n      \"evidence\": \"This page provides an overview of authentication in Kubernetes\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"depends on\",\n      \"evidence\": \"Kubernetes authorization takes place following authentication\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"related\",\n      \"evidence\": \"This page provides an overview of _admission controllers_.\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"related\",\n      \"evidence\": \"Kubernetes _auditing_ provides a security-relevant, chronological set of records\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"related\",\n      \"evidence\": \"Bootstrap tokens are a simple bearer token that is meant to be used when creating new clusters\"\n    },\n    {\n      \"to\": 9,\n      \"type\": \"explains\",\n      \"evidence\": \"Manages authorization decisions, allowing admins to dynamically configure access policies\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"related\",\n      \"evidence\": \"_ServiceAccount_ provides an identity for processes that run in a Pod.\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes API\",\n    \"Authentication\",\n    \"Authorization\"\n  ]\n}"
+ },
+ "2c3f6663-7c63-4a04-89e6-58f8e415c80e": {
+  "relations": [
+   {
+    "to": "dbfd1cfb-c238-4c7c-aa48-616c34178a28",
+    "type": "explains",
+    "evidence": "All of the APIs in Kubernetes that let you write persistent API resource data support at-rest encryption."
+   },
+   {
+    "to": "3f9ee375-e115-43b0-ac8f-2ab3e9253db1",
+    "type": "part of",
+    "evidence": "For example, you can encrypt Secret objects, including the key-value data they contain."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "1481a7d2-b5e7-4aa4-9789-1dbcd2e47871",
+    "type": "configures",
+    "evidence": "Using a KMS provider for data encryption: This page shows how to configure a Key Management Service (KMS) provider and plugin to enable secret data encryption."
+   }
+  ],
+  "needs": [
+   "Kubernetes API data encryption",
+   "etcd v3.x",
+   "kube-apiserver configuration"
+  ],
+  "candidates": [
+   "1481a7d2-b5e7-4aa4-9789-1dbcd2e47871",
+   "7ac36939-c7ac-4f43-815f-e98ecc8af2e5",
+   "dbfd1cfb-c238-4c7c-aa48-616c34178a28",
+   "2093b6e8-1455-4063-83c5-9695b8a34c86",
+   "29e532f6-9f93-4569-8c41-c25cd5f03c22",
+   "3f9ee375-e115-43b0-ac8f-2ab3e9253db1",
+   "57546f9f-08ec-47e3-80f1-b4c68424ae94",
+   "ae78f02e-e689-4aea-bbb6-00a649cc4355",
+   "ddcfc235-a295-4e7e-8e4f-e45207420246",
+   "e2bfe3f2-d833-45ae-8f68-b6866100256c",
+   "eeffefb1-88b5-4182-a75b-a691094d1fee",
+   "3c441e53-19be-48f1-bb93-71707782078d",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "477812bb-a1c5-4522-a960-b4f87a85d00d",
+   "5643aa96-e0aa-44f5-89b4-8cd8c8bdbd77"
+  ],
+  "seconds": 598.3,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 3,\n      \"type\": \"explains\",\n      \"evidence\": \"All of the APIs in Kubernetes that let you write persistent API resource data support at-rest encryption.\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"configures\",\n      \"evidence\": \"Using a KMS provider for data encryption: This page shows how to configure a Key Management Service (KMS) provider and plugin to enable secret data encryption.\"\n    },\n    {\n      \"to\": 6,\n      \"type\": \"part of\",\n      \"evidence\": \"For example, you can encrypt Secret objects, including the key-value data they contain.\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes API data encryption\",\n    \"etcd v3.x\",\n    \"kube-apiserver configuration\"\n  ]\n}"
+ },
+ "2093b6e8-1455-4063-83c5-9695b8a34c86": {
+  "relations": [
+   {
+    "to": "2c3f6663-7c63-4a04-89e6-58f8e415c80e",
+    "type": "depends on",
+    "evidence": "You should configure encryption of your Secret data in `etcd`."
+   },
+   {
+    "to": "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+    "type": "related",
+    "evidence": "When planning your access control mechanism, such as Kubernetes Role-based Access Control [(RBAC)](/docs/reference/access-authn-authz/rbac/), consider the following guidelines"
+   },
+   {
+    "to": "29e532f6-9f93-4569-8c41-c25cd5f03c22",
+    "type": "part of",
+    "evidence": "This section provides good practices that cluster administrators can use to improve the security of confidential information in the cluster."
+   },
+   {
+    "to": "a864d60a-59cf-4888-a033-efa188b1336d",
+    "type": "related",
+    "evidence": "You can use third-party Secrets store providers to keep your confidential data outside your cluster and then configure Pods to access that information."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "9c0258ff-aa78-45bd-9d2f-8a79a7548c0e",
+    "type": "explains",
+    "evidence": "Kubernetes RBAC is a key security control to ensure that cluster users and workloads have only the access to resources required to execute their roles."
+   }
+  ],
+  "needs": [
+   "etcd encryption",
+   "RBAC",
+   "Kubernetes Secrets Store CSI Driver"
+  ],
+  "candidates": [
+   "2c3f6663-7c63-4a04-89e6-58f8e415c80e",
+   "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+   "9c0258ff-aa78-45bd-9d2f-8a79a7548c0e",
+   "ab56c53c-3006-4c9d-89ef-6b1d4b8901e9",
+   "ddcfc235-a295-4e7e-8e4f-e45207420246",
+   "c18a7601-1714-4a58-9905-40cf0b432ab0",
+   "29e532f6-9f93-4569-8c41-c25cd5f03c22",
+   "ae78f02e-e689-4aea-bbb6-00a649cc4355",
+   "7ac36939-c7ac-4f43-815f-e98ecc8af2e5",
+   "a864d60a-59cf-4888-a033-efa188b1336d",
+   "e2bfe3f2-d833-45ae-8f68-b6866100256c",
+   "9f876c95-7ecd-473b-bd35-100961dd723f",
+   "3aa95d55-1d58-448d-a65d-1ca48c8830a6",
+   "75c411cd-fa1d-49fc-bac3-de717939835f",
+   "57546f9f-08ec-47e3-80f1-b4c68424ae94"
+  ],
+  "seconds": 42.6,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"depends on\",\n      \"evidence\": \"You should configure encryption of your Secret data in `etcd`.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"related\",\n      \"evidence\": \"When planning your access control mechanism, such as Kubernetes Role-based Access Control [(RBAC)](/docs/reference/access-authn-authz/rbac/), consider the following guidelines\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"explains\",\n      \"evidence\": \"Kubernetes RBAC is a key security control to ensure that cluster users and workloads have only the access to resources required to execute their roles.\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"part of\",\n      \"evidence\": \"This section provides good practices that cluster administrators can use to improve the security of confidential information in the cluster.\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"related\",\n      \"evidence\": \"You can use third-party Secrets store providers to keep your confidential data outside your cluster and then configure Pods to access that information.\"\n    }\n  ],\n  \"needs\": [\n    \"etcd encryption\",\n    \"RBAC\",\n    \"Kubernetes Secrets Store CSI Driver\"\n  ]\n}"
+ },
+ "47e59bb9-008f-48cc-94b4-97daffe5b35f": {
+  "relations": [
+   {
+    "to": "62eda4f5-8284-4924-be8c-28205351cf4e",
+    "type": "uses",
+    "evidence": "Is the kube-proxy working?"
+   },
+   {
+    "to": "2b1a075b-348f-405f-95ac-93a05562a59c",
+    "type": "depends on",
+    "evidence": "You can confirm your Pods are running:"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "b63e5ef0-55fa-4942-a223-27455f0d3efa",
+    "type": "explains",
+    "evidence": "This guide is to help users debug applications that are deployed into Kubernetes and not behaving correctly."
+   },
+   {
+    "to": "68cb2501-f751-471e-8691-913652760a56",
+    "type": "explains",
+    "evidence": "A key aim of Services in Kubernetes is that you don't need to modify your existing application to use an unfamiliar service discovery mechanism."
+   },
+   {
+    "to": "b0cebd83-cc34-4a0e-a152-c03ca0ac7a77",
+    "type": "related",
+    "evidence": "Any Network Policy Ingress rules affecting the target Pods?"
+   }
+  ],
+  "needs": [
+   "Understanding of Kubernetes Pods",
+   "Understanding of Kubernetes Deployments",
+   "Understanding of Kubernetes Services"
+  ],
+  "candidates": [
+   "350e53b3-bacb-4660-b780-13b44c809b60",
+   "b63e5ef0-55fa-4942-a223-27455f0d3efa",
+   "60864a23-abbf-4e0b-97d0-d2c0b6e3deba",
+   "2534c443-36e1-42ee-ad5e-ac5a40aef2e4",
+   "085397a5-fcd2-4347-b1cc-ecd818265986",
+   "45d55ec9-9e50-4a21-9124-418c62ed28b6",
+   "8ab0a4c9-70e8-4f7e-a8a4-6c10f7b35cf8",
+   "62eda4f5-8284-4924-be8c-28205351cf4e",
+   "82f70057-74b7-4115-a487-10dafabea28b",
+   "b0cebd83-cc34-4a0e-a152-c03ca0ac7a77",
+   "c33b7f4c-a834-41ab-ace3-691474ba5054",
+   "c7e0240e-3a6b-4861-b705-8afa75eec628",
+   "2b1a075b-348f-405f-95ac-93a05562a59c",
+   "68cb2501-f751-471e-8691-913652760a56",
+   "212caca6-361b-4c1b-a510-bd98c87ba8af"
+  ],
+  "seconds": 39.1,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"explains\",\n      \"evidence\": \"This guide is to help users debug applications that are deployed into Kubernetes and not behaving correctly.\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"explains\",\n      \"evidence\": \"A key aim of Services in Kubernetes is that you don't need to modify your existing application to use an unfamiliar service discovery mechanism.\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"uses\",\n      \"evidence\": \"Is the kube-proxy working?\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"related\",\n      \"evidence\": \"Any Network Policy Ingress rules affecting the target Pods?\"\n    },\n    {\n      \"to\": 13,\n      \"type\": \"depends on\",\n      \"evidence\": \"You can confirm your Pods are running:\"\n    }\n  ],\n  \"needs\": [\n    \"Understanding of Kubernetes Pods\",\n    \"Understanding of Kubernetes Deployments\",\n    \"Understanding of Kubernetes Services\"\n  ]\n}"
+ },
+ "d42d659b-ee0f-447c-8bf6-3acc605ec3a0": {
+  "relations": [
+   {
+    "to": "c9baf8fc-d800-47ba-99f8-769c5456c4d4",
+    "type": "replaces",
+    "evidence": "If an application doesn't require any stable identifiers or ordered deployment, deletion, or scaling, you should deploy your application using a workload object that provides a set of stateless replicas."
+   },
+   {
+    "to": "9c21fe68-08a3-4f76-9d51-31e161bfc2e8",
+    "type": "related",
+    "evidence": "StatefulSets are valuable for applications that require one or more of the following: Stable, unique network identifiers. Stable, persistent storage. Ordered, graceful deployment and scaling."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "69d5d940-b134-46b5-a64c-7df3ec7ea911",
+    "type": "depends on",
+    "evidence": "The storage for a given Pod must either be provisioned by a [PersistentVolume Provisioner] based on the requested _storage class_, or pre-provisioned by an admin."
+   },
+   {
+    "to": "d9df2d52-464c-4781-836f-48d4d06e3519",
+    "type": "part of",
+    "evidence": "The `volumeClaimTemplates` will provide stable storage using [PersistentVolumes] provisioned by a PersistentVolume Provisioner."
+   },
+   {
+    "to": "75f91ad0-c4af-4a9b-8d62-494b44a33953",
+    "type": "depends on",
+    "evidence": "StatefulSets currently require a [Headless Service] to be responsible for the network identity of the Pods. You are responsible for creating this Service."
+   }
+  ],
+  "needs": [
+   "PersistentVolume Provisioner",
+   "Headless Service",
+   "PersistentVolumes"
+  ],
+  "candidates": [
+   "c9baf8fc-d800-47ba-99f8-769c5456c4d4",
+   "9c21fe68-08a3-4f76-9d51-31e161bfc2e8",
+   "69d5d940-b134-46b5-a64c-7df3ec7ea911",
+   "68cb2501-f751-471e-8691-913652760a56",
+   "d9df2d52-464c-4781-836f-48d4d06e3519",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "75f91ad0-c4af-4a9b-8d62-494b44a33953",
+   "d3ba9d71-bd1e-492f-8d76-d91ec6815292",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "12379c91-704e-4e60-8905-cfb0d0d49b58",
+   "2d94013e-b346-4c24-bd7f-abae5f58e7e7",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "51d33f1f-8908-4dff-963d-072aa18d294f",
+   "8ab0a4c9-70e8-4f7e-a8a4-6c10f7b35cf8"
+  ],
+  "seconds": 44.9,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"replaces\",\n      \"evidence\": \"If an application doesn't require any stable identifiers or ordered deployment, deletion, or scaling, you should deploy your application using a workload object that provides a set of stateless replicas.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"related\",\n      \"evidence\": \"StatefulSets are valuable for applications that require one or more of the following: Stable, unique network identifiers. Stable, persistent storage. Ordered, graceful deployment and scaling.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"depends on\",\n      \"evidence\": \"The storage for a given Pod must either be provisioned by a [PersistentVolume Provisioner] based on the requested _storage class_, or pre-provisioned by an admin.\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"part of\",\n      \"evidence\": \"The `volumeClaimTemplates` will provide stable storage using [PersistentVolumes] provisioned by a PersistentVolume Provisioner.\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"depends on\",\n      \"evidence\": \"StatefulSets currently require a [Headless Service] to be responsible for the network identity of the Pods. You are responsible for creating this Service.\"\n    }\n  ],\n  \"needs\": [\n    \"PersistentVolume Provisioner\",\n    \"Headless Service\",\n    \"PersistentVolumes\"\n  ]\n}"
+ },
+ "085397a5-fcd2-4347-b1cc-ecd818265986": {
+  "relations": [
+   {
+    "to": "85f8ad98-031e-4fb9-a25d-798146c87324",
+    "type": "explains",
+    "evidence": "This page provides hints on diagnosing DNS problems."
+   },
+   {
+    "to": "85f8ad98-031e-4fb9-a25d-798146c87324",
+    "type": "configures",
+    "evidence": "This page provides hints on diagnosing DNS problems."
+   },
+   {
+    "to": "75f91ad0-c4af-4a9b-8d62-494b44a33953",
+    "type": "part of",
+    "evidence": "Your cluster must be configured to use the CoreDNS addon."
+   },
+   {
+    "to": "2b1a075b-348f-405f-95ac-93a05562a59c",
+    "type": "related",
+    "evidence": "Use the `kubectl get pods` command to verify that the DNS pod is running."
+   }
+  ],
+  "dropped": [],
+  "needs": [
+   "CoreDNS addon",
+   "kubectl commands"
+  ],
+  "candidates": [
+   "75f91ad0-c4af-4a9b-8d62-494b44a33953",
+   "85f8ad98-031e-4fb9-a25d-798146c87324",
+   "47e59bb9-008f-48cc-94b4-97daffe5b35f",
+   "0af953b5-1aab-434f-8b20-317e093cce82",
+   "3c441e53-19be-48f1-bb93-71707782078d",
+   "b63e5ef0-55fa-4942-a223-27455f0d3efa",
+   "96a75eaf-f663-4256-b7a4-c772a58e17fb",
+   "9d4ed432-2d66-4d9a-9bfc-568e78cd98ac",
+   "a6b886f2-462f-4eb6-a6d4-7db965019d68",
+   "2b1a075b-348f-405f-95ac-93a05562a59c",
+   "68cb2501-f751-471e-8691-913652760a56",
+   "5605823b-0db7-422b-85b1-8401286ad843",
+   "45d55ec9-9e50-4a21-9124-418c62ed28b6",
+   "82f70057-74b7-4115-a487-10dafabea28b",
+   "212caca6-361b-4c1b-a510-bd98c87ba8af"
+  ],
+  "seconds": 33.0,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"explains\",\n      \"evidence\": \"This page provides hints on diagnosing DNS problems.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"configures\",\n      \"evidence\": \"This page provides hints on diagnosing DNS problems.\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"Your cluster must be configured to use the CoreDNS addon.\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"related\",\n      \"evidence\": \"Use the `kubectl get pods` command to verify that the DNS pod is running.\"\n    }\n  ],\n  \"needs\": [\n    \"CoreDNS addon\",\n    \"kubectl commands\"\n  ]\n}"
+ },
+ "dad920b7-37b3-4766-8b5d-09ae03cacd11": {
+  "relations": [
+   {
+    "to": "3b87e9e2-354d-4e72-ab5e-e9f834939e20",
+    "type": "uses",
+    "evidence": "When you combine a custom resource with a custom controller, custom resources provide a true _declarative API_."
+   },
+   {
+    "to": "367068bb-3f6d-4e81-acdb-a3848991aab7",
+    "type": "related",
+    "evidence": "When creating a new API, consider whether to [aggregate your API with the Kubernetes cluster APIs](/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/) or let your API stand alone."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "1582a492-58c3-443e-91ba-7e236cc81006",
+    "type": "depends on",
+    "evidence": "Custom resources are extensions of the Kubernetes API."
+   },
+   {
+    "to": "ea07b130-8573-44e1-9b01-e265b14fed25",
+    "type": "explains",
+    "evidence": "This page shows how to install a [custom resource](/docs/concepts/extend-kubernetes/api-extension/custom-resources/) into the Kubernetes API by creating a [CustomResourceDefinition]"
+   }
+  ],
+  "needs": [
+   "Kubernetes API",
+   "Custom controller",
+   "Declarative API"
+  ],
+  "candidates": [
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "3b87e9e2-354d-4e72-ab5e-e9f834939e20",
+   "367068bb-3f6d-4e81-acdb-a3848991aab7",
+   "ea07b130-8573-44e1-9b01-e265b14fed25",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "b40f1e0d-2e49-45e1-9443-9921b1e44f2c",
+   "9e8e17e7-ea05-45f7-8ccc-6687457ed9bc",
+   "3b74b54b-c2cf-4640-925b-5f16a291b900",
+   "4e94dbd0-9d5e-48f8-ab5d-d8bf88431298",
+   "1582a492-58c3-443e-91ba-7e236cc81006",
+   "381506fa-d1c0-45e6-a628-e49736fa3f4a",
+   "51b183c0-0901-4bfa-8156-ab772c83f519",
+   "5434de7b-5a72-49df-9c08-717e5d45d1fc",
+   "5cd2d3ce-ce03-4fc8-a13c-b72542904d76"
+  ],
+  "seconds": 34.6,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"uses\",\n      \"evidence\": \"When you combine a custom resource with a custom controller, custom resources provide a true _declarative API_.\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"depends on\",\n      \"evidence\": \"Custom resources are extensions of the Kubernetes API.\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"explains\",\n      \"evidence\": \"This page shows how to install a [custom resource](/docs/concepts/extend-kubernetes/api-extension/custom-resources/) into the Kubernetes API by creating a [CustomResourceDefinition]\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"related\",\n      \"evidence\": \"When creating a new API, consider whether to [aggregate your API with the Kubernetes cluster APIs](/docs/concepts/extend-kubernetes/api-extension/apiserver-aggregation/) or let your API stand alone.\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes API\",\n    \"Custom controller\",\n    \"Declarative API\"\n  ]\n}"
+ },
+ "3f14460d-e8ff-402a-9fca-1f52da389685": {
+  "relations": [
+   {
+    "to": "42a9edf8-7e89-42c7-a11f-89af2a3b6514",
+    "type": "uses",
+    "evidence": "Most operations can be performed through the [kubectl](/docs/reference/kubectl/) command-line interface or other command-line tools, such as kubeadm"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+    "type": "uses",
+    "evidence": "Users access the [Kubernetes API](/docs/concepts/overview/kubernetes-api/) using ku"
+   }
+  ],
+  "needs": [
+   "OpenAPI v2.0 and 3.0 schemas",
+   "Discovery API"
+  ],
+  "candidates": [
+   "42a9edf8-7e89-42c7-a11f-89af2a3b6514",
+   "dad920b7-37b3-4766-8b5d-09ae03cacd11",
+   "367068bb-3f6d-4e81-acdb-a3848991aab7",
+   "ea07b130-8573-44e1-9b01-e265b14fed25",
+   "a31de986-f2ca-46ac-9bf9-7384402ef1f9",
+   "01b73038-d7b8-4a4e-a269-ff1cac89dca9",
+   "07afddd8-3439-4d46-919e-69c7a86e0ede",
+   "07d81410-7127-4b97-91e2-d8a7239608bc",
+   "0e1f83d1-f6a4-4083-9ff2-e4fd4543af56",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+   "1b73fc7f-27a6-4061-9236-687a1417af5b",
+   "212caca6-361b-4c1b-a510-bd98c87ba8af",
+   "22bf5ffc-241f-4c3c-be80-86dff9a4b325",
+   "2534c443-36e1-42ee-ad5e-ac5a40aef2e4"
+  ],
+  "seconds": 27.6,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"Most operations can be performed through the [kubectl](/docs/reference/kubectl/) command-line interface or other command-line tools, such as kubeadm\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"uses\",\n      \"evidence\": \"Users access the [Kubernetes API](/docs/concepts/overview/kubernetes-api/) using ku\"\n    }\n  ],\n  \"needs\": [\n    \"OpenAPI v2.0 and 3.0 schemas\",\n    \"Discovery API\"\n  ]\n}"
+ },
+ "d55722d1-4fad-47ae-b8f9-74d7279644bd": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "8d90f83f-19e5-48bc-87f5-7d3bff01740e",
+    "type": "relates",
+    "evidence": "scheduling refers to making sure that Pods are matched to Nodes so that the kubelet can run them."
+   },
+   {
+    "to": "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+    "type": "part of",
+    "evidence": "_Labels_ are key/value pairs that are attached to objects such as Pods."
+   },
+   {
+    "to": "e5a06dfe-0b2f-4173-836b-461de637df74",
+    "type": "configures",
+    "evidence": "This page introduces _Quality of Service (QoS) classes_ in Kubernetes, and explains how Kubernetes assigns a QoS class to each Pod as a consequence of the resou"
+   }
+  ],
+  "needs": [
+   "Pod phase",
+   "Container states",
+   "Container restarts and resi"
+  ],
+  "candidates": [
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "8d90f83f-19e5-48bc-87f5-7d3bff01740e",
+   "7bda46f4-0095-4395-920c-351439de6d0e",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "8f53c496-05de-42a4-b704-c4ed3a15e2fc",
+   "4d98c40c-134b-486d-84bd-97012345f155",
+   "6a690bef-0a75-4b06-b54c-ed56b9ec4d75",
+   "52c62665-7192-48ee-8570-59d7b539d6d1",
+   "6cea3635-9320-46ec-a90d-8692cb2ef445",
+   "9cb1e9a5-39de-4d85-8344-8d8dc7ecae82",
+   "ad6e1e1a-6928-466f-a3aa-2c43ed21395b",
+   "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+   "8fced82f-7f54-4428-b354-6d16319ff15f",
+   "82db16ba-10b3-4cfa-b425-50e4f5f15004",
+   "e5a06dfe-0b2f-4173-836b-461de637df74"
+  ],
+  "seconds": 31.9,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"relates\",\n      \"evidence\": \"scheduling refers to making sure that Pods are matched to Nodes so that the kubelet can run them.\"\n    },\n    {\n      \"to\": 12,\n      \"type\": \"part of\",\n      \"evidence\": \"_Labels_ are key/value pairs that are attached to objects such as Pods.\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"configures\",\n      \"evidence\": \"This page introduces _Quality of Service (QoS) classes_ in Kubernetes, and explains how Kubernetes assigns a QoS class to each Pod as a consequence of the resou\"\n    }\n  ],\n  \"needs\": [\n    \"Pod phase\",\n    \"Container states\",\n    \"Container restarts and resi\"\n  ]\n}"
+ },
+ "cf511946-7cf0-48f9-b089-c19af86ef4d1": {
+  "relations": [
+   {
+    "to": "f7689575-74d1-421c-9e6e-3f47a9bd9dca",
+    "type": "related",
+    "evidence": "information that you put in a termination message should also be written to the general [Kubernetes logs](/docs/concepts/cluster-administration/logging/)."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+    "type": "part of",
+    "evidence": "In Kubernetes, many objects have _conditions_. Conditions are markers for some aspect of the actual state of the thing the object represents. Pods have conditio"
+   },
+   {
+    "to": "b63e5ef0-55fa-4942-a223-27455f0d3efa",
+    "type": "explains",
+    "evidence": "This guide is to help users debug applications that are deployed into Kubernetes and not behaving correctly."
+   },
+   {
+    "to": "2b1a075b-348f-405f-95ac-93a05562a59c",
+    "type": "explains",
+    "evidence": "This page explains how to debug Pods running (or crashing) on a Node."
+   }
+  ],
+  "needs": [
+   "Kubernetes logs",
+   "Pod Lifecycle",
+   "Pods"
+  ],
+  "candidates": [
+   "f7689575-74d1-421c-9e6e-3f47a9bd9dca",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "120886b3-c08b-4764-ba79-4dcddcb8596f",
+   "b6461277-6758-4b69-be0a-c55c5413eccb",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "603ea20e-fcfc-4a63-b1be-615085972e9e",
+   "b63e5ef0-55fa-4942-a223-27455f0d3efa",
+   "2b1a075b-348f-405f-95ac-93a05562a59c",
+   "82f70057-74b7-4115-a487-10dafabea28b",
+   "d2d73673-1d5b-4232-add1-cc0b61bcb4eb",
+   "7f542bfd-5bbc-4af4-add9-e6300a0ee8a5",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "07afddd8-3439-4d46-919e-69c7a86e0ede",
+   "01b73038-d7b8-4a4e-a269-ff1cac89dca9",
+   "45d55ec9-9e50-4a21-9124-418c62ed28b6"
+  ],
+  "seconds": 35.4,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"related\",\n      \"evidence\": \"information that you put in a termination message should also be written to the general [Kubernetes logs](/docs/concepts/cluster-administration/logging/).\"\n    },\n    {\n      \"to\": 12,\n      \"type\": \"part of\",\n      \"evidence\": \"In Kubernetes, many objects have _conditions_. Conditions are markers for some aspect of the actual state of the thing the object represents. Pods have conditio\"\n    },\n    {\n      \"to\": 7,\n      \"type\": \"explains\",\n      \"evidence\": \"This guide is to help users debug applications that are deployed into Kubernetes and not behaving correctly.\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"explains\",\n      \"evidence\": \"This page explains how to debug Pods running (or crashing) on a Node.\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes logs\",\n    \"Pod Lifecycle\",\n    \"Pods\"\n  ]\n}"
+ },
+ "6cea3635-9320-46ec-a90d-8692cb2ef445": {
+  "relations": [
+   {
+    "to": "52c62665-7192-48ee-8570-59d7b539d6d1",
+    "type": "configures",
+    "evidence": "Kubernetes implements sidecar containers as a special case of [init containers](/docs/concepts/workloads/pods/init-containers/);"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+    "type": "depends on",
+    "evidence": "Pods follow a defined lifecycle, starting in the `Pending` [phase](#pod-phase), moving through `Running` if at least"
+   },
+   {
+    "to": "6cea4643-58ca-4570-bc7f-9a4449b15abc",
+    "type": "explains",
+    "evidence": "Sidecar Container: One or more containers that are typically started before any app containers run."
+   },
+   {
+    "to": "cd729710-7772-4c9d-b22c-24972595833b",
+    "type": "related",
+    "evidence": "This section is relevant for people adopting a new built-in [sidecar containers](/docs/concepts/workloads/pods/sidecar-containers/) feature for their workloads."
+   }
+  ],
+  "needs": [
+   "init containers",
+   "Pod lifecycle",
+   "resource sharing within containers"
+  ],
+  "candidates": [
+   "52c62665-7192-48ee-8570-59d7b539d6d1",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "80615691-8d99-4ef4-a9fa-f6c33af90c54",
+   "cd729710-7772-4c9d-b22c-24972595833b",
+   "f4f0a6d0-226b-49c0-aa5e-cf8d74c5a784",
+   "07741c35-18f2-4c6a-a621-9422dbfcd69e",
+   "6cea4643-58ca-4570-bc7f-9a4449b15abc",
+   "8acc5e27-a204-49e1-a667-0607d095c45c",
+   "ad6e1e1a-6928-466f-a3aa-2c43ed21395b",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "072b437d-7771-4cee-b397-9ef374a117fd",
+   "2d94013e-b346-4c24-bd7f-abae5f58e7e7",
+   "350e53b3-bacb-4660-b780-13b44c809b60",
+   "4609ea62-0bd8-4e56-99f5-63b63b6c6b1d"
+  ],
+  "seconds": 36.6,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"configures\",\n      \"evidence\": \"Kubernetes implements sidecar containers as a special case of [init containers](/docs/concepts/workloads/pods/init-containers/);\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"depends on\",\n      \"evidence\": \"Pods follow a defined lifecycle, starting in the `Pending` [phase](#pod-phase), moving through `Running` if at least\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"explains\",\n      \"evidence\": \"Sidecar Container: One or more containers that are typically started before any app containers run.\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"related\",\n      \"evidence\": \"This section is relevant for people adopting a new built-in [sidecar containers](/docs/concepts/workloads/pods/sidecar-containers/) feature for their workloads.\"\n    }\n  ],\n  \"needs\": [\n    \"init containers\",\n    \"Pod lifecycle\",\n    \"resource sharing within containers\"\n  ]\n}"
+ },
+ "d2d73673-1d5b-4232-add1-cc0b61bcb4eb": {
+  "relations": [
+   {
+    "to": "252d9193-6d05-40fa-ac6f-c078a72d03d1",
+    "type": "depends on",
+    "evidence": "If you want to run a Job (either a single task, or several in parallel) on a schedule, see [CronJob](/docs/concepts/workloads/controllers/cron-jobs/)."
+   },
+   {
+    "to": "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+    "type": "creates",
+    "evidence": "A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "1683a216-8339-4940-ab61-3d698ea2a1ad",
+    "type": "uses",
+    "evidence": "In this example, you will run a Job in [Indexed completion mode](/blog/2021/04/19/introducing-indexed-jobs/) configured such that the pods created by the Job ca"
+   },
+   {
+    "to": "aed8bedb-636b-4840-8ccf-9a8d1741eeaa",
+    "type": "explains",
+    "evidence": "In this example, you will run a Kubernetes Job that uses multiple parallel worker processes."
+   },
+   {
+    "to": "9816673e-cd1f-4aab-9efc-edf39d88f535",
+    "type": "related",
+    "evidence": "The `Workload` API resource defines the scheduling requirements and structure of a multi-Pod application. While workload controllers such as [Job](/docs/concept"
+   },
+   {
+    "to": "076e478c-de5c-4cf3-92e9-da711b39b39a",
+    "type": "configures",
+    "evidence": "Gang scheduling ensures that a group of Pods are scheduled on an \"all-or-nothing\" basis."
+   },
+   {
+    "to": "2ea4353a-5610-4436-bc26-ed4ce1736cb8",
+    "type": "explains",
+    "evidence": "When your Job has finished, it's useful to keep that Job in the API (and not immediately delete the Job) so that you can tell whether the Job succeeded or faile"
+   }
+  ],
+  "needs": [
+   "Pods",
+   "Pod Lifecycle",
+   "Workload API"
+  ],
+  "candidates": [
+   "252d9193-6d05-40fa-ac6f-c078a72d03d1",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "1683a216-8339-4940-ab61-3d698ea2a1ad",
+   "aed8bedb-636b-4840-8ccf-9a8d1741eeaa",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "9816673e-cd1f-4aab-9efc-edf39d88f535",
+   "eadf70e1-6218-45ae-b3d5-026f3da88042",
+   "076e478c-de5c-4cf3-92e9-da711b39b39a",
+   "aecd1a9e-794a-4736-bf6f-646e69aeedf5",
+   "8e31b772-6833-4e6f-8b0e-947c44e19d0d",
+   "17bad7b3-e559-4cda-9906-8e9eb5a7934d",
+   "52c62665-7192-48ee-8570-59d7b539d6d1",
+   "2ea4353a-5610-4436-bc26-ed4ce1736cb8"
+  ],
+  "seconds": 55.6,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": \"1\",\n      \"type\": \"depends on\",\n      \"evidence\": \"If you want to run a Job (either a single task, or several in parallel) on a schedule, see [CronJob](/docs/concepts/workloads/controllers/cron-jobs/).\"\n    },\n    {\n      \"to\": \"3\",\n      \"type\": \"creates\",\n      \"evidence\": \"A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate.\"\n    },\n    {\n      \"to\": \"5\",\n      \"type\": \"uses\",\n      \"evidence\": \"In this example, you will run a Job in [Indexed completion mode](/blog/2021/04/19/introducing-indexed-jobs/) configured such that the pods created by the Job ca\"\n    },\n    {\n      \"to\": \"6\",\n      \"type\": \"explains\",\n      \"evidence\": \"In this example, you will run a Kubernetes Job that uses multiple parallel worker processes.\"\n    },\n    {\n      \"to\": \"8\",\n      \"type\": \"related\",\n      \"evidence\": \"The `Workload` API resource defines the scheduling requirements and structure of a multi-Pod application. While workload controllers such as [Job](/docs/concept\"\n    },\n    {\n      \"to\": \"10\",\n      \"type\": \"configures\",\n      \"evidence\": \"Gang scheduling ensures that a group of Pods are scheduled on an \\\"all-or-nothing\\\" basis.\"\n    },\n    {\n      \"to\": \"15\",\n      \"type\": \"explains\",\n      \"evidence\": \"When your Job has finished, it's useful to keep that Job in the API (and not immediately delete the Job) so that you can tell whether the Job succeeded or faile\"\n "
+ },
+ "2ea4353a-5610-4436-bc26-ed4ce1736cb8": {
+  "relations": [
+   {
+    "to": "d2d73673-1d5b-4232-add1-cc0b61bcb4eb",
+    "type": "part of",
+    "evidence": "The TTL-after-finished controller is only supported for Jobs."
+   },
+   {
+    "to": "37089395-2fec-482d-be04-3514a6b07f53",
+    "type": "part of",
+    "evidence": "When the TTL-after-finished controller cleans up a job, it will delete it cascadingly, that is to say it will delete its dependent objects together with it."
+   },
+   {
+    "to": "6ebe4e26-fb9d-4399-931a-4791c01aa2f0",
+    "type": "related",
+    "evidence": "Kubernetes honors object lifecycle guarantees on the Job, such as waiting for [finalizers](/docs/concepts/overview/working-with-objects/finalizers/)."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "408d2372-bae0-4b9d-90e3-17fcbeceec48",
+    "type": "related",
+    "evidence": "Garbage collection is a collective term for the various mechanisms Kubernetes uses to clean up cluster resources."
+   }
+  ],
+  "needs": [
+   "Kubernetes TTL-after-finished controller",
+   "Job manifest",
+   "mutating admission webhook"
+  ],
+  "candidates": [
+   "d2d73673-1d5b-4232-add1-cc0b61bcb4eb",
+   "37089395-2fec-482d-be04-3514a6b07f53",
+   "6ebe4e26-fb9d-4399-931a-4791c01aa2f0",
+   "5a578d84-c245-4e09-a777-9f70e6e6b4be",
+   "408d2372-bae0-4b9d-90e3-17fcbeceec48",
+   "5434de7b-5a72-49df-9c08-717e5d45d1fc",
+   "ae244810-00d7-4be1-a98f-64f771bd5898",
+   "c18a7601-1714-4a58-9905-40cf0b432ab0",
+   "252d9193-6d05-40fa-ac6f-c078a72d03d1",
+   "bd29fcff-2b8b-4212-96b2-49061c8a9539",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "da916801-b246-4603-81d1-1355ea69d7fd",
+   "4d98c40c-134b-486d-84bd-97012345f155",
+   "89d560e9-e41c-4700-a8fa-84195e88645c",
+   "d42d659b-ee0f-447c-8bf6-3acc605ec3a0"
+  ],
+  "seconds": 36.0,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"part of\",\n      \"evidence\": \"The TTL-after-finished controller is only supported for Jobs.\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"part of\",\n      \"evidence\": \"When the TTL-after-finished controller cleans up a job, it will delete it cascadingly, that is to say it will delete its dependent objects together with it.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"related\",\n      \"evidence\": \"Kubernetes honors object lifecycle guarantees on the Job, such as waiting for [finalizers](/docs/concepts/overview/working-with-objects/finalizers/).\"\n    },\n    {\n      \"to\": 5,\n      \"type\": \"related\",\n      \"evidence\": \"Garbage collection is a collective term for the various mechanisms Kubernetes uses to clean up cluster resources.\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes TTL-after-finished controller\",\n    \"Job manifest\",\n    \"mutating admission webhook\"\n  ]\n}"
+ },
+ "17a0ecb3-b4a9-4ccb-976e-a206ad0b6d83": {
+  "relations": [],
+  "dropped": [
+   {
+    "to": "5b0ec538-0fe9-4d3c-b6da-d4c0de34df7a",
+    "type": "explains",
+    "evidence": "In this example, you will run a Kubernetes Job that runs multiple parallel tasks as worker processes, each running as a separate Pod."
+   },
+   {
+    "to": "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+    "type": "part of",
+    "evidence": "Kubernetes provides a number of tools to help you manage your application deployment, i"
+   },
+   {
+    "to": "5434de7b-5a72-49df-9c08-717e5d45d1fc",
+    "type": "uses",
+    "evidence": "on Kubernetes you run it inside a set of [_pods_](/docs/concepts/workloads/pods)."
+   },
+   {
+    "to": "b9748c52-9c6c-4712-b262-d2be4bccde3f",
+    "type": "related",
+    "evidence": "In this example, you will run a Kubernetes Job with multiple parallel worker processes."
+   }
+  ],
+  "needs": [
+   "Kubernetes Job",
+   "Pod",
+   "kubectl"
+  ],
+  "candidates": [
+   "d2d73673-1d5b-4232-add1-cc0b61bcb4eb",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "765d24f9-6b08-4267-900c-e718f5d75593",
+   "a6dccb7c-8ab5-498c-a3d0-efe9008b2671",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "a50c160b-6c44-41d9-8da9-fe6466932f28",
+   "ae244810-00d7-4be1-a98f-64f771bd5898",
+   "bed4e0ca-59fc-4ee1-828e-a44371e3c740",
+   "f78fade1-87be-4481-b4e3-72498a8656a3",
+   "5b0ec538-0fe9-4d3c-b6da-d4c0de34df7a",
+   "b9748c52-9c6c-4712-b262-d2be4bccde3f",
+   "aed8bedb-636b-4840-8ccf-9a8d1741eeaa",
+   "9c273b69-2a5c-4974-b9df-10966e9e4fa6",
+   "5434de7b-5a72-49df-9c08-717e5d45d1fc",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9"
+  ],
+  "seconds": 34.8,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 10,\n      \"type\": \"explains\",\n      \"evidence\": \"In this example, you will run a Kubernetes Job that runs multiple parallel tasks as worker processes, each running as a separate Pod.\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"part of\",\n      \"evidence\": \"Kubernetes provides a number of tools to help you manage your application deployment, i\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"uses\",\n      \"evidence\": \"on Kubernetes you run it inside a set of [_pods_](/docs/concepts/workloads/pods).\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"related\",\n      \"evidence\": \"In this example, you will run a Kubernetes Job with multiple parallel worker processes.\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes Job\",\n    \"Pod\",\n    \"kubectl\"\n  ]\n}"
+ },
+ "44a4bd0e-b28b-41c4-b5da-5b47fc2a0613": {
+  "relations": [
+   {
+    "to": "e73e1056-58b1-4ad3-b77c-b73bcfb21a4e",
+    "type": "depends on",
+    "evidence": "Kubernetes version 1.8.0 or later is required"
+   }
+  ],
+  "dropped": [
+   {
+    "to": "caf878bf-6c33-4b38-acfd-f398ff435f9d",
+    "type": "part of",
+    "evidence": "TLS bootstrapping: In a Kubernetes cluster, the components on the worker nodes - kubelet and kube-proxy - need to communicate"
+   },
+   {
+    "to": "39e03ef8-f540-45de-bcaf-a4bdbb28950b",
+    "type": "explains",
+    "evidence": "Kubernetes certificate and trust bundle APIs enable automation of [X.509] credential provisioning by providing a programmat"
+   },
+   {
+    "to": "a1b744dd-e229-4614-8e2a-bcd003e08591",
+    "type": "explains",
+    "evidence": "Kubernetes provides a `certificates.k8s.io` API, which lets you provision TLS certificates signed by a Certificate Authority (CA) that you control."
+   },
+   {
+    "to": "c4441f51-eb2d-4542-90b4-b22bcfbab08e",
+    "type": "related",
+    "evidence": "Kubelet authentication/authorization: A kubelet's HTTPS endpoint exposes APIs which give access to data of varying sensitivity"
+   }
+  ],
+  "needs": [
+   "Kubernetes version 1.8.0 or later",
+   "kubelet certificate rotation"
+  ],
+  "candidates": [
+   "e73e1056-58b1-4ad3-b77c-b73bcfb21a4e",
+   "3f14460d-e8ff-402a-9fca-1f52da389685",
+   "bed4e0ca-59fc-4ee1-828e-a44371e3c740",
+   "caf878bf-6c33-4b38-acfd-f398ff435f9d",
+   "1addaf70-0997-4fff-927e-65f2402d318e",
+   "7c2a2dea-9740-41b9-afe8-d49f61d8ccac",
+   "150f8d70-30b1-40af-852c-6c5db8da01ef",
+   "39e03ef8-f540-45de-bcaf-a4bdbb28950b",
+   "a1b744dd-e229-4614-8e2a-bcd003e08591",
+   "1e4c7c5b-2d10-4c75-8c0d-9095007599d1",
+   "c4441f51-eb2d-4542-90b4-b22bcfbab08e",
+   "9cb1e9a5-39de-4d85-8344-8d8dc7ecae82",
+   "ff28c459-4cd0-4659-a887-4ee6d9eb336a",
+   "120886b3-c08b-4764-ba79-4dcddcb8596f",
+   "ddcfc235-a295-4e7e-8e4f-e45207420246"
+  ],
+  "seconds": 39.2,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"depends on\",\n      \"evidence\": \"Kubernetes version 1.8.0 or later is required\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"part of\",\n      \"evidence\": \"TLS bootstrapping: In a Kubernetes cluster, the components on the worker nodes - kubelet and kube-proxy - need to communicate\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"explains\",\n      \"evidence\": \"Kubernetes certificate and trust bundle APIs enable automation of [X.509] credential provisioning by providing a programmat\"\n    },\n    {\n      \"to\": 9,\n      \"type\": \"explains\",\n      \"evidence\": \"Kubernetes provides a `certificates.k8s.io` API, which lets you provision TLS certificates signed by a Certificate Authority (CA) that you control.\"\n    },\n    {\n      \"to\": 11,\n      \"type\": \"related\",\n      \"evidence\": \"Kubelet authentication/authorization: A kubelet's HTTPS endpoint exposes APIs which give access to data of varying sensitivity\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes version 1.8.0 or later\",\n    \"kubelet certificate rotation\"\n  ]\n}"
+ },
+ "e73e1056-58b1-4ad3-b77c-b73bcfb21a4e": {
+  "relations": [
+   {
+    "to": "046c98df-150c-43d6-9b84-ffd5e48b0a84",
+    "type": "uses",
+    "evidence": "This guide covers the usage of the `openssl` command (used for manual certificate signing, if you choose that approach)"
+   },
+   {
+    "to": "150f8d70-30b1-40af-852c-6c5db8da01ef",
+    "type": "related",
+    "evidence": "You should be familiar with [PKI certificates and requirements in Kubernetes](/docs/setup/best-practices/certificates/)."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "caf878bf-6c33-4b38-acfd-f398ff435f9d",
+    "type": "related",
+    "evidence": "In a Kubernetes cluster, the components on the worker nodes - kubelet and kube-proxy - need to communicate with Kubernetes control plane components, specificall"
+   },
+   {
+    "to": "3c441e53-19be-48f1-bb93-71707782078d",
+    "type": "related",
+    "evidence": "If you install Kubernetes with [kubeadm](/docs/reference/setup-tools/kubeadm/), the certificat"
+   }
+  ],
+  "needs": [
+   "PKI certificates and requirements in Kubernetes",
+   "configuration",
+   "Go's `time.Duration` values"
+  ],
+  "candidates": [
+   "046c98df-150c-43d6-9b84-ffd5e48b0a84",
+   "c7019c3c-9c0a-49b1-bb8a-49cdecce8fb0",
+   "44a4bd0e-b28b-41c4-b5da-5b47fc2a0613",
+   "45d55ec9-9e50-4a21-9124-418c62ed28b6",
+   "32b41acc-19c5-4c80-9bf8-14070827c7af",
+   "8f53c496-05de-42a4-b704-c4ed3a15e2fc",
+   "a2247a44-1180-42b7-8ade-cf376c31874c",
+   "39e03ef8-f540-45de-bcaf-a4bdbb28950b",
+   "1addaf70-0997-4fff-927e-65f2402d318e",
+   "caf878bf-6c33-4b38-acfd-f398ff435f9d",
+   "3d15ac10-2381-4cb6-a31d-ea0aa2d10e52",
+   "130ccdfb-8f93-4315-92a9-f99974ad2286",
+   "13906468-5e6b-477e-a67a-f4e2b12f3030",
+   "150f8d70-30b1-40af-852c-6c5db8da01ef",
+   "3c441e53-19be-48f1-bb93-71707782078d"
+  ],
+  "seconds": 35.6,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"uses\",\n      \"evidence\": \"This guide covers the usage of the `openssl` command (used for manual certificate signing, if you choose that approach)\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"related\",\n      \"evidence\": \"You should be familiar with [PKI certificates and requirements in Kubernetes](/docs/setup/best-practices/certificates/).\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"related\",\n      \"evidence\": \"In a Kubernetes cluster, the components on the worker nodes - kubelet and kube-proxy - need to communicate with Kubernetes control plane components, specificall\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"related\",\n      \"evidence\": \"If you install Kubernetes with [kubeadm](/docs/reference/setup-tools/kubeadm/), the certificat\"\n    }\n  ],\n  \"needs\": [\n    \"PKI certificates and requirements in Kubernetes\",\n    \"configuration\",\n    \"Go's `time.Duration` values\"\n  ]\n}"
+ },
+ "1addaf70-0997-4fff-927e-65f2402d318e": {
+  "relations": [
+   {
+    "to": "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+    "type": "see",
+    "evidence": "For more information about authentication in Kubernetes, see [Authenticating](/docs/reference/access-authn-authz/authentication)."
+   },
+   {
+    "to": "a50c160b-6c44-41d9-8da9-fe6466932f28",
+    "type": "configures",
+    "evidence": "Update the `--root-ca-file` flag for the kube controller manager to include both old and new CA, then restart the kube-controller-manager."
+   },
+   {
+    "to": "62eda4f5-8284-4924-be8c-28205351cf4e",
+    "type": "uses",
+    "evidence": "Restart all pods using in-cluster configurations (for example: kube-proxy, CoreDNS, etc) so they can use the updated certificate authority data from Secrets that link to ServiceAccounts."
+   },
+   {
+    "to": "4dbcfd7a-ba3f-4983-9c5a-2ff224e5c153",
+    "type": "part of",
+    "evidence": "Secrets that link to ServiceAccounts."
+   }
+  ],
+  "dropped": [],
+  "needs": [
+   "Kubernetes control plane in an HA configuration with multiple API servers",
+   "Graceful termination of the API server"
+  ],
+  "candidates": [
+   "1a37baee-2ae4-48a8-855e-97e05fcb0aec",
+   "046c98df-150c-43d6-9b84-ffd5e48b0a84",
+   "367068bb-3f6d-4e81-acdb-a3848991aab7",
+   "a8858c1e-60af-4245-a86c-fee1d022b2bc",
+   "82f70057-74b7-4115-a487-10dafabea28b",
+   "e73e1056-58b1-4ad3-b77c-b73bcfb21a4e",
+   "0c145391-f9b0-469c-b760-71211377b833",
+   "270ff878-57b0-4e09-8ff3-633c20e3e03a",
+   "282ec94a-65bf-4522-b053-06879a6a8581",
+   "4dbcfd7a-ba3f-4983-9c5a-2ff224e5c153",
+   "62eda4f5-8284-4924-be8c-28205351cf4e",
+   "a4da09cd-22c0-40b0-b65b-1ae95adfad38",
+   "a50c160b-6c44-41d9-8da9-fe6466932f28",
+   "ae244810-00d7-4be1-a98f-64f771bd5898",
+   "de913d1c-6d93-4dff-9be5-01ce16a95147"
+  ],
+  "seconds": 36.5,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": \"1\",\n      \"type\": \"see\",\n      \"evidence\": \"For more information about authentication in Kubernetes, see [Authenticating](/docs/reference/access-authn-authz/authentication).\"\n    },\n    {\n      \"to\": \"13\",\n      \"type\": \"configures\",\n      \"evidence\": \"Update the `--root-ca-file` flag for the kube controller manager to include both old and new CA, then restart the kube-controller-manager.\"\n    },\n    {\n      \"to\": \"11\",\n      \"type\": \"uses\",\n      \"evidence\": \"Restart all pods using in-cluster configurations (for example: kube-proxy, CoreDNS, etc) so they can use the updated certificate authority data from Secrets that link to ServiceAccounts.\"\n    },\n    {\n      \"to\": \"10\",\n      \"type\": \"part of\",\n      \"evidence\": \"Secrets that link to ServiceAccounts.\"\n    }\n  ],\n  \"needs\": [\n    \"Kubernetes control plane in an HA configuration with multiple API servers\",\n    \"Graceful termination of the API server\"\n  ]\n}"
+ },
+ "fce3b45a-d805-4309-907f-48701ab0cba8": {
+  "relations": [
+   {
+    "to": "64cf1093-550f-4d85-b701-64fb2d5a6b23",
+    "type": "related",
+    "evidence": "you can use [Node Labels and Node Selectors](/docs/tasks/configure-pod-container/assign-pods-nodes/) to schedule pods to appropriate nodes."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "2f6ac2bd-54a2-4b88-9562-475101814f46",
+    "type": "uses",
+    "evidence": "Kubernetes includes stable support for managing AMD and NVIDIA GPUs across different nodes in your cluster, using device plugins."
+   },
+   {
+    "to": "bd605449-609f-40bd-b4d9-d12b1ea036b3",
+    "type": "part of",
+    "evidence": "Device plugins run on worker Nodes and provide Pods with access to infrastructure resources, such as local hardware, that require vendor-specific initialization"
+   },
+   {
+    "to": "607dd867-1313-42f0-b89b-2665a5f26715",
+    "type": "depends on",
+    "evidence": "If different nodes in your cluster have different types of GPUs, then you can use Node Labels and Node Selectors to schedule pods to appropriate nodes."
+   },
+   {
+    "to": "a618cfac-c851-4bcd-a9ee-bbeb6f05c606",
+    "type": "related",
+    "evidence": "How DRA Works: This page describes how Kubernetes allocates devices to workloads with dynamic resource allocation (DRA), and how pre-scheduled Pods interact with the process."
+   }
+  ],
+  "needs": [
+   "Understanding of Kubernetes device plugins",
+   "Understanding of how to specify resource requirements (limits/requests)",
+   "Understanding of node labeling/selectors"
+  ],
+  "candidates": [
+   "64cf1093-550f-4d85-b701-64fb2d5a6b23",
+   "2f6ac2bd-54a2-4b88-9562-475101814f46",
+   "bd605449-609f-40bd-b4d9-d12b1ea036b3",
+   "607dd867-1313-42f0-b89b-2665a5f26715",
+   "878e1213-f091-4b74-8c5b-702285a6694e",
+   "c9cb4b55-6412-43aa-9dc2-16a3e089c20c",
+   "c023a25e-3ee5-43fe-8137-24b13adce3d2",
+   "43ded1d5-4d56-4a51-88f7-b5b44ef600f9",
+   "dbdd3aaf-bfdc-439d-9cc6-0afb09dc334d",
+   "8052a625-9688-4fd1-8863-61a2fa2eff8f",
+   "ca6a1180-a283-4510-8191-1be672cbfde7",
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+   "b957389e-63f7-478a-96a3-871773653024",
+   "a618cfac-c851-4bcd-a9ee-bbeb6f05c606",
+   "60e7248c-c765-4dd0-9ca6-c227dabb6f3d"
+  ],
+  "seconds": 43.0,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"uses\",\n      \"evidence\": \"Kubernetes includes stable support for managing AMD and NVIDIA GPUs across different nodes in your cluster, using device plugins.\"\n    },\n    {\n      \"to\": 3,\n      \"type\": \"part of\",\n      \"evidence\": \"Device plugins run on worker Nodes and provide Pods with access to infrastructure resources, such as local hardware, that require vendor-specific initialization\"\n    },\n    {\n      \"to\": 4,\n      \"type\": \"depends on\",\n      \"evidence\": \"If different nodes in your cluster have different types of GPUs, then you can use Node Labels and Node Selectors to schedule pods to appropriate nodes.\"\n    },\n    {\n      \"to\": 1,\n      \"type\": \"related\",\n      \"evidence\": \"you can use [Node Labels and Node Selectors](/docs/tasks/configure-pod-container/assign-pods-nodes/) to schedule pods to appropriate nodes.\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"related\",\n      \"evidence\": \"How DRA Works: This page describes how Kubernetes allocates devices to workloads with dynamic resource allocation (DRA), and how pre-scheduled Pods interact with the process.\"\n    }\n  ],\n  \"needs\": [\n    \"Understanding of Kubernetes device plugins\",\n    \"Understanding of how to specify resource requirements (limits/requests)\",\n    \"Understanding of node labeling/selectors\"\n  ]\n}"
+ },
+ "ca6a1180-a283-4510-8191-1be672cbfde7": {
+  "relations": [
+   {
+    "to": "41d53781-4168-49ac-9b4b-234c9a1bdf75",
+    "type": "explains",
+    "evidence": "CPU Manager is a kubelet component that provides exclusive resource allocation for CPU resources."
+   }
+  ],
+  "dropped": [
+   {
+    "to": "f72000c5-6c69-48b4-b2fd-3ec1dc2d9ef8",
+    "type": "depends on",
+    "evidence": "Resource managers > Topology manager"
+   },
+   {
+    "to": "4cebc6e6-c1fc-4e7c-a9b2-884a996caaba",
+    "type": "uses",
+    "evidence": "This tutorial demonstrates how to configure the kubelet's resource managers (topology, CPU, and memory) to support pod-level resource specifications."
+   },
+   {
+    "to": "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09",
+    "type": "related",
+    "evidence": "When you specify a pod, you can optionally specify how much of each resource a container needs."
+   }
+  ],
+  "needs": [
+   "CFS quota",
+   "cpuset cgroup controller",
+   "Guaranteed pods"
+  ],
+  "candidates": [
+   "f72000c5-6c69-48b4-b2fd-3ec1dc2d9ef8",
+   "41d53781-4168-49ac-9b4b-234c9a1bdf75",
+   "e5a06dfe-0b2f-4173-836b-461de637df74",
+   "afbd3e74-3f66-4985-85e9-748faad063d5",
+   "2f458a33-a505-4c0c-a429-298cb5ae25d7",
+   "2f6ac2bd-54a2-4b88-9562-475101814f46",
+   "51da2454-0c84-4ca0-9431-c21b2c70821d",
+   "ca77ddbb-6ef3-4bd4-b9a6-4546ba989b99",
+   "072b437d-7771-4cee-b397-9ef374a117fd",
+   "16234e00-b022-43f3-b03e-2f2d34ad1772",
+   "1b73fc7f-27a6-4061-9236-687a1417af5b",
+   "352ead74-f4f4-438f-9330-3c2c47ff12d1",
+   "4a760a9b-3d35-444f-8256-ca64b8d6489c",
+   "4cebc6e6-c1fc-4e7c-a9b2-884a996caaba",
+   "632a71b6-1cc5-4b66-a41c-b0c5f9d0be09"
+  ],
+  "seconds": 32.7,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 1,\n      \"type\": \"depends on\",\n      \"evidence\": \"Resource managers > Topology manager\"\n    },\n    {\n      \"to\": 2,\n      \"type\": \"explains\",\n      \"evidence\": \"CPU Manager is a kubelet component that provides exclusive resource allocation for CPU resources.\"\n    },\n    {\n      \"to\": 14,\n      \"type\": \"uses\",\n      \"evidence\": \"This tutorial demonstrates how to configure the kubelet's resource managers (topology, CPU, and memory) to support pod-level resource specifications.\"\n    },\n    {\n      \"to\": 15,\n      \"type\": \"related\",\n      \"evidence\": \"When you specify a pod, you can optionally specify how much of each resource a container needs.\"\n    }\n  ],\n  \"needs\": [\n    \"CFS quota\",\n    \"cpuset cgroup controller\",\n    \"Guaranteed pods\"\n  ]\n}"
+ },
+ "ad8adaa3-79af-4067-a6b6-9cbe4000d57a": {
+  "relations": [
+   {
+    "to": "c9baf8fc-d800-47ba-99f8-769c5456c4d4",
+    "type": "part of",
+    "evidence": "A _Deployment_ provides declarative updates for Pods and ReplicaSets."
+   },
+   {
+    "to": "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+    "type": "uses",
+    "evidence": "It creates a ReplicaSet to bring up three `nginx` Pods"
+   },
+   {
+    "to": "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+    "type": "uses",
+    "evidence": "The `.spec.selector` field defines how the created ReplicaSet finds which Pods to manage."
+   }
+  ],
+  "dropped": [],
+  "needs": [
+   "Pod template (`app: nginx`)",
+   "Writing a Deployment Spec"
+  ],
+  "candidates": [
+   "2d94013e-b346-4c24-bd7f-abae5f58e7e7",
+   "c9baf8fc-d800-47ba-99f8-769c5456c4d4",
+   "9c273b69-2a5c-4974-b9df-10966e9e4fa6",
+   "f043c427-536d-4114-8916-0f2bb2fca60c",
+   "af34295a-3612-4fe0-a62e-9d32d838b1f5",
+   "6c97443d-5d6b-4a90-a0f1-ded61310d70e",
+   "129b7d14-ab42-4d9b-9578-7e8839d3e23e",
+   "e93f53a9-0752-4953-9f5c-2db9b6846ed9",
+   "d55722d1-4fad-47ae-b8f9-74d7279644bd",
+   "078d5fea-4af6-48d1-8076-83b5fa4c7293",
+   "d42d659b-ee0f-447c-8bf6-3acc605ec3a0",
+   "9c56c63f-15eb-4ebe-8cff-9f98789c7ee4",
+   "a50c160b-6c44-41d9-8da9-fe6466932f28",
+   "07afddd8-3439-4d46-919e-69c7a86e0ede",
+   "089212f1-f501-4fa5-b606-fec8ebf1425a"
+  ],
+  "seconds": 27.0,
+  "raw": "{\n  \"relations\": [\n    {\n      \"to\": 2,\n      \"type\": \"part of\",\n      \"evidence\": \"A _Deployment_ provides declarative updates for Pods and ReplicaSets.\"\n    },\n    {\n      \"to\": 8,\n      \"type\": \"uses\",\n      \"evidence\": \"It creates a ReplicaSet to bring up three `nginx` Pods\"\n    },\n    {\n      \"to\": 10,\n      \"type\": \"uses\",\n      \"evidence\": \"The `.spec.selector` field defines how the created ReplicaSet finds which Pods to manage.\"\n    }\n  ],\n  \"needs\": [\n    \"Pod template (`app: nginx`)\",\n    \"Writing a Deployment Spec\"\n  ]\n}"
+ }
+}

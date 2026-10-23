@@ -320,6 +320,26 @@ Verified: every command run against a fresh demo app on Linux, covering:
   searching for the word. Searching "IT" (a stop word, never indexed as a keyword) could only match by
   meaning. The walkthrough checks it.
 
+## 4j. Relations between documents written by the local model: measured, not shipped (owner question 2026-10-23)
+
+Owner: "just based on content can we setup relation between docs? Using LLM." Tried with Gemma 4 E2B
+(`eval/llm_relations.py`). For the top 3 results of each of the 24 relational questions, the model read the
+document and 15 candidates (its links, mentions and nearest documents by meaning: title and opening line),
+and chose relations with a type and an evidence phrase. A relation whose evidence is not verbatim in the
+document was dropped. It also named topics the document relies on but does not explain; each was looked up
+with search.
+- All needed pages shown: **66.7%** with 14 documents on screen (75.0% at 18 with the looked-up topics).
+  Today's related rows: 91.7% (13 best documents, or all 33); ranked top 2 per group: 87.5% at 15.
+- 154 of 289 proposed relations had no verbatim evidence (53%); 39 s per document (CPU), which would be
+  ~18 days for a 40k-document archive.
+- A sample of 25 kept relations: about 18 restate a Markdown link the link graph already has, and roughly
+  10 have a wrong or vague type ("configure-persistent-volume-storage *part of* pods", evidence "create a
+  /mnt/data directory").
+- **Decision: not shipped.** It is worse than ranking the links, mentions and similarity the app already
+  has, and it costs far more. Kept: the script and results (`eval/results/llm-relations-*.json`,
+  `relations-*.json` with raw replies). Worth retrying only with a much stronger local model, or with typed
+  links written by authors (front matter `depends_on`, already used).
+
 ## 4i. Redesign (owner: "use the impeccable and taste skill extensively", 2026-10-23)
 
 Designed from the taste skill's app-screen rules (dealt style **framed sheet**, `draw.mjs --app --kind devtools`)
