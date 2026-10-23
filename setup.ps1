@@ -4,7 +4,7 @@
 #   3. downloads the offline AI models, initialises the database
 #   4. optionally loads sample documents, creates a desktop shortcut, starts the app in your browser
 # Options: -Demo (load sample data without asking), -NoDemo, -NoStart, -NoShortcut, -Summaries (also install the
-# optional local language model for document summaries, ~0.6 GB), -NoSummaries. Safe to re-run.
+# optional local language model for document summaries, ~3.2 GB), -NoSummaries. Safe to re-run.
 param([switch]$Demo, [switch]$NoDemo, [switch]$NoStart, [switch]$NoShortcut, [switch]$Summaries, [switch]$NoSummaries,
       [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest)
 # Also accept the Linux-style flags (setup.bat --demo --no-start).
@@ -63,7 +63,7 @@ if ($LASTEXITCODE -ne 0) {
 
 $getLlm = $Summaries
 if (-not $Summaries -and -not $NoSummaries) {
-    $ans = Read-Host "Also install a small local language model (~0.6 GB) that writes a summary and topics for each document in the background? Nothing leaves this computer. [Y/n]"
+    $ans = Read-Host "Also install a small local language model (~3.2 GB) that writes a summary and topics for each document in the background? Nothing leaves this computer. [Y/n]"
     $getLlm = ($ans -eq "" -or $ans -match "^[Yy]")
 }
 if ($getLlm) {

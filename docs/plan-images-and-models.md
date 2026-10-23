@@ -67,7 +67,7 @@ searchable, never something that delays search.
      evidence check has passed.
    - Not used for ranking or for deciding whether to answer (measured worse).
 5. **Summaries, titles and tags:** **built** (2026-10-23, owner's request) as an optional background job
-   after indexing, with Qwen3.5-0.8B by default — `src/knowledge_search/enrich.py`, `docs/HANDOFF.md` §4f.
+   after indexing, with Gemma 4 E2B by default — `src/knowledge_search/enrich.py`, `docs/HANDOFF.md` §4f.
    Images (steps 1–3) remain on hold; the same job and model server can take them on later.
 
 ## Candidate models (October 2026)

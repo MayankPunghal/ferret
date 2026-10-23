@@ -39,7 +39,7 @@ needed. An optional small language model, also local, writes a short summary and
 | Embedded PostgreSQL + pgvector | stores documents, passages, links and access rights | installed by setup |
 | Embedding model (bge-base-en-v1.5) | turns each passage and each question into numbers, so a search finds passages with the same *meaning*, not only the same words | ~210 MB |
 | Reranker (ms-marco-MiniLM-L-6-v2) | re-orders the top 10 results by how well each passage matches the question | ~90 MB |
-| *Optional:* language model (Qwen3.5-0.8B, run by llama.cpp) | writes a summary, topics and (for vague titles) a clearer title per document, in the background | ~0.6 GB |
+| *Optional:* language model (Gemma 4 E2B, run by llama.cpp) | writes a summary, topics and (for vague titles) a clearer title per document, in the background | ~3.2 GB |
 
 The models run on any CPU and are downloaded once by setup. **Search never depends on the language model:**
 every result is a passage that is really in your documents; the summaries only help you read the results
@@ -77,7 +77,7 @@ cd knowledge-search
 | `--no-demo` | skip the sample data |
 | `--no-start` | install only; do not start the app afterwards |
 | `--no-shortcut` | Windows only: do not create the desktop shortcut |
-| `--summaries` / `--no-summaries` | install / skip the optional summary model without asking (~0.6 GB) |
+| `--summaries` / `--no-summaries` | install / skip the optional summary model without asking (~3.2 GB) |
 
 Setup installs everything for the current user (no administrator rights, no Docker): uv, Python 3.13, the
 app, an embedded PostgreSQL and the offline AI models (~900 MB in total, one time). It is safe to re-run —
@@ -125,7 +125,7 @@ Command-line alternative for step 2: `uv run knowledge-search ingest intranet si
 ## Requirements
 
 64-bit Windows 10/11, macOS or Linux; 4 GB free RAM (8 GB recommended for the larger models); ~2 GB disk;
-(+0.6 GB with the optional summary model); internet access during setup only (to download the app's
+(+3.2 GB disk and ~4 GB RAM with the optional summary model); internet access during setup only (to download the app's
 dependencies and models). Nothing needs to be
 installed beforehand. After setup it runs offline.
 

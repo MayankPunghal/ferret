@@ -359,9 +359,9 @@ class Enricher:
 LLAMA_CPP_TAG = "b11836"
 LLMS = {  # name: (Hugging Face repo, file, note)
     "qwen3.5-0.8b": ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q4_K_M.gguf", "~0.5 GB, Apache-2.0"),
-    "gemma-4-e2b": ("unsloth/gemma-4-E2B-it-GGUF", "gemma-4-E2B-it-Q4_K_M.gguf", "~3.1 GB, Gemma terms of use"),
+    "gemma-4-e2b": ("unsloth/gemma-4-E2B-it-GGUF", "gemma-4-E2B-it-Q4_K_M.gguf", "~3.1 GB, Apache-2.0"),
 }
-DEFAULT_LLM = "qwen3.5-0.8b"
+DEFAULT_LLM = "gemma-4-e2b"  # blind review: no wrong claims in 9 pages; Qwen3.5-0.8B made 3 (eval/results/blind-review.json)
 
 
 def asset_name(tag: str = LLAMA_CPP_TAG) -> str:

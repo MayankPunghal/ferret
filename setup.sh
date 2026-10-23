@@ -6,7 +6,7 @@
 #   ./setup.sh               interactive (asks about sample data), then starts the app in your browser
 #   ./setup.sh --demo        load the FICTIONAL sample corpus without asking
 #   ./setup.sh --no-demo     skip sample data      ./setup.sh --no-start   do not start the app
-#   ./setup.sh --summaries   also install the optional local language model for document summaries (~0.6 GB)
+#   ./setup.sh --summaries   also install the optional local language model for document summaries (~3.2 GB)
 #   ./setup.sh --no-summaries  skip it without asking
 #
 # Safe to re-run. Server deployments with an external PostgreSQL: see docs/deployment.md.
@@ -46,7 +46,7 @@ uv run --no-dev knowledge-search download-model || die "model download failed (n
 
 if [ "$SUMMARIES" = ask ]; then
   if [ -t 0 ]; then
-    read -r -p "Also install a small local language model (~0.6 GB) that writes a summary and topics for each document in the background? Nothing leaves this computer. [Y/n] " ans
+    read -r -p "Also install a small local language model (~3.2 GB) that writes a summary and topics for each document in the background? Nothing leaves this computer. [Y/n] " ans
     case "${ans:-y}" in [Yy]*) SUMMARIES=yes ;; *) SUMMARIES=no ;; esac
   else
     SUMMARIES=no

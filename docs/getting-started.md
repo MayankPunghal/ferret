@@ -8,7 +8,7 @@
    GitHub and extract it).
 2. In that folder run **`setup.bat --demo`** from Command Prompt — or double-click `setup.bat` and answer
    **Y** when asked whether to load the fictional sample documents. It also asks whether to install the
-   optional summary model (answer **Y**, ~0.6 GB). Other options: `--no-demo`, `--summaries`,
+   optional summary model (answer **Y**, ~3.2 GB). Other options: `--no-demo`, `--summaries`,
    `--no-summaries`, `--no-start`, `--no-shortcut` (the PowerShell-style `-Demo`, `-NoStart` also work).
 
 The setup window shows each step:
@@ -18,7 +18,7 @@ The setup window shows each step:
 | uv | Installs [uv](https://docs.astral.sh/uv/), a Python package manager, into your user profile | No |
 | Dependencies | uv downloads Python 3.13, the app's libraries and an embedded PostgreSQL + pgvector (~600 MB) | No |
 | Models | Downloads the offline embedding model and reranker (~300 MB) into `data/models`; network drops are retried, and re-running setup reuses finished files | No |
-| Summary model (optional) | Downloads llama.cpp's server (github.com) and a small language model (~0.5 GB, huggingface.co) into `data/models/llm`; if it fails, setup continues without it | No |
+| Summary model (optional) | Downloads llama.cpp's server (github.com) and a language model (Gemma 4 E2B, ~3.1 GB, huggingface.co) into `data/models/llm`; if it fails, setup continues without it | No |
 | Database | Creates the local database in `data/pg` | No |
 | Sample data | Optional fictional documents and demo users | No |
 | Shortcut | Puts a **Knowledge Search** shortcut on the desktop | No |

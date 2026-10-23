@@ -23,7 +23,7 @@ reranker); every search returns ranked passages with source links **and an expli
 `no_searchable_scope`, `retrieval_degraded`, `retrieval_failure`). One-click setup with an embedded
 PostgreSQL (no Docker). Admin UI for models, chunking, reranker, thresholds, users and access.
 Each result also lists its related documents (links to / referenced by / mentions / related in meaning).
-Optional: a small local language model (Qwen3.5-0.8B via llama.cpp, `setup --summaries`) writes a
+Optional: a small local language model (Gemma 4 E2B via llama.cpp, `setup --summaries`) writes a
 summary, topics and, for vague titles, a clearer title per document in the background (§4f). No answer
 generation yet (deliberately — see §7).
 
@@ -208,14 +208,25 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   on exit, even mid-request. `KS_LLM_URL` points it at another local OpenAI-compatible server instead.
 - **Install:** `knowledge-search download-llm` / `setup --summaries` (asked by default): llama.cpp release
   **b11836** CPU build (the build used for every measurement here; all 6 platform files checked to exist)
-  + `unsloth/Qwen3.5-0.8B-GGUF` Q4_K_M (~0.5 GB; `--model gemma-4-e2b` for Gemma 4 E2B, ~3.1 GB).
+  + `unsloth/gemma-4-E2B-it-GGUF` Q4_K_M (~3.1 GB, Apache-2.0; `--model qwen3.5-0.8b` for Qwen3.5-0.8B, ~0.5 GB).
+  Default switched from Qwen to Gemma after the blind review below; Gemma verified starting through
+  `LocalServer` (9 s) and summarising a page (50 s with 1 thread).
   **Verified on Linux x64** (download 11 s, server start 3 s, summaries in the app). Windows and macOS
   downloads: file names checked, **not run**.
 - **Shown:** results and the passage view, labelled "Summary (local model)", topics as chips that search for
   themselves, clearer title with the original in the tooltip. Never evidence; the gate ignores it.
 - **In the embeddings:** only with "Add a line about the whole document to every passage" (`context_chars` > 0) and only for
   documents without their own description: the document is re-indexed once with the summary.
-- **Live run (demo data, real model):** 20 of 20 documents summarised, ~5 s each (1 s reading, 4 s writing,
+- **Model choice: blind review** (`eval/blind_review.py`, sheet, grades, reasons and key in `eval/results/blind-review*`):
+  5 models summarised the same 100 Kubernetes pages (no author descriptions) with the app's exact prompt;
+  9 random pages (fixed seed, none read before) graded with each page's summaries shuffled into slots A–E,
+  key opened only after the grades were saved. Faithful / specific (0–2) and wrong claims:
+  Qwen3.5-0.8B 1.22 / 1.56 / 3 (and 4 of 100 replies not parsable); Qwen3.5-2B 1.89 / 2.00 / 0;
+  Gemma 4 E2B 2.00 / 1.67 / 0; Qwen3.5-4B 1.78 / 2.00 / 0; Gemma 4 E4B 2.00 / 1.67 / 0. Median seconds per
+  page (4 threads, 2 requests at a time): 6.9 / 18.0 / 17.4 / 32.7 / 35.9. **Gemma 4 E2B chosen**: never wrong,
+  and E4B, at twice the time, was no better. Limits: 9 pages, one grader (me), writing styles recognisable.
+  The automatic score against author descriptions (`eval/summary_quality.py`) could not separate the models.
+- **Live run (demo data, Qwen3.5-0.8B):** 20 of 20 documents summarised, ~5 s each (1 s reading, 4 s writing,
   2 threads while an evaluation used the other cores). Found and fixed: relative model-cache path broke the
   server start; a server that cannot start counted against documents; the model repeated file names as
   "clearer" titles (prompt v2 + `clearer_title`). On a one-line document it embellishes slightly — the

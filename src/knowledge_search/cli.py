@@ -61,7 +61,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--reranker", help="a specific reranker (default: KS_RERANK_MODEL)")
     p = sub.add_parser("download-llm", help="optional: fetch a local language model (and llama.cpp's server) for "
                        "document summaries; nothing is sent anywhere")
-    p.add_argument("--model", default=None, help="qwen3.5-0.8b (default, ~0.5 GB) or gemma-4-e2b (~3.1 GB)")
+    p.add_argument("--model", default=None, help="gemma-4-e2b (default, ~3.1 GB) or qwen3.5-0.8b (~0.5 GB, faster, less accurate)")
     a = ap.parse_args(argv)
     s = get_settings()
 
