@@ -108,6 +108,22 @@ def admin_status(p: Admin, conn: Conn):
     }
 
 
+@router.get("/logs")
+def get_logs(p: Admin, conn: Conn, level: str = "WARNING", limit: int = 500):
+    """Recent application log records (no document or query text) plus a diagnostics header."""
+    from . import logs
+
+    rt = runtime.load(conn)
+    extra = {"embedding_model": rt.embed_model, "reranker": rt.rerank_model if rt.rerank_enabled else "off",
+             "database": "external" if state.settings.database_url else "embedded",
+             "vector_search": state.settings.vector_search,
+             "documents": conn.execute("SELECT count(*) AS n FROM documents").fetchone()["n"],
+             "chunks": conn.execute("SELECT count(*) AS n FROM chunks").fetchone()["n"],
+             "jobs": {r["status"]: r["n"] for r in conn.execute("SELECT status, count(*) AS n FROM jobs GROUP BY 1")},
+             "log_file": str(state.settings.data_dir / "logs" / "knowledge-search.log")}
+    return {"diagnostics": logs.diagnostics(extra), "records": logs.records(level, max(1, min(limit, 2000)))}
+
+
 # --- collections and access -------------------------------------------------------------------
 
 class CollectionBody(BaseModel):

@@ -21,9 +21,9 @@ def _conn():
 
 
 def main(argv: list[str] | None = None) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
-    for noisy in ("pixeltable_pgserver", "httpx", "huggingface_hub"):  # embedded DB and download chatter
-        logging.getLogger(noisy).setLevel(logging.WARNING)
+    from . import logs
+
+    logs.install(get_settings().data_dir)
     ap = argparse.ArgumentParser(prog="knowledge-search")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate", help="apply database migrations")
@@ -98,9 +98,9 @@ def main(argv: list[str] | None = None) -> None:
         _announce_when_ready(f"http://{'127.0.0.1' if a.host in ('0.0.0.0', '::') else a.host}:{a.port}", a.open)
         if a.workers > 1:
             uvicorn.run("knowledge_search.api:create_app", factory=True, host=a.host, port=a.port,
-                        proxy_headers=True, workers=a.workers, access_log=False)
+                        proxy_headers=True, workers=a.workers, access_log=False, log_config=None)
         else:
-            uvicorn.run(create_app(), host=a.host, port=a.port, proxy_headers=True, access_log=False)
+            uvicorn.run(create_app(), host=a.host, port=a.port, proxy_headers=True, access_log=False, log_config=None)
     elif a.cmd == "demo":
         _demo(s)
     elif a.cmd == "worker":

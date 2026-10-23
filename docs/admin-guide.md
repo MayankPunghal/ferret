@@ -47,3 +47,12 @@ uv run knowledge-search ingest policies ./policies --wait     # bulk import a fo
 **Index status** shows per-collection counts (indexed, pending, failed) and the active configuration; admins
 also see the job queue. Jobs that crash are retried automatically (3 attempts with backoff); parse errors
 are permanent until the file is fixed and uploaded again.
+
+## Logs
+
+**Logs** (admin only) shows recent warnings and errors with full technical details (tracebacks), newest
+last; choose *everything* to include informational messages. **Copy for support** copies a diagnostics
+header (app/Python/OS/library versions, model, reranker, database mode, document and job counts) plus the
+log lines — paste it into a bug report. **Download .txt** saves the same text. Logs never contain document
+text or search queries. The log is also written to `data/logs/knowledge-search.log` (rotated at 5 MB,
+3 old files kept), which survives restarts.

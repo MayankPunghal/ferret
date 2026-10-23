@@ -81,12 +81,13 @@ $("#logout").addEventListener("click", async () => { await api("/api/auth/logout
 
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
-  for (const t of ["search", "documents", "status", "settings", "admin"]) $("#tab-" + t).hidden = t !== name;
+  for (const t of ["search", "documents", "status", "settings", "admin", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
   if (name === "documents") { loadDocs(); pollTimer = setInterval(loadDocs, 3000); }
   if (name === "status") loadStatus();
   if (name === "settings") loadSettings();
   if (name === "admin") loadAdmin();
+  if (name === "logs") loadLogs();
 }
 $$(".tab").forEach((b) => b.addEventListener("click", () => openTab(b.dataset.tab)));
 
@@ -328,6 +329,32 @@ for (const [id, all] of [["#reindex-outdated", false], ["#reindex-all", true]])
     $("#reindex-msg").textContent = `${r.queued} document(s) queued. Progress is shown on the Documents and Index status tabs.`;
     loadSettings();
   });
+
+// ---------------------------------------------------------------- logs (admin)
+let logText = "";
+async function loadLogs() {
+  const r = await api(`/api/admin/logs?level=${$("#log-level").value}`);
+  const head = Object.entries(r.diagnostics).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join("\n");
+  const lines = r.records.map((x) => `${x.time} ${x.level} ${x.logger} ${x.message}${x.traceback ? "\n" + x.traceback.trimEnd() : ""}`);
+  logText = `Knowledge Search diagnostics (${new Date().toISOString()})\n${head}\n\n` +
+    (lines.length ? lines.join("\n") : "(no log records at this level since the app started)");
+  $("#log-text").textContent = logText;
+  $("#log-msg").textContent = `${r.records.length} record(s)`;
+}
+$("#log-level").addEventListener("change", loadLogs);
+$("#log-refresh").addEventListener("click", loadLogs);
+$("#log-copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(logText); $("#log-msg").textContent = "Copied — paste it into your message."; }
+  catch {  // clipboard blocked: select the text so Ctrl+C works
+    const range = document.createRange(); range.selectNodeContents($("#log-text"));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    $("#log-msg").textContent = "Text selected — press Ctrl+C to copy.";
+  }
+});
+$("#log-download").addEventListener("click", () => {
+  const a = el("a", { href: URL.createObjectURL(new Blob([logText], { type: "text/plain" })), download: "knowledge-search-logs.txt" });
+  document.body.append(a); a.click(); a.remove();
+});
 
 // ---------------------------------------------------------------- users & access (admin)
 async function loadAdmin() {

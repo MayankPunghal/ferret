@@ -32,6 +32,9 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        from . import logs
+
+        logs.install(settings.data_dir)
         runtime.configure(settings)
         url = db.resolve_url(settings)
         applied = db.migrate(url)  # upgrades are applied automatically on start (forward-only)

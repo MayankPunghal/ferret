@@ -14,4 +14,6 @@
 | Search says **no adequate evidence** but one of the closest matches looks right | The evidence check is conservative by design (it is tuned to avoid false answers). Admins can try the stronger `bge-reranker-base` or adjust thresholds in Settings; see docs/evaluation.md for the trade-off. |
 | Search says **retrieval degraded** | A model could not be loaded (e.g. just switched and still downloading). Check Settings → model status. |
 | Embedded database will not start after a crash | Stop all app windows, then delete `data/pg/postmaster.pid` if it exists and start again. |
+| Console shows `ConnectionResetError: [WinError 10054]` in `_call_connection_lost` (Windows) | Harmless: the browser closed an idle connection. Filtered since v0.2; nothing to fix. |
+| Anything else / you need help | Admin → **Logs** → **Copy for support** and paste it into your report (contains versions, settings and errors with tracebacks; never document or search text). The same log is in `data/logs/knowledge-search.log`. |
 | Running as root on Linux | The embedded PostgreSQL refuses root; it creates and uses a `pgserver` system user automatically. |

@@ -40,6 +40,7 @@
         <button class="tab" data-tab="status">Index status</button>
         <button class="tab admin-only" data-tab="settings" hidden>Settings</button>
         <button class="tab admin-only" data-tab="admin" hidden>Users &amp; access</button>
+        <button class="tab admin-only" data-tab="logs" hidden>Logs</button>
       </nav>
       <span class="who"><span id="who"></span> <button id="logout" class="link">Sign out</button></span>
     </header>
@@ -141,6 +142,24 @@
           <button type="button" id="reindex-outdated">Reindex outdated documents</button>
           <button type="button" id="reindex-all" class="secondary">Reindex everything</button>
           <span id="reindex-msg" class="meta" role="status"></span>
+        </div>
+      </section>
+
+      <section id="tab-logs" hidden>
+        <div class="panel">
+          <h2>Logs</h2>
+          <p class="meta">Recent warnings and errors with technical details. Logs never contain document or search text,
+            so they are safe to share with support. Also written to the log file shown below.</p>
+          <div class="actions">
+            <label>Show <select id="log-level">
+              <option value="ERROR">errors</option><option value="WARNING" selected>warnings and errors</option>
+              <option value="INFO">everything</option></select></label>
+            <button type="button" id="log-refresh" class="secondary">Refresh</button>
+            <button type="button" id="log-copy">Copy for support</button>
+            <button type="button" id="log-download" class="secondary">Download .txt</button>
+            <span id="log-msg" class="meta" role="status"></span>
+          </div>
+          <pre id="log-text" class="pre log-text" tabindex="0"></pre>
         </div>
       </section>
 
