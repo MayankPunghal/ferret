@@ -135,4 +135,23 @@ def migrate(database_url: str) -> list[str]:
                 conn.execute(f.read_text())
                 conn.execute("INSERT INTO schema_migrations(name) VALUES (%s)", (f.name,))
             applied.append(f.name)
+    if "0005_document_vectors.sql" in applied:
+        _backfill_document_vectors(database_url)
     return applied
+
+
+def _backfill_document_vectors(database_url: str) -> None:
+    """Document vector = mean of its passage vectors, computed here rather than with pgvector's avg() in SQL
+    (which crashes the embedded PostgreSQL on Windows)."""
+    import numpy as np
+    import psycopg
+
+    with psycopg.connect(database_url) as conn:
+        register_vector(conn)
+        docs = [r[0] for r in conn.execute(
+            "SELECT DISTINCT document_id FROM chunks WHERE embedding IS NOT NULL").fetchall()]
+        for d in docs:
+            rows = conn.execute("SELECT embedding, embedding_model FROM chunks WHERE document_id = %s "
+                                "AND embedding IS NOT NULL", (d,)).fetchall()
+            conn.execute("UPDATE documents SET embedding = %s, embedding_model = %s WHERE id = %s",
+                         (np.mean([r[0].to_numpy() for r in rows], axis=0), min(r[1] for r in rows), d))

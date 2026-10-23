@@ -82,7 +82,13 @@ def similar(conn, scope: list[int], documents: list[UUID], floor: float) -> list
     vector (mean of passage vectors, same embedding model) — and at least `floor` similar. Mutual closeness
     needs no model-specific threshold (on 623 Kubernetes pages, 61% of these pairs are pages the authors
     linked themselves; most of the rest are plainly related); `floor` only stops tiny collections from linking
-    unrelated pages. Exact search over document vectors, readable documents only."""
+    unrelated pages. Exact search over document vectors, readable documents only. With the embedded
+    database the similarities are computed here (pgvector's distances crash it on Windows)."""
+    from . import runtime
+    from .config import memory_vectors
+
+    if memory_vectors(runtime.base()):
+        return _similar_in_memory(conn, scope, documents, floor)
     rows = conn.execute(
         "WITH s AS (SELECT id, embedding AS e, embedding_model AS m FROM documents WHERE id = ANY(%(docs)s) "
         "  AND collection_id = ANY(%(scope)s) AND embedding IS NOT NULL), "
@@ -95,6 +101,35 @@ def similar(conn, scope: list[int], documents: list[UUID], floor: float) -> list
         {"scope": scope, "docs": documents, "k": SIMILAR_K, "floor": floor},
     ).fetchall()
     return [(r["seed"], r["other"], float(r["sim"])) for r in rows]
+
+
+def _similar_in_memory(conn, scope: list[int], documents: list[UUID], floor: float) -> list[tuple[UUID, UUID, float]]:
+    """`similar` with numpy: same mutual-nearest rule, per embedding model."""
+    import numpy as np
+
+    rows = conn.execute("SELECT id, embedding, embedding_model FROM documents WHERE collection_id = ANY(%s) "
+                        "AND embedding IS NOT NULL", (scope,)).fetchall()
+    by_model: dict[str, list] = {}
+    for r in rows:
+        by_model.setdefault(r["embedding_model"], []).append(r)
+    out = []
+    for group in by_model.values():
+        ids = [r["id"] for r in group]
+        m = np.stack([np.asarray(r["embedding"].to_numpy(), dtype=np.float32) for r in group])
+        m /= np.maximum(np.linalg.norm(m, axis=1, keepdims=True), 1e-12)
+        pos = {d: i for i, d in enumerate(ids)}
+
+        def nearest(i):
+            s = m @ m[i]
+            s[i] = -np.inf
+            return list(np.argsort(-s, kind="stable")[:SIMILAR_K]), s
+
+        for d in documents:
+            if d not in pos:
+                continue
+            near, sims = nearest(pos[d])
+            out += [(d, ids[j], float(sims[j])) for j in near if sims[j] >= floor and pos[d] in nearest(j)[0]]
+    return out
 
 
 def _floor(conn) -> float:

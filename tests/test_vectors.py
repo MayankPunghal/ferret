@@ -54,3 +54,30 @@ def test_database_failure_is_a_clean_503(client, corpus, monkeypatch):
     assert r.status_code == 503 and r.json()["outcome"] == "retrieval_failure"
     r = client.get("/api/documents", headers=alice)
     assert r.status_code == 503 and "temporarily unavailable" in r.json()["detail"]
+
+
+def test_similar_pages_in_memory_and_in_sql_agree(client, corpus, monkeypatch):
+    """Related-in-meaning links: the numpy path (embedded database; pgvector's distances crash it on Windows)
+    finds the same pairs and similarities as pgvector in SQL."""
+    from knowledge_search import graph
+
+    with db.pool().connection() as c:
+        scope = [r["id"] for r in c.execute("SELECT id FROM collections")]
+        docs = [r["id"] for r in c.execute("SELECT id FROM documents WHERE embedding IS NOT NULL")]
+        mem = graph.similar(c, scope, docs, 0.0)
+        monkeypatch.setattr(runtime.base(), "vector_search", "database")
+        sql = graph.similar(c, scope, docs, 0.0)
+    assert mem and {(a, b) for a, b, _ in mem} == {(a, b) for a, b, _ in sql}
+    sims = {(a, b): s for a, b, s in sql}
+    assert all(abs(s - sims[a, b]) < 1e-4 for a, b, s in mem)
+
+
+def test_document_vectors_are_backfilled_without_sql_vector_math(client, corpus, database):
+    """Upgrading to migration 0005 fills document vectors in Python (pgvector's avg() crashes on Windows)."""
+    with db.pool().connection() as c:
+        before = {r["id"]: r["embedding"] for r in c.execute("SELECT id, embedding FROM documents WHERE embedding IS NOT NULL")}
+        c.execute("UPDATE documents SET embedding = NULL, embedding_model = NULL")
+    db._backfill_document_vectors(database)
+    with db.pool().connection() as c:
+        after = {r["id"]: r["embedding"] for r in c.execute("SELECT id, embedding FROM documents WHERE embedding IS NOT NULL")}
+    assert before.keys() == after.keys() and all(abs(before[d].to_numpy() - after[d].to_numpy()).max() < 1e-5 for d in before)
