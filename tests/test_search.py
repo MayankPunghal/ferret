@@ -164,7 +164,7 @@ def test_gate_accepts_keyword_searches_only_when_every_term_matches():
     assert gate_basis(GateConfig(0.78, 0.64, 0.2, 0, "similarity", "coverage"), s, False) == []  # rule off
 
 
-@pytest.mark.parametrize("q", ["how to do it", "what is this", "???"])
+@pytest.mark.parametrize("q", ["how to do it", "what is this", "???", "IT"])  # "IT": a topic chip
 def test_query_of_only_stop_words_or_punctuation_does_not_fail(client, corpus, q):
     r = client.post("/api/search", json={"query": q}, headers=token(client, "alice"))
     assert r.status_code == 200 and r.json()["outcome"] != "retrieval_failure"
