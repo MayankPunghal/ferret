@@ -1,5 +1,6 @@
 """Deterministic link graph: extraction, resolution, incoming links, blast radius and permission safety."""
 
+from knowledge_search import graph
 from knowledge_search.parsing import chunk_document, parse_document
 
 from .conftest import collection_id, search, token
@@ -127,6 +128,44 @@ def test_link_expansion_in_search_is_permission_safe(client, drain):
         assert linked(root, "What depends on Service B?") == set()
     finally:
         client.put("/api/admin/settings", headers=root, json={"graph_expansion": True})
+        graph.SIMILAR = True
+        client.delete(f"/api/documents/{secret}", headers=root)
+        for d in ids.values():
+            client.delete(f"/api/documents/{d}", headers=sam)
+
+
+SIMILAR_DOCS = {  # no links, no shared titles: related only by meaning
+    "registry.md": b"# Equipment Registry\n\nEvery pump, valve and compressor on site is recorded here with its "
+                   b"serial number, location and maintenance history.\n",
+    "inventory.md": b"# Plant Inventory Records\n\nTechnicians register new machinery such as pumps and compressors, "
+                    b"note where it is installed and log each service visit.\n",
+    "leave.md": b"# Parental Leave\n\nEmployees may take up to sixteen weeks of paid leave after a birth or adoption.\n",
+}
+
+RESTRICTED_SIMILAR = b"# Machinery Register\n\nPumps, valves and compressors with serial numbers, locations and service history.\n"
+
+
+def test_similar_pages_are_linked_by_meaning(client, drain):
+    """Pages that are each other's closest in meaning are linked ("similar") in the Connections list and the
+    graph view; unrelated and unreadable pages are not."""
+    sam, root = token(client, "sam"), token(client, "root")
+    ids = {name: client.post("/api/documents", headers=sam, data={"collection_id": collection_id("scratch")},
+                             files={"file": (name, body)}).json()["document_id"] for name, body in SIMILAR_DOCS.items()}
+    secret = client.post("/api/documents", headers=root, data={"collection_id": collection_id("hr")},
+                         files={"file": ("machines.md", RESTRICTED_SIMILAR)}).json()["document_id"]
+    drain()
+    try:
+        rel = client.get(f"/api/documents/{ids['registry.md']}/links", headers=sam).json()["similar"]
+        titles = [r["title"] for r in rel]
+        assert "Plant Inventory Records" in titles and "Parental Leave" not in titles
+        assert "Machinery Register" not in titles  # restricted page: never shown to sam
+        assert all(0 < r["similarity"] <= 1 for r in rel)
+        g = client.get(f"/api/documents/{ids['registry.md']}/graph", headers=sam).json()
+        by_id = {n["id"]: n["title"] for n in g["nodes"]}
+        assert (frozenset({"Equipment Registry", "Plant Inventory Records"}), "similar") in {  # undirected
+            (frozenset({by_id[e["source"]], by_id[e["target"]]}), e["kind"]) for e in g["edges"]}
+        assert "Machinery Register" not in by_id.values()
+    finally:
         client.delete(f"/api/documents/{secret}", headers=root)
         for d in ids.values():
             client.delete(f"/api/documents/{d}", headers=sam)
@@ -145,6 +184,7 @@ def test_mentions_link_pages_without_declared_links(client, drain):
     for search expansion and the graph view; one-word titles and restricted pages are never linked."""
     sam, root = token(client, "sam"), token(client, "root")
     ids = {}
+    graph.SIMILAR = False  # this test is about mentions only; meaning-based links: next test
     for name, body in PLAIN.items():
         ids[name] = client.post("/api/documents", headers=sam, data={"collection_id": collection_id("scratch")},
                                 files={"file": (name, body)}).json()["document_id"]

@@ -1,0 +1,40 @@
+0.812  CRI-O  <->  Container Runtime
+0.828  Customizing DNS Service  <->  Using NodeLocal DNSCache in Kubernetes Clusters
+0.825  Advertise Extended Resources for a Node  <->  Extending Kubernetes
+0.817  Process ID Limits And Reservations  <->  Reserve Compute Resources for System Daemons
+0.866  Preemption  <->  Scheduling, Preemption and Eviction
+0.916  Pod Security Policies  <->  Pod Security Policy
+0.798  Workload  <->  Managing Workloads
+0.777  Kubelet  <->  Probe
+0.832  Audit Annotations  <->  Authenticating
+0.828  Tutorials  <->  Configuration
+0.832  Nodes  <->  Communication between Nodes and the Control Plane
+0.879  How DRA Works  <->  Set Up DRA in a Cluster
+0.804  ResourceQuota  <->  Resource Quotas
+0.635  Contributor  <->  Reviewer
+0.764  Deployment  <->  ReplicationController
+0.838  Labels and Selectors  <->  Node Labels Populated By The Kubelet
+0.748  Helm Chart  <->  Deploy and Access the Kubernetes Dashboard
+0.812  Using CoreDNS for Service Discovery  <->  DNS for Services and Pods
+0.859  Upgrading Windows nodes  <->  Upgrade A Cluster
+0.828  Configuring each kubelet in your cluster using kubeadm  <->  Kubelet Configuration Directory Merging
+0.856  zsh auto-completion  <->  PowerShell auto-completion
+0.823  StatefulSet Basics  <->  Debug a StatefulSet
+0.806  Nodes  <->  Validate node setup
+0.761  Label  <->  Annotations
+0.796  Resource Management for Pods and Containers  <->  Resource Bin Packing
+0.862  Metrics for Kubernetes Object States  <->  Metrics For Kubernetes System Components
+0.877  Upgrading Linux nodes  <->  Upgrade A Cluster
+0.821  API server  <->  The Kubernetes API
+0.842  Nodes  <->  Node Declared Features
+0.794  Node-pressure Eviction  <->  Drain
+0.853  Scheduling Framework  <->  Kubernetes Scheduler
+0.665  Quantity  <->  Duration
+0.803  Preemption  <->  Workload-Aware Preemption
+0.711  Event  <->  Watch
+0.779  kubectl-convert overview  <->  Extend kubectl with plugins
+0.876  Linux kernel security constraints for Pods and containers  <->  Pod Security Standards
+0.766  Container Runtime Interface (CRI)  <->  Debugging Kubernetes nodes with crictl
+0.806  Debugging Kubernetes Nodes With Kubectl  <->  Debugging Kubernetes nodes with crictl
+0.871  Container Lifecycle Hooks  <->  Attach Handlers to Container Lifecycle Events
+0.824  Scheduling, Preemption and Eviction  <->  Eviction

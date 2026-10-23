@@ -4,8 +4,9 @@ Edges come from Markdown links, [[wiki links]] and front-matter relations (parsi
 RELATION_KEYS), stored per chunk in ``doc_links``. Targets are resolved at query time against document
 file names (with or without extension) and titles, so a link starts working as soon as its target is
 ingested. Pages that do not link explicitly (crawled intranet pages, exported docs) are connected by
-*mentions*: a passage naming another page's title (``mentions``; search expansion and the graph view, not
-the blast radius, which follows declared links only). Every query and every traversal hop is restricted to the caller's readable collections: an
+*mentions*: a passage naming another page's title (``mentions``), and by *meaning*: pages that are each
+other's closest by document vector (``similar``). Mentions feed search expansion; both appear in the
+Connections list and the graph view. Neither is used by the blast radius, which follows declared links only. Every query and every traversal hop is restricted to the caller's readable collections: an
 edge is visible only when both ends are readable, so links never reveal restricted documents.
 """
 
@@ -20,6 +21,8 @@ router = APIRouter(prefix="/api/documents", tags=["graph"])
 MAX_DEPTH = 3
 MAX_NODES = 200
 MENTIONS = True  # also treat a passage naming another page's title as a link (kind "mentions")
+SIMILAR = True  # also link pages that are each other's closest in meaning (kind "similar")
+SIMILAR_K = 3  # "closest": among each other's SIMILAR_K nearest documents (measured in eval/link_eval.py)
 
 
 def _resolves(doc: str, link: str) -> str:
@@ -73,11 +76,40 @@ def mentions(conn, scope: list[int], documents: list[UUID]) -> list[tuple[UUID, 
     return [(r["source"], r["target"]) for r in rows]
 
 
-def neighbours(conn, scope: list[int], documents: list[UUID]) -> list[tuple[UUID, UUID]]:
+def similar(conn, scope: list[int], documents: list[UUID], floor: float) -> list[tuple[UUID, UUID, float]]:
+    """Meaning-based links: (seed, other, cosine) where `seed` is in `documents` and the two documents are
+    *mutual* nearest neighbours — each among the other's SIMILAR_K closest readable documents by document
+    vector (mean of passage vectors, same embedding model) — and at least `floor` similar. Mutual closeness
+    needs no model-specific threshold (on 623 Kubernetes pages, 61% of these pairs are pages the authors
+    linked themselves; most of the rest are plainly related); `floor` only stops tiny collections from linking
+    unrelated pages. Exact search over document vectors, readable documents only."""
+    rows = conn.execute(
+        "WITH s AS (SELECT id, embedding AS e, embedding_model AS m FROM documents WHERE id = ANY(%(docs)s) "
+        "  AND collection_id = ANY(%(scope)s) AND embedding IS NOT NULL), "
+        "nn AS (SELECT s.id AS seed, n.id AS other, n.e AS oe, s.m, 1 - (n.e <=> s.e) AS sim FROM s CROSS JOIN LATERAL "
+        "  (SELECT d.id, d.embedding AS e FROM documents d WHERE d.collection_id = ANY(%(scope)s) AND d.id <> s.id "
+        "   AND d.embedding_model = s.m ORDER BY d.embedding <=> s.e LIMIT %(k)s) n) "
+        "SELECT seed, other, sim FROM nn WHERE sim >= %(floor)s AND seed IN (SELECT d.id FROM documents d "
+        "  WHERE d.collection_id = ANY(%(scope)s) AND d.id <> nn.other AND d.embedding_model = nn.m "
+        "  ORDER BY d.embedding <=> nn.oe LIMIT %(k)s)",
+        {"scope": scope, "docs": documents, "k": SIMILAR_K, "floor": floor},
+    ).fetchall()
+    return [(r["seed"], r["other"], float(r["sim"])) for r in rows]
+
+
+def _floor(conn) -> float:
+    from . import runtime  # runtime imports models; keep graph importable without it
+    return runtime.load(conn).gate_dense_min
+
+
+def neighbours(conn, scope: list[int], documents: list[UUID], with_similar: bool = False) -> list[tuple[UUID, UUID]]:
     """(linked document, seed) pairs: readable documents linked from or to any of `documents` (one hop,
-    both directions, explicit links and, with MENTIONS, title mentions), excluding the seeds themselves."""
+    both directions, explicit links and, with MENTIONS, title mentions; meaning-based links only when
+    `with_similar`), excluding the seeds themselves."""
     seeds = set(documents)
     implicit = [(t, s) if s in seeds else (s, t) for s, t in mentions(conn, scope, documents)] if MENTIONS else []
+    if with_similar and SIMILAR:  # graph view only: in search expansion they took slots from real dependencies
+        implicit += [(o, s) for s, o, _ in similar(conn, scope, documents, _floor(conn))]
     implicit = [(d, seed) for d, seed in implicit if d not in seeds]
     rows = conn.execute(
         "SELECT DISTINCT t.id, l.document_id AS seed FROM doc_links l JOIN documents t ON " + _resolves("t", "l")
@@ -131,7 +163,18 @@ def document_links(document_id: UUID, p: User, conn: Conn):
     men = [{"document_id": str(d), "title": docs[d]["title"], "collection": docs[d]["collection"],
             "chunk_id": docs[d]["chunk_id"], "how": how} for d, how in sorted(pairs, key=lambda x: str(x[0]))
            if d in docs]
-    return {"outgoing": outgoing, "incoming": inc, "mentions": men, "unresolved": unresolved}
+    shown = linked | {m["document_id"] for m in men}
+    sim = [(o, s) for _, o, s in (similar(conn, scope, [document_id], _floor(conn)) if SIMILAR else [])
+           if str(o) not in shown]
+    sdocs = {r["id"]: r for r in conn.execute(
+        "SELECT d.id, d.title, col.name AS collection, "
+        "(SELECT c.id FROM chunks c WHERE c.document_id = d.id ORDER BY c.ordinal LIMIT 1) AS chunk_id "
+        "FROM documents d JOIN collections col ON col.id = d.collection_id WHERE d.id = ANY(%s)",
+        ([o for o, _ in sim],))} if sim else {}
+    related = [{"document_id": str(o), "title": sdocs[o]["title"], "collection": sdocs[o]["collection"],
+                "chunk_id": sdocs[o]["chunk_id"], "similarity": round(s, 3)}
+               for o, s in sorted(sim, key=lambda x: -x[1]) if o in sdocs]
+    return {"outgoing": outgoing, "incoming": inc, "mentions": men, "similar": related, "unresolved": unresolved}
 
 
 @router.get("/{document_id}/impact")
@@ -178,7 +221,7 @@ def neighbourhood(document_id: UUID, p: User, conn: Conn, depth: int = Query(1, 
     frontier = [document_id]
     for d in range(1, depth + 1):
         nxt = []
-        for doc, _seed in sorted(neighbours(conn, scope, frontier), key=lambda x: str(x[0])):
+        for doc, _seed in sorted(neighbours(conn, scope, frontier, with_similar=True), key=lambda x: str(x[0])):
             if doc not in level and len(level) < MAX_GRAPH_NODES:
                 level[doc] = d
                 nxt.append(doc)
@@ -196,6 +239,12 @@ def neighbourhood(document_id: UUID, p: User, conn: Conn, depth: int = Query(1, 
         explicit = {(e["source"], e["target"]) for e in edges}
         edges += [{"source": s, "target": t, "kind": "mentions"} for s, t in sorted(
             mentions(conn, scope, ids), key=str) if s in level and t in level and (s, t) not in explicit]
+    if SIMILAR:
+        seen = {frozenset((e["source"], e["target"])) for e in edges}
+        for s, t, _ in sorted(similar(conn, scope, ids, _floor(conn)), key=str):
+            if t in level and frozenset((s, t)) not in seen:
+                seen.add(frozenset((s, t)))
+                edges.append({"source": s, "target": t, "kind": "similar"})
     return {
         "document": {"id": str(root["id"]), "title": root["title"]}, "depth": depth,
         "nodes": [{"id": str(i), "title": docs[i]["title"], "collection": docs[i]["collection"], "depth": level[i],

@@ -119,8 +119,9 @@ def main():
     db.open_pool(url, max_size=2)
     out = {"model": a.model, "k": K, "plain": a.plain, **({"reused_index": True} if a.reuse else ingest(a, url, gen)), "arms": {}}
 
-    arms = [("hybrid", 0, False)] + [(f"linked slots={n}{' +mentions' * m}", int(n), m)
-                                     for n in a.slots.split(",") for m in (False, True)]
+    neighbours0 = graph.neighbours
+    arms = [("hybrid", 0, False, False)] + [(f"linked slots={n}{' +mentions' * m}{' +similar' * s}", int(n), m, s)
+                                            for n in a.slots.split(",") for m, s in ((False, False), (True, False), (True, True))]
     with db.pool().connection() as conn:
         u = conn.execute("SELECT id FROM users WHERE username = 'dev'").fetchone()
         principal = auth.principal_for(conn, u["id"], "dev", False)
@@ -129,13 +130,14 @@ def main():
                 for r in conn.execute("SELECT id, source_key, collection_id FROM documents")}
         base = runtime.load(conn)
         for rr in ([""] + ([a.reranker] if a.reranker else [])):
-            for name, slots, mentions in arms:
+            for name, slots, mentions, similar in arms:
                 rt = runtime.load(conn)
                 rt.rerank_enabled, rt.graph_expansion = bool(rr), bool(slots)
                 if rr:
                     rt.rerank_model = rr
                 search_mod.GRAPH_SLOTS = slots or search_mod.GRAPH_SLOTS
-                graph.MENTIONS = mentions
+                graph.MENTIONS, graph.SIMILAR = mentions, similar
+                search_mod.graph.neighbours = (lambda c, s, d, _n=neighbours0, _w=similar: _n(c, s, d, with_similar=_w))
                 rows, lat, leaks = [], [], 0
                 for q in queries:
                     resp = search(conn, principal, q["query"], rt, limit=K)

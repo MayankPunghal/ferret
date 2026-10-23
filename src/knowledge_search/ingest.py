@@ -292,8 +292,10 @@ class Worker:
                         "VALUES (%s, %s, %s, %s, %s, %s)", links)
             conn.execute(
                 "UPDATE documents SET indexed_version_id = %s, status = 'indexed', title = %s, metadata = %s, "
-                "index_signature = %s, error_code = NULL, error_detail = NULL, updated_at = now() WHERE id = %s",
-                (job["version_id"], parsed.title[:500], Jsonb(parsed.metadata), signature, job["document_id"]),
+                "index_signature = %s, error_code = NULL, error_detail = NULL, updated_at = now(), "
+                "embedding = %s, embedding_model = %s WHERE id = %s",
+                (job["version_id"], parsed.title[:500], Jsonb(parsed.metadata), signature,
+                 np.mean(vectors, axis=0) if len(vectors) else None, model, job["document_id"]),
             )
             conn.execute("UPDATE jobs SET status = 'done', updated_at = now() WHERE id = %s", (job["id"],))
 

@@ -1,0 +1,91 @@
+{
+  "model": "BAAI/bge-base-en-v1.5",
+  "documents": 623,
+  "declared_pairs": 2495,
+  "random_precision": 0.0129,
+  "mentions": {
+    "pairs": 3476,
+    "precision": 0.326,
+    "recall": 0.454
+  },
+  "similar@1": {
+    "pairs": 473,
+    "precision": 0.539,
+    "recall": 0.102
+  },
+  "similar@3": {
+    "pairs": 1386,
+    "precision": 0.434,
+    "recall": 0.241
+  },
+  "similar@5": {
+    "pairs": 2305,
+    "precision": 0.354,
+    "recall": 0.327
+  },
+  "similar@10": {
+    "pairs": 4662,
+    "precision": 0.241,
+    "recall": 0.451
+  },
+  "similar>=0.95": {
+    "pairs": 16,
+    "precision": 0.812,
+    "recall": 0.005
+  },
+  "similar>=0.92": {
+    "pairs": 94,
+    "precision": 0.809,
+    "recall": 0.03
+  },
+  "similar>=0.9": {
+    "pairs": 203,
+    "precision": 0.788,
+    "recall": 0.064
+  },
+  "similar>=0.88": {
+    "pairs": 363,
+    "precision": 0.702,
+    "recall": 0.102
+  },
+  "similar>=0.85": {
+    "pairs": 880,
+    "precision": 0.567,
+    "recall": 0.2
+  },
+  "similar>=0.8": {
+    "pairs": 3430,
+    "precision": 0.32,
+    "recall": 0.439
+  },
+  "similar@3>=0.8": {
+    "pairs": 1106,
+    "precision": 0.509,
+    "recall": 0.226
+  },
+  "similar@3>=0.85": {
+    "pairs": 656,
+    "precision": 0.601,
+    "recall": 0.158
+  },
+  "similar@5>=0.85": {
+    "pairs": 797,
+    "precision": 0.583,
+    "recall": 0.186
+  },
+  "mutual@3": {
+    "pairs": 430,
+    "precision": 0.609,
+    "recall": 0.105
+  },
+  "mutual@5": {
+    "pairs": 730,
+    "precision": 0.542,
+    "recall": 0.159
+  },
+  "mentions+similar@3": {
+    "pairs": 4319,
+    "precision": 0.312,
+    "recall": 0.539
+  }
+}

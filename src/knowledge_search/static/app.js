@@ -170,7 +170,7 @@ async function openPassage(id) {
 }
 
 const KIND = { links_to: "links to", depends_on: "depends on", related: "related", calls: "calls",
-  owned_by: "owned by", part_of: "part of", see_also: "see also", mentions: "mentions" };
+  owned_by: "owned by", part_of: "part of", see_also: "see also", mentions: "mentions", similar: "is related in meaning to" };
 
 async function renderLinks(docId) {
   const box = $("#d-links");
@@ -192,6 +192,7 @@ async function renderLinks(docId) {
   }
   section("Linked from", [...byDoc.values()].map((g) => item(g.title, `${g.kinds.join(", ")} this · ${g.collection}`, g.chunk_id)));
   section("Mentions (found automatically)", (links.mentions || []).map((m) => item(m.title, `${m.how} · ${m.collection}`, m.chunk_id)));
+  section("Related by meaning (found automatically)", (links.similar || []).map((m) => item(m.title, `similarity ${m.similarity.toFixed(2)} · ${m.collection}`, m.chunk_id)));
   section("Depends on this (blast radius, 2 hops)", imp.nodes.map((n) => item(n.title, `${n.depth === 1 ? "directly" : "indirectly"} · ${KIND[n.kind] || n.kind} · ${n.collection}`, n.chunk_id)));
   if (links.unresolved.length)
     box.append(el("p", { className: "meta", textContent: "Not found in documents you can access: " + links.unresolved.map((u) => u.label || u.target).join(", ") }));
@@ -262,8 +263,8 @@ async function drawGraph(box, docId, depth, hops) {
     const a = pos.get(es[0].source), b = pos.get(es[0].target), kinds = es.map((e) => e.kind);
     if (!a || !b) continue;
     const cls = kinds.includes("depends_on") ? "dep" : kinds.every((k) => k === "links_to") ? "link"
-      : kinds.every((k) => k === "mentions") ? "men" : "rel";
-    svg.append(sv("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: `g-edge g-${cls}`, "marker-end": "url(#arrow)" },
+      : kinds.every((k) => k === "mentions") ? "men" : kinds.every((k) => k === "similar") ? "sim" : "rel";
+    svg.append(sv("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: `g-edge g-${cls}`, ...(cls === "sim" ? {} : { "marker-end": "url(#arrow)" }) },
       sv("title", {}, `${title(es[0].source)} ${kinds.map((k) => KIND[k] || k).join(", ")} ${title(es[0].target)}`)));
   }
   for (const n of g.nodes) {
@@ -281,7 +282,8 @@ async function drawGraph(box, docId, depth, hops) {
   }
   box.replaceChildren(svg, el("p", { className: "meta g-legend" },
     el("span", { className: "g-key g-dep" }), " depends on  ", el("span", { className: "g-key g-link" }), " links to  ",
-    el("span", { className: "g-key g-rel" }), " related / part of / other  ", el("span", { className: "g-key g-men" }), " mentions",
+    el("span", { className: "g-key g-rel" }), " related / part of / other  ", el("span", { className: "g-key g-men" }), " mentions  ",
+    el("span", { className: "g-key g-sim" }), " related in meaning",
     g.truncated ? " · showing the nearest 60 documents" : ""));
 }
 $("#d-close").addEventListener("click", () => { $("#drawer").hidden = true; });
