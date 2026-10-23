@@ -347,6 +347,11 @@ Verified: every command run against a fresh demo app on Linux, covering:
   times out of 10, which is defensible; the gold mapping is the weak point there. Unmeasured: business
   types (policy, process, incident report) on a real company corpus; on the 16 demo documents Qwen
   called all three policies "reference" (before the type descriptions were added).
+- **Not pursued: a model-written context line per passage** (Anthropic-style contextual retrieval). The
+  document-level version (the summary in every passage, `context_chars`) is already measured and off by
+  default (§4d). A per-passage call costs about a document call (Gemma 4 E2B: median 39 s on CPU), so an
+  archive with millions of passages would take years of CPU time. Revisit only with a GPU and only if the
+  owner's labelled questions show misses that the passage text alone cannot explain.
 
 ## 4j. Relations between documents written by the local model: measured, not shipped (owner question 2026-10-23)
 
@@ -414,7 +419,7 @@ auto-migrations on start; GraphRAG deferred in favour of a deterministic link-gr
 | Concurrency (single/multi process) | Large corpora (10⁵+ chunks), HNSW |
 | HTML (main-content extraction, links → graph), DOCX, PPTX, PDF via PDFium — implemented | XLSX, legacy .doc/.ppt, OCR (plan: docs/plan-images-and-models.md), Docling for complex PDFs |
 | Graph navigation v1 (links, impact, Connections UI) + link-aware search, evaluated on a synthetic wiki | Graph: real-corpus multi-hop evaluation, shared-identifier/entity edges, Graphify import, MCP tools |
-| Local LLMs: answers and images trialled, not shipped; **document summaries shipped (optional, §4f)** | **Local LLM answers with citations ("second brain")**; LLM-extracted relations; topic links |
+| Local LLMs: answers and images trialled, not shipped; **document summaries, types, topics shipped (optional, §4f, §4k)**; LLM-written relations measured, not shipped (§4j) | **Local LLM answers with citations ("second brain")**; topic links; document types on a company corpus |
 
 ## 7. Next steps (highest value first)
 

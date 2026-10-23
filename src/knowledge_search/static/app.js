@@ -608,7 +608,7 @@ async function loadDocs() {
     const ver = d.indexed_version && d.indexed_version !== d.latest_version ? `v${d.latest_version} (indexed v${d.indexed_version})` : `v${d.latest_version}`;
     const updated = new Date(d.updated_at);
     return el("tr", {},
-      el("td", {}, sourceLink(d), el("div", { className: "sub" }, el("span", { className: "phone", textContent: `${d.collection} · ${d.doc_type ? d.doc_type + " · " : ""}${fileType(d.media_type)} · ` }), `${d.source_key} · ${ver}`)),
+      el("td", {}, sourceLink(d), el("div", { className: "sub" }, el("span", { className: "phone", textContent: `${d.collection} · ${d.doc_type ? d.doc_type[0].toUpperCase() + d.doc_type.slice(1) + " · " : ""}${fileType(d.media_type)} · ` }), `${d.source_key} · ${ver}`)),
       typeCell(d), el("td", { className: "wide", textContent: d.collection }), status,
       el("td", { className: "num wide", textContent: d.chunks ?? "—" }),
       el("td", { className: "num wide muted", textContent: ago(updated), title: updated.toLocaleString() }),
