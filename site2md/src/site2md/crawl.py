@@ -93,6 +93,9 @@ class BrowserFetcher:
                 **({"executable_path": executable} if executable else {})}
         self.ctx = self._pw.chromium.launch_persistent_context(str(profile), **opts)
         self.page = self.ctx.pages[0] if self.ctx.pages else self.ctx.new_page()
+        if headless:  # crawling: images, video and fonts are not needed for the text, and slow every page down
+            self.ctx.route("**/*", lambda route: route.abort() if route.request.resource_type in
+                           ("image", "media", "font") else route.continue_())
 
     def login(self, url: str) -> None:
         self.page.goto(url)
@@ -104,7 +107,7 @@ class BrowserFetcher:
             ctype = (resp.headers.get("content-type", "") if resp else "") or "text/html"
             if "html" in ctype:
                 try:  # let scripts fill the page; embedded viewers (Drive, video) keep the network busy forever
-                    self.page.wait_for_load_state("networkidle", timeout=15_000)
+                    self.page.wait_for_load_state("networkidle", timeout=5_000)
                 except Exception:  # noqa: BLE001, S110 - still busy: take the page as it is
                     pass
                 return self.page.content().encode("utf-8"), "text/html; charset=utf-8", self.page.url, ""
@@ -379,7 +382,8 @@ class Crawler:
                 return
             name = slug_for(url, self.used, self.root) + ".md"
             self.hashes[digest] = name
-            self.manifest["pages"][url] = {"file": name, "title": title, **({"empty": True} if len(md) < 40 else {})}
+            self.manifest["pages"][url] = {"file": name, "title": title, **({"empty": True} if len(md) < 40 else {}),
+                                           **({"attached": [f for _, f in attached]} if attached else {})}
         title = title or (re.search(r"(?m)^#\s+(.+)$", md) or [None, urlsplit(url).path])[1]
         front = (f"---\ntitle: {json.dumps(title)}\nsource_url: {json.dumps(url)}\n"
                  f"crawled_at: {datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}\n---\n\n")
@@ -390,6 +394,13 @@ class Crawler:
         self.out.mkdir(parents=True, exist_ok=True)
         mpath = self.out / "manifest.json"
         queue: deque[str] = deque()
+
+        def add(urls):  # each URL is queued once (every page repeats the navigation links)
+            for u in urls:
+                if u not in self.seen and self.in_scope(u):
+                    self.seen.add(u)
+                    queue.append(u)
+
         if resume and mpath.exists():
             self.manifest = json.loads(mpath.read_text())
             for url, v in self.manifest["pages"].items():
@@ -399,37 +410,48 @@ class Crawler:
                 self.used.add(name.rsplit(".", 1)[0])
             retry, self.manifest["failed"] = list(self.manifest["failed"]), {}  # failures are tried again
             self.seen = set(self.manifest["pages"]) | set(self.manifest["files"]) | set(self.manifest["skipped"])
-            queue.extend(u for u in retry + self.manifest["queue"] if u not in self.seen and self.in_scope(u))
+            add(retry + self.manifest["queue"])
         if not queue:
-            queue.append(self.start)
+            add([self.start])
         self.allowed(self.start)  # loads robots.txt (and its sitemap list)
-        queue.extend(u for u in self.sitemap_urls() if self.in_scope(u))
-        t0, last_save = time.time(), time.time()
+        add(self.sitemap_urls())
+        t0, last_save, done = time.time(), time.time(), 0
         with _Inline() if self.browser else ThreadPoolExecutor(self.workers) as pool:  # browser: its own thread only
             running = {}
             while queue or running:
                 while queue and len(running) < self.workers and self._count() < self.max_pages:
-                    url = queue.popleft()
-                    if url in self.seen or not self.in_scope(url):
-                        continue
-                    self.seen.add(url)
-                    running[pool.submit(self.fetch, url)] = url
+                    url, started = queue.popleft(), time.time()  # (browser mode runs fetch inside submit)
+                    running[pool.submit(self.fetch, url)] = url, started
                 if not running:
                     break
                 finished, _ = wait(running, return_when=FIRST_COMPLETED)
                 for fut in finished:
-                    running.pop(fut)
-                    queue.extend(u for u in fut.result() if u not in self.seen and self.in_scope(u))
+                    url, started = running.pop(fut)
+                    add(fut.result())
+                    done += 1
+                    self.log(f"[{done}/{done + len(queue) + len(running)}] {time.time() - started:4.1f} s  "
+                             f"{url}  {self._outcome(url)}")
                 if time.time() - last_save > 30:
                     self._save_manifest(mpath, queue)
                     last_save = time.time()
-                    self.log(f"{self._count()} pages/files saved, {len(queue)} queued, {time.time() - t0:.0f} s")
         self.rewrite_links()
         self._save_manifest(mpath, queue)
         m = self.manifest
-        self.log(f"done: {len(m['pages'])} pages, {len(m['files'])} files, {len(m['failed'])} failed, "
+        self.log(f"done in {time.time() - t0:.0f} s: {len(m['pages'])} pages, {len(m['files'])} files, {len(m['failed'])} failed, "
                  f"{len(m['skipped'])} skipped, {len(queue)} left in queue -> {self.out}")
         return m
+
+    def _outcome(self, url: str) -> str:
+        m = self.manifest
+        with self.lock:
+            if url in m["pages"]:
+                page = m["pages"][url]
+                extra = f" + {len(page['attached'])} attached document(s)" if page.get("attached") else ""
+                return "-> " + page["file"] + (" (no text)" if page.get("empty") and not extra else "") + extra
+            for key, label in (("files", "-> "), ("failed", "FAILED: "), ("skipped", "skipped: ")):
+                if url in m[key]:
+                    return label + m[key][url]
+        return "-> (redirected)"
 
     def _count(self) -> int:
         return len(self.manifest["pages"]) + len(self.manifest["files"])

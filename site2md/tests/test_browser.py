@@ -61,8 +61,8 @@ def test_sign_in_is_kept_in_the_profile_and_javascript_pages_are_rendered(tmp_pa
         main([base + "/site/home", "--out", str(out), *args])
     finally:
         srv.shutdown()
-    assert sorted(p.name for p in out.iterdir()) == ["manifest.json", "site-files-handbook-pdf.pdf", "site-home.md",
-                                                    "site-js.md", "site-policy.md"]
-    assert "on-call is Priya" in (out / "site-js.md").read_text()  # rendered by JavaScript
-    policy = (out / "site-policy.md").read_text()
-    assert 'title: "Leave Policy"' in policy and "(site-files-handbook-pdf.pdf)" in policy
+    assert sorted(p.name for p in out.iterdir()) == ["files-handbook-pdf.pdf", "home.md", "js.md", "manifest.json",
+                                                    "policy.md"]
+    assert "on-call is Priya" in (out / "js.md").read_text()  # rendered by JavaScript
+    policy = (out / "policy.md").read_text()
+    assert 'title: "Leave Policy"' in policy and "(files-handbook-pdf.pdf)" in policy
