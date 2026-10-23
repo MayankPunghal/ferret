@@ -62,5 +62,80 @@
    1
   ],
   "seconds": 30.6
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p011": {
+  "answer": "You can create a \"default\" ingress isolation policy for a namespace by creating a NetworkPolicy that selects all pods but does not allow any ingress traffic to those pods. This ensures that even pods that aren't selected by any other NetworkPolicy will still be isolated for ingress. This policy does not affect isolation for egress from any pod.",
+  "sources": [
+   2
+  ],
+  "seconds": 28.0
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p012": {
+  "answer": "Pod-to-pod communication can be controlled using Network Policies, which restrict communication between pods using namespace labels or IP address ranges.",
+  "sources": [
+   1
+  ],
+  "seconds": 27.6
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p013": {
+  "answer": "A `Secret` object stores sensitive data such as credentials used by Pods to access services, for example, to store the username and password needed to access a database.",
+  "sources": [
+   2,
+   3
+  ],
+  "seconds": 28.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p014": {
+  "answer": "You should configure encryption of your Secret data in etcd.",
+  "sources": [
+   2,
+   5
+  ],
+  "seconds": 26.0
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p015": {
+  "answer": "Taints are the opposite of node affinity; they allow a node to repel a set of pods. Tolerations are applied to pods and allow the scheduler to schedule pods with matching taints.",
+  "sources": [
+   3
+  ],
+  "seconds": 61.7
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p016": {
+  "answer": "separation should be enforced to prevent pods accidentally being deployed onto the same node.",
+  "sources": [
+   4,
+   5
+  ],
+  "seconds": 42.1
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p017": {
+  "answer": "Use `kubectl drain` to remove a node from service",
+  "sources": [
+   1,
+   2,
+   3,
+   5
+  ],
+  "seconds": 21.9
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p018": {
+  "answer": null,
+  "sources": [],
+  "said": "When defining the pod specification, resource requests like `cpu` and `memory` should be specified to determine resource utilization and be used by the HPA controller to scale the target up or down. T",
+  "seconds": 45.6
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p019": {
+  "answer": "A HorizontalPodAutoscaler automatically updates a workload resource to automatically scale capacity to match demand, which means deploying more Pods when the load increases.",
+  "sources": [
+   1
+  ],
+  "seconds": 18.0
+ },
+ "corpus-kubernetes-BAAI_bge-base-en-v1.5/p020": {
+  "answer": "A Pod resource request/limit is the sum of the resource requests/limits of that type for each container in the Pod.",
+  "sources": [
+   2
+  ],
+  "seconds": 25.7
  }
 }
