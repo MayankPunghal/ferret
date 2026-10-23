@@ -493,5 +493,132 @@
    "Networking"
   ],
   "seconds": 27.2
+ },
+ "containers.md": {
+  "title": "Containers and Container Images Overview",
+  "summary": "This document explains containers, which decouple applications from host infrastructure, ensuring repeatable deployments. It details container images as ready-to-run packages and discusses the role of container runtimes in execution.",
+  "topics": [
+   "Containers",
+   "Container images",
+   "Container runtimes",
+   "Kubernetes",
+   "Pods",
+   "RuntimeClass"
+  ],
+  "seconds": 31.3
+ },
+ "contributor.md": {
+  "title": "Kubernetes Contributor Guide",
+  "summary": "This document defines what a contributor is within the Kubernetes project or community. It outlines various ways individuals can contribute, such as submitting pull requests, reporting issues, or participating in SIGs.",
+  "topics": [
+   "Kubernetes",
+   "Contributions",
+   "Pull Requests (PRs)",
+   "Issues",
+   "Special Interest Groups (SIG)",
+   "Community"
+  ],
+  "seconds": 28.5
+ },
+ "control-plane.md": {
+  "title": "Container Orchestration Control Plane Components",
+  "summary": "This document describes the Control Plane, the orchestration layer responsible for managing the lifecycle of containers via an API. It details the core components that make up this layer.",
+  "topics": [
+   "Control Plane",
+   "etcd",
+   "API Server",
+   "Scheduler",
+   "Controller Manager",
+   "Cloud Controller Manager"
+  ],
+  "seconds": 42.6
+ },
+ "cpu-constraint-namespace.md": {
+  "title": "Configuring CPU Constraints with LimitRange in Kubernetes",
+  "summary": "This document explains how to enforce minimum and maximum CPU resource constraints for Pods within a Kubernetes namespace. It details the use of the LimitRange object to automatically manage resource requests and limits for containers.",
+  "topics": [
+   "LimitRange",
+   "Namespace",
+   "Pod",
+   "CPU Constraints",
+   "Kubernetes API",
+   "Resource Management"
+  ],
+  "seconds": 98.6
+ },
+ "cpu-default-namespace.md": {
+  "title": "Configuring Default CPU Requests and Limits in a Kubernetes Namespace",
+  "summary": "This document explains how to configure default CPU requests and limits for a Kubernetes namespace using a LimitRange. It details how the control plane applies these defaults when Pods do not specify resource requests or limits.",
+  "topics": [
+   "Kubernetes Namespace",
+   "LimitRange",
+   "CPU Requests",
+   "CPU Limits",
+   "Pod",
+   "Kubernetes Control Plane"
+  ],
+  "seconds": 87.4
+ },
+ "cri-o.md": {
+  "title": "CRI-O Overview",
+  "summary": "CRI-O is a tool that implements the Kubernetes Container Runtime Interface (CRI). It enables Kubernetes to use OCI-compliant container runtimes and fetch images from remote registries.",
+  "topics": [
+   "CRI-O",
+   "Kubernetes",
+   "CRI",
+   "OCI container runtimes",
+   "OCI runtime spec"
+  ],
+  "seconds": 44.0
+ },
+ "cron-jobs.md": {
+  "title": "CronJob Definition and Usage",
+  "summary": "This document explains the CronJob resource, which schedules Jobs to run periodically based on a specified Cron syntax. It details scheduling, limitations, and how to define and modify CronJobs.",
+  "topics": [
+   "CronJob",
+   "Cron syntax",
+   "Jobs",
+   "Scheduling",
+   "Pod naming",
+   "Time zones"
+  ],
+  "seconds": 73.9
+ },
+ "csi.md": {
+  "title": "Container Storage Interface (CSI)",
+  "summary": "This document explains the Container Storage Interface (CSI), which provides a standard way to expose storage systems to containers in Kubernetes. It allows vendors to create custom storage plugins without modifying the core Kubernetes repository.",
+  "topics": [
+   "Container Storage Interface (CSI)",
+   "Kubernetes",
+   "Storage Plugins",
+   "Storage Class",
+   "Storage Systems",
+   "CSI Drivers"
+  ],
+  "seconds": 62.1
+ },
+ "customresourcedefinition.md": {
+  "title": "CustomResourceDefinition (CRD)",
+  "summary": "This document explains CustomResourceDefinitions (CRDs), which are API objects used to extend the Kubernetes API server. They allow users to add custom API resources without needing to build a complete custom server.",
+  "topics": [
+   "Kubernetes API",
+   "Custom API",
+   "API Objects",
+   "Kubernetes"
+  ],
+  "seconds": 37.1
+ },
+ "daemonset.md": {
+  "title": "DaemonSet Overview and Specification",
+  "summary": "This document explains what a DaemonSet is, ensuring a copy of a Pod runs on every (or selected) Node in a cluster. It details how to write the DaemonSet specification, including required fields like the Pod Template and Pod Selector.",
+  "topics": [
+   "DaemonSet",
+   "Pod Template",
+   "Pod Selector",
+   "Kubernetes",
+   "Taints and tolerations",
+   "Deployments"
+  ],
+  "seconds": 42.2
  }
 }
