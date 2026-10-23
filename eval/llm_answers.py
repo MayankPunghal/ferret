@@ -110,7 +110,7 @@ def main():
         neg = [(q, res) for q, res in rows if not q["answerable"]]
         pos = [(q, res) for q, res in rows if q["answerable"]]
 
-        def llm(q):
+        def llm(q, src=src):
             return done[f"{src}/{q['id']}"]
 
         def cited_ok(q, res):

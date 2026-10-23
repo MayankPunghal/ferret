@@ -91,7 +91,7 @@ def main():
     out_dir = corpus.with_name(f"{corpus.name}-{a.name}")
     out_dir.mkdir(exist_ok=True)
     for f in files:
-        fm, title, body = split(f.read_text(encoding="utf-8"))
+        fm, _, body = split(f.read_text(encoding="utf-8"))
         fm = "\n".join(x for x in fm.splitlines() if not x.startswith("description:"))
         (out_dir / f.name).write_text(f"---\n{fm}\ndescription: {json.dumps(done[f.name]['summary'])}\n---\n{body}",
                                       encoding="utf-8")
