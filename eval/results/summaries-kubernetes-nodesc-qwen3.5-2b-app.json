@@ -1,0 +1,129 @@
+{
+ "admission-controller.md": {
+  "title": "Admission Controllers in Kubernetes",
+  "summary": "This document explains the Admission Controller mechanism, which intercepts Kubernetes API requests before object persistence. It details how these controllers can validate or mutate objects, allowing administrators to enforce policies and control resource access.",
+  "topics": [
+   "Kubernetes API Server",
+   "Admission Controllers",
+   "Validating Controllers",
+   "Mutating Controllers",
+   "Resource Policies",
+   "Object Modification"
+  ],
+  "seconds": 20.7
+ },
+ "admission-policies.md": {
+  "title": "Validating and Mutating Admission Policies",
+  "summary": "This document explains Kubernetes declarative admission policies, which use Common Expression Language (CEL) to enforce constraints or modify resources. It details the two policy types, their binding mechanisms, and how to use parameters to customize policy behavior.",
+  "topics": [
+   "ValidatingAdmissionPolicy",
+   "MutatingAdmissionPolicy",
+   "Common Expression Language (CEL)",
+   "Admission Policy Binding",
+   "Parameter Resources",
+   "Cluster Administration"
+  ],
+  "seconds": 29.5
+ },
+ "admission-webhooks-good-practices.md": {
+  "title": "Admission Webhook Good Practices",
+  "summary": "This document outlines essential guidelines for designing Kubernetes admission webhooks to ensure stability, performance, and reliability. It covers critical considerations such as avoiding loops, managing timeouts, and ensuring idempotent mutations.",
+  "topics": [
+   "Admission controllers",
+   "Admission webhooks",
+   "Mutating webhooks",
+   "Validating webhooks",
+   "CustomResourceDefinitions",
+   "Kubernetes API"
+  ],
+  "seconds": 26.4
+ },
+ "affinity.md": {
+  "title": "Affinity in Kubernetes",
+  "summary": "This document explains affinity rules in Kubernetes that guide the scheduler in placing pods. It details node affinity and pod-to-pod affinity, which are defined via labels and can be required or preferred.",
+  "topics": [
+   "Kubernetes Scheduler",
+   "Node Affinity",
+   "Pod-to-Pod Affinity",
+   "Pod Labels",
+   "Pod Selectors",
+   "Scheduling Rules"
+  ],
+  "seconds": 20.2
+ },
+ "aggregation-layer.md": {
+  "title": "Aggregation Layer Documentation",
+  "summary": "This document explains how to install additional Kubernetes-style APIs in a cluster by configuring the API Server to support new endpoints. It details the process of adding APIService objects to claim specific URL paths.",
+  "topics": [
+   "Kubernetes API Server",
+   "APIService",
+   "URL Path",
+   "Cluster Configuration",
+   "API Extension"
+  ],
+  "seconds": 15.2
+ },
+ "annotation.md": {
+  "title": "Annotation System",
+  "summary": "This document explains the concept of annotations as key-value pairs used to attach arbitrary metadata to objects. It details how these metadata fields can vary in size and structure, including special characters, and describes how clients retrieve this information.",
+  "topics": [
+   "Key-Value Pairs",
+   "Metadata",
+   "Object Association",
+   "Client Tools",
+   "Structured Data",
+   "Unstructured Data"
+  ],
+  "seconds": 19.1
+ },
+ "api-group.md": {
+  "title": "Kubernetes API Group Configuration",
+  "summary": "This document explains how to enable or disable specific API groups in Kubernetes by configuring the API server. It details how API groups are defined via REST paths and the `apiVersion` field, facilitating easier extension of the Kubernetes API.",
+  "topics": [
+   "Kubernetes API Server",
+   "REST Paths",
+   "apiVersion Field",
+   "Resource Extensions",
+   "API Group Configuration"
+  ],
+  "seconds": 17.8
+ },
+ "api-resource.md": {
+  "title": "Kubernetes API Resource Definition",
+  "summary": "This document explains the Kubernetes API resource concept, which maps to endpoints on the Kubernetes API server. It details how resources define object schemas and support operations like permissions.",
+  "topics": [
+   "Kubernetes API",
+   "Resource Objects",
+   "Endpoints",
+   "HTTP URIs",
+   "Object Schemas",
+   "Permission Checks"
+  ],
+  "seconds": 17.4
+ },
+ "api-server-bypass-risks.md": {
+  "title": "Kubernetes API Server Bypass Risks",
+  "summary": "This document outlines security vulnerabilities where attackers can bypass Kubernetes API server controls, including static pod manipulation and direct kubelet API access. It details specific bypass mechanisms and provides mitigation strategies for cluster operators and security architects.",
+  "topics": [
+   "Kubernetes API Server",
+   "Static Pods",
+   "kubelet API",
+   "etcd API",
+   "Container Runtime",
+   "Admission Controllers"
+  ],
+  "seconds": 20.6
+ },
+ "app-container.md": {
+  "title": "Pod App Containers",
+  "summary": "This document explains the concept of application containers within Kubernetes pods, which run after init containers complete. It clarifies that app containers handle the main application logic, while init containers manage startup tasks that do not persist after execution.",
+  "topics": [
+   "Kubernetes Pod",
+   "Init Container",
+   "Application Container",
+   "Container Lifecycle",
+   "Kubernetes Scheduling"
+  ],
+  "seconds": 19.3
+ }
+}
