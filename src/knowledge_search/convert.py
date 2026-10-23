@@ -90,48 +90,147 @@ def docx_to_markdown(data: bytes) -> tuple[str, str]:
 A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 P = "{http://schemas.openxmlformats.org/presentationml/2006/main}"
 PKG = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+DGM = "{http://schemas.openxmlformats.org/drawingml/2006/diagram}"
+DSP = "{http://schemas.microsoft.com/office/drawing/2008/diagram}"
+
+
+def rels(z: zipfile.ZipFile, part: str) -> dict[str, tuple[str, str]]:
+    """{relationship id: (type, part name)} of a package part."""
+    import posixpath
+
+    name = posixpath.join(posixpath.dirname(part), "_rels", posixpath.basename(part) + ".rels")
+    if name not in z.namelist():
+        return {}
+    return {r.get("Id"): (r.get("Type", "").rsplit("/", 1)[-1],
+                          posixpath.normpath(posixpath.join(posixpath.dirname(part), r.get("Target", ""))).lstrip("/"))
+            for r in _xml(z, name) if r.tag == f"{PKG}Relationship" and r.get("TargetMode") != "External"}
+
+
+def paragraphs(el) -> list[str]:
+    return [t for p in el.iter(f"{A}p") if (t := "".join(x.text or "" for x in p.iter(f"{A}t")).strip())]
+
+
+def slide_parts(z: zipfile.ZipFile) -> list[str]:
+    pres, pres_rels = _xml(z, "ppt/presentation.xml"), rels(z, "ppt/presentation.xml")
+    return [pres_rels[s.get(f"{R}id")][1] for s in pres.iter(f"{P}sldId") if s.get(f"{R}id") in pres_rels]
+
+
+def smartart_parts(z: zipfile.ZipFile, slide_part: str, frame) -> tuple[str | None, str | None]:
+    """(data part, drawing part) of a SmartArt graphic frame; the drawing is the shapes PowerPoint last drew."""
+    ids = frame.find(f".//{DGM}relIds")
+    if ids is None:
+        return None, None
+    r = rels(z, slide_part)
+    data = r.get(ids.get(f"{R}dm"), (None, None))[1]
+    if not data or data not in z.namelist():
+        return None, None
+    ext = _xml(z, data).find(f".//{DSP}dataModelExt")
+    drawing = r.get(ext.get("relId"), (None, None))[1] if ext is not None else None
+    return data, drawing if drawing in z.namelist() else None
+
+
+def _under(parent: str) -> str:
+    return f" (under {parent[:80]})" if parent else ""
+
+
+def smartart_lines(dm) -> list[str]:
+    """SmartArt text as a nested list in its own order. In hierarchy layouts (organisation charts) every item
+    below the top says what it is under, so a passage answers "who reports to X" on its own."""
+    doc = dm.find(f"{DGM}ptLst/{DGM}pt[@type='doc']")
+    if doc is None:
+        return []
+    pr = doc.find(f"{DGM}prSet")
+    layout = ((pr.get("loCatId", "") + " " + pr.get("loTypeId", "")) if pr is not None else "").lower()
+    hierarchy = "hierarchy" in layout or "orgchart" in layout
+    text = {pt.get("modelId"): ", ".join(paragraphs(pt.find(f"{DGM}t"))) if pt.find(f"{DGM}t") is not None else ""
+            for pt in dm.iter(f"{DGM}pt") if pt.get("type", "node") in ("node", "asst")}
+    kids: dict[str, list] = {}
+    for c in dm.iter(f"{DGM}cxn"):
+        if c.get("type", "parOf") == "parOf":
+            kids.setdefault(c.get("srcId"), []).append((int(c.get("srcOrd") or 0), c.get("destId")))
+    lines, seen = [], set()
+
+    def walk(node, depth, parent):
+        for _, k in sorted(kids.get(node, [])):
+            if k in seen or k not in text:
+                continue
+            seen.add(k)
+            if text[k]:
+                lines.append("  " * depth + "- " + text[k] + (_under(parent) if hierarchy else ""))
+            walk(k, depth + bool(text[k]), text[k] or parent)
+
+    walk(doc.get("modelId"), 0, "")
+    return lines
+
+
+def _connected_tree(slide) -> tuple[list[str], set]:
+    """Shapes joined by connector lines (a hand-drawn organisation chart) as a nested list, the upper shape of
+    each connection as the parent; and the ids of the shapes it used."""
+    shapes = {}
+    for sp in slide.iter(f"{P}sp"):
+        nv, off = sp.find(f"{P}nvSpPr/{P}cNvPr"), sp.find(f"{P}spPr/{A}xfrm/{A}off")
+        if nv is not None and off is not None and (txt := ", ".join(paragraphs(sp))):
+            shapes[nv.get("id")] = (int(off.get("y", 0)), int(off.get("x", 0)), txt)
+    parent = {}
+    for c in slide.iter(f"{P}cxnSp"):
+        st, en = c.find(f".//{A}stCxn"), c.find(f".//{A}endCxn")
+        if st is None or en is None or st.get("id") not in shapes or en.get("id") not in shapes:
+            continue
+        a, b = sorted((st.get("id"), en.get("id")), key=lambda i: shapes[i][:2])
+        if a != b:
+            parent.setdefault(b, a)
+    if not parent:
+        return [], set()
+    kids: dict[str, list] = {}
+    for k, v in parent.items():
+        kids.setdefault(v, []).append(k)
+    lines, seen = [], set()
+
+    def walk(node, depth, up):
+        seen.add(node)
+        lines.append("  " * depth + "- " + shapes[node][2] + _under(up))
+        for k in sorted(kids.get(node, []), key=lambda i: shapes[i][:2]):
+            if k not in seen:
+                walk(k, depth + 1, shapes[node][2])
+
+    for root in sorted({v for v in parent.values() if v not in parent}, key=lambda i: shapes[i][:2]):
+        walk(root, 0, "")
+    return lines, seen
 
 
 def pptx_to_markdown(data: bytes) -> tuple[str, str]:
     """(title, markdown): one section per slide ("## Slide 3: Title"), its text as list items, then the
-    speaker notes. Raises zipfile.BadZipFile / KeyError / ValueError for invalid files."""
+    speaker notes. SmartArt and shapes joined by connectors become nested lists that keep their hierarchy.
+    Raises zipfile.BadZipFile / KeyError / ValueError for invalid files."""
     import io
-    import posixpath
-
-    def rels(z, part):  # {relationship id: (type, part name)}
-        name = posixpath.join(posixpath.dirname(part), "_rels", posixpath.basename(part) + ".rels")
-        if name not in z.namelist():
-            return {}
-        return {r.get("Id"): (r.get("Type", "").rsplit("/", 1)[-1],
-                              posixpath.normpath(posixpath.join(posixpath.dirname(part), r.get("Target", ""))).lstrip("/"))
-                for r in _xml(z, name) if r.tag == f"{PKG}Relationship"}
-
-    def paragraphs(el) -> list[str]:
-        return [t for p in el.iter(f"{A}p") if (t := "".join(x.text or "" for x in p.iter(f"{A}t")).strip())]
 
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         title = ""
         if "docProps/core.xml" in z.namelist():
             t = _xml(z, "docProps/core.xml").find("{http://purl.org/dc/elements/1.1/}title")
             title = (t.text or "").strip() if t is not None else ""
-        pres, pres_rels = _xml(z, "ppt/presentation.xml"), rels(z, "ppt/presentation.xml")
-        slides = [pres_rels[s.get(f"{R}id")][1] for s in pres.iter(f"{P}sldId") if s.get(f"{R}id") in pres_rels]
         lines: list[str] = []
-        for n, part in enumerate(slides, 1):
+        for n, part in enumerate(slide_parts(z), 1):
             slide, heading, body = _xml(z, part), "", []
+            tree, in_tree = _connected_tree(slide)
             for sp in slide.iter(f"{P}sp"):
                 ph = sp.find(f"{P}nvSpPr/{P}nvPr/{P}ph")
+                nv = sp.find(f"{P}nvSpPr/{P}cNvPr")
                 text = paragraphs(sp)
                 if ph is not None and ph.get("type") in ("title", "ctrTitle") and not heading:
                     heading = " ".join(text)
-                else:
-                    body += text
-            body += [" | ".join(" ".join(paragraphs(tc)) for tc in tr.iter(f"{A}tc"))
+                elif nv is None or nv.get("id") not in in_tree:
+                    body += [f"- {x}" for x in text]
+            body += tree
+            for frame in slide.iter(f"{P}graphicFrame"):
+                dm = smartart_parts(z, part, frame)[0]
+                body += smartart_lines(_xml(z, dm)) if dm else []
+            body += ["- " + " | ".join(" ".join(paragraphs(tc)) for tc in tr.iter(f"{A}tc"))
                      for tr in slide.iter(f"{A}tr")]  # tables, a row per line
             notes = [rel[1] for rel in rels(z, part).values() if rel[0] == "notesSlide"]
             note_text = [t for t in paragraphs(_xml(z, notes[0])) if not t.isdigit()] if notes else []  # no slide numbers
             lines.append(f"## Slide {n}" + (f": {heading}" if heading else ""))
-            lines += [f"- {t}" for t in body] + ([f"Notes: {' '.join(note_text)}"] if note_text else []) + [""]
+            lines += body + ([f"Notes: {' '.join(note_text)}"] if note_text else []) + [""]
         if title.lower() in ("powerpoint presentation", "presentation", "slide 1"):  # PowerPoint's default
             title = ""
         title = title or next((ln.split(": ", 1)[1] for ln in lines if ln.startswith("## Slide 1: ")), "")

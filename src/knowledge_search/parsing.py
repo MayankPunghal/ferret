@@ -15,7 +15,7 @@ from pathlib import Path
 import yaml
 from markdown_it import MarkdownIt
 
-PARSER_VERSION = "parse-v6"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium; v6: PDF titles without "Microsoft Word - ", .docx, generic metadata
+PARSER_VERSION = "parse-v7"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium; v6: PDF titles without "Microsoft Word - ", .docx, generic metadata; v7: PowerPoint SmartArt and connector org charts as nested lists
 _PDFIUM = threading.Lock()  # PDFium is not thread-safe; API requests and ingest workers parse concurrently
 CHUNKER_VERSION = "chunk-v2"  # size/overlap are runtime settings, recorded in the index signature
 

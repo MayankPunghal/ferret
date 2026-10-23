@@ -129,7 +129,7 @@ function inline(text) {
 function prose(text, mediaType) {
   if (mediaType === "text/plain") return [el("p", { className: "plain" }, highlighted(text))];
   const out = [];
-  let para = [], list = null, code = null, table = null;
+  let para = [], list = null, code = null, table = null, lists = [];  // lists: open [indent, element], outermost first
   const flush = () => { if (para.length) out.push(el("p", {}, inline(para.join(" ")))); para = []; };
   for (const line of text.split("\n")) {
     if (code) {
@@ -146,11 +146,20 @@ function prose(text, mediaType) {
       continue;
     }
     table = null;
-    const li = line.match(/^\s*(?:[-*+]|\d+[.)])\s+(.*)/);
-    if (li) {
+    const li = line.match(/^(\s*)(?:[-*+]|\d+[.)])\s+(.*)/);
+    if (li) {  // nested by indentation (organisation charts from slides keep their levels this way)
       flush();
-      if (!list) { list = el(/^\s*\d/.test(line) ? "ol" : "ul"); out.push(list); }
-      list.append(el("li", {}, inline(li[1])));
+      const indent = li[1].length;
+      if (!list) lists = [];
+      while (lists.length && lists.at(-1)[0] > indent) lists.pop();
+      if (!lists.length || lists.at(-1)[0] < indent) {
+        const parentItem = lists.length ? lists.at(-1)[1].lastChild : null;
+        list = el(/^\s*\d/.test(line) ? "ol" : "ul");
+        (parentItem || { append: (n) => out.push(n) }).append(list);
+        lists.push([indent, list]);
+      }
+      list = lists.at(-1)[1];
+      list.append(el("li", {}, inline(li[2])));
       continue;
     }
     const h = line.match(/^#{1,6}\s+(.*)/);
