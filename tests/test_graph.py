@@ -77,3 +77,15 @@ def test_links_impact_and_permissions(client, drain):
         client.delete(f"/api/documents/{secret_id}", headers=root)
         for d in ids.values():
             client.delete(f"/api/documents/{d}", headers=sam)
+
+
+def test_windows_line_endings_front_matter_and_links():
+    """Files checked out on Windows have CRLF endings; front matter must still be parsed, not indexed."""
+    crlf = WIKI["service-a.md"].replace(b"\n", b"\r\n")
+    doc = parse_document(crlf, "service-a.md")
+    assert doc.title == "Service A" and doc.metadata["title"] == "Service A"
+    chunks = chunk_document(doc)
+    assert not any("---" in c.text or "depends_on" in c.text for c in chunks)
+    assert ("depends_on", "service-b.md") in [(lk.kind, lk.target) for c in chunks for lk in c.links]
+    old_mac = parse_document(b"---\rtitle: T\rseries: s\r---\r# T\r\rBody text.\r", "t.md")
+    assert old_mac.metadata == {"title": "T", "series": "s"} and "Body text." in old_mac.sections[0].text

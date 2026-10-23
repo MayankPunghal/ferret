@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 import yaml
 from markdown_it import MarkdownIt
 
-PARSER_VERSION = "parse-v1"
+PARSER_VERSION = "parse-v2"  # v2: CRLF/CR line endings normalised (Windows front matter)
 CHUNKER_VERSION = "chunk-v2"  # size/overlap are runtime settings, recorded in the index signature
 
 MEDIA_TYPES = {".md": "text/markdown", ".txt": "text/plain", ".pdf": "application/pdf"}
@@ -79,9 +79,12 @@ def _decode_text(data: bytes) -> str:
     if b"\x00" in data[:8192]:
         raise ParseError("binary_content", "file looks binary, not text")
     try:
-        return data.decode("utf-8-sig")
+        text = data.decode("utf-8-sig")
     except UnicodeDecodeError as e:
         raise ParseError("invalid_encoding", "text files must be UTF-8") from e
+    # Windows (CRLF) and old Mac (CR) line endings: without this, front matter ("---\r\n") was not
+    # recognised on Windows and got indexed as text, losing title/series/version/depends_on metadata.
+    return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
 RELATION_KEYS = ("depends_on", "related", "calls", "owned_by", "part_of", "see_also")
