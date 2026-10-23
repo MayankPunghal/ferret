@@ -38,8 +38,11 @@ evidence**. The right passage is often among them (especially for paraphrased qu
 - **View passage**: the passage, highlighted, with the passages before and after it, formatted (lists,
   code, tables), then the summary and the document's connections. **Esc** or a click outside closes it;
 - **Open document**: the document in your browser: PDFs open at the page, HTML as itself (scripts and external
-  content disabled); Markdown, text, Word and PowerPoint as a readable page (formatted, links to other documents
-  open them) with a **Download original** link.
+  content disabled); PowerPoint as its slides, drawn in the page (shapes, pictures, tables, SmartArt such as
+  organisation charts, speaker notes under each slide) and opened at the slide the result came from, with a
+  **Text view** link; Markdown, text and Word as a readable page (formatted, links to other documents open them)
+  that opens at the result's section. Each has a **Download original** link. Charts, embedded objects and
+  EMF/WMF pictures show as a box: open the original to see them.
 
 Through the API (`POST /api/search`) each result additionally includes the full chunk text, `chunk_id`,
 `document_id`, `passage_url`, `source_url` and the ranking signals.
@@ -97,7 +100,8 @@ zone or click it to browse. Several files can be uploaded at once.
 - Supported: `.md` (optional YAML front matter: `title`, `series`, `version`, `effective_date`), `.txt`
   (UTF-8), `.html`/`.htm` (doc-site and wiki exports: only the main content is indexed, menus are dropped;
   links become connections), `.docx` (Word: headings, lists, tables), `.pptx` (PowerPoint: a
-  section per slide, with the speaker notes), `.pdf` with a text layer.
+  section per slide, with tables and speaker notes; SmartArt and organisation charts drawn with connector lines
+  keep their hierarchy, e.g. "Chander Mohan, CFO (under Asha Rao, CEO)", so "who reports to …" finds them), `.pdf` with a text layer.
   Scanned PDFs without text are rejected (`no_extractable_text`); legacy `.doc` and `.ppt`, and `.xlsx`, are not
   supported yet. Click a document's title to read it in the browser (see **Open document** above);
   **Download** gets the original file. The **Type** column says what each file is.

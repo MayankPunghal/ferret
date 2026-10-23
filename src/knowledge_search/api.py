@@ -373,10 +373,17 @@ def _routes(app: FastAPI) -> None:
             conn.commit()
         return v, path
 
+    def _viewer_response(page_html: str) -> Response:
+        return Response(page_html, media_type="text/html; charset=utf-8", headers={
+            # no scripts at all; styles inline; links work, so does the download link (no sandbox)
+            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+                                       "frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+            "Cache-Control": "private, no-store"})
+
     @app.get("/api/documents/{document_id}/view")
-    def view(document_id: UUID, p: User, conn: Conn, version: str = "indexed"):
-        """The document readable in the browser: PDF and HTML as themselves; Markdown, text, Word and
-        PowerPoint rendered as a page (Markdown with raw HTML escaped, so nothing in it can run)."""
+    def view(document_id: UUID, p: User, conn: Conn, version: str = "indexed", text: bool = False):
+        """The document readable in the browser: PDF and HTML as themselves; PowerPoint as its slides (or
+        `text=1`: as text); Markdown, text and Word rendered as a page (raw HTML escaped, nothing can run)."""
         v, path = _original(conn, p, document_id, version, audit=False)
         if v["media_type"] in ("application/pdf", "text/html"):  # the browser shows these itself
             return RedirectResponse(f"/api/documents/{document_id}/source?version={version}", status_code=303)
@@ -386,6 +393,16 @@ def _routes(app: FastAPI) -> None:
         from .viewer import page
 
         data = path.read_bytes()
+        download = f"/api/documents/{document_id}/source?download=1&version={version}"
+        here = f"/api/documents/{document_id}/view?version={version}"
+        if v["media_type"] == PPTX and not text:
+            from .slides import render
+            from .viewer import slides_page
+
+            try:
+                return _viewer_response(slides_page(v["filename"], render(data), download, here + "&text=1"))
+            except Exception:  # noqa: BLE001 - an unusual deck still opens as text
+                log.exception("drawing the slides failed; showing the text")
         if v["media_type"] == DOCX:
             body = docx_to_markdown(data)[1]
         elif v["media_type"] == PPTX:
@@ -396,13 +413,9 @@ def _routes(app: FastAPI) -> None:
             "SELECT DISTINCT ON (l.target) l.target, d.id FROM doc_links l JOIN documents d ON "
             + graph._resolves("d", "l") + " AND d.collection_id = ANY(%s) AND d.id <> l.document_id "
             "WHERE l.document_id = %s ORDER BY l.target, d.updated_at DESC", (list(p.readable), document_id))}
-        html = page(v["filename"], body, plain=v["media_type"] == "text/plain", links=links,
-                    download=f"/api/documents/{document_id}/source?download=1&version={version}")
-        return Response(html, media_type="text/html; charset=utf-8", headers={
-            # no scripts at all; styles inline; links work, so does the download link (no sandbox)
-            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
-                                       "frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-            "Cache-Control": "private, no-store"})
+        return _viewer_response(page(v["filename"], body, plain=v["media_type"] == "text/plain", links=links,
+                                     download=download,
+                                     other_view=("Slide view", here) if v["media_type"] == PPTX else None))
 
     @app.get("/api/documents/{document_id}/source")
     def source(document_id: UUID, p: User, conn: Conn, version: str = "indexed", download: bool = False):

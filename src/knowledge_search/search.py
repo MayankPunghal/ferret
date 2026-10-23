@@ -365,7 +365,8 @@ def search(
                 text=r["text"], rank=rank, supported=bool(basis), match_basis=basis, signals=signals,
                 version_no=r["version_no"], outdated_version=r["outdated"], metadata=r["metadata"],
                 media_type=r["media_type"], source_uri=r["source_uri"],
-                source_url=f"/api/documents/{doc_id}/view" + (f"#page={r['page']}" if r["page"] else ""),
+                source_url=f"/api/documents/{doc_id}/view" + (f"#page={r['page']}" if r["page"] else
+                                                                f"#{r['anchor']}" if r["anchor"] else ""),
                 passage_url=f"/api/chunks/{cid}",
                 **enrich.shown(r["enrichment"], r["indexed_version_id"]),
             )

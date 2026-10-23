@@ -25,6 +25,23 @@ table { border-collapse: collapse; display: block; overflow-x: auto; } th, td { 
 blockquote { margin: 0; padding-left: 12px; border-left: 3px solid var(--line); color: var(--muted); }
 hr { border: 0; border-top: 1px solid var(--line); } img { max-width: 100%; }
 .meta { color: var(--muted); font-size: 13px; }
+.slides { max-width: 1120px; margin: 0 auto; padding: 16px 16px 64px; display: grid; gap: 28px; }
+.slides h2 { font-size: 13px; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
+.slide { --sans: Calibri, Carlito, "Segoe UI", Arial, sans-serif; position: relative; container-type: inline-size;
+         overflow: hidden; box-shadow: 0 1px 5px rgba(0,0,0,.3); color: #000; font-family: var(--sans); line-height: 1.2; }
+.slide .s { position: absolute; box-sizing: border-box; }
+.slide .fill { position: absolute; inset: 0; }
+.slide svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.slide .t { position: absolute; inset: 0; display: flex; flex-direction: column; box-sizing: border-box; overflow-wrap: break-word; }
+.slide p { margin: 0; white-space: pre-wrap; }
+.slide .bu { display: inline-block; text-indent: 0; min-width: .8em; }
+.slide .missing, .slide .note { display: flex; align-items: center; justify-content: center; border: 1px dashed #999;
+         background: repeating-linear-gradient(45deg, #f4f4f4 0 8px, #eaeaea 8px 16px); color: #555; font: 1.3cqw/1.4 system-ui; }
+.slide .note ul { text-align: left; list-style: none; padding: 1cqw; margin: 0; }
+.slide table.tbl { display: table; width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+.slide .tbl td { border: 1px solid #fff; padding: .4cqw .8cqw; vertical-align: top; }
+.notes { font-size: 14px; color: var(--muted); margin: 6px 2px 0; }
+.hidden-slide { opacity: .55; }
 """
 
 
@@ -43,11 +60,45 @@ def _relink(content: str, links: dict[str, str]) -> str:
     return re.sub(r'<a( [^>]*?)?href="([^"]*)"[^>]*>', one, content)
 
 
-def page(filename: str, text: str, plain: bool = False, download: str = "", links: dict | None = None) -> str:
-    body = re.sub(r"(?s)^---\r?\n.*?\r?\n---\r?\n", "", text, count=1)  # front matter
-    content = f"<pre>{html.escape(body)}</pre>" if plain else _relink(_MD.render(body), links or {})
-    link = f'<a href="{html.escape(download)}">Download original</a>' if download else ""
+def _heading_ids(content: str) -> str:
+    """Headings get the anchors the parser gave their sections, so links to `#section` (and search results)
+    open at the section."""
+    used: dict[str, int] = {}
+
+    def one(m):
+        text = html.unescape(re.sub(r"<[^>]+>", "", m.group(2)))
+        custom = re.search(r"\s*\{#([\w-]+)\}\s*$", text)
+        slug = custom.group(1).lower() if custom else slugify(text)
+        n = used.get(slug, 0)
+        used[slug] = n + 1
+        return f'<h{m.group(1)} id="{html.escape(slug if n == 0 else f"{slug}-{n}")}">{m.group(2)}</h{m.group(1)}>'
+    return re.sub(r"<h([1-6])>(.*?)</h\1>", one, content)
+
+
+def _page(filename: str, kind: str, content: str, links: str, main: str = "main") -> str:
     return (f"<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
             f"content=\"width=device-width, initial-scale=1\"><title>{html.escape(filename)}</title>"
             f"<style>{STYLE}</style></head><body><header><strong>{html.escape(filename)}</strong>"
-            f"<span class=\"meta\">readable view</span>{link}</header><main>{content}</main></body></html>")
+            f"<span class=\"meta\">{kind}</span>{links}</header><{main}>{content}</{main.split()[0]}></body></html>")
+
+
+def _links(*pairs) -> str:
+    return " ".join(f'<a href="{html.escape(href)}">{label}</a>' for label, href in pairs if href)
+
+
+def page(filename: str, text: str, plain: bool = False, download: str = "", links: dict | None = None,
+         other_view: tuple[str, str] | None = None) -> str:
+    body = re.sub(r"(?s)^---\r?\n.*?\r?\n---\r?\n", "", text, count=1)  # front matter
+    content = f"<pre>{html.escape(body)}</pre>" if plain else _heading_ids(_relink(_MD.render(body), links or {}))
+    return _page(filename, "readable view", content, _links(other_view or ("", ""), ("Download original", download)))
+
+
+def slides_page(filename: str, slides: list[dict], download: str = "", text_view: str = "") -> str:
+    """Slides drawn by slides.py (escaped text and generated styles only), each with its speaker notes."""
+    content = "".join(
+        f'<section id="{html.escape(s["anchor"])}" class="{"hidden-slide" if s["hidden"] else ""}">'
+        f'<h2>Slide {s["n"]}{" (hidden)" if s["hidden"] else ""}</h2>{s["html"]}'
+        + (f'<p class="notes">Notes: {html.escape(s["notes"])}</p>' if s["notes"] else "") + "</section>"
+        for s in slides)
+    return _page(filename, f"{len(slides)} slides", content,
+                 _links(("Text view", text_view), ("Download original", download)), main='main class="slides"')
