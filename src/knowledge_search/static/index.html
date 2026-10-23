@@ -108,11 +108,15 @@
             <label>Overlap (characters) <input type="number" name="chunk_overlap" id="s-overlap" min="0" max="1000" step="10"></label>
             <p class="meta">Smaller chunks give more precise passages; larger chunks keep more context. Overlap repeats the end
               of one chunk at the start of the next so sentences at a boundary are not lost.</p>
-            <label>Document summary in each passage (characters, 0 = off) <input type="number" name="context_chars" id="s-ctx" min="0" max="1000" step="50"></label>
-            <p class="meta">Adds what the document is about (its front-matter description, else its first paragraph) to every
-              passage before embedding, so a passage that never names its subject still matches. Measured: better ranking on
-              Kubernetes docs with 300 (right page first 95% → 98%; 100% with the MiniLM reranker), slightly worse on the small
-              test corpus. Changing it requires reindexing.</p>
+            <label>Add a line about the whole document to every passage (characters, 0 = off) <input type="number" name="context_chars" id="s-ctx" min="0" max="1000" step="50"></label>
+            <p class="meta">Every passage is always embedded in full, under a header with the document title and section
+              heading. This adds one more header line describing the whole document (the same line on all its passages), so
+              a passage that never names its subject — "set the revision with --to-revision=2" — is still found for
+              "roll back a Deployment". The line is the document's own description if it has one, else the summary written
+              by the local language model (when installed), else the document's first paragraph, cut to this many
+              characters. Measured on 623 Kubernetes pages at 300 characters (right page first, 56 questions): with the authors'
+              descriptions 94.6% → 98.2% (100% with the MiniLM reranker); without descriptions, the first paragraph did not
+              help (96.4% → 96.4%), a summary by Gemma 4 E2B did (98.2%). Changing it requires reindexing.</p>
           </fieldset>
           <fieldset>
             <legend>Reranker (offline cross-encoder)</legend>
@@ -134,8 +138,8 @@
             <p class="meta">When setup installed a local language model (<code>setup --summaries</code>), it writes a two-sentence
               summary, up to six topics and — only when a document's own title is vague — a clearer title, one document at a
               time while no files are waiting to be indexed. Nothing leaves this computer. Results show them labelled as written
-              by the model; they are never used as evidence. With “Document summary in each passage” on, a document without its
-              own description is re-indexed once with the summary. Progress: Index status tab.</p>
+              by the model; they are never used as evidence. With “Add a line about the whole document” on, a document without its
+              own description is re-indexed once so that line becomes the model's summary. Progress: Index status tab.</p>
           </fieldset>
           <details>
             <summary>Advanced: evidence thresholds</summary>

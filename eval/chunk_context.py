@@ -7,11 +7,14 @@ embedding. Does it beat what ships (title + heading path, optionally the documen
     uv run --group eval python eval/chunk_context.py generate --name qwen3.5-0.8b
     uv run --group eval python eval/chunk_context.py index --name qwen3.5-0.8b [--reranker R]
     # baselines on the same pages:
-    uv run --group eval python eval/corpus_eval.py --corpus data/corpora/k8s-sub [--context-chars 300]
+    uv run --group eval python eval/corpus_eval.py --corpus data/corpora/k8s-sub --queries eval/k8s_sub_queries.jsonl [--context-chars 300]
     # relationship questions on any of these indexes: eval/relational_eval.py --corpus <same corpus dir>
 
-Subset (to keep the per-passage model cost to hours): every page a Kubernetes question needs, plus 150
-other pages (fixed seed), from data/corpora/kubernetes-nodesc (no author descriptions: like intranet pages).
+Subset (to keep the per-passage model cost to about an hour): the pages needed by the natural-language
+questions of eval/k8s_queries.jsonl and by the relationship questions of eval/k8s_relational.jsonl, plus 60
+other pages (fixed seed), from data/corpora/kubernetes-nodesc (no author descriptions, like intranet pages).
+Questions: eval/k8s_sub_queries.jsonl (those whose pages are all in the subset, and all should-refuse ones).
+Pass --queries eval/k8s_sub_queries.jsonl to corpus_eval.py for the baselines.
 Contexts are cached in eval/results/chunk-context-<name>.json, keyed by document and passage text.
 """
 
@@ -29,7 +32,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "data" / "corpora" / "kubernetes-nodesc"
 SUB = ROOT / "data" / "corpora" / "k8s-sub"
-OTHERS = 150
+QUERIES = ROOT / "eval" / "k8s_sub_queries.jsonl"
+OTHERS = 60
 DOC_CHARS = 6000
 PROMPT = """<document>
 {doc}
@@ -48,21 +52,23 @@ def key(title: str, text: str) -> str:
 
 
 def subset():
-    need = set()
-    for line in (ROOT / "eval" / "k8s_queries.jsonl").read_text().splitlines():
-        if line:
-            need |= set(json.loads(line)["relevant"])
+    queries = [json.loads(x) for x in (ROOT / "eval" / "k8s_queries.jsonl").read_text().splitlines() if x]
+    need = {d for q in queries if q["category"] == "question" for d in q["relevant"]}
     for line in (ROOT / "eval" / "k8s_relational.jsonl").read_text().splitlines():
         if line:
             need |= {d for g in json.loads(line)["needs"] for d in g}
     pages = sorted(p.stem for p in SRC.glob("*.md"))
     need &= set(pages)
     others = random.Random(0).sample(sorted(set(pages) - need), OTHERS)
+    keep = need | set(others)
     shutil.rmtree(SUB, ignore_errors=True)
     SUB.mkdir(parents=True)
-    for p in sorted(need | set(others)):
+    for p in sorted(keep):
         shutil.copy(SRC / f"{p}.md", SUB / f"{p}.md")
-    print(f"{len(need)} needed + {len(others)} other pages -> {SUB}")
+    # every question whose pages are all in the subset, and every question that should be refused
+    usable = [q for q in queries if set(q["relevant"]) <= keep]
+    QUERIES.write_text("".join(json.dumps(q) + "\n" for q in usable))
+    print(f"{len(need)} needed + {len(others)} other pages -> {SUB}; {len(usable)} questions -> {QUERIES}")
 
 
 def chat(url, prompt):
@@ -125,7 +131,7 @@ def index(a):
     ingest.embedding_text = with_context
     import corpus_eval
 
-    sys.argv = ["corpus_eval.py", "--corpus", str(corpus)] + (["--reranker", a.reranker] if a.reranker else []) \
+    sys.argv = ["corpus_eval.py", "--corpus", str(corpus), "--queries", str(QUERIES)] + (["--reranker", a.reranker] if a.reranker else []) \
         + (["--reuse"] if a.reranker else [])
     corpus_eval.main()
     if missing:

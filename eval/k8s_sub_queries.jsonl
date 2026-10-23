@@ -1,0 +1,43 @@
+{"id": "p001", "split": "val", "category": "keyword", "query": "rolling back a deployment", "relevant": ["deployment"]}
+{"id": "p002", "split": "test", "category": "question", "query": "how do I roll back a deployment to a previous revision", "relevant": ["deployment"]}
+{"id": "p005", "split": "val", "category": "question", "query": "how many pods can be unavailable during a voluntary disruption", "relevant": ["configure-pdb", "disruptions", "pod-disruption"]}
+{"id": "p007", "split": "val", "category": "question", "query": "my container keeps restarting because the health check fails", "relevant": ["configure-liveness-readiness-startup-probes", "debug-pods", "determine-reason-pod-failure", "debug-application", "pod-lifecycle"]}
+{"id": "p009", "split": "val", "category": "question", "query": "how do I expose a deployment outside the cluster", "relevant": ["service", "expose-intro", "create-external-load-balancer", "ingress", "connect-applications-service", "expose-external-ip-address", "hello-minikube"]}
+{"id": "p010", "split": "test", "category": "identifier", "query": "NodePort", "relevant": ["service", "expose-intro", "hello-minikube"]}
+{"id": "p011", "split": "val", "category": "keyword", "query": "network policy default deny ingress", "relevant": ["network-policies", "declare-network-policy"]}
+{"id": "p012", "split": "test", "category": "question", "query": "how can I restrict which pods are allowed to talk to each other", "relevant": ["network-policies", "declare-network-policy", "network-policy", "multi-tenancy"]}
+{"id": "p013", "split": "val", "category": "question", "query": "where should I store a database password for my app", "relevant": ["secret", "secrets-good-practices", "managing-secret-using-kubectl", "distribute-credentials-secure", "managing-secret-using-config-file"]}
+{"id": "p016", "split": "test", "category": "question", "query": "how do I keep ordinary pods off a dedicated node", "relevant": ["taint-and-toleration", "assign-pod-node", "taint"]}
+{"id": "p018", "split": "test", "category": "keyword", "query": "horizontal pod autoscaler cpu target", "relevant": ["horizontal-pod-autoscale", "horizontal-pod-autoscale-walkthrough", "horizontal-pod-autoscaler"]}
+{"id": "p019", "split": "val", "category": "question", "query": "how can pods scale automatically when load increases", "relevant": ["horizontal-pod-autoscale", "horizontal-pod-autoscale-walkthrough", "autoscaling", "horizontal-pod-autoscaler", "node-autoscaling"]}
+{"id": "p021", "split": "val", "category": "question", "query": "what happens when a container uses more memory than its limit", "relevant": ["assign-memory-resource", "manage-resources-containers", "node-pressure-eviction"]}
+{"id": "p022", "split": "test", "category": "identifier", "query": "OOMKilled", "relevant": ["assign-memory-resource", "manage-resources-containers"]}
+{"id": "p023", "split": "val", "category": "question", "query": "how do I run a job every night at 2am", "relevant": ["cron-jobs", "automated-tasks-with-cron-jobs"]}
+{"id": "p024", "split": "test", "category": "identifier", "query": "concurrencyPolicy", "relevant": ["cron-jobs"]}
+{"id": "p025", "split": "val", "category": "keyword", "query": "persistent volume claim", "relevant": ["persistent-volumes", "persistent-volume-claim", "configure-persistent-volume-storage"]}
+{"id": "p027", "split": "val", "category": "keyword", "query": "RBAC role binding", "relevant": ["rbac", "access-authn-authz-rbac", "rbac-good-practices"]}
+{"id": "p028", "split": "test", "category": "question", "query": "give a service account read-only access to pods in one namespace", "relevant": ["rbac", "configure-service-account", "service-accounts", "rbac-good-practices", "access-authn-authz-rbac"]}
+{"id": "p031", "split": "val", "category": "question", "query": "pods cannot resolve service names, how do I debug DNS", "relevant": ["dns-debugging-resolution", "dns-pod-service", "debug-service"]}
+{"id": "p034", "split": "test", "category": "question", "query": "stable network identity for database replicas", "relevant": ["statefulset", "basic-stateful-set", "run-replicated-stateful-application"]}
+{"id": "p037", "split": "val", "category": "question", "query": "what replaced PodSecurityPolicy", "relevant": ["migrate-from-psp", "psp-to-pod-security-standards", "pod-security-policy", "glossary-pod-security-policy", "pod-security-admission"]}
+{"id": "p039", "split": "val", "category": "question", "query": "how do I get a shell inside a running container", "relevant": ["get-shell-running-container", "debug-running-pod"]}
+{"id": "p042", "split": "test", "category": "keyword", "query": "etcd backup and restore", "relevant": ["configure-upgrade-etcd"]}
+{"id": "p048", "split": "test", "category": "question", "query": "namespace stuck in terminating because of finalizers", "relevant": ["finalizers", "finalizer", "namespaces"]}
+{"id": "p051", "split": "val", "category": "keyword", "query": "ingress TLS certificate", "relevant": ["ingress"]}
+{"id": "p056", "split": "test", "category": "question", "query": "how do I pull images from a private registry", "relevant": ["pull-image-private-registry", "images"]}
+{"id": "n001", "split": "val", "category": "negative", "query": "how do I reset my VPN password", "relevant": []}
+{"id": "n002", "split": "test", "category": "negative", "query": "what is the office wifi password", "relevant": []}
+{"id": "n003", "split": "val", "category": "negative", "query": "quarterly sales targets for the EMEA region", "relevant": []}
+{"id": "n004", "split": "test", "category": "negative", "query": "parental leave policy", "relevant": []}
+{"id": "n005", "split": "val", "category": "negative", "query": "how to bake sourdough bread", "relevant": []}
+{"id": "n006", "split": "test", "category": "negative", "query": "python list comprehension syntax", "relevant": []}
+{"id": "n007", "split": "val", "category": "negative", "query": "SAP invoice approval workflow", "relevant": []}
+{"id": "n008", "split": "test", "category": "negative", "query": "company holiday calendar 2026", "relevant": []}
+{"id": "n009", "split": "val", "category": "near_negative", "query": "Docker Swarm overlay network", "relevant": []}
+{"id": "n010", "split": "test", "category": "near_negative", "query": "Nomad job specification", "relevant": []}
+{"id": "n011", "split": "val", "category": "near_negative", "query": "ArgoCD sync waves", "relevant": []}
+{"id": "n012", "split": "test", "category": "near_negative", "query": "Prometheus Alertmanager silence routing", "relevant": []}
+{"id": "n013", "split": "val", "category": "near_negative", "query": "Kubernetes 2.0 release date", "relevant": []}
+{"id": "n014", "split": "test", "category": "near_negative", "query": "Terraform state locking in S3", "relevant": []}
+{"id": "n015", "split": "val", "category": "near_negative", "query": "Jenkins pipeline stages", "relevant": []}
+{"id": "n016", "split": "test", "category": "near_negative", "query": "Ansible playbook for nginx", "relevant": []}

@@ -213,7 +213,7 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   downloads: file names checked, **not run**.
 - **Shown:** results and the passage view, labelled "Summary (local model)", topics as chips that search for
   themselves, clearer title with the original in the tooltip. Never evidence; the gate ignores it.
-- **In the embeddings:** only with "Document summary in each passage" (`context_chars` > 0) and only for
+- **In the embeddings:** only with "Add a line about the whole document to every passage" (`context_chars` > 0) and only for
   documents without their own description: the document is re-indexed once with the summary.
 - **Live run (demo data, real model):** 20 of 20 documents summarised, ~5 s each (1 s reading, 4 s writing,
   2 threads while an evaluation used the other cores). Found and fixed: relative model-cache path broke the

@@ -43,7 +43,8 @@ needed. An optional small language model, also local, writes a short summary and
 
 The models run on any CPU and are downloaded once by setup. **Search never depends on the language model:**
 every result is a passage that is really in your documents; the summaries only help you read the results
-(and, with "Document summary in each passage" on, help find pages that never name their subject). It works
+(and, with "Add a line about the whole document to every passage" on, help find passages that never name
+their subject). It works
 one document at a time, only while no files are waiting to be indexed, so new files become searchable first:
 about 8–13 seconds per document on the 4-core test machine, so ~128 documents take roughly 20–30 minutes
 after indexing. Nothing is sent anywhere. Writing answers and reading images with local models were tested
