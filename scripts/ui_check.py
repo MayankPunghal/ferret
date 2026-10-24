@@ -218,6 +218,30 @@ with sync_playwright() as p:
     linked = pg.locator("#results .badge, #weak-results .badge").filter(has_text="linked from").all_inner_texts()
     assert linked, "no result reached through a link"
     print("linked results:", sorted(set(linked)))
+    # AI assistants: create a token, the setup snippet carries it, an MCP call with it works, revoke it
+    pg.click(".tab[data-tab=assistants]")
+    pg.fill("#tok-form input[name=label]", "ui-check assistant")
+    pg.click("#tok-form button")
+    pg.wait_for_selector("#tok-new:not([hidden])")
+    tok = pg.inner_text("#tok-value").strip()
+    assert tok in pg.inner_text("#mcp-config") and "/mcp" in pg.inner_text("#mcp-config"), "setup snippet"
+    shot("20-assistants")
+    for c in ("Claude Desktop", "Cursor", "VS Code"):
+        pg.click(f"#mcp-clients button:has-text('{c}')")
+        assert tok in pg.inner_text("#mcp-config"), c
+    r = pg.request.post(URL + "/mcp", headers={"authorization": f"Bearer {tok}"},
+                        data={"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                              "params": {"name": "search", "arguments": {"query": "ERR-PAY-4012"}}})
+    print("assistants: token in snippets for every client; MCP search with it:", r.status,
+          '"evidence_found"' in r.json()["result"]["content"][0]["text"])
+    pg.once("dialog", lambda d: d.accept())
+    pg.click("#tok-rows tr:has-text('ui-check assistant') button:has-text('Revoke')")
+    pg.wait_for_selector("#tok-rows tr:has-text('ui-check assistant')", state="detached")
+    gone = pg.request.post(URL + "/mcp", headers={"authorization": f"Bearer {tok}"},
+                           data={"jsonrpc": "2.0", "id": 1, "method": "initialize"}).status
+    assert gone == 401, gone
+    print("revoked token refused:", gone)
+    pg.click(".tab[data-tab=search]")
     run("per diem for domestic travel", "07-conflict")
     run("who won the company football tournament", "08-no-evidence")
     pg.set_viewport_size({"width": 390, "height": 844})

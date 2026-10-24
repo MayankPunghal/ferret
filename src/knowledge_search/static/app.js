@@ -107,11 +107,12 @@ $("#logout").addEventListener("click", async () => { await api("/api/auth/logout
 
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
-  for (const t of ["search", "documents", "summaries", "status", "settings", "admin", "logs"]) $("#tab-" + t).hidden = t !== name;
+  for (const t of ["search", "documents", "summaries", "status", "assistants", "settings", "admin", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
   if (name === "documents") { loadDocs(); pollTimer = setInterval(loadDocs, 3000); }
   if (name === "summaries") { loadSummaries(); pollTimer = setInterval(loadSummaries, 5000); }
   if (name === "status") loadStatus();
+  if (name === "assistants") loadAssistants();
   if (name === "settings") loadSettings();
   if (name === "admin") loadAdmin();
   if (name === "logs") loadLogs();
@@ -885,6 +886,64 @@ $("#log-download").addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------- users & access (admin)
+// ---------------------------------------------------------------- AI assistants (MCP)
+// Copy-paste setup for each client, filled with this server's address and the token just created.
+let mcpInfo = null, newToken = "", mcpClient = "claude-code";
+const MCP_CLIENTS = {
+  "claude-code": ["Claude Code", "Run this in a terminal, then restart Claude Code. Check with /mcp.",
+    (i, t) => `claude mcp add --transport http knowledge-search ${i.mcp_url} --header "Authorization: Bearer ${t}"`],
+  "claude-desktop": ["Claude Desktop", "Claude Desktop → Settings → Developer → Edit Config: add this to claude_desktop_config.json and restart Claude. "
+    + "It starts the knowledge-search command on that computer, so Knowledge Search must be installed there.",
+    (i, t) => JSON.stringify({ mcpServers: { "knowledge-search": { command: i.command, args: ["mcp"], env: { KS_URL: i.url, KS_TOKEN: t } } } }, null, 2)],
+  cursor: ["Cursor", "Cursor → Settings → MCP → Add new server, or put this in ~/.cursor/mcp.json.",
+    (i, t) => JSON.stringify({ mcpServers: { "knowledge-search": { url: i.mcp_url, headers: { Authorization: `Bearer ${t}` } } } }, null, 2)],
+  vscode: ["VS Code", "Put this in .vscode/mcp.json (one project) or run “MCP: Open User Configuration” (all projects).",
+    (i, t) => JSON.stringify({ servers: { "knowledge-search": { type: "http", url: i.mcp_url, headers: { Authorization: `Bearer ${t}` } } } }, null, 2)],
+  other: ["Other", "Any MCP client that supports Streamable HTTP. The Claude skill in skills/knowledge-search reads KS_URL and KS_TOKEN.",
+    (i, t) => `MCP URL:  ${i.mcp_url}\nHeader:   Authorization: Bearer ${t}\n\nKS_URL=${i.url}\nKS_TOKEN=${t}`],
+};
+function showMcpConfig() {
+  $("#mcp-clients").replaceChildren(...Object.entries(MCP_CLIENTS).map(([k, [label]]) => {
+    const b = el("button", { type: "button", textContent: label });
+    b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(k === mcpClient));
+    b.addEventListener("click", () => { mcpClient = k; showMcpConfig(); });
+    return b;
+  }));
+  const [, where, make] = MCP_CLIENTS[mcpClient];
+  $("#mcp-where").textContent = where;
+  $("#mcp-config").textContent = mcpInfo ? make(mcpInfo, newToken || "<paste your token>") : "";
+  $("#mcp-msg").textContent = newToken ? "" : "Create a token first, or paste one in place of <paste your token>.";
+}
+async function loadAssistants() {
+  mcpInfo = await api("/api/tokens");
+  showMcpConfig();
+  $("#tok-rows").replaceChildren(...mcpInfo.tokens.map((t) => {
+    const x = el("button", { className: "link", type: "button", textContent: "Revoke" });
+    x.addEventListener("click", async () => {
+      if (!confirm(`Revoke “${t.label}”? Assistants using it stop working.`)) return;
+      await api(`/api/tokens/${t.id}`, { method: "DELETE" }); loadAssistants();
+    });
+    const day = (d) => new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+    return el("tr", {}, el("td", {}, el("strong", { textContent: t.label })), el("td", { textContent: day(t.created_at) }),
+      el("td", { textContent: day(t.expires_at) }), el("td", { className: "actions-cell" }, x));
+  }));
+  $("#tok-empty").hidden = mcpInfo.tokens.length > 0;
+}
+$("#tok-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  try {
+    newToken = (await api("/api/tokens", { method: "POST", json: { label: f.get("label"), days: Number(f.get("days")) } })).token;
+    $("#tok-value").textContent = newToken; $("#tok-new").hidden = false; $("#tok-msg").textContent = "";
+    e.target.reset(); loadAssistants();
+  } catch (err) { $("#tok-msg").textContent = err.message; }
+});
+$("#mcp-copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("#mcp-config").textContent); $("#mcp-msg").textContent = "Copied."; }
+  catch { getSelection().selectAllChildren($("#mcp-config")); $("#mcp-msg").textContent = "Text selected — press Ctrl+C to copy."; }
+});
+
 async function loadAdmin() {
   const [cols, users] = await Promise.all([api("/api/admin/collections"), api("/api/admin/users")]);
   $("#col-rows").replaceChildren(...cols.map((c) => {
