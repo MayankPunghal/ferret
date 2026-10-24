@@ -265,6 +265,7 @@ def put_grant(collection_id: int, body: GrantBody, p: Admin, conn: Conn):
     col = conn.execute("SELECT name FROM collections WHERE id = %s", (collection_id,)).fetchone()
     if not col:
         raise HTTPException(404, "not found")
+    _known(conn, [body.group])
     auth.grant(conn, col["name"], body.group, body.can_write)
     auth.audit(conn, p.user_id, "grant", col["name"], group=body.group, can_write=body.can_write)
     conn.commit()
@@ -308,16 +309,53 @@ def list_users(p: Admin, conn: Conn):
     ).fetchall()
 
 
+# --- groups: created and deleted here; grants and users pick from the existing ones ------------
+
+class GroupBody(BaseModel):
+    name: str = Field(pattern=r"^[a-z0-9_.-]{2,64}$")
+
+
 @router.get("/groups")
 def list_groups(p: Admin, conn: Conn):
     return [r["name"] for r in conn.execute("SELECT name FROM groups ORDER BY name")]
 
 
+@router.post("/groups", status_code=201)
+def create_group(body: GroupBody, p: Admin, conn: Conn):
+    if conn.execute("SELECT 1 FROM groups WHERE name = %s", (body.name,)).fetchone():
+        raise HTTPException(409, "a group with this name exists")
+    auth.ensure_group(conn, body.name)
+    auth.audit(conn, p.user_id, "group_created", body.name)
+    conn.commit()
+    return {"name": body.name}
+
+
+@router.delete("/groups/{name}")
+def delete_group(name: str, p: Admin, conn: Conn):
+    """Delete a group: its members lose the access it gave (they are signed out), its grants go with it."""
+    g = conn.execute("SELECT id FROM groups WHERE name = %s", (name,)).fetchone()
+    if not g:
+        raise HTTPException(404, "not found")
+    conn.execute("DELETE FROM sessions WHERE user_id IN (SELECT user_id FROM user_groups WHERE group_id = %s)", (g["id"],))
+    conn.execute("DELETE FROM groups WHERE id = %s", (g["id"],))
+    auth.audit(conn, p.user_id, "group_deleted", name)
+    conn.commit()
+    return {"ok": True}
+
+
+def _known(conn, groups: list[str]) -> list[str]:
+    groups = sorted({g.strip() for g in groups if g.strip()})
+    have = {r["name"] for r in conn.execute("SELECT name FROM groups WHERE name = ANY(%s)", (groups,)).fetchall()}
+    if missing := [g for g in groups if g not in have]:
+        raise HTTPException(400, f"no group named {', '.join(missing)}: create it under Groups first")
+    return groups
+
+
 def _set_groups(conn, user_id: int, username: str, groups: list[str]) -> None:
+    groups = _known(conn, groups)
     conn.execute("DELETE FROM user_groups WHERE user_id = %s", (user_id,))
     for g in groups:
-        if g.strip():
-            auth.add_user_to_group(conn, username, g.strip())
+        auth.add_user_to_group(conn, username, g)
 
 
 @router.post("/users", status_code=201)

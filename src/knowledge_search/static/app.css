@@ -356,8 +356,14 @@ td.actions-cell { width: 1%; text-align: right; }
 .grant button.icon { width: 20px; height: 20px; border-radius: 50%; }
 .grant svg.i { width: 12px; height: 12px; }
 .grant-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.grant-form input:not([type=checkbox]) { width: 120px; }
-#user-rows .grant-form input { width: 240px; }
+.grant-form select { width: 140px; }
+.picker { position: relative; }
+.picker summary { display: flex; align-items: center; min-width: 200px; max-width: 320px; height: 32px; padding: 0 28px 0 10px; border: 1px solid var(--control);
+  border-radius: var(--radius-control); background: var(--surface); cursor: pointer; list-style: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.picker summary::-webkit-details-marker { display: none; }
+.picker summary::after { content: ""; position: absolute; right: 11px; top: 12px; width: 6px; height: 6px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+.picker-pop { position: absolute; z-index: 20; top: 36px; left: 0; min-width: 200px; max-height: 260px; overflow-y: auto; display: grid; gap: 6px;
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); box-shadow: 0 6px 24px rgb(0 0 0 / .12); }
 .log-text { max-height: 65vh; white-space: pre-wrap; word-break: break-word; margin: 0; padding: 16px; }
 
 /* ---------------------------------------------------------------- tablet and phone: the frame folds */

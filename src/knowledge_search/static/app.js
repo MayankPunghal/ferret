@@ -1344,22 +1344,34 @@ $("#mcp-copy").addEventListener("click", async () => {
   catch { getSelection().selectAllChildren($("#mcp-config")); $("#mcp-msg").textContent = "Text selected — press Ctrl+C to copy."; }
 });
 
-// Groups are created by naming them; a name not seen before is confirmed, so a typo does not make a new group.
+// Users & access: three sub-tabs. Groups are created and deleted under Groups; everywhere else they are picked
+// from the existing ones (a menu for a grant, ticks for a user's groups), so a typo never makes a new group.
 let groupNames = [];
-const splitGroups = (v) => v.split(",").map((x) => x.trim()).filter(Boolean);
-const newGroupsOk = (names) => {
-  const fresh = names.filter((g) => !groupNames.includes(g));
-  return !fresh.length || confirm(`Create the new group${fresh.length > 1 ? "s" : ""} ${fresh.map((g) => `“${g}”`).join(", ")}? `
-    + "Existing groups: " + (groupNames.join(", ") || "none") + ".");
-};
+function adminSub(name) {
+  $$("#admin-tabs .subtab").forEach((b) => b.setAttribute("aria-selected", b.dataset.sub === name));
+  for (const x of ["collections", "users", "groups"]) $("#adm-" + x).hidden = x !== name;
+  $("#admin-msg").textContent = "";
+}
+$$("#admin-tabs .subtab").forEach((b) => b.addEventListener("click", () => adminSub(b.dataset.sub)));
+// A user's groups: a button showing the chosen names that opens a list of ticks.
+function groupPicker(chosen, onChange) {
+  const label = el("span");
+  const ticks = groupNames.map((g) => el("label", { className: "check" }, el("input", { type: "checkbox", value: g, checked: chosen.includes(g) }), g));
+  const value = () => ticks.map((t) => t.firstChild).filter((x) => x.checked).map((x) => x.value);
+  const show = () => { label.textContent = value().join(", ") || "No groups"; };
+  const box = el("details", { className: "picker" }, el("summary", {}, label),
+    el("div", { className: "picker-pop" }, ...(ticks.length ? ticks : [el("span", { className: "muted small", textContent: "No groups yet: create them under Groups." })])));
+  box.addEventListener("change", () => { show(); onChange?.(); });
+  show();
+  return { node: box, value };
+}
+document.addEventListener("click", (e) => { $$("details.picker[open]").forEach((d) => { if (!d.contains(e.target)) d.open = false; }); });
+let newUserGroups = null;
 async function loadAdmin() {
   const [cols, users, groups] = await Promise.all([api("/api/admin/collections"), api("/api/admin/users"), api("/api/admin/groups")]);
   groupNames = groups;
-  $("#group-names").replaceChildren(...groups.map((g) => el("option", { value: g })));
-  $("#group-rows").replaceChildren(...groups.map((g) => el("tr", {}, el("td", {}, el("strong", { textContent: g })),
-    el("td", { textContent: users.filter((u) => u.groups.includes(g)).map((u) => u.username).join(", ") || "—" }),
-    el("td", { textContent: cols.flatMap((c) => c.grants.filter((x) => x.group === g).map((x) => `${c.name} (${x.can_write ? "read & write" : "read"})`)).join(", ") || "—" }))));
-  $("#groups-empty").hidden = groups.length > 0;
+  newUserGroups = groupPicker([]);
+  $("#new-user-groups").replaceChildren(newUserGroups.node);
   $("#col-rows").replaceChildren(...cols.map((c) => {
     const grants = el("td");
     for (const g of c.grants) {
@@ -1369,24 +1381,25 @@ async function loadAdmin() {
       grants.append(el("span", { className: "grant" }, `${g.group} (${g.can_write ? "read & write" : "read"})`, x));
     }
     if (!c.grants.length) grants.append(el("span", { className: "muted", textContent: "administrators only" }));
-    const grp = el("input", { placeholder: "group", ariaLabel: "Group" });
-    grp.setAttribute("list", "group-names");
-    const w = el("input", { type: "checkbox" });
-    const add = el("button", { className: "small", type: "button", textContent: "Grant" });
+    const free = groups.filter((g) => !c.grants.some((x) => x.group === g));
+    if (!free.length) return el("tr", {}, el("td", {}, el("strong", { textContent: c.name }), el("div", { className: "muted small", textContent: c.description })),
+      el("td", { className: "num", textContent: c.documents }), grants,
+      el("td", { className: "muted small", textContent: groups.length ? "Every group has access" : "Create a group first (Groups)" }));
+    const grp = el("select", { ariaLabel: `Group to give access to ${c.name}` }, ...free.map((g) => el("option", { value: g, textContent: g })));
+    const mode = el("select", { ariaLabel: "Access" }, el("option", { value: "read", textContent: "read" }), el("option", { value: "write", textContent: "read & write" }));
+    const add = el("button", { className: "small", type: "button", textContent: "Give access" });
     add.addEventListener("click", async () => {
-      if (!grp.value.trim() || !newGroupsOk([grp.value.trim()])) return;
-      try { await api(`/api/admin/collections/${c.id}/grants`, { method: "PUT", json: { group: grp.value.trim(), can_write: w.checked } }); loadAdmin(); refreshMe(); }
+      try { await api(`/api/admin/collections/${c.id}/grants`, { method: "PUT", json: { group: grp.value, can_write: mode.value === "write" } }); loadAdmin(); refreshMe(); }
       catch (err) { $("#admin-msg").textContent = err.message; }
     });
     return el("tr", {}, el("td", {}, el("strong", { textContent: c.name }), el("div", { className: "muted small", textContent: c.description })),
-      el("td", { className: "num", textContent: c.documents }), grants, el("td", {}, el("div", { className: "grant-form" }, grp, el("label", { className: "check" }, w, "write"), add)));
+      el("td", { className: "num", textContent: c.documents }), grants, el("td", {}, el("div", { className: "grant-form" }, grp, mode, add)));
   }));
   $("#user-rows").replaceChildren(...users.map((u) => {
-    const groups = el("input", { value: u.groups.join(", "), ariaLabel: `Groups of ${u.username}` });
-    const save = el("button", { className: "small", type: "button", textContent: "Save groups" });
+    const save = el("button", { className: "small", type: "button", textContent: "Save", hidden: true });
+    const pick = groupPicker(u.groups, () => { save.hidden = false; });
     save.addEventListener("click", async () => {
-      if (!newGroupsOk(splitGroups(groups.value))) return;
-      try { await api(`/api/admin/users/${u.id}`, { method: "PATCH", json: { groups: splitGroups(groups.value) } }); $("#admin-msg").textContent = `Updated ${u.username}.`; loadAdmin(); }
+      try { await api(`/api/admin/users/${u.id}`, { method: "PATCH", json: { groups: pick.value() } }); $("#admin-msg").textContent = `Updated ${u.username}; they were signed out so the change applies at once.`; loadAdmin(); }
       catch (err) { $("#admin-msg").textContent = err.message; }
     });
     const toggle = el("button", { className: "link", type: "button", textContent: u.disabled ? "Enable" : "Disable" });
@@ -1395,9 +1408,23 @@ async function loadAdmin() {
       catch (err) { $("#admin-msg").textContent = err.message; }
     });
     return el("tr", {}, el("td", {}, el("strong", { textContent: u.username }), u.disabled ? el("span", { className: "badge", textContent: "disabled" }) : ""),
-      el("td", {}, el("div", { className: "grant-form" }, groups, save)),
+      el("td", {}, el("div", { className: "grant-form" }, pick.node, save)),
       el("td", { textContent: u.is_admin ? "Administrator" : "Member" }), el("td", { className: "actions-cell" }, toggle));
   }));
+  $("#group-rows").replaceChildren(...groups.map((g) => {
+    const members = users.filter((u) => u.groups.includes(g)).map((u) => u.username);
+    const del = el("button", { className: "link danger", type: "button", textContent: "Delete" });
+    del.addEventListener("click", async () => {
+      if (!confirm(`Delete the group “${g}”?` + (members.length ? ` ${members.join(", ")} lose the access it gave.` : ""))) return;
+      try { await api(`/api/admin/groups/${encodeURIComponent(g)}`, { method: "DELETE" }); loadAdmin(); refreshMe(); }
+      catch (err) { $("#admin-msg").textContent = err.message; }
+    });
+    return el("tr", {}, el("td", {}, el("strong", { textContent: g })),
+      el("td", { textContent: members.join(", ") || "—" }),
+      el("td", { textContent: cols.flatMap((c) => c.grants.filter((x) => x.group === g).map((x) => `${c.name} (${x.can_write ? "read & write" : "read"})`)).join(", ") || "—" }),
+      el("td", { className: "actions-cell" }, del));
+  }));
+  $("#groups-empty").hidden = groups.length > 0;
 }
 $("#col-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -1405,12 +1432,16 @@ $("#col-form").addEventListener("submit", async (e) => {
   try { await api("/api/admin/collections", { method: "POST", json: { name: f.get("name"), description: f.get("description") } }); e.target.reset(); loadAdmin(); refreshMe(); }
   catch (err) { $("#admin-msg").textContent = err.message; }
 });
+$("#group-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try { await api("/api/admin/groups", { method: "POST", json: { name: new FormData(e.target).get("name") } }); e.target.reset(); $("#admin-msg").textContent = "Group created. Give it access under Collections and add users under Users."; loadAdmin(); }
+  catch (err) { $("#admin-msg").textContent = err.message; }
+});
 $("#user-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
-  if (!newGroupsOk(splitGroups(f.get("groups") || ""))) return;
   try {
-    await api("/api/admin/users", { method: "POST", json: { username: f.get("username"), password: f.get("password"), is_admin: !!f.get("is_admin"), groups: splitGroups(f.get("groups") || "") } });
+    await api("/api/admin/users", { method: "POST", json: { username: f.get("username"), password: f.get("password"), is_admin: !!f.get("is_admin"), groups: newUserGroups.value() } });
     e.target.reset(); $("#admin-msg").textContent = "User created."; loadAdmin();
   } catch (err) { $("#admin-msg").textContent = err.message; }
 });

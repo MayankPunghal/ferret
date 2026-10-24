@@ -28,12 +28,16 @@ All models run locally (ONNX Runtime on CPU); nothing is sent to external servic
 
 ## Users & access
 
-- **Collections** — create one per team/topic. Grant a **group** read or read & write access. Collections
-  without grants are visible to admins only.
-- **Users** — create users and type their groups (comma-separated). Changing a user's groups, disabling or
-  resetting a password signs that user out everywhere. Admins can read and write every collection.
-- Groups are created the first time you use a name (the page asks before making a new one, so a typo does not
-  silently create a group). The **Groups** table shows who is in each group and what it opens.
+**Users & access** has three tabs. Access goes through groups (one per team or role):
+- **Groups** — create and delete groups; the table shows each group's members and the collections it opens.
+  Deleting a group removes the access it gave (its members are signed out so it applies at once).
+- **Collections** — create one per team/topic, and give a group (picked from a menu) read or read & write
+  access. Collections without grants are visible to admins only.
+- **Users** — create users and tick their groups (only existing groups can be chosen; the API refuses unknown
+  names too). Changing a user's groups, disabling or resetting a password signs that user out everywhere.
+  Admins can read and write every collection.
+- The command line (`knowledge-search add-to-group`, `grant`) still creates a group by naming it, for setting
+  up a server from a script.
 
 Permissions are enforced inside every database query: users never see restricted documents, snippets,
 counts, or even whether a restricted document exists.

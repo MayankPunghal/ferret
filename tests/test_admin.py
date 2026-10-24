@@ -102,8 +102,13 @@ def test_collections_users_and_revocation(client, corpus):
     assert r.status_code == 201
     cid = r.json()["id"]
     assert client.post("/api/admin/collections", headers=root, json={"name": "tmpcol"}).status_code == 409
-    assert client.put(f"/api/admin/collections/{cid}/grants", headers=root,
-                      json={"group": "tmpgrp", "can_write": True}).status_code == 200
+    grant = {"group": "tmpgrp", "can_write": True}
+    assert client.put(f"/api/admin/collections/{cid}/grants", headers=root, json=grant).status_code == 400  # no such group
+    assert client.post("/api/admin/groups", headers=root, json={"name": "tmpgrp"}).status_code == 201
+    assert client.post("/api/admin/groups", headers=root, json={"name": "tmpgrp"}).status_code == 409
+    assert client.put(f"/api/admin/collections/{cid}/grants", headers=root, json=grant).status_code == 200
+    assert client.post("/api/admin/users", headers=root,  # users join existing groups only
+                       json={"username": "tmpuser", "password": PASSWORD, "groups": ["tmpgrq"]}).status_code == 400
     r = client.post("/api/admin/users", headers=root,
                     json={"username": "tmpuser", "password": PASSWORD, "groups": ["tmpgrp"]})
     assert r.status_code == 201
@@ -113,6 +118,11 @@ def test_collections_users_and_revocation(client, corpus):
     assert [c["name"] for c in me["collections"]] == ["tmpcol"] and me["collections"][0]["can_write"]
     assert client.patch(f"/api/admin/users/{uid}", headers=root, json={"groups": []}).status_code == 200
     assert client.get("/api/me", headers=t).status_code == 401  # signed out by the change
+    assert client.get("/api/me", headers=token(client, "tmpuser")).json()["collections"] == []
+    assert client.patch(f"/api/admin/users/{uid}", headers=root, json={"groups": ["tmpgrp"]}).status_code == 200
+    t = token(client, "tmpuser")
+    assert client.delete("/api/admin/groups/tmpgrp", headers=root).status_code == 200  # its members lose its access
+    assert client.get("/api/me", headers=t).status_code == 401
     assert client.get("/api/me", headers=token(client, "tmpuser")).json()["collections"] == []
     me_root = client.get("/api/me", headers=root).json()
     root_id = next(u["id"] for u in client.get("/api/admin/users", headers=root).json() if u["username"] == "root")
