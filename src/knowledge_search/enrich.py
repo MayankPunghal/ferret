@@ -6,8 +6,8 @@ vague ("Overview", "Home", a file name), a clearer title.
   llama-server + a small GGUF model, started by the app on 127.0.0.1) or any OpenAI-compatible local
   endpoint (`KS_LLM_URL`: Ollama, LM Studio). Without one, nothing changes and nothing is sent anywhere.
 - Never in the way: one document at a time, each as soon as it is indexed (while the others are still being
-  indexed); the model server runs at low CPU priority without busy-waiting, so indexing and search get the
-  processor first, and search never waits for it.
+  indexed); the model server runs at the lowest CPU priority without busy-waiting, so indexing and search get
+  the processor first (measured: indexing speed unchanged), and search never waits for it.
 - Trust: summaries and topics are labelled as written by the model and are never cited as evidence.
   With "add a line about the whole document to every passage" on (context_chars), a document without its
   own description is re-indexed once so that line is the summary — measured: Kubernetes pages without
@@ -240,13 +240,16 @@ class LocalServer:
             env[var] = os.pathsep.join(filter(None, [str(self.exe.parent), env.get(var)]))
         self._log = open(self.log_dir / "llm-server.log", "ab")  # noqa: SIM115 - the server writes to it until stop()
         # -t: llama.cpp threads busy-wait, so only the cores we leave it (measured: 4 threads on 2 free cores
-        # made one request 6x slower). One request at a time; 8k context fits the prompt. Low priority and no
-        # polling: it runs while documents are being indexed, which must keep the processor first.
+        # made one request 6x slower). One request at a time; 8k context fits the prompt.
+        # It runs while documents are being indexed, so: lowest CPU priority (nice 19 / idle class) and no
+        # polling. Measured on 4 cores, embedding 151 passages: 17.5 s alone, 37.1 s with the model busy at
+        # normal priority, 17.6 s at nice 19; a summary alone takes as long as before (16 s).
+        nice = [] if sys.platform == "win32" or not shutil.which("nice") else ["nice", "-n", "19"]
         self.proc = subprocess.Popen(
-            [str(self.exe), "-m", str(self.model), "--host", "127.0.0.1", "--port", str(port), "-c", "8192",
-             "-np", "1", "-t", str(self.threads), "--prio", "-1", "--poll", "0", "--jinja"],
+            [*nice, str(self.exe), "-m", str(self.model), "--host", "127.0.0.1", "--port", str(port), "-c", "8192",
+             "-np", "1", "-t", str(self.threads), "--poll", "0", "--jinja"],
             stdout=self._log, stderr=subprocess.STDOUT, cwd=str(self.exe.parent), env=env,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "IDLE_PRIORITY_CLASS", 0))
         self.url = f"http://127.0.0.1:{port}/v1"
         end = time.monotonic() + wait
         while time.monotonic() < end and self.proc.poll() is None:
@@ -267,6 +270,7 @@ class LocalServer:
                 self.proc.wait(10)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
+        self.proc = None
         if getattr(self, "_log", None):
             self._log.close()
 
@@ -540,6 +544,12 @@ def download(settings, name: str = DEFAULT_LLM) -> Path:
         for old in (d / "bin").iterdir():  # earlier builds
             if old.name != LLAMA_CPP_TAG:
                 shutil.rmtree(old, ignore_errors=True)
+    if not (d / file).is_file():  # huggingface_hub only warns when the disk is too small
+        from huggingface_hub import get_hf_file_metadata, hf_hub_url
+
+        size, free = get_hf_file_metadata(hf_hub_url(repo, file)).size or 0, shutil.disk_usage(d).free
+        if size and free < size + (200 << 20):
+            raise OSError(f"not enough disk space for {file}: it needs {size / 1e9:.1f} GB, {free / 1e9:.1f} GB free")
     print(f"downloading {repo}/{file}", flush=True)
     path = Path(hf_hub_download(repo, file, local_dir=d))
     (d / "selected.txt").write_text(file)
