@@ -79,7 +79,8 @@ def main():
             outline = ("Sections: " + "; ".join(heads) + "\n") if heads else ""
             note = " (not descriptive: write a specific title of at most 8 words from the content, not a file name)" \
                 if enrich.vague_title(title) else ""
-            prompt = enrich.PROMPT.format(title=title, title_note=note, outline=outline, text=body.strip()[: a.chars])
+            prompt = enrich.PROMPT.format(title=title, title_note=note, outline=outline, text=body.strip()[: a.chars],
+                                          types="; ".join(f"{k} ({v})" for k, v in enrich.DOC_TYPES.items()), known="")
             raw = enrich.chat(a.url, "", prompt, 4000 if a.think else 300, 1800, think=a.think)
             try:
                 return f.name, {**enrich.parse_reply(raw), "seconds": round(time.perf_counter() - t, 1)}
