@@ -320,6 +320,27 @@ Verified: every command run against a fresh demo app on Linux, covering:
   searching for the word. Searching "IT" (a stop word, never indexed as a keyword) could only match by
   meaning. The walkthrough checks it.
 
+## 4l. Owner's second intranet test (2026-10-24): fixes
+
+- **"View passage" 404:** a re-index (new parser, settings, a summary added to the passages) replaces a
+  document's passages, so results on screen pointed at deleted rows. Opening one now re-runs the search and
+  says why. Passage ids are not kept stable across re-indexes (deliberately simple).
+- **"COOKabir":** PowerPoint (`a:br`) and Word (`w:br`) line breaks inside a paragraph were dropped. parse-v8
+  re-indexes affected documents automatically. The deck view matches slide anchors by slide number and
+  starts a linked slide below its sticky header (which the slides used to cover).
+- **Ordering:** Documents sort by any column (name by default, remembered per browser); uploads are queued in
+  folder and natural name order; re-index jobs and summaries follow the order documents were added.
+- **Summaries during indexing** (owner request): no longer wait for an empty queue. The model server runs at
+  nice 19 / idle priority class with `--poll 0`. Measured on 4 cores, embedding 151 passages: 17.5 s alone,
+  37.1 s with the model busy at normal priority, 27.9 s with llama.cpp's `--prio -1`, **17.6 s at nice 19**;
+  a summary alone 15.6 s vs 16.2 s. Live: summaries started while 8 of 19 documents still waited. Windows idle
+  class **not verified**.
+- **Summary model in Settings:** Gemma 4 E2B (default), Qwen3.5-2B (added: blind review 1.89/2.00/0 wrong,
+  types not measured), Qwen3.5-0.8B; downloaded in the background after a disk-space check (found when a
+  switch here started a 3.1 GB download onto a 2.6 GB disk).
+- **Model defaults:** shipped defaults are bge-base + MiniLM (recommended in the lists now). The owner's
+  install ran Qwen3-Embedding-0.6B + bge-reranker-base, chosen in their Settings earlier.
+
 ## 4k. Labels by the local model: document type, consistent topics, overnight hours (owner request 2026-10-23)
 
 - Prompt v3 (`enrich.py`) adds a **document type** from a described list of 16 (runbook, how-to,

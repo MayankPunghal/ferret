@@ -97,7 +97,7 @@ part_of: checkout-workflow
 
 When the optional local language model runs, the **Summaries** tab lists every document you can read with
 its summary and topics, the progress (*N of M documents*) and each document's stage: *summary queued* (written
-after all indexing), *writing summary…*, *summarised*, or *summary could not be written*. The Documents page
+as soon as the document is indexed), *writing summary…*, *summarised*, or *summary could not be written*. The Documents page
 shows a summary being written, or one that failed, under the document. Clicking a topic anywhere shows only the documents with that topic. **Show all** clears it.
 
 The model also gives each document a **type** (runbook, how-to, reference, concept, policy, incident report,
@@ -116,12 +116,21 @@ those hours the model is stopped and its memory freed. Search, indexing and the 
 keep working. A new model or prompt version rewrites the labels in the background; a summary already
 written for the same version of a document is kept, so nothing is re-indexed for it.
 
+**Which model.** An administrator picks it under **Settings → Local language model → Model**: Gemma 4 E2B
+(recommended: no wrong claims in a blind review, best document types), Qwen3.5-2B (as accurate in that
+review, smaller download; document types not measured) or Qwen3.5-0.8B (about 3x faster, more mistakes). A
+model that is not on the machine yet downloads in the background (the app checks the disk space first), and
+every document is then summarised again by it. The model runs at the lowest CPU priority, so it uses only
+what indexing and search leave free: summaries start as soon as each document is indexed, without slowing
+the indexing of the rest (measured).
+
 ## Uploading documents
 
 **Documents** page (needs write access to a collection): pick the collection under **Into collection**, then
 click **Upload files** or **Upload a folder**, or drop files or a folder anywhere on the page. Several files can be
-uploaded at once. The tabs above the list (All, Indexing, Failed, Outdated settings) and the name filter narrow
-the list.
+uploaded at once; files are indexed in folder and name order (2 before 10). The tabs above the list (All,
+Indexing, Failed, Outdated settings), the type and name filters narrow the list; click a column header to sort
+by it (click again to reverse; documents waiting to be indexed sort in queue order under Status).
 
 - Supported: `.md` (optional YAML front matter: `title`, `series`, `version`, `effective_date`), `.txt`
   (UTF-8), `.html`/`.htm` (doc-site and wiki exports: only the main content is indexed, menus are dropped;
@@ -132,6 +141,9 @@ the list.
   supported yet. Click a document's title to read it in the browser (see **Open document** above);
   the row's menu (the three dots at the right) has **Open** and **Download original**. The **Type** column says what each file is.
 - An upload shows one line with its counts; only rejected files are listed by name.
+- A result opens its document at the passage: the slide of a deck, the page of a PDF, the section of a page.
+  If a document was re-indexed after your search (new settings, a new version), its passages are new: opening
+  an old result then runs the search again and says so.
 - Uploading an identical file again does nothing (`unchanged`). Uploading a changed file with the same name
   creates a new version and replaces the old passages once indexed.
 - Failed documents show the reason; **Retry** is in the row's menu. **Delete** (also in the menu, after you
