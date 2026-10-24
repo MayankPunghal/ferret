@@ -58,6 +58,7 @@ def main():
     ap.add_argument("--described", default="", help="only pages that have an author description in this copy of "
                     "the corpus (e.g. data/corpora/kubernetes): the reference set of eval/summary_quality.py")
     ap.add_argument("--app-prompt", action="store_true", help="the app's prompt and parser (enrich.py)")
+    ap.add_argument("--think", action="store_true", help="with --app-prompt: let the model reason first")
     a = ap.parse_args()
     corpus = Path(a.corpus)
     cache = ROOT / "eval" / "results" / f"summaries-{corpus.name}-{a.name}.json"
@@ -79,7 +80,7 @@ def main():
             note = " (not descriptive: write a specific title of at most 8 words from the content, not a file name)" \
                 if enrich.vague_title(title) else ""
             prompt = enrich.PROMPT.format(title=title, title_note=note, outline=outline, text=body.strip()[: a.chars])
-            raw = chat(a.url, prompt, 300)
+            raw = enrich.chat(a.url, "", prompt, 4000 if a.think else 300, 1800, think=a.think)
             try:
                 return f.name, {**enrich.parse_reply(raw), "seconds": round(time.perf_counter() - t, 1)}
             except enrich.LLMError:
