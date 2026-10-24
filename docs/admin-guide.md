@@ -48,7 +48,7 @@ The endpoint is `/mcp` on the app's own address; there is nothing extra to run o
   read-only, so assistants ask before running them.
   - Writers: `add_document`, `retry_document`, `delete_document`.
   - Administrators: `add_folder` / `list_folders` / `sync_folder` (Synced folders), `crawl_website` /
-    `list_crawls`, `create_collection`, `get_settings` / `change_settings`, `download_model`, `reindex`.
+    `list_crawls` / `send_crawl`, `create_collection`, `get_settings` / `change_settings`, `download_model`, `reindex`.
 - Tokens made before 2026-10-24 stay read-only.
 - A read-only token is refused by the REST API as well (no uploads, no administration), so it cannot be used
   around the MCP tool list.
@@ -89,18 +89,31 @@ chosen above it, and remembered.
 - It is for administrators only because the app reads its own disk. On a team server the path is on the
   server, not on your computer.
 
-## Copying a website from the app (crawl_website)
+## Copying a website from the app (Crawler tab, crawl_website)
 
-Administrators (through an assistant's `crawl_website` tool, or `POST /api/admin/crawls`) can have the app
-copy a website into a collection:
-- The crawler (site2md) runs on the computer running Knowledge Search, into `<data>/crawls/<site-name>`,
-  and that folder becomes a synced folder of the collection.
-- Crawling the same address again replaces the copy and syncs it, so only changed pages are indexed again,
-  and pages gone from the site are removed.
-- **Sites behind a sign-in:** sign in once on that computer (`knowledge-search crawl <url> --out <folder>
-  --browser --login`), then crawl with `browser: true`, which reuses the saved sign-in. The app never asks
-  for or stores passwords.
-- `list_crawls` shows progress, pages saved, failures, and the sync counts.
+Administrators have a **Crawler** tab: the crawler's own page (site2md, the same one its stand-alone launcher
+opens), run by the app with your session, so no access token is needed.
+- **Copy a website**, watch it run (pages copied, failed and skipped, each tile opens the list with the
+  reasons; a Log tab), then **Add to a collection**: an existing one or a **New collection…**. The copy becomes
+  a synced folder of that collection and is indexed in the background.
+- **Links to other sites:** by default it follows links in the pages' text to other sections and sites (for
+  example a product page's "User guide" card that leads to the documentation) and copies the section they lead
+  to; links in menus, headers and footers are followed only within the site. "Stay on this site" and "Follow
+  every link" (up to the page limit) are the other choices.
+- **Update** copies the site again and replaces the copy when it finishes; the collection then takes in only
+  what changed, and pages gone from the site are removed.
+- Copies are kept in `<data>/crawls` unless you choose another folder on the tab (**Change**, kept in
+  `<data>/crawler.json`).
+- **Sites behind a sign-in:** choose the browser to sign in with on the tab; a browser window opens on the
+  computer running Knowledge Search and you sign in there once. The sign-in is kept in that browser's profile
+  (`~/.site2md`) for later copies; the app never sees or stores the password.
+
+Assistants (MCP, administrator tokens) can do the same:
+- `crawl_website` copies a site and, when it is done, adds it to a collection: `collection` (existing) or
+  `new_collection` (created only then, so a failed copy leaves no empty collection). `follow`, `max_pages`
+  and `browser` as above.
+- `list_crawls` shows the copies, progress and counts; `send_crawl` adds a finished copy to an existing or a
+  new collection. Copies made by assistants show in the Crawler tab, and the other way round.
 
 ## Crawling a website or intranet
 

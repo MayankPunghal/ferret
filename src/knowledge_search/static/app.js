@@ -107,7 +107,7 @@ $("#logout").addEventListener("click", async () => { await api("/api/auth/logout
 
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
-  for (const t of ["search", "documents", "summaries", "status", "assistants", "settings", "admin", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
+  for (const t of ["search", "documents", "summaries", "status", "assistants", "settings", "admin", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
   if (name === "documents") { loadDocs(); loadFolders(); pollTimer = setInterval(loadDocs, 3000); }
   if (name === "summaries") { loadSummaries(); pollTimer = setInterval(loadSummaries, 5000); }
@@ -117,8 +117,13 @@ function openTab(name) {
   if (name === "admin") loadAdmin();
   if (name === "logs") showLogView(logView);
   if (name === "database") loadDatabase();
+  if (name === "crawler" && !$("#crawler-frame").src) $("#crawler-frame").src = "/crawler/";  // site2md's own page
   menu(false);
 }
+// The Crawler tab's page asks to open another tab (e.g. Documents after adding a copy)
+window.addEventListener("message", (e) => {
+  if (e.origin === window.location.origin && e.source === $("#crawler-frame").contentWindow && ["documents"].includes(e.data?.open)) openTab(e.data.open);
+});
 $$(".tab[data-tab]").forEach((b) => b.addEventListener("click", () => { topicFilter = null; openTab(b.dataset.tab); }));
 
 // Wide screens: the sidebar can fold to a rail of icons (remembered in this browser). Key: [

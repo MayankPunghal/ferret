@@ -156,6 +156,9 @@ label.check { font-weight: 400; }
   background: none; padding: 0 10px; font: 400 14px var(--sans); color: var(--text); text-decoration: none; }
 .menu-pop > .danger { color: var(--negative); }
 
+/* ---------------------------------------------------------------- crawler (site2md's page, framed) */
+#tab-crawler iframe { display: block; width: 100%; height: calc(100vh - 48px); border: 0; background: var(--surface); }
+
 /* ---------------------------------------------------------------- search */
 #tab-search { max-width: 880px; }
 .hint { max-width: 760px; display: grid; gap: 16px; }

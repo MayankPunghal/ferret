@@ -1,135 +1,197 @@
-"""Administrator: copy a website into Markdown (site2md) in the background and keep it as a synced folder.
+"""Administrator: copy websites into Markdown with site2md, from inside Knowledge Search.
 
-The crawler runs as a separate process on the computer running Knowledge Search, into
-``<data_dir>/crawls/<name>.new``. When it finishes, that folder replaces ``<data_dir>/crawls/<name>`` and is
-synced into the chosen collection (folders.py), so crawling the same site again takes in only the pages that
-changed and removes pages that are gone. Sites behind a sign-in: sign in once on this computer with
-``knowledge-search crawl <url> --out <any folder> --browser --login``; ``browser: true`` then reuses that
-sign-in. The app never asks for passwords.
+The Crawler tab is site2md's own page (the same one its stand-alone launcher opens), served at /crawler/ and
+driven through /api/admin/crawler/* with the administrator's session, so no access token is needed. One site2md
+App keeps the copies in a folder: <data>/crawls by default, changeable on the page (kept in
+<data>/crawler.json). Sending a copy to a collection makes it a synced folder (folders.py); when an Update of a
+copy that is a synced folder finishes, it is synced again, so only what changed is indexed. MCP's
+crawl_website starts a copy here and syncs it into the chosen collection when it is done (a new collection is
+created only then, so a copy that fails leaves no empty collection behind).
 """
 
 import json
 import logging
-import re
-import shutil
-import subprocess
-import sys
 import threading
-import time
 from pathlib import Path
-from urllib.parse import urlsplit
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
+from site2md import ui
 
 from . import auth, db, folders
 from .deps import Admin, Conn, state
 
 log = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/admin/crawls", tags=["admin"])
-_jobs: dict[str, dict] = {}  # name -> state of a crawl started since the app started
+router = APIRouter(tags=["admin"])
+_app: ui.App | None = None
+_app_for = ""  # the data folder _app belongs to
 _lock = threading.Lock()
+# copy name -> (collection id, or the name of a collection to create, and the user) to sync into when it is done
+_into: dict[str, tuple[int | str, int | None]] = {}
+PAGE_CSP = ("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
+            "frame-ancestors 'self'; base-uri 'none'")
 
 
-class CrawlBody(BaseModel):
-    url: str = Field(pattern=r"^https?://\S+$", max_length=2000)
-    collection_id: int
-    max_pages: int = Field(default=1000, ge=1, le=10_000)
-    browser: bool = False  # fetch with a real browser: JavaScript sites, and sign-ins saved on this computer
+def _config() -> Path:
+    return Path(state.settings.data_dir) / "crawler.json"
 
 
-def name_for(url: str) -> str:
-    """'https://wiki.example.com/eng/start' -> 'wiki-example-com-eng-start' (the folder, and its documents' prefix)."""
-    u = urlsplit(url)
-    return re.sub(r"[^a-z0-9]+", "-", f"{u.hostname or ''}{u.path}".lower()).strip("-")[:80] or "site"
-
-
-def _dir() -> Path:
-    return Path(state.settings.data_dir) / "crawls"
-
-
-def _summary(out: Path) -> dict:
-    try:
-        m = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
-    return {"pages": len(m.get("pages", {})), "files": len(m.get("files", {})), "failed": len(m.get("failed", {})),
-            "skipped": len(m.get("skipped", {})), "examples_failed": dict(list(m.get("failed", {}).items())[:5])}
-
-
-def _run(name: str, body: CrawlBody, user_id: int) -> None:
-    job, out = _jobs[name], _dir() / name
-    new, logf = out.with_name(name + ".new"), out.with_name(name + ".log")
-    shutil.rmtree(new, ignore_errors=True)
-    cmd = [sys.executable, "-m", "site2md", body.url, "--out", str(new), "--max-pages", str(body.max_pages)]
-    if body.browser:
-        cmd.append("--browser")
-    try:
-        with open(logf, "w", encoding="utf-8") as f:
-            proc = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
-            job["pid"] = proc.pid
-            while proc.poll() is None:
-                time.sleep(2)
-                job["progress"] = _last_line(logf)
-        if not (new / "manifest.json").exists():
-            job.update(state="failed", error=_last_line(logf) or f"the crawler stopped (exit code {proc.returncode})")
-            return
-        shutil.rmtree(out, ignore_errors=True)
-        new.rename(out)
-        job.update(state="syncing", **_summary(out))
-        with db.pool().connection() as conn:
-            fid = conn.execute(
-                "INSERT INTO folder_sources(collection_id, path, types, created_by) VALUES (%s, %s, %s, %s) "
-                "ON CONFLICT (collection_id, path) DO UPDATE SET types = EXCLUDED.types RETURNING id",
-                (body.collection_id, str(out.resolve()), list(folders.TYPES), user_id)).fetchone()["id"]
-            conn.commit()
-        job["folder_id"] = fid
-        folders._running.add(fid)
-        try:
-            job["sync"] = folders.sync(fid, user_id)
-        finally:
-            folders._running.discard(fid)
-        job["state"] = "done"
-    except Exception as e:
-        log.exception("crawl failed %s", name)
-        job.update(state="failed", error=str(e)[:300])
-    finally:
-        job["finished"] = time.time()
-
-
-def _last_line(path: Path) -> str:
-    try:
-        lines = path.read_text(encoding="utf-8", errors="replace").strip().splitlines()
-    except OSError:
-        return ""
-    return lines[-1][:300] if lines else ""
-
-
-@router.post("", status_code=202)
-def start(body: CrawlBody, p: Admin, conn: Conn):
-    """Copy a website into a collection; crawling the same address again updates it."""
-    if not conn.execute("SELECT 1 FROM collections WHERE id = %s", (body.collection_id,)).fetchone():
-        raise HTTPException(404, "collection not found")
-    name = name_for(body.url)
+def app() -> ui.App:
+    global _app, _app_for
     with _lock:
-        if _jobs.get(name, {}).get("state") in ("crawling", "syncing"):
-            raise HTTPException(409, f"{body.url} is already being copied")
-        _jobs[name] = {"name": name, "url": body.url, "collection_id": body.collection_id, "state": "crawling",
-                       "started": time.time(), "progress": ""}
-    _dir().mkdir(parents=True, exist_ok=True)
-    auth.audit(conn, p.user_id, "crawl", body.url, collection_id=body.collection_id, max_pages=body.max_pages,
-               browser=body.browser)
+        if _app is None or _app_for != str(state.settings.data_dir):
+            _app_for = str(state.settings.data_dir)
+            try:
+                chosen = json.loads(_config().read_text(encoding="utf-8")).get("copies", "")
+            except (OSError, ValueError):
+                chosen = ""
+            _app = ui.App(Path(chosen) if chosen else Path(state.settings.data_dir) / "crawls",
+                          on_copies=lambda f: _config().write_text(json.dumps({"copies": str(f)}), encoding="utf-8"))
+            _app.on_done = _done
+        return _app
+
+
+def _sync_into(folder: Path, into: int | str, user: int | None) -> int:
+    """Make a copy a synced folder of a collection (created first when into is a new name) and sync it now."""
+    with db.pool().connection() as conn:
+        if isinstance(into, str):
+            into, new = auth.ensure_collection(conn, into), into
+            auth.audit(conn, user, "collection_created", new, by="crawl")
+        fid = conn.execute(
+            "INSERT INTO folder_sources(collection_id, path, types, created_by) VALUES (%s, %s, %s, %s) "
+            "ON CONFLICT (collection_id, path) DO UPDATE SET types = folder_sources.types RETURNING id",
+            (into, str(folder.resolve()), list(folders.TYPES), user)).fetchone()["id"]
+        conn.commit()
+    folders.start(fid, user)
+    return into
+
+
+def _done(name: str, folder: Path, copy_state: str) -> None:
+    """A copy stopped: sync it where it belongs (a collection MCP asked for, or its synced folders)."""
+    if copy_state != "done":
+        return
+    if name in _into:
+        _sync_into(folder, *_into.pop(name))
+        return
+    with db.pool().connection() as conn:
+        ids = [(r["id"], r["created_by"]) for r in conn.execute(
+            "SELECT id, created_by FROM folder_sources WHERE path = %s", (str(folder.resolve()),)).fetchall()]
+    for fid, user in ids:
+        folders.start(fid, user)
+
+
+# --- the page and its API ---------------------------------------------------------------------------------
+
+@router.get("/crawler/")
+def page(p: Admin):
+    return Response((ui.STATIC / "index.html").read_bytes(), media_type="text/html",
+                    headers={"Content-Security-Policy": PAGE_CSP, "Cache-Control": "no-store"})
+
+
+@router.get("/crawler/{asset}")
+def asset(asset: str):
+    if asset not in ("ui.css", "ui.js"):
+        raise HTTPException(404, "not found")
+    return Response((ui.STATIC / asset).read_bytes(), media_type="text/css" if asset.endswith(".css") else "text/javascript",
+                    headers={"Content-Security-Policy": PAGE_CSP})
+
+
+@router.api_route("/api/admin/crawler/{path:path}", methods=["GET", "POST"])
+async def crawler_api(path: str, request: Request, p: Admin):
+    body = {}
+    if request.method == "POST":
+        try:
+            body = await request.json()
+        except ValueError:
+            raise HTTPException(400, "not JSON") from None
+    if path in ("ks/collections", "send"):  # inside the app the page adds copies itself (synced folders)
+        raise HTTPException(404, "not here: the Crawler tab sends copies with your own session")
+    out = app().handle(request.method, path, dict(request.query_params), body if isinstance(body, dict) else {})
+    if request.method == "POST" and path == "start" and out[0] == 200:
+        with db.pool().connection() as conn:
+            auth.audit(conn, p.user_id, "crawl", body.get("url") or body.get("name"), mode=body.get("mode", "new"))
+            conn.commit()
+    if isinstance(out[1], bytes):
+        return Response(out[1], status_code=out[0], media_type=out[2] if len(out) > 2 else None)
+    if out[0] >= 400:
+        raise HTTPException(out[0], out[1].get("error", "refused"))
+    return out[1]
+
+
+# --- for MCP: copy a site into a collection ----------------------------------------------------------------
+
+class Into(BaseModel):
+    collection_id: int | None = None
+    new_collection: str | None = Field(default=None, pattern=r"^[a-z0-9_-]{2,64}$")
+
+
+class CrawlBody(Into):
+    url: str = Field(pattern=r"^https?://\S+$", max_length=2000)
+    max_pages: int = Field(default=1000, ge=1, le=100_000)
+    browser: bool = False  # fetch with a real browser: JavaScript sites, and sign-ins saved on this computer
+    follow: str = Field(default="linked", pattern="^(site|linked|everything)$")
+
+
+class SendBody(Into):
+    name: str = Field(min_length=1, max_length=120)
+
+
+def _into_of(body: Into, conn) -> int | str:
+    """The collection to send to: an existing id, or a new name (refused if that name is taken)."""
+    if (body.collection_id is None) == (body.new_collection is None):
+        raise HTTPException(422, "give collection_id or new_collection")
+    if body.new_collection and conn.execute("SELECT 1 FROM collections WHERE name = %s",
+                                            (body.new_collection,)).fetchone():
+        raise HTTPException(409, "a collection with this name exists")
+    if body.collection_id and not conn.execute("SELECT 1 FROM collections WHERE id = %s",
+                                               (body.collection_id,)).fetchone():
+        raise HTTPException(404, "collection not found")
+    return body.collection_id or body.new_collection
+
+
+@router.post("/api/admin/crawls", status_code=202)
+def start(body: CrawlBody, p: Admin, conn: Conn):
+    """Copy a website into a collection; copying the same address again updates it."""
+    into = _into_of(body, conn)
+    a, name = app(), ui.name_for(body.url)
+    mode = "update" if (a.copies / name / "manifest.json").exists() else "new"
+    _into[name] = (into, p.user_id)
+    try:
+        out = a.start({"url": body.url, "name": name, "mode": mode,
+                       "options": {"max_pages": body.max_pages, "browser": body.browser, "follow": body.follow}})
+    except ValueError as e:
+        _into.pop(name, None)
+        raise HTTPException(409, str(e)) from None
+    auth.audit(conn, p.user_id, "crawl", body.url, into=into, max_pages=body.max_pages,
+               browser=body.browser, follow=body.follow)
     conn.commit()
-    threading.Thread(target=_run, args=(name, body, p.user_id), daemon=True, name=f"crawl-{name}").start()
-    return _jobs[name]
+    return out | {"into": into}
 
 
-@router.get("")
+@router.get("/api/admin/crawls")
 def list_crawls(p: Admin):
-    """Crawls since the app started, and copies kept on disk from before."""
-    out = {n: {k: v for k, v in j.items() if k != "pid"} for n, j in _jobs.items()}
-    if _dir().is_dir():
-        for d in sorted(_dir().iterdir()):
-            if d.is_dir() and not d.name.endswith(".new") and d.name not in out:
-                out[d.name] = {"name": d.name, "state": "kept", **_summary(d)}
-    return list(out.values())
+    """Copies kept in the copies folder (the running one first), with counts; also shown in the Crawler tab."""
+    a = app()
+    rows = a.copies_view()
+    if a.run:
+        rows.sort(key=lambda r: r["name"] != a.run.name)
+        for r in rows:
+            if r["name"] == a.run.name:
+                r.update(a.detail(r["name"])["counts"], state=a.run.state)
+    return [r | {"into": _into.get(r["name"], (None,))[0]} for r in rows]
+
+
+@router.post("/api/admin/crawls/send")
+def send(body: SendBody, p: Admin, conn: Conn):
+    """Send a finished copy to a collection (or a new one): it becomes a synced folder there."""
+    a = app()
+    if a.run and a.run.name == body.name and a.run.state not in ("done", "stopped", "failed"):
+        raise HTTPException(409, "still copying: it is sent when it is done if crawl_website named a collection")
+    folder = a.copies / body.name
+    if "/" in body.name or "\\" in body.name or not (folder / "manifest.json").exists():
+        raise HTTPException(404, "no copy with this name (list_crawls)")
+    into = _into_of(body, conn)
+    cid = _sync_into(folder, into, p.user_id)
+    auth.audit(conn, p.user_id, "crawl_sent", body.name, collection_id=cid)
+    conn.commit()
+    return {"name": body.name, "collection_id": cid, "next": "indexing runs in the background (list_folders)"}

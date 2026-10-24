@@ -30,7 +30,7 @@ link. If the outcome is no_adequate_evidence, say the documents do not answer it
 conflicting_evidence, show the versions and their dates. Summaries, topics and types are written by a local
 model: use them to choose what to read, never as evidence. Read a passage or the whole document before
 relying on a detail the passage only hints at; follow document_links for "what depends on X" questions.
-Tools that change things (add_document, add_folder, crawl_website, change_settings, reindex, delete_document)
+Tools that change things (add_document, add_folder, crawl_website, send_crawl, change_settings, reindex, delete_document)
 appear only when the user's token allows changes. Use them when the user asks; ask first before deleting,
 reindex all=true, or changing the embedding model or passage size (every document is indexed again)."""
 
@@ -92,15 +92,28 @@ TOOLS = [
     _tool("sync_folder", "Sync a folder now: index new and changed files, remove documents whose file is gone.",
           {"folder_id": {"type": "integer"}}, ["folder_id"], needs="admin"),
     _tool("crawl_website", "Copy a website or intranet into Markdown (site2md) on the computer running Knowledge "
-          "Search and index it into a collection; crawling the same address again updates it. Stays under the "
-          "start address's folder. Runs in the background: check with list_crawls. Sites behind a sign-in need the "
-          "user to sign in once on that computer (knowledge-search crawl <url> --out <folder> --browser --login), "
-          "then browser=true.",
-          {"url": {"type": "string"}, "collection": _COL,
-           "max_pages": {"type": "integer", "minimum": 1, "maximum": 10000, "default": 1000},
+          "Search and index it into a collection when the copy is done: an existing one (collection) or a new one "
+          "created then (new_collection). Crawling the same address again updates it. Follows links in the pages' "
+          "text to other sections and sites (menus and footers only within the site); follow='site' stays on the "
+          "site, 'everything' follows every link up to max_pages. Runs in the background: check with list_crawls; "
+          "the same copies are in the app's Crawler tab. Sites behind a sign-in need the user to sign in once in the "
+          "Crawler tab on that computer, then browser=true.",
+          {"url": {"type": "string"},
+           "collection": _COL | {"description": "an existing collection to add the copy to"},
+           "new_collection": {"type": "string", "pattern": "^[a-z0-9_-]{2,64}$",
+                              "description": "or: a new collection to create for the copy when it is done"},
+           "max_pages": {"type": "integer", "minimum": 1, "maximum": 100000, "default": 1000},
+           "follow": {"type": "string", "enum": ["linked", "site", "everything"], "default": "linked"},
            "browser": {"type": "boolean", "default": False,
                        "description": "use a real browser: pages built by JavaScript, or a saved sign-in"}},
-          ["url", "collection"], needs="admin"),
+          ["url"], needs="admin"),
+    _tool("send_crawl", "Send a finished website copy (list_crawls) to a collection, existing or new: it becomes a "
+          "synced folder there, indexed in the background, and later Updates of the copy are synced into it.",
+          {"name": {"type": "string", "description": "the copy's name, from list_crawls"},
+           "collection": _COL | {"description": "an existing collection"},
+           "new_collection": {"type": "string", "pattern": "^[a-z0-9_-]{2,64}$",
+                              "description": "or: a new collection to create for it"}},
+          ["name"], needs="admin"),
     _tool("list_crawls", "Website copies: running, finished (pages, failed, sync counts) or kept from before.", {},
           needs="admin"),
     _tool("create_collection", "Create a collection (lowercase letters, digits, - and _). Only administrators see it "
@@ -238,11 +251,22 @@ async def _add_folder(a, c):
                                                          **({"types": a["types"]} if a.get("types") else {})})
 
 
+async def _into(a, c) -> dict:
+    if bool(a.get("collection")) == bool(a.get("new_collection")):
+        raise ToolError("give collection (an existing one) or new_collection (a new one)")
+    return ({"collection_id": await _collection(c, a["collection"], write=True)} if a.get("collection")
+            else {"new_collection": str(a["new_collection"])})
+
+
 async def _crawl(a, c):
-    cid = await _collection(c, a["collection"], write=True)
-    return await _call(c, "POST", "/api/admin/crawls", {"url": a["url"], "collection_id": cid,
+    return await _call(c, "POST", "/api/admin/crawls", {"url": a["url"], **await _into(a, c),
                                                         "max_pages": int(a.get("max_pages") or 1000),
+                                                        "follow": a.get("follow") or "linked",
                                                         "browser": bool(a.get("browser"))})
+
+
+async def _send_crawl(a, c):
+    return await _call(c, "POST", "/api/admin/crawls/send", {"name": str(a["name"]), **await _into(a, c)})
 
 
 async def _settings(a, c):
@@ -261,6 +285,7 @@ _MANAGE = {
     "list_folders": lambda a, c: _call(c, "GET", "/api/admin/folders"),
     "sync_folder": lambda a, c: _call(c, "POST", f"/api/admin/folders/{int(a['folder_id'])}/sync"),
     "crawl_website": _crawl,
+    "send_crawl": _send_crawl,
     "list_crawls": lambda a, c: _call(c, "GET", "/api/admin/crawls"),
     "create_collection": lambda a, c: _call(c, "POST", "/api/admin/collections",
                                             {"name": a["name"], "description": a.get("description", "")}),

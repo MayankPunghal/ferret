@@ -371,8 +371,8 @@ Verified: every command run against a fresh demo app on Linux, covering:
 - **Tokens:** access tokens are read-only unless created with *May also make changes* (migration 0009,
   existing tokens became read-only). A read-only token also cannot write through the REST API.
 - **MCP can do the admin work** (`mcp.py`): status, list/add/retry/delete documents, add/list/sync folders,
-  `crawl_website` + `list_crawls` (`crawls.py`: site2md as a subprocess into `<data>/crawls/<name>.new`,
-  swapped in and synced as a folder when finished), create collections, read/change settings, download
+  `crawl_website` / `list_crawls` / `send_crawl` (`crawls.py`, the same site2md App as the Crawler tab;
+  into an existing collection or a `new_collection` created when the copy is done), create collections, read/change settings, download
   models, reindex. Tools are listed per caller (reader / writer / admin); non-read tools are marked not
   read-only so clients ask before calling. Tests: `tests/test_mcp_manage.py`, `tests/test_folders.py`.
 - **site2md page** (`site2md/src/site2md/ui.py`, `static/`; plan `docs/plan-site2md-ui.md`): the launchers
@@ -397,6 +397,25 @@ Verified: every command run against a fresh demo app on Linux, covering:
   relations) in a background job; that text is embedded with the normal text embedder and cited back to the
   image. Not a multimodal embedding model: those are weaker on text retrieval, which is most of the corpus.
   The GLM-4.6V-Flash vs Gemma 4 E2B image comparison (`eval/image_ocr.py`) decides the model.
+- **Crawler tab in the app (owner request 2026-10-24):** admin tab framing site2md's own page at `/crawler/`,
+  API `/api/admin/crawler/*` → `site2md.ui.App.handle` (one dispatcher shared with the stand-alone server), the
+  admin's session instead of a token; *Add to a collection* (existing or New collection…) makes the copy a
+  synced folder; an Update of a copy that is a synced folder is synced again when it finishes (`App.on_done`).
+  Copies folder: `<data>/crawls`, changeable on the page (`<data>/crawler.json`; stand-alone:
+  `~/.site2md/config.json`). The page's "Open Documents" posts a message to the app (note: `app.js` has its
+  own `location()` function, so the listener uses `window.location`). Verified: Playwright copy → new
+  collection → Documents on the demo; `tests/test_mcp_manage.py` (MCP crawl into existing and new collections,
+  `send_crawl`, the tab's API with a session).
+- **Following links (owner, 2026-10-24: "no links unopened"):** site2md `--follow linked` (default) follows
+  links in the page text to other sections/hosts and copies the section (start folder) they lead to; links in
+  nav/header/footer/aside, ARIA landmark roles, `<link>` and hreflang alternates stay on-site; social/video
+  hosts are never followed; the site's own pages are fetched before linked sections. `everything` follows every
+  link up to the page limit; `site` stays on the site. Disagreed with making "everything" the default: from a
+  product page it walks all of aws.amazon.com through menus. Verified on aws.amazon.com/transform/ (the guide
+  card → docs.aws.amazon.com/transform/latest/userguide/ copied: 43 + 27 pages at a 150-page cap).
+- **Demo gotcha:** this container periodically resets `/tmp/claude-0` to mode 700, and the embedded Postgres
+  (non-root) then loses its data folder ("Permission denied" PANIC). Keep long-running demo data outside the
+  scratchpad (`/home/user/ks-demo`).
 - **Installer:** still TODO for both apps (plans: `docs/plan-installer.md`, `plan-release.md`, `plan-docker.md`).
 
 ## 4m. MCP server for AI assistants (owner request 2026-10-24)

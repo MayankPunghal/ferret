@@ -2,6 +2,7 @@
 folders and website copies (crawls.py) for administrators."""
 
 import http.server
+import json
 import threading
 import time
 from functools import partial
@@ -87,16 +88,46 @@ def test_crawl_website_into_a_collection(client, corpus, tmp_path):
         root = {"Authorization": f"Bearer {r.json()['token']}"}
         url = f"http://127.0.0.1:{srv.server_port}/wiki/index.html"
         job = call(client, root, "crawl_website", url=url, collection="scratch", max_pages=10)
-        assert job["state"] == "crawling", job
+        assert job["state"] == "starting", job
         for _ in range(300):
             job = next(j for j in call(client, root, "list_crawls") if j["name"] == job["name"])
             if job["state"] in ("done", "failed"):
                 break
             time.sleep(0.2)
-        assert job["state"] == "done", job
-        assert job["pages"] == 2 and job["sync"]["queued"] == 2, job
-        keys = {d["source_key"] for d in call(client, root, "list_documents", collection="scratch")["documents"]}
-        assert {k.split("/", 1)[0] for k in keys if k.startswith(job["name"])} == {job["name"]}
-        assert len([k for k in keys if k.startswith(job["name"] + "/")]) == 2
+        assert job["state"] == "done" and job["pages"] == 2, job
+        for _ in range(100):  # synced into the collection in the background
+            keys = {d["source_key"] for d in call(client, root, "list_documents", collection="scratch")["documents"]}
+            if len([k for k in keys if k.startswith(job["name"] + "/")]) == 2:
+                break
+            time.sleep(0.2)
+        assert len([k for k in keys if k.startswith(job["name"] + "/")]) == 2, keys
+        # again, into a collection made when the copy is done (an update: the same pages, now in "site-copy")
+        assert "new_collection" in call(client, root, "crawl_website", url=url, collection="scratch",
+                                        new_collection="site-copy")
+        call(client, root, "crawl_website", url=url, new_collection="site-copy", max_pages=10)
+        for _ in range(300):
+            cols = {c["name"] for c in call(client, root, "list_collections")}
+            if "site-copy" in cols and len(call(client, root, "list_documents", collection="site-copy")["documents"]) == 2:
+                break
+            time.sleep(0.2)
+        assert len(call(client, root, "list_documents", collection="site-copy")["documents"]) == 2
+        # a finished copy sent on to another new collection
+        def send_crawl(**args):  # call() takes the tool's name as `name`, which this tool uses as an argument
+            res = rpc(client, root, "tools/call", {"name": "send_crawl", "arguments": args})["result"]
+            return res["content"][0]["text"] if res["isError"] else json.loads(res["content"][0]["text"])
+        assert "exists" in send_crawl(name=job["name"], new_collection="site-copy")
+        sent = send_crawl(name=job["name"], new_collection="sent-copy")
+        assert sent["collection_id"], sent
+        for _ in range(100):
+            if len(call(client, root, "list_documents", collection="sent-copy")["documents"]) == 2:
+                break
+            time.sleep(0.2)
+        assert len(call(client, root, "list_documents", collection="sent-copy")["documents"]) == 2
+        # the Crawler tab: the same copy, through the administrator's session, without a token
+        client.post("/api/auth/login", json={"username": "root", "password": "correct-horse-battery"})
+        assert "site2md" in client.get("/crawler/").text
+        copy = client.get(f"/api/admin/crawler/copy?name={job['name']}").json()
+        assert copy["counts"]["saved"] == 2 and copy["state"] == "done"
+        assert client.post("/api/admin/crawler/send", headers={"x-ks-csrf": "1"}, json={}).status_code == 404
     finally:
         srv.shutdown()
