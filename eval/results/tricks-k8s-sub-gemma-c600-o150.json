@@ -1,0 +1,47 @@
+{
+ "corpus": "k8s-sub-gemma",
+ "index": "k8s-sub-gemma-c600-o150",
+ "queries": 219,
+ "variants": {
+  "baseline | no reranker": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.324,
+    "success@5": 0.608,
+    "mrr@10": 0.452,
+    "answered": 0.688,
+    "precision": 0.339
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.852,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.14
+  },
+  "baseline | jina-reranker-v1-turbo-en": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.284,
+    "success@5": 0.602,
+    "mrr@10": 0.422,
+    "answered": 0.688,
+    "precision": 0.306
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 0.963,
+    "success@5": 1.0,
+    "mrr@10": 0.981,
+    "answered": 0.852,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.48
+  }
+ }
+}
