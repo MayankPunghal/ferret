@@ -291,6 +291,35 @@ Indexing with Qwen3 took ~2 h for 623 pages on 4 cores (bge-base: minutes). Rera
 query on this corpus. Default reranker changed to jina-turbo: equal or better than MiniLM on all three corpora
 where both ran (Kubernetes with and without descriptions, CQADupStack); not measured on SciFact.
 
+## 8. Search tricks (owner's "7 tricks" and more, 2026-10-24, `eval/tricks.py`)
+
+Bench: 171 Kubernetes pages with Gemma 4 E2B summaries; 219 queries = 176 real Stack Overflow questions
+("so", the passage that answers them labelled) + 27 answerable sub-corpus questions + 16 that must be refused.
+bge-base. One query is 0.006 of hit@1 on "so", so differences under ~0.02 are noise. Result files:
+`eval/results/tricks-*.json`.
+
+| Variant (no reranker / with jina-turbo) | so hit@1 | so success@5 | so MRR@10 | so answered | sub hit@1 | false answers |
+|---|---|---|---|---|---|---|
+| **Shipped: 900-char passages, 150 overlap, RRF k 60** | 0.364 / 0.369 | 0.625 / 0.625 | 0.482 / 0.475 | 0.693 | 1.00 / 1.00 | 0/16 |
+| Overlap 0 | 0.324 / 0.358 | 0.619 / 0.597 | 0.459 / 0.468 | 0.699 | 1.00 | 0/16 |
+| Passages 600 / 1200 characters | 0.324 / 0.347 (no rr) | 0.608 / 0.648 | 0.452 / 0.477 | 0.688 / 0.682 | 1.00 | 0/16 |
+| Summary in the keyword index (lowest weight) | 0.364 / 0.364 | 0.625 / 0.625 | 0.484 / 0.473 | 0.699 | 1.00 | 0/16 |
+| Summary as context line, 150 / 300 / 600 chars | 0.347–0.330 / 0.375 | 0.608–0.614 / 0.597–0.619 | ≤0.481 | **0.648–0.653** | 0.96–1.00 | 0/16 |
+| Summary vector as a fusion branch (weight 0.5 / 1.0) | 0.273 / 0.250 | 0.557 / 0.540 | 0.395 / 0.376 | 0.653 / 0.648 | 0.93 | 0/16 |
+| Index-time questions (HyPE) as vectors (0.5 / 1.0) | 0.324 / 0.278 | 0.597 / 0.574 | 0.451 / 0.418 | 0.648 / 0.642 | 0.89 | 0/16 |
+| Rerank with ±1 neighbour passage (300 / 900 chars) | 0.358 / 0.364 (rr) | 0.625 / 0.614 | 0.472 | 0.693 | 1.00 / 0.96 | 0/16 |
+| Convex fusion 0.5 / 0.7 / 0.9 instead of RRF | 0.312–0.358 | 0.58–0.631 | ≤0.469 | 0.688–0.699 | 0.85–1.00 | 0/16 |
+| RRF k 20 / 120 | 0.358 / 0.358 | 0.614 / 0.636 | 0.480 / 0.482 | 0.693 / 0.699 | 1.00 | 0/16 |
+| HyDE only when search would abstain | 0.369 / 0.381 | 0.631 | 0.492 / 0.485 | 0.693 | 1.00 | 0/16 |
+
+**Result: nothing beat the shipped setup by more than noise.** HyDE-as-rescue is +1–2 queries at +5–10 s for
+those queries (within noise; not shipped). Every summary or question vector made results worse, and the
+summary context line made the gate answer fewer real questions. **Not measured:** "neighbour summaries
+instead of overlap" (an LLM summary of the passages either side in place of the 150-character overlap): its
+run was lost when the container restarted, and the closest measured variants (overlap 0, neighbour passages
+at rerank, summary context) gave nothing, so it was not re-run. Caveat: one corpus (public technical docs);
+the owner's own documents may differ.
+
 ## Not measured
 
 Real company corpus; corpora beyond ~8.5k chunks; large embedding models (bge-large); GPU; Windows performance; Docker

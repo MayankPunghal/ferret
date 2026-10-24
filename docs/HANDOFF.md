@@ -602,6 +602,26 @@ embedding bake-offs → contextual passages → learned sparse → entity edges 
    Expose `search`/`get_passage`/`get_links` as REST/MCP tools for agent navigation.
 5. XLSX/Docling parsing, OCR for scanned PDFs and images (plan ready), OIDC, Docker build verification.
 
+### Open owner requests (audit of the owner's recent messages, 2026-10-24)
+
+Done this session and verified: Crawler tab; MCP crawl into an existing or new collection (`send_crawl`);
+following links in page text (the AWS guide case); clickable tiles, Pages table and Log; Synced folders tab
+with progress and Stop; Documents page simplified; token access editable; groups created on their own tab and
+picked from menus; the 7 search tricks measured (docs/evaluation.md §8: no gain).
+Still open, in the order to do them:
+1. **Vision comparison** GLM-4.6V-Flash vs Gemma 4 E2B (`eval/image_ocr.py`, 20 images): running in the cloud
+   session at handoff (GLM 10/20 done, recall 1.00 on all ten, 90–550 s per image on 4 CPU cores); Gemma
+   next. Then: site2md saves images, and image text is indexed through the one ingestion path (§4o rule).
+2. **CPU/GPU switch in Settings** for embedding, reranking, summaries and enrichment (owner has an Intel iGPU):
+   plan in `docs/plan-gpu.md`, not built.
+3. **Installer** for both apps (`docs/plan-installer.md`, `plan-release.md`), **Docker** brought up to date
+   (`plan-docker.md`), **invite and password-reset links** (`plan-invites.md`): plans only.
+4. **Owner checks on Windows:** crawler sign-in with installed Chrome/Edge (the Crawler tab opens that browser
+   on the computer running Knowledge Search); a real intranet copy through the Crawler tab.
+5. **Owner's own documents** with 50–100 labelled questions (the tricks were measured on public docs only).
+6. "Neighbour summaries instead of overlap": not measured (run lost in a container restart; see evaluation §8).
+7. Lint debt: ~20 older `ruff` findings (unused noqa, import order, two B023/B008) — harmless, clean up once.
+
 ## 8. Gotchas
 
 - `KS_DATABASE_URL` empty = embedded PG in `data/pg`; set it for external servers (vector search then runs
