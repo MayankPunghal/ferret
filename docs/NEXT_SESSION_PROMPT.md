@@ -27,7 +27,7 @@ Then work through `docs/TODO.md` in its order, unless the owner picks something 
   `docs/plan-large-documents.md` step 1 only if the gain holds and the vectors stay identical.
 - **Plans ready to build:** GPU switch (`plan-gpu.md`; the owner has an Intel iGPU), installer and release
   (`plan-installer.md`, `plan-release.md`), Docker (`plan-docker.md`), invite links (`plan-invites.md`),
-  answers by the local model (`plan-answers.md`),
+  the Ask tab, answers by the local model (`plan-answers.md`),
   images/vision (`plan-images-and-models.md`, after the vision result).
 
 Rules: keep it simple (no new database or service), never claim results you did not run, mark unmeasured
