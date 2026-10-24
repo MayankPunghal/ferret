@@ -10,6 +10,7 @@ those.
 | Variable | Default | Meaning |
 |---|---|---|
 | `KS_DATABASE_URL` | *(empty)* | Empty = embedded PostgreSQL under `KS_DATA_DIR/pg`. Set to use an external PostgreSQL with pgvector, e.g. `postgresql://ks:secret@db:5432/ks`. |
+| `KS_READONLY_DATABASE_URL` | *(empty)* | For Admin → Database → SQL with an external database: the URL of a role that can only read (no access to `users.password_hash` or `sessions.token_hash`). With the embedded database the app creates such a role (`ks_reader`) itself. |
 | `KS_DATA_DIR` | `./data` | Original files (`blobs/`) and the embedded database (`pg/`). Back this up. |
 | `KS_MODEL_CACHE` | `./data/models` | Downloaded model files. |
 | `KS_OFFLINE` | `false` | `true` = never download models at runtime (air-gapped servers; pre-fill the cache). |

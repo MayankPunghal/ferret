@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     # Empty = embedded PostgreSQL under data_dir/pg (laptop). Set for an external server, e.g.
     # postgresql://ks:secret@db:5432/ks (docker-compose server profile).
     database_url: str = ""
+    # Admin → Database → SQL runs read-only queries as a separate, non-superuser role. With the embedded
+    # database the app creates it (ks_reader); with an external server, set a read-only role's URL here.
+    readonly_database_url: str = ""
     data_dir: Path = Path("./data")
     model_cache: Path = Path("./data/models")
     embed_model: str = "BAAI/bge-base-en-v1.5"  # best measured accuracy/latency trade-off (docs/evaluation.md)

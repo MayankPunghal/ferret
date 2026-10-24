@@ -121,6 +121,27 @@ Later runs drop `--login`. Browser mode also renders pages that build their cont
 also see the job queue. Jobs that crash are retried automatically (3 attempts with backoff); parse errors
 are permanent until the file is fixed and uploaded again.
 
+## Database
+
+**Database** (admin only) shows the PostgreSQL tables behind the app. The top line names the server
+version, whether the database is embedded or external, its size and its extensions.
+- **Tables:** pick a table on the left to see:
+  - **Rows:** 50 at a time. Sort by clicking a column; filter with "Where <column> contains <text>"; click a
+    row to see all its values in full.
+  - **Structure:** columns and types, indexes with their sizes, constraints, and the definition of a view.
+- **SQL:** runs one statement of your own, for example a count per collection. At most 500 rows and 15
+  seconds.
+
+It never changes data. Browsing runs read-only transactions. The SQL box connects as a separate database
+role (`ks_reader`) that is not a superuser, can only read, and has no access to password or access-token
+hashes. Writes, a second statement, reading server files and switching roles are all refused. Every SQL
+query is recorded in the audit log (`db_query`).
+- **Embedded database:** the app creates that role itself.
+- **External database:** an administrator of that server creates a read-only role and sets
+  `KS_READONLY_DATABASE_URL`. Without it the SQL box is off, and browsing still works.
+
+Password and token hashes show as `•••`. Vectors show their first numbers and their length.
+
 ## Logs
 
 **Logs** (admin only) has two views.

@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin, auth, db, enrich, graph, mcp, runtime, trace, vectors
+from . import admin, auth, db, dbview, enrich, graph, mcp, runtime, trace, vectors
 from .auth import Principal
 from .config import Settings, get_settings, memory_vectors
 from .deps import COOKIE, Conn, User, state
@@ -185,6 +185,7 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
 
     _routes(app)
     app.include_router(admin.router)
+    app.include_router(dbview.router)
     app.include_router(graph.router)
     app.include_router(mcp.router)
     static = resources.files("knowledge_search") / "static"

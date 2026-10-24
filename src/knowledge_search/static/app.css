@@ -458,3 +458,33 @@ td.actions-cell { width: 1%; text-align: right; }
   .act-detail { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 16px; position: static; max-height: none; }
   .act-name { max-width: 28ch; }
 }
+
+/* Database (admin): tables on the left, rows or structure on the right, one row's full values in a side panel */
+.dbv { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--gap); align-items: start; margin-top: 12px; }
+.dbv:has(#db-row:not([hidden])) { grid-template-columns: 220px minmax(0, 1fr) minmax(260px, 30%); }
+.db-list ul { list-style: none; margin: 0; padding: 0; max-height: 72vh; overflow: auto; }
+.db-table { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; text-align: left; padding: 6px 10px;
+  border: 0; border-radius: var(--radius-control); background: none; color: inherit; cursor: pointer; }
+.db-table:hover { background: var(--raised); }
+.db-table.selected { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.db-tname { font-weight: 500; overflow-wrap: anywhere; }
+.db-main { min-width: 0; }
+.db-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+.db-pager { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+.db-grid-wrap { overflow: auto; max-height: 62vh; border: 1px solid var(--border); border-radius: var(--radius-control); margin-top: 8px; }
+.db-grid { font-size: 12.5px; }
+.db-grid td, .db-grid th { padding: 5px 10px; }
+.db-grid th { position: sticky; top: 0; background: var(--surface); white-space: nowrap; }
+.db-grid td { max-width: 36ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); }
+.db-sort { border: 0; background: none; color: inherit; font: inherit; font-weight: 600; cursor: pointer; padding: 0; }
+.db-row { max-height: 72vh; }
+.db-kv { display: block; }
+.db-kv dt { padding: 8px 0 4px; border: 0; }
+.db-kv dd { padding: 0 0 8px; }
+.db-value { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; max-height: 40vh; overflow: auto; }
+#db-sql { width: 100%; height: auto; min-height: 9em; padding: 8px 10px; font: 13px/1.5 var(--mono); resize: vertical; }
+#db-views { margin: 12px 0 4px; }
+@media (max-width: 1000px) {
+  .dbv, .dbv:has(#db-row:not([hidden])) { grid-template-columns: minmax(0, 1fr); }
+  .db-list ul { max-height: 30vh; }
+}

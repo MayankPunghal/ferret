@@ -107,7 +107,7 @@ $("#logout").addEventListener("click", async () => { await api("/api/auth/logout
 
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
-  for (const t of ["search", "documents", "summaries", "status", "assistants", "settings", "admin", "logs"]) $("#tab-" + t).hidden = t !== name;
+  for (const t of ["search", "documents", "summaries", "status", "assistants", "settings", "admin", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
   if (name === "documents") { loadDocs(); pollTimer = setInterval(loadDocs, 3000); }
   if (name === "summaries") { loadSummaries(); pollTimer = setInterval(loadSummaries, 5000); }
@@ -116,6 +116,7 @@ function openTab(name) {
   if (name === "settings") { loadSettings(); pollTimer = setInterval(loadModels, 3000); }
   if (name === "admin") loadAdmin();
   if (name === "logs") showLogView(logView);
+  if (name === "database") loadDatabase();
   menu(false);
 }
 $$(".tab").forEach((b) => b.addEventListener("click", () => { topicFilter = null; openTab(b.dataset.tab); }));
@@ -1003,6 +1004,115 @@ $("#act-clear").addEventListener("click", async () => {
   await api("/api/admin/activity", { method: "DELETE" });
   actOpen = null; $("#act-detail").hidden = true; $("#activity").classList.remove("with-detail"); loadActivity();
 });
+
+// ---------------------------------------------------------------- database (admin, read-only; dbview.py)
+const fmtBytes = (b) => b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} kB`;
+const DB_PAGE = 50;
+let dbTable = "", dbCols = [], dbRows = [], dbOffset = 0, dbTotal = 0, dbSort = "", dbDesc = false, dbPane = "rows";
+async function loadDatabase() {
+  let o;
+  try { o = await api("/api/admin/db"); } catch (err) { $("#db-info").textContent = err.message; return; }
+  $("#db-info").textContent = `PostgreSQL ${o.version} · ${o.mode} · database “${o.database}”, ${fmtBytes(o.bytes)} · extensions: `
+    + o.extensions.map((e) => `${e.name} ${e.version}`).join(", ");
+  $("#db-tables").replaceChildren(...o.tables.map((t) => {
+    const b = el("button", { type: "button", className: "db-table" + (t.name === dbTable ? " selected" : "") },
+      el("span", { className: "db-tname", textContent: t.name }),
+      el("span", { className: "meta figures", textContent: t.kind === "view" ? "view"
+        : `${t.estimated ? "~" : ""}${t.rows.toLocaleString()} rows · ${fmtBytes(t.bytes)}` }));
+    b.addEventListener("click", () => openTable(t.name));
+    return el("li", {}, b);
+  }));
+  $("#db-views button[data-view=sql]").disabled = !o.sql_available;
+  $("#db-views button[data-view=sql]").title = o.sql_available ? "" : "Needs a read-only database role: set KS_READONLY_DATABASE_URL";
+  if (!dbTable && o.tables.length) openTable(o.tables.some((t) => t.name === "documents") ? "documents" : o.tables[0].name);
+  else if (dbTable) loadRows();
+}
+function openTable(name) {
+  if (name !== dbTable) { dbOffset = 0; dbSort = ""; dbDesc = false; $("#db-contains").value = ""; $("#db-col").replaceChildren(); }
+  dbTable = name;
+  $$(".db-table").forEach((b) => b.classList.toggle("selected", b.querySelector(".db-tname").textContent === name));
+  $("#db-name").textContent = name;
+  $("#db-row").hidden = true;
+  showDbPane(dbPane);
+}
+function showDbPane(pane) {
+  dbPane = pane;
+  for (const b of $$("#db-panes button")) b.setAttribute("aria-selected", String(b.dataset.pane === pane));
+  $("#db-pane-rows").hidden = pane !== "rows";
+  $("#db-pane-structure").hidden = pane !== "structure";
+  if (pane === "rows") loadRows(); else loadStructure();
+}
+$$("#db-panes button").forEach((b) => b.addEventListener("click", () => showDbPane(b.dataset.pane)));
+async function loadRows() {
+  const q = new URLSearchParams({ offset: dbOffset, limit: DB_PAGE, sort: dbSort, desc: dbDesc });
+  if ($("#db-col").value && $("#db-contains").value.trim()) { q.set("column", $("#db-col").value); q.set("contains", $("#db-contains").value.trim()); }
+  let r;
+  try { r = await api(`/api/admin/db/tables/${encodeURIComponent(dbTable)}/rows?${q}`); }
+  catch (err) { $("#db-range").textContent = err.message; return; }
+  dbCols = r.columns; dbRows = r.rows; dbTotal = r.total;
+  if (!$("#db-col").options.length) $("#db-col").replaceChildren(...dbCols.map((c) => el("option", { value: c, textContent: c })));
+  $("#db-cols").replaceChildren(...dbCols.map((c) => {
+    const th = el("th", { scope: "col" }, el("button", { type: "button", className: "db-sort", textContent: c + (dbSort === c ? (dbDesc ? " ↓" : " ↑") : "") }));
+    th.querySelector("button").addEventListener("click", () => { dbDesc = dbSort === c ? !dbDesc : false; dbSort = c; dbOffset = 0; loadRows(); });
+    return th;
+  }));
+  $("#db-rows").replaceChildren(...r.rows.map((row, i) => {
+    const tr = el("tr", { className: "act-row" }, ...row.map((v) => el("td", { className: v === null ? "muted" : "", textContent: v === null ? "null" : String(v) })));
+    tr.tabIndex = 0;
+    tr.addEventListener("click", () => openRow(i));
+    tr.addEventListener("keydown", (e) => { if (e.key === "Enter") openRow(i); });
+    return tr;
+  }));
+  $("#db-empty").hidden = r.rows.length > 0;
+  const end = dbOffset + r.rows.length;
+  $("#db-range").textContent = r.rows.length ? `${(dbOffset + 1).toLocaleString()}–${end.toLocaleString()} of ${dbTotal == null ? "many" : dbTotal.toLocaleString()}` : "";
+  $("#db-prev").disabled = dbOffset === 0;
+  $("#db-next").disabled = dbTotal != null ? end >= dbTotal : r.rows.length < DB_PAGE;
+  $("#db-meta").textContent = "";
+}
+async function openRow(i) {  // the same row again, uncut
+  const q = new URLSearchParams({ offset: dbOffset + i, limit: 1, sort: dbSort, desc: dbDesc, full: true });
+  if ($("#db-col").value && $("#db-contains").value.trim()) { q.set("column", $("#db-col").value); q.set("contains", $("#db-contains").value.trim()); }
+  const r = await api(`/api/admin/db/tables/${encodeURIComponent(dbTable)}/rows?${q}`);
+  const row = r.rows[0] || dbRows[i];
+  $("#db-row-values").replaceChildren(...r.columns.flatMap((c, k) => [el("dt", { textContent: c }),
+    el("dd", {}, el("pre", { className: "db-value" + (row[k] === null ? " muted" : ""), textContent: row[k] === null ? "null" : String(row[k]) }))]));
+  $("#db-row").hidden = false;
+}
+$("#db-row-close").addEventListener("click", () => { $("#db-row").hidden = true; });
+$("#db-filter").addEventListener("submit", (e) => { e.preventDefault(); dbOffset = 0; loadRows(); });
+$("#db-prev").addEventListener("click", () => { dbOffset = Math.max(0, dbOffset - DB_PAGE); loadRows(); });
+$("#db-next").addEventListener("click", () => { dbOffset += DB_PAGE; loadRows(); });
+async function loadStructure() {
+  const s = await api(`/api/admin/db/tables/${encodeURIComponent(dbTable)}`);
+  const table = (head, rows) => el("table", { className: "data" }, el("thead", {}, el("tr", {}, ...head.map((h) => el("th", { textContent: h })))),
+    el("tbody", {}, ...rows.map((r) => el("tr", {}, ...r.map((v) => el("td", { className: "mono small", textContent: v ?? "" }))))));
+  const parts = [el("p", { className: "meta", textContent: `${s.kind}, ${fmtBytes(s.bytes)} with its indexes` }),
+    el("h3", { className: "act-h", textContent: "Columns" }),
+    table(["Name", "Type", "Required", "Default"], s.columns.map((c) => [c.name, c.type, c.not_null ? "yes" : "", c.generated ? "(computed)" : c.default]))];
+  if (s.indexes.length) parts.push(el("h3", { className: "act-h", textContent: "Indexes" }), table(["Name", "Definition", "Size"], s.indexes.map((i) => [i.name, i.definition, fmtBytes(i.bytes)])));
+  if (s.constraints.length) parts.push(el("h3", { className: "act-h", textContent: "Constraints" }), table(["Name", "Definition"], s.constraints.map((c) => [c.name, c.definition])));
+  if (s.definition) parts.push(el("h3", { className: "act-h", textContent: "View definition" }), el("pre", { className: "act-body", textContent: s.definition }));
+  $("#db-pane-structure").replaceChildren(...parts);
+}
+function showDbView(view) {
+  for (const b of $$("#db-views button")) b.setAttribute("aria-selected", String(b.dataset.view === view));
+  $("#db-view-tables").hidden = view !== "tables";
+  $("#db-view-sql").hidden = view !== "sql";
+}
+$$("#db-views button").forEach((b) => b.addEventListener("click", () => showDbView(b.dataset.view)));
+async function runSql() {
+  $("#db-sql-msg").textContent = "Running…";
+  let r;
+  try { r = await api("/api/admin/db/query", { method: "POST", json: { sql: $("#db-sql").value } }); }
+  catch (err) { $("#db-sql-msg").textContent = err.message; $("#db-sql-cols").replaceChildren(); $("#db-sql-rows").replaceChildren(); return; }
+  $("#db-sql-cols").replaceChildren(...r.columns.map((c) => el("th", { scope: "col", textContent: c })));
+  $("#db-sql-rows").replaceChildren(...r.rows.map((row) => el("tr", {}, ...row.map((v) => el("td", { className: v === null ? "muted" : "", textContent: v === null ? "null" : String(v) })))));
+  $("#db-sql-msg").textContent = r.message || `${r.rows.length.toLocaleString()} row(s)${r.more ? " (first 500 shown)" : ""} in ${fmtMs(r.ms)}`;
+}
+$("#db-sql-form").addEventListener("submit", (e) => { e.preventDefault(); runSql(); });
+$("#db-sql").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runSql(); } });
+$("#db-refresh").addEventListener("click", loadDatabase);
 
 let logText = "";
 async function loadLogs() {

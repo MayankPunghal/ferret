@@ -18,6 +18,7 @@
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 5h-7M9 5H4M20 12h-9M7 12H4M20 19h-5M11 19H4M13 3v4M7 10v4M15 17v4"/></symbol>
     <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5 5 0 0 1 3 4.6V20"/></symbol>
     <symbol id="i-logs" viewBox="0 0 24 24"><path d="m5 8 4 4-4 4M12 17h7"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
     <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
     <symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></g></symbol>
@@ -64,6 +65,7 @@
         <p class="nav-group admin-only" hidden>Administration</p>
         <button class="tab admin-only" data-tab="settings" hidden><svg class="i"><use href="#i-settings"/></svg>Settings</button>
         <button class="tab admin-only" data-tab="admin" hidden><svg class="i"><use href="#i-users"/></svg>Users &amp; access</button>
+        <button class="tab admin-only" data-tab="database" hidden><svg class="i"><use href="#i-db"/></svg>Database</button>
         <button class="tab admin-only" data-tab="logs" hidden><svg class="i"><use href="#i-logs"/></svg>Logs</button>
       </nav>
       <div class="account">
@@ -390,6 +392,61 @@
             <span id="log-msg" class="muted small" role="status"></span>
           </div>
           <pre id="log-text" class="log-text" tabindex="0"></pre>
+        </div>
+      </section>
+
+      <section id="tab-database" hidden>
+        <div class="title-row">
+          <h1>Database</h1>
+          <div class="actions"><button type="button" id="db-refresh" class="button">Refresh</button></div>
+        </div>
+        <p class="muted lede">The tables behind the app, read-only: what is stored, how it is organised, and the rows
+          themselves. Password and access-token hashes are hidden; vectors and long text are shortened (click a row for
+          its full values).</p>
+        <p id="db-info" class="meta"></p>
+        <div class="seg" role="tablist" id="db-views">
+          <button type="button" role="tab" data-view="tables" aria-selected="true">Tables</button>
+          <button type="button" role="tab" data-view="sql" aria-selected="false">SQL</button>
+        </div>
+        <div id="db-view-tables" class="dbv">
+          <nav class="db-list" aria-label="Tables"><ul id="db-tables"></ul></nav>
+          <div class="db-main">
+            <div class="db-head"><h2 id="db-name"></h2><span id="db-meta" class="meta"></span></div>
+            <div class="seg" role="tablist" id="db-panes">
+              <button type="button" role="tab" data-pane="rows" aria-selected="true">Rows</button>
+              <button type="button" role="tab" data-pane="structure" aria-selected="false">Structure</button>
+            </div>
+            <div id="db-pane-rows">
+              <form class="toolbar" id="db-filter">
+                <label class="inline">Where <select id="db-col" aria-label="Column"></select></label>
+                <input id="db-contains" type="search" placeholder="contains…" aria-label="Value contains">
+                <button type="submit" class="button">Filter</button>
+                <span class="db-pager"><button type="button" id="db-prev" class="button">Previous</button>
+                  <span id="db-range" class="meta"></span>
+                  <button type="button" id="db-next" class="button">Next</button></span>
+              </form>
+              <div class="db-grid-wrap"><table class="data db-grid"><thead><tr id="db-cols"></tr></thead><tbody id="db-rows"></tbody></table></div>
+              <p id="db-empty" class="empty" hidden>No rows.</p>
+            </div>
+            <div id="db-pane-structure" hidden></div>
+          </div>
+          <aside id="db-row" class="act-detail db-row" hidden aria-label="Row details">
+            <div class="act-head"><h2>Row</h2>
+              <button type="button" class="icon" id="db-row-close" title="Close" aria-label="Close row"><svg class="i"><use href="#i-close"/></svg></button></div>
+            <dl id="db-row-values" class="kv db-kv"></dl>
+          </aside>
+        </div>
+        <div id="db-view-sql" hidden>
+          <p class="muted">Runs one statement as a separate read-only database role: it cannot change anything or read
+            password and token hashes. At most 500 rows, 15 seconds. Every query is recorded in the audit log.</p>
+          <form id="db-sql-form">
+            <textarea id="db-sql" class="mono" rows="6" spellcheck="false" aria-label="SQL query">SELECT d.title, count(c.id) AS passages
+FROM documents d JOIN chunks c ON c.document_id = d.id
+GROUP BY d.title ORDER BY passages DESC LIMIT 20</textarea>
+            <div class="toolbar"><button type="submit" class="primary">Run</button>
+              <span class="meta">Ctrl+Enter</span><span id="db-sql-msg" class="muted small" role="status"></span></div>
+          </form>
+          <div class="db-grid-wrap"><table class="data db-grid"><thead><tr id="db-sql-cols"></tr></thead><tbody id="db-sql-rows"></tbody></table></div>
         </div>
       </section>
 
