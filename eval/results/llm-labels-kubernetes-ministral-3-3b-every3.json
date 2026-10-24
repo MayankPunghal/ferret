@@ -1,0 +1,255 @@
+{
+ "llm": "ministral-3-3b",
+ "pages": 14,
+ "exact": 0.714,
+ "compatible": 0.714,
+ "compatible_by_section": {
+  "tasks": 1.0,
+  "concepts": 0.0,
+  "reference": 1.0,
+  "tutorials": 1.0
+ },
+ "confusion": {
+  "how-to -> how-to": 6,
+  "concept -> how-to": 4,
+  "reference -> reference": 4
+ },
+ "rows": [
+  {
+   "file": "access-api-from-pod.md",
+   "site_path": "content/en/docs/tasks/run-application/access-api-from-pod.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes API access",
+    "ServiceAccount tokens",
+    "In-cluster configuration",
+    "Environment variables (`KUBERNETES_SERVICE_HOST`, `KUBERNETE",
+    "Service DNS (`kubernetes.default.svc`)",
+    "Client libraries (Go, Python)"
+   ],
+   "summary": "This guide explains how to access the Kubernetes API from within a Pod, covering official client libraries, direct REST API access, and authentication via service account tokens and certificates. It details environment variables, DNS names, and secure credential handling.",
+   "seconds": 54.9
+  },
+  {
+   "file": "configure-service-account.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/configure-service-account.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes Service Accounts",
+    "API Server Authentication",
+    "ServiceAccount Token Management",
+    "ImagePullSecrets",
+    "Pod Authentication",
+    "Authorization and Access Control"
+   ],
+   "summary": "Explains how to configure Service Accounts for Pods in Kubernetes, including default usage, manual token creation, token projection, and managing multiple service accounts with image pull secrets.",
+   "seconds": 33.1
+  },
+  {
+   "file": "extend-service-ip-ranges.md",
+   "site_path": "content/en/docs/tasks/network/extend-service-ip-ranges.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes Service CIDR",
+    "Service IP allocation",
+    "Dynamic IP range extension",
+    "ServiceCIDR objects",
+    "Kubernetes networking",
+    "Admission control policies"
+   ],
+   "summary": "Explains how to dynamically extend the IP range for Kubernetes Services by adding new ServiceCIDRs without disrupting existing services. Details steps for adding, restricting, and securing ServiceCIDR configurations.",
+   "seconds": 38.9
+  },
+  {
+   "file": "migrate-from-psp.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/migrate-from-psp.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "PodSecurityPolicy (PSP)",
+    "PodSecurity Admission Controller",
+    "Kubernetes admission controllers",
+    "Pod Security Standards",
+    "Mutating Admission Webhook",
+    "Validating Admission Webhook"
+   ],
+   "summary": "Guides the migration from PodSecurityPolicy (PSP) to Kubernetes' built-in PodSecurity Admission Controller. Covers decision-making, namespace permissions, standardization, enforcement, and disabling PSP with dry-run and audit modes.",
+   "seconds": 47.7
+  },
+  {
+   "file": "admission-webhooks-good-practices.md",
+   "site_path": "content/en/docs/concepts/cluster-administration/admission-webhooks-good-practices.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "how-to",
+   "topics": [
+    "Admission Controllers",
+    "Admission Webhooks",
+    "Mutating Admission Webhooks",
+    "Validating Admission Webhooks",
+    "CustomResourceDefinitions (CRDs)",
+    "Kubernetes API Extensions"
+   ],
+   "summary": "This document outlines best practices for designing admission webhooks in Kubernetes, covering validation, mutation, performance, and failure prevention. It emphasizes careful implementation to avoid disruptions and compatibility issues with Kubernetes API changes.",
+   "seconds": 68.0
+  },
+  {
+   "file": "dynamic-provisioning.md",
+   "site_path": "content/en/docs/concepts/storage/dynamic-provisioning.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes Storage Classes",
+    "PersistentVolume (PV) and PersistentVolumeClaim (PVC)",
+    "Storage Provisioners (e.g., GCE PD)",
+    "Dynamic Storage Allocation",
+    "Kubernetes API Objects (StorageClass, PVC)",
+    "Cloud Storage Systems (e.g., GCP)"
+   ],
+   "summary": "Explains how Kubernetes dynamically creates storage volumes on-demand via `PersistentVolumeClaim` and `StorageClass`. Includes setup steps for administrators and usage instructions for users, highlighting provisioner configurations and deprecated vs. modern methods.",
+   "seconds": 39.2
+  },
+  {
+   "file": "object-management.md",
+   "site_path": "content/en/docs/concepts/overview/working-with-objects/object-management.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes API",
+    "kubectl command-line tool",
+    "Imperative commands (live object operations)",
+    "Imperative object configuration (YAML/JSON file-based operat",
+    "Declarative object configuration (directory-based YAML files",
+    "Kubernetes object management workflows"
+   ],
+   "summary": "Explains Kubernetes object management techniques, focusing on imperative commands and object configuration (imperative/declarative). Highlights trade-offs, environments, and best practices for managing objects safely in clusters.",
+   "seconds": 39.6
+  },
+  {
+   "file": "scheduler.md",
+   "site_path": "content/en/docs/concepts/security/hardening-guide/scheduler.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes Scheduler",
+    "Authentication & Authorization (kubeconfig, API server consi",
+    "Networking (bind-address, connection sharing)",
+    "TLS Security (cipher suites)",
+    "Scheduler Hardening",
+    "Yo-Yo Attack Mitigation"
+   ],
+   "summary": "This guide outlines security hardening measures for the Kubernetes scheduler, focusing on authentication, networking, TLS, and mislabeling protection to prevent Yo-Yo attacks and unauthorized node targeting.",
+   "seconds": 35.6
+  },
+  {
+   "file": "access-authn-authz.md",
+   "site_path": "content/en/docs/reference/access-authn-authz/_index.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes API",
+    "Authentication (AuthN)",
+    "Authorization (AuthZ)",
+    "Role-Based Access Control (RBAC)",
+    "Attribute-Based Access Control (ABAC)",
+    "Admission Controllers (dynamic/manifest-based)"
+   ],
+   "summary": "Explains Kubernetes' API access control mechanisms, including authentication, authorization, and admission controllers. Covers RBAC, ABAC, service accounts, and certificate management.",
+   "seconds": 33.0
+  },
+  {
+   "file": "customresourcedefinition.md",
+   "site_path": "content/en/docs/reference/glossary/customresourcedefinition.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes API Server",
+    "Custom API Extensions",
+    "Resource Definitions",
+    "Kubernetes Custom Resources"
+   ],
+   "summary": "Explains how CustomResourceDefinitions (CRDs) extend Kubernetes\u2019 API server to define custom resources. Allows users to create new API endpoints without building a full custom server.",
+   "seconds": 16.7
+  },
+  {
+   "file": "kernel-version-requirements.md",
+   "site_path": "content/en/docs/reference/node/kernel-version-requirements.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Linux Kernel Versioning",
+    "Kubernetes Compatibility",
+    "Sysctls (e.g., `net.ipv4.ip_local_reserved_ports`, `net.ipv4",
+    "cgroup v2 vs. v1",
+    "Pressure Stall Information (PSI) metrics",
+    "kube-proxy `nftables` proxy mode"
+   ],
+   "summary": "Document outlines minimum Linux kernel version requirements for Kubernetes features, including sysctls, cgroup v2, and kernel configurations like PSI support. Notes distribution-specific backports and production considerations for `nftables` mode.",
+   "seconds": 142.2
+  },
+  {
+   "file": "probe.md",
+   "site_path": "content/en/docs/reference/glossary/probe.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "kubelet",
+    "container probes",
+    "Pod lifecycle",
+    "Kubernetes health checks",
+    "container state management",
+    "Pod scheduling/termination"
+   ],
+   "summary": "Explains Kubernetes **container probes**\u2014periodic checks by kubelet on running containers to determine their state and health, influencing lifecycle decisions. Covers lifecycle management and probe mechanics.",
+   "seconds": 77.3
+  },
+  {
+   "file": "admission-policies.md",
+   "site_path": "content/en/docs/tutorials/cluster-management/admission-policies.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes Admission Policies",
+    "ValidatingAdmissionPolicy",
+    "MutatingAdmissionPolicy",
+    "Common Expression Language (CEL)",
+    "ValidatingAdmissionPolicyBinding",
+    "MutatingAdmissionPolicyBinding"
+   ],
+   "summary": "Explains how to define and apply Kubernetes admission policies using CEL (Common Expression Language) for validation or mutation of resources. Covers setup, policy types (Validating/Mutating), and testing procedures.",
+   "seconds": 151.8
+  },
+  {
+   "file": "hello-minikube.md",
+   "site_path": "content/en/docs/tutorials/hello-minikube.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Minikube",
+    "Kubernetes (K8s) Pods",
+    "Kubernetes Deployments",
+    "Kubernetes Services",
+    "kubectl",
+    "Kubernetes Dashboard"
+   ],
+   "summary": "Guides users on deploying a Kubernetes-based NGINX app in a Minikube single-node cluster, including setup, deployment, and dashboard access. Covers basic Kubernetes concepts like Deployments and Services.",
+   "seconds": 127.5
+  }
+ ]
+}
