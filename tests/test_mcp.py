@@ -124,7 +124,7 @@ def test_official_mcp_client(client, corpus):
 
 
 def test_stdio_bridge(client, corpus, monkeypatch):
-    """`knowledge-search mcp` relays one JSON-RPC message per line to the HTTP endpoint (Claude Desktop)."""
+    """`ferret mcp` relays one JSON-RPC message per line to the HTTP endpoint (Claude Desktop)."""
     import uvicorn
 
     server = uvicorn.Server(uvicorn.Config(client.app, host="127.0.0.1", port=0, log_config=None, lifespan="off"))

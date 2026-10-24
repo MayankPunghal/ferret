@@ -38,7 +38,7 @@ Nothing below is built yet.
 4. **Slow down guessing:** after 5 failed sign-ins for one username in 15 minutes, wait 30 s per attempt. The
    same applies to wrong codes on the welcome page. It must not reveal whether a username exists.
 5. **First administrator:** unchanged (the first-run page). As a last resort, the command line
-   `knowledge-search reset-password <user>` prints a reset link for someone with access to the server.
+   `ferret reset-password <user>` prints a reset link for someone with access to the server.
 
 ## Design details
 

@@ -1,4 +1,4 @@
-"""Administrator: copy websites into Markdown with site2md, from inside Knowledge Search.
+"""Administrator: copy websites into Markdown with site2md, from inside Ferret.
 
 The Crawler tab is site2md's own page (the same one its stand-alone launcher opens), served at /crawler/ and
 driven through /api/admin/crawler/* with the administrator's session, so no access token is needed. One site2md
@@ -91,9 +91,9 @@ def page(p: Admin):
 
 @router.get("/crawler/{asset}")
 def asset(asset: str):
-    if asset not in ("ui.css", "ui.js"):
+    if "/" + asset not in ui.ASSETS:
         raise HTTPException(404, "not found")
-    return Response((ui.STATIC / asset).read_bytes(), media_type="text/css" if asset.endswith(".css") else "text/javascript",
+    return Response((ui.STATIC / asset).read_bytes(), media_type=ui.ASSETS["/" + asset].split(";")[0],
                     headers={"Content-Security-Policy": PAGE_CSP})
 
 

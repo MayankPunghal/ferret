@@ -10,6 +10,7 @@ dependencies = []
 browser = ["playwright>=1.48"]
 
 [project.scripts]
+ferret-crawler = "site2md:main"
 site2md = "site2md:main"
 
 [build-system]

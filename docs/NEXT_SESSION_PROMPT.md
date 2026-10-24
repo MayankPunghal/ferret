@@ -4,13 +4,13 @@ Copy everything below the line into a new (local) Claude Code session opened in 
 
 ---
 
-You are continuing work on **Knowledge Search** (this repository): an offline-first, permission-aware
+You are continuing work on **Ferret** (this repository): an offline-first, permission-aware
 knowledge search for technical/IT teams. Before doing anything:
 
 1. Read `CLAUDE.md` (owner's standing instructions and end goal — follow them exactly), then
    `docs/HANDOFF.md` (verified vs unverified state, decisions, explored/unexplored paths) and
    `docs/research-graph.md` (graph navigation design + what v1 implements).
-2. Verify the baseline: `uv sync && uv run knowledge-search download-model && uv run pytest -q`
+2. Verify the baseline: `uv sync && uv run ferret download-model && uv run pytest -q`
    (expect 39 passed; tests start their own embedded PostgreSQL, no Docker). If anything fails, fix that
    first and report it.
 

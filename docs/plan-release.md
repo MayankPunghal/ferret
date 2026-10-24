@@ -34,7 +34,7 @@ Problems found while checking:
    server on Linux. Without this, the packages below cannot be trusted.
 2. **PyPI package and a browser setup wizard** (like holler's wizard, but in the browser because this app is
    a web app):
-   - `uv tool install knowledge-search` (or `pipx install`), then `knowledge-search` opens the browser.
+   - `uv tool install knowledge-search` (or `pipx install`), then `ferret` opens the browser.
    - The first-run page already creates the administrator. Extend it into steps: data folder; the search
      model download with progress (reuse the Settings download button); optional summaries model; sample
      data yes/no; start on login yes/no.
@@ -48,7 +48,7 @@ Problems found while checking:
    - Models are baked in, so it runs offline. Fix the model mismatch above.
 4. **Windows installer** (details: docs/plan-installer.md) (`KnowledgeSearch-Setup-<version>.exe`), copying holler's PyInstaller + Inno Setup +
    CI install test:
-   - A tray icon: "Knowledge Search is running · Open · Stop · Start on login".
+   - A tray icon: "Ferret is running · Open · Stop · Start on login".
    - Hard parts: bundling the embedded PostgreSQL binaries and onnxruntime; downloading `llama-server` on
      first use (already how it works); and installer size (several hundred MB, unmeasured).
    - Do it after steps 1–3, because the PyPI package is what it wraps.

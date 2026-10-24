@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     enrich_hours: str = ""  # "22-6": the local model only works between these hours (local time); "" = any time
 
     # Local language model for document summaries (enrich.py), OpenAI-compatible. Empty llm_url = the model
-    # installed by setup (`knowledge-search download-llm`, run by the app itself) if present, else off.
+    # installed by setup (`ferret download-llm`, run by the app itself) if present, else off.
     # Ollama: llm_url=http://127.0.0.1:11434/v1, llm_model=qwen3.5:0.8b. Nothing is sent anywhere else.
     llm_url: str = ""
     llm_model: str = ""
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     max_pdf_pages: int = 2000
     max_extracted_chars: int = 5_000_000
 
-    # Background ingestion workers inside the API process. 0 = run `knowledge-search worker`
+    # Background ingestion workers inside the API process. 0 = run `ferret worker`
     # as a separate process instead (recommended on a server to protect query latency).
     inprocess_workers: int = 1
     worker_poll_seconds: float = 1.0

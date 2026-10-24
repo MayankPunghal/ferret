@@ -23,7 +23,7 @@ def main(argv: list[str] | None = None) -> None:
     from . import logs
 
     logs.install(get_settings().data_dir)
-    ap = argparse.ArgumentParser(prog="knowledge-search")
+    ap = argparse.ArgumentParser(prog="ferret")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate", help="apply database migrations")
     p = sub.add_parser("create-user")
@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> None:
 
         from .api import create_app
 
-        print("Starting Knowledge Search - loading the AI model (the first start can take a minute).\n"
+        print("Starting Ferret - loading the AI model (the first start can take a minute).\n"
               "Keep this window open while you use the app; close it to stop.", flush=True)
         _announce_when_ready(f"http://{'127.0.0.1' if a.host in ('0.0.0.0', '::') else a.host}:{a.port}", a.open)
         if a.workers > 1:

@@ -126,7 +126,7 @@ def add_folder(body: FolderBody, p: Admin, conn: Conn):
     if not root.is_absolute():
         raise HTTPException(400, "give the full path of the folder, e.g. C:\\Users\\me\\docs or /home/me/docs")
     if not root.is_dir():
-        raise HTTPException(400, f"no folder at {root} on the computer running Knowledge Search")
+        raise HTTPException(400, f"no folder at {root} on the computer running Ferret")
     if unknown := set(body.types) - set(TYPES):
         raise HTTPException(400, f"unknown types: {', '.join(sorted(unknown))}; choose from {', '.join(TYPES)}")
     if not conn.execute("SELECT 1 FROM collections WHERE id = %s", (body.collection_id,)).fetchone():

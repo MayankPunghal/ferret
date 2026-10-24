@@ -29,11 +29,13 @@ from urllib.parse import parse_qs, urlsplit
 from .crawl import BrowserFetcher, Crawler, normalize, start_folder
 
 STATIC = Path(__file__).parent / "static"
+ASSETS = {"/ui.css": "text/css; charset=utf-8", "/ui.js": "text/javascript; charset=utf-8",
+          "/favicon.svg": "image/svg+xml"}
 SIGNIN_HOSTS = re.compile(r"(^|\.)(accounts\.google\.com|login\.microsoftonline\.com|login\.live\.com|"
                           r"okta\.com|oktapreview\.com|auth0\.com|onelogin\.com|duosecurity\.com|pingone\.com)$")
 SIGNIN_PATH = re.compile(r"(?i)/(login|log-in|signin|sign-in|sso|saml|oauth2?|auth|authorize|cas)(\b|/|\.|$)")
 NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._-]{0,79}$")
-KEEP = {".md", ".pdf", ".docx", ".pptx", ".txt", ".html", ".htm"}  # what Send to Knowledge Search uploads
+KEEP = {".md", ".pdf", ".docx", ".pptx", ".txt", ".html", ".htm"}  # what Send to Ferret uploads
 
 
 def name_for(url: str) -> str:
@@ -273,7 +275,7 @@ class App:
         self.copies = copies
         self.copies.mkdir(parents=True, exist_ok=True)
         self.on_copies = on_copies  # called with the new folder when the person changes it
-        self.on_done = None  # called with (name, folder, state) when a copy stops (Knowledge Search syncs it)
+        self.on_done = None  # called with (name, folder, state) when a copy stops (Ferret syncs it)
         self.run: Run | None = None
         self.sends: dict[str, dict] = {}
         self.lock = threading.Lock()
@@ -501,7 +503,7 @@ class App:
         for d in (folder, folder.with_name(name + ".new"), Path(f"{folder}-html"), Path(f"{folder}.new-html")):
             shutil.rmtree(d, ignore_errors=True)
 
-    # -- the page's API, shared by the stand-alone server and Knowledge Search's Crawler tab
+    # -- the page's API, shared by the stand-alone server and Ferret's Crawler tab
     def handle(self, method: str, path: str, q: dict, body: dict) -> tuple:
         """(status, body[, content type]) for GET/POST <path> (without /api/)."""
         try:
@@ -572,7 +574,7 @@ class App:
             self.on_copies(folder)
         return folder
 
-    # -- Knowledge Search
+    # -- Ferret
     def ks_collections(self, body: dict) -> dict:
         me = _ks(body, "GET", "/api/me")
         return {"is_admin": me.get("is_admin", False), "user": me.get("username"),
@@ -595,7 +597,7 @@ class App:
                 me = _ks(body, "GET", "/api/me")
                 if new_name:
                     if not me.get("is_admin"):
-                        raise ValueError("only a Knowledge Search administrator can create a collection")
+                        raise ValueError("only a Ferret administrator can create a collection")
                     body["collection_id"] = _ks(body, "POST", "/api/admin/collections", {"name": new_name})["id"]
                 local = urlsplit(server).hostname in ("127.0.0.1", "localhost", "::1")
                 if local and me.get("is_admin"):  # same computer: a synced folder (later updates remove old pages)
@@ -624,7 +626,7 @@ class App:
 def _ks(body: dict, method: str, path: str, data: dict | None = None) -> dict:
     server, token = str(body.get("server", "")).rstrip("/"), str(body.get("token", "")).strip()
     if not re.match(r"^https?://", server) or not token:
-        raise ValueError("give the Knowledge Search address and an access token")
+        raise ValueError("give the Ferret address and an access token")
     req = urllib.request.Request(server + path, method=method, data=json.dumps(data).encode() if data else None,
                                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
     try:
@@ -632,11 +634,11 @@ def _ks(body: dict, method: str, path: str, data: dict | None = None) -> dict:
             return json.loads(r.read() or b"{}")
     except urllib.error.HTTPError as e:
         if e.code == 401:
-            raise ValueError("Knowledge Search did not accept the token (expired or revoked?)") from None
+            raise ValueError("Ferret did not accept the token (expired or revoked?)") from None
         detail = e.read().decode("utf-8", "replace")[:300]
-        raise ValueError(f"Knowledge Search refused it (HTTP {e.code}): {detail}") from None
+        raise ValueError(f"Ferret refused it (HTTP {e.code}): {detail}") from None
     except urllib.error.URLError as e:
-        raise ValueError(f"cannot reach Knowledge Search at {server}: {e.reason}") from None
+        raise ValueError(f"cannot reach Ferret at {server}: {e.reason}") from None
 
 
 def _ks_upload(body: dict, f: Path, path: str) -> dict:
@@ -698,11 +700,10 @@ def make_handler(app: App, key: str, port_holder: list):
                 return self._send(403, {"error": "wrong address"})
             if u.path in ("/", "/index.html"):
                 if not self._key_ok(q):
-                    return self._send(403, b"Open site2md from its launcher (Crawl Website).", "text/plain; charset=utf-8")
+                    return self._send(403, b"Open Ferret Crawler from its launcher (Crawl Website).", "text/plain; charset=utf-8")
                 return self._send(200, (STATIC / "index.html").read_bytes(), "text/html; charset=utf-8")
-            if u.path in ("/ui.css", "/ui.js"):
-                ctype = "text/css" if u.path.endswith(".css") else "text/javascript"
-                return self._send(200, (STATIC / u.path[1:]).read_bytes(), ctype + "; charset=utf-8")
+            if u.path in ASSETS:
+                return self._send(200, (STATIC / u.path[1:]).read_bytes(), ASSETS[u.path])
             if not self._key_ok(q):
                 return self._send(403, {"error": "missing key"})
             self._send(*app.handle("GET", u.path.removeprefix("/api/"), {k: v[0] for k, v in q.items()}, {}))
@@ -751,7 +752,7 @@ def main(copies: str = "", open_browser: bool = True) -> None:
         chosen = ""
     folder = Path(chosen or copies or Path.home() / "site2md").expanduser()
     srv, url = serve(folder, open_browser, remember=True)
-    print(("site2md is open in your browser. If it did not open, go to:" if open_browser else "site2md is at:")
+    print(("Ferret Crawler is open in your browser. If it did not open, go to:" if open_browser else "Ferret Crawler is at:")
           + f"\n  {url}\nKeep this window open while you copy; close it to stop.")
     try:
         srv.serve_forever()

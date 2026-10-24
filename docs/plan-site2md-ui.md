@@ -26,7 +26,7 @@ prominent action. Assumptions are marked; the open questions are at the end.
   - It shows no overall progress.
   - Failures are only in `manifest.json`.
   - Re-running needs the same name typed again.
-  - Nothing connects it to Knowledge Search.
+  - Nothing connects it to Ferret.
 
 ## Brief
 
@@ -38,7 +38,7 @@ prominent action. Assumptions are marked; the open questions are at the end.
    and a short, plain list of what was skipped.
 3. **Direction (Operate mode).**
    - Standard controls only: text field, buttons, a progress bar, tables.
-   - The same look as the Knowledge Search app (its colour and type tokens from `app.css`), so the two read
+   - The same look as the Ferret app (its colour and type tokens from `app.css`), so the two read
      as one product.
    - **Signature move: the site's own structure filling in.** The site's sections (from its URL folders) are
      shown as a tree, each with a bar of pages saved / found that fills as the crawl runs. It shows progress
@@ -95,9 +95,9 @@ prominent action. Assumptions are marked; the open questions are at the end.
      "video or spreadsheet (not kept)", "page not found". Each group has an example and a **Try these
      again** button.
    - **Next step:**
-     - If Knowledge Search runs on this computer: **Search it in Knowledge Search** creates or picks a
+     - If Ferret runs on this computer: **Search it in Ferret** creates or picks a
        collection, uploads the folder and opens the Documents tab.
-     - Otherwise: **Open folder**, plus **Send to Knowledge Search** with the server address and an access
+     - Otherwise: **Open folder**, plus **Send to Ferret** with the server address and an access
        token from its AI assistants page. The token is shortened on screen, as in the app.
 
 ## Build notes
@@ -109,8 +109,8 @@ prominent action. Assumptions are marked; the open questions are at the end.
   browser's address is back under the start URL, or when the page sends "continue".
 - **Launchers:** `Crawl Website.bat` / `.command` install uv (as now), then run `site2md` with no arguments,
   which opens the page.
-- **Later:** the same screens as "Import a website" inside Knowledge Search for laptop installs. Not first:
-  when Knowledge Search runs on a server, a sign-in-protected intranet must be crawled from the user's own
+- **Later:** the same screens as "Import a website" inside Ferret for laptop installs. Not first:
+  when Ferret runs on a server, a sign-in-protected intranet must be crawled from the user's own
   computer and browser, which the standalone page handles.
 
 ## Checks
@@ -122,7 +122,7 @@ prominent action. Assumptions are marked; the open questions are at the end.
 
 ## Open questions for the owner
 
-1. Is "Search it in Knowledge Search" the most common next step, or do people also use the Markdown
+1. Is "Search it in Ferret" the most common next step, or do people also use the Markdown
    elsewhere (LLM tools, offline copies)? That decides how prominent "Open folder" is.
 2. Should copies refresh on a schedule (for example nightly), or is a manual **Update** enough for now?
    (Recommended: manual first.)

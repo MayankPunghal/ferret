@@ -43,7 +43,7 @@ services:
 
   worker:
     <<: *app
-    command: ["/app/.venv/bin/knowledge-search", "worker"]
+    command: ["/app/.venv/bin/ferret", "worker"]
     healthcheck:
       disable: true
 

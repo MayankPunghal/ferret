@@ -1,6 +1,6 @@
 // site2md page: Website copies, Copy a website, Sign in, and one screen per copy (while it runs and after),
 // with Overview, Pages and Log. Stand-alone, every request carries the one-time key from this page's address;
-// inside Knowledge Search (served under /crawler/) the administrator's own session is used instead.
+// inside Ferret (served under /crawler/) the administrator's own session is used instead.
 "use strict";
 const IN_KS = location.pathname.startsWith("/crawler");
 const KEY = new URLSearchParams(location.search).get("k") || "";
@@ -183,7 +183,7 @@ function renderCopy(d) {
     const stop = btn("Stop", () => control("stop"), "button danger"); stop.disabled = d.state === "stopping"; acts.push(stop);
   } else {
     if (d.counts.waiting && d.state !== "done") acts.push(btn(d.state === "signin-expired" ? "Sign in and continue" : "Continue", () => start({ name: d.name, mode: "continue", signin: d.state === "signin-expired" }), "primary"));
-    acts.push(btn(IN_KS ? "Add to a collection" : "Send to Knowledge Search", openSend, acts.length ? "button" : "primary"),
+    acts.push(btn(IN_KS ? "Add to a collection" : "Send to Ferret", openSend, acts.length ? "button" : "primary"),
       btn("Update", () => start({ name: d.name, mode: "update" })), btn("Open folder", () => api("open", { name: d.name })));
     acts.push(btn("Delete", async () => {
       if (!confirm(`Delete the copy “${d.name}” (${plural(d.counts.saved, "page")}) from this computer? The website is not affected.`)) return;
@@ -294,9 +294,9 @@ async function loadLog() {
   if (atEnd) pre.scrollTop = pre.scrollHeight;
 }
 
-// ---------------------------------------------------------------- Send to Knowledge Search
+// ---------------------------------------------------------------- Send to Ferret
 // Stand-alone: an address and an access token (never stored; the address is remembered in this browser).
-// Inside Knowledge Search: the administrator's own session, and the copy becomes a synced folder.
+// Inside Ferret: the administrator's own session, and the copy becomes a synced folder.
 try { const s = localStorage.getItem("site2md-ks-server"); if (s) $("#ks-server").value = s; } catch { /* not kept */ }
 const ksBody = () => ({ server: $("#ks-server").value.trim(), token: $("#ks-token").value.trim() });
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
@@ -345,7 +345,7 @@ $("#send-form").addEventListener("submit", async (e) => {
     if (IN_KS) {
       const id = isNew ? (await ks("/api/admin/collections", { name: newName })).id : Number($("#ks-col").value);
       await ks("/api/admin/folders", { path: detail.folder, collection_id: id });
-      st.replaceChildren(`Added to ${colName}. Knowledge Search is indexing it now; after an Update here it takes in only what changed. `,
+      st.replaceChildren(`Added to ${colName}. Ferret is indexing it now; after an Update here it takes in only what changed. `,
         el("button", { type: "button", className: "link", textContent: "Open Documents",
           onclick: () => window.parent.postMessage({ open: "documents" }, location.origin) }));
       return;
@@ -356,9 +356,9 @@ $("#send-form").addEventListener("submit", async (e) => {
       if (!s) return;
       if (s.state === "sending") { st.textContent = s.total ? `Sending ${num(s.done)} of ${num(s.total)}…` : "Sending…"; setTimeout(poll, 800); return; }
       if (s.state === "failed") { st.textContent = s.error; return; }
-      st.replaceChildren(s.how === "synced folder" ? `Added to ${colName} as a synced folder: Knowledge Search is indexing it now. `
+      st.replaceChildren(s.how === "synced folder" ? `Added to ${colName} as a synced folder: Ferret is indexing it now. `
         : `Sent to ${colName}: ${num(s.queued)} new or changed, ${num(s.unchanged)} unchanged${s.rejected.length ? `, ${s.rejected.length} refused` : ""}. `,
-        el("a", { href: ksBody().server, target: "_blank", rel: "noopener", textContent: "Open Knowledge Search" }));
+        el("a", { href: ksBody().server, target: "_blank", rel: "noopener", textContent: "Open Ferret" }));
     };
     poll();
   } catch (x) { st.textContent = x.message; }

@@ -7,7 +7,7 @@ B=${1:-$(mktemp -d)}  # work folder (deleted contents are recreated)
 BIN=$PWD/.venv/lib/python3.13/site-packages/pixeltable_pgserver/pginstall18/bin
 export KS_MODEL_CACHE=$PWD/data/models
 rm -rf $B/orig $B/backup $B/restoredA $B/restoredB $B/*.json $B/ks.dump
-serve() { KS_DATA_DIR=$1 nohup uv run knowledge-search serve --port $2 > $1.log 2>&1 & echo $! > $1.pid
+serve() { KS_DATA_DIR=$1 nohup uv run ferret serve --port $2 > $1.log 2>&1 & echo $! > $1.pid
           timeout 300 bash -c "until curl -s localhost:$2/readyz | grep -q '\"ready\"'; do sleep 2; done"; }
 stop() { kill $(cat $1.pid); sleep 1; pkill -P $(cat $1.pid) 2>/dev/null || true
          timeout 60 bash -c "while ls $1/pg/postmaster.pid >/dev/null 2>&1; do sleep 1; done"; }
@@ -20,7 +20,7 @@ probe() { # login as alice, run two searches, save outcome + top titles
   done > $2; curl -s localhost:$1/api/documents -H "Authorization: Bearer $T" | python3 -c "import json,sys;print(len(json.load(sys.stdin)), 'documents visible to alice')" >> $2; }
 
 echo "== original install"; serve $B/orig 8010
-KS_DATA_DIR=$B/orig uv run knowledge-search demo > /dev/null 2>&1
+KS_DATA_DIR=$B/orig uv run ferret demo > /dev/null 2>&1
 probe 8010 $B/orig.json; cat $B/orig.json
 
 echo "== (A) laptop: stop, copy the data folder, delete the original, restore the copy elsewhere"

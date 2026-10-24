@@ -125,7 +125,7 @@ def test_crawl_website_into_a_collection(client, corpus, tmp_path):
         assert len(call(client, root, "list_documents", collection="sent-copy")["documents"]) == 2
         # the Crawler tab: the same copy, through the administrator's session, without a token
         client.post("/api/auth/login", json={"username": "root", "password": "correct-horse-battery"})
-        assert "site2md" in client.get("/crawler/").text
+        assert "Ferret Crawler" in client.get("/crawler/").text
         copy = client.get(f"/api/admin/crawler/copy?name={job['name']}").json()
         assert copy["counts"]["saved"] == 2 and copy["state"] == "done"
         assert client.post("/api/admin/crawler/send", headers={"x-ks-csrf": "1"}, json={}).status_code == 404

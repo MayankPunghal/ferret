@@ -1,6 +1,11 @@
-# site2md
+<p align="center"><img src="src/site2md/static/favicon.svg" width="88" alt=""></p>
 
-Save a website or intranet as Markdown files, one per page, for a search index (such as knowledge-search),
+<h1 align="center">Ferret Crawler</h1>
+
+<p align="center">Part of <a href="../README.md">Ferret</a>. Command-line name: <code>site2md</code> (or <code>ferret-crawler</code>).</p>
+
+
+Save a website or intranet as Markdown files, one per page, for a search index (such as Ferret),
 an LLM tool or an offline copy. Standard-library Python; a real browser is optional for sites behind a login.
 
 ## The easy way (no setup)
@@ -8,14 +13,14 @@ an LLM tool or an offline copy. Standard-library Python; a real browser is optio
 1. Unzip this folder anywhere.
 2. Double-click **`Crawl Website.bat`** (Windows) or **`Crawl Website.command`** (macOS; on Linux run
    `bash "Crawl Website.command"`). A page opens in your browser; keep the small black window open while you
-   copy (closing it stops site2md).
+   copy (closing it stops the crawler).
 3. **Copy a website** → paste the address. The page checks it at once ("Found “Engineering Wiki”", or "this
    address asks you to sign in"). Give the copy a name and press **Start copying**. For a site behind a
    sign-in, a browser window opens: sign in there; the page notices and starts copying by itself.
 
 While it copies you see each section of the site filling in, with Pause and Stop. When it is done, the page
 lists what was not copied, grouped by reason ("page not found · 12"), with **Try these again**, and can
-**send the copy to Knowledge Search**.
+**send the copy to Ferret**.
 
 The copies are in `output/<name>/`, one Markdown file per page, next to the original PDF, Word and
 PowerPoint files the pages link to or embed. The first run installs what it needs (uv, Python, about 1–2
@@ -24,11 +29,11 @@ the old copy is kept until the new one is finished), **Continue** for a stopped 
 
 Sign-ins use Google Chrome or Microsoft Edge already on the computer (or a Chromium downloaded with
 `uv run --extra browser playwright install chromium`). The sign-in is kept on your computer only, in
-`~/.site2md/profile-<browser>`. Delete that folder to sign out. site2md never sees your password.
+`~/.site2md/profile-<browser>`. Delete that folder to sign out. The crawler never sees your password.
 
 **Original HTML (optional):** *More options → Also keep each page's original HTML* saves each page's HTML in
 `output/<name>-html/`, next to the copy rather than in it, to check what a page held. It is not sent to
-Knowledge Search: the Markdown already keeps the structure that search uses (headings, lists, tables, code,
+Ferret: the Markdown already keeps the structure that search uses (headings, lists, tables, code,
 links), and indexing the same page twice would crowd results with duplicates.
 
 The page listens on 127.0.0.1 only, at an address with a one-time key, so other computers and other web
@@ -73,7 +78,7 @@ site2md "https://sites.google.com/acme.com/intranet/home" --out intranet --brows
   Sites, the whole page is used). Scrolls through each page first, so text drawn when it comes into view is
   included.
 - Saves linked PDF, Word and PowerPoint files **as they are**, under their own names ("Leave Policy (1).pdf") — nothing
-  is converted, so nothing can be lost; a search index reads them itself (knowledge-search does, page by page).
+  is converted, so nothing can be lost; a search index reads them itself (Ferret does, page by page).
 - Downloads the Google Drive files, Docs (as Word) and Slides (as PDF) a page embeds or links to — the PDF
   viewers on Google Sites pages — and the files in embedded Drive folders, with the same sign-in, and links
   them from the page ("Attached documents"). Only PDF, Word and PowerPoint files are kept, up to 500 MB:

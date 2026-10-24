@@ -6,7 +6,7 @@
  Browser UI (static ES modules)        external agent / script (Bearer token, REST)
             │                                       │
             ▼                                       ▼
- ┌──────────────────────────── knowledge-search serve (FastAPI) ────────────────────────────┐
+ ┌──────────────────────────── ferret serve (FastAPI) ────────────────────────────┐
  │ deps.py auth: sessions → principal → readable/writable collection ids                    │
  │ api.py  search · documents · passages · sources · status · first-run setup               │
  │ admin.py settings · reindex · collections/grants · users                                  │
@@ -15,7 +15,7 @@
  │            exact identifiers ┘                                                            │
  │ runtime.py settings + model cache (fastembed / ONNX Runtime, CPU)                         │
  │ vectors.py in-memory exact vector search (laptop profile)                                 │
- │ ingest.py Worker threads (or separate `knowledge-search worker` processes)                │
+ │ ingest.py Worker threads (or separate `ferret worker` processes)                │
  └───────────────────────────────┬──────────────────────────────────────────────────────────┘
                                  │ SQL — every query filtered by the caller's collections
              ┌───────────────────▼────────────────────┐   ┌────────────────────────────┐

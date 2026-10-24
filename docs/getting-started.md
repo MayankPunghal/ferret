@@ -21,7 +21,7 @@ The setup window shows each step:
 | Summary model (optional) | Downloads llama.cpp's server (github.com) and a language model (Gemma 4 E2B, ~3.1 GB, huggingface.co) into `data/models/llm`; if it fails, setup continues without it | No |
 | Database | Creates the local database in `data/pg` | No |
 | Sample data | Optional fictional documents and demo users | No |
-| Shortcut | Puts a **Knowledge Search** shortcut on the desktop | No |
+| Shortcut | Puts a **Ferret** shortcut on the desktop | No |
 | Start | Starts the app and opens <http://127.0.0.1:8000> | No |
 
 Keep the black console window open while using the app; closing it stops the app.
@@ -76,7 +76,7 @@ Click **View passage** to see the passage in context and **Open document** to re
    topics, and file-name titles are replaced by clearer ones.
 
 A whole folder: **choose a folder** next to *browse* uploads every supported file in it and its subfolders.
-Command-line alternative: `uv run knowledge-search ingest trial path/to/folder --wait`.
+Command-line alternative: `uv run ferret ingest trial path/to/folder --wait`.
 
 ## 5. Your website or intranet
 

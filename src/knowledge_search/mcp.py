@@ -7,7 +7,7 @@ and audit log apply unchanged. Searching and reading are read-only; adding docum
 that can write to a collection, and folders, crawls, settings and reindexing to administrators. Those tools
 are marked as not read-only, so assistants ask the user before running them. Tokens are created on the app's "AI assistants" page.
 
-Claude Desktop only starts local commands, so ``knowledge-search mcp`` relays its stdin/stdout to this
+Claude Desktop only starts local commands, so ``ferret mcp`` relays its stdin/stdout to this
 endpoint (``bridge``). Passages an assistant reads go to that assistant's provider; the page says so.
 """
 
@@ -24,7 +24,7 @@ from fastapi.responses import JSONResponse
 
 PROTOCOLS = ("2025-06-18", "2025-03-26", "2024-11-05")  # newest first; the client's choice when we know it
 
-INSTRUCTIONS = """Knowledge Search: the user's own documents (runbooks, wikis, policies, slides, PDFs).
+INSTRUCTIONS = """Ferret: the user's own documents (runbooks, wikis, policies, slides, PDFs).
 Search first; answer only from passages whose "supported" is true and cite each one by title and its "open"
 link. If the outcome is no_adequate_evidence, say the documents do not answer it instead of guessing; for
 conflicting_evidence, show the versions and their dates. Summaries, topics and types are written by a local
@@ -77,7 +77,7 @@ TOOLS = [
     _tool("delete_document", "Remove a document and all its versions from the index (not the original file). "
           "Ask the user first.", {"document_id": _ID}, ["document_id"], needs="write", destructive=True),
     # --- administration ---
-    _tool("add_folder", "Index a folder on the computer running Knowledge Search, with its subfolders, and keep it "
+    _tool("add_folder", "Index a folder on the computer running Ferret, with its subfolders, and keep it "
           "synced. Leaves out folders and files whose name starts with . or _ (.git, .claude, _tools) and other "
           "file types (code, JSON, YAML, images). Runs in the background: check with list_folders. Adding the same "
           "folder again syncs it.",
@@ -352,7 +352,7 @@ async def _handle(m, c: httpx.AsyncClient, base: str) -> dict | None:
             version = "dev"
         return {"jsonrpc": "2.0", "id": id_, "result": {
             "protocolVersion": asked if asked in PROTOCOLS else PROTOCOLS[0], "capabilities": {"tools": {}},
-            "serverInfo": {"name": "knowledge-search", "version": version}, "instructions": INSTRUCTIONS}}
+            "serverInfo": {"name": "ferret", "version": version}, "instructions": INSTRUCTIONS}}
     if method == "ping":
         return {"jsonrpc": "2.0", "id": id_, "result": {}}
     if method == "tools/list":
@@ -388,10 +388,10 @@ def bridge(url: str, token: str) -> None:
             except ValueError:
                 msg = {}
             if "error" not in body and msg.get("id") is not None:  # make an HTTP failure a JSON-RPC error
-                body = json.dumps(_error(msg["id"], -32000, f"Knowledge Search: HTTP {e.code} {body[:300]}"))
+                body = json.dumps(_error(msg["id"], -32000, f"Ferret: HTTP {e.code} {body[:300]}"))
         except OSError as e:
             msg = json.loads(line) if line.strip().startswith("{") else {}
-            body = json.dumps(_error(msg.get("id"), -32000, f"Knowledge Search is not reachable at {url} ({e})"))
+            body = json.dumps(_error(msg.get("id"), -32000, f"Ferret is not reachable at {url} ({e})"))
         if body.strip():
             sys.stdout.write(body.strip() + "\n")
             sys.stdout.flush()

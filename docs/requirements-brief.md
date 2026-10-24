@@ -24,7 +24,7 @@ and whether the product does it. Status: **done** (verified by a test, an evalua
 | S1 | One-click setup on a new machine for a non-technical user; the batch file installs every prerequisite | done | `setup.bat` / `setup.sh` install uv, Python, dependencies, embedded PostgreSQL, models; owner ran it on Windows 11 ("setup worked now, search returns results on Windows", 2026-10-23 00:15) |
 | S2 | No Docker requirement; clear errors and links when something is missing | done | Embedded PostgreSQL; Docker only for the optional server profile |
 | S3 | Industry-standard README, split into sub-docs; quick start uses the batch file with its flags | done | `README.md` → `docs/getting-started.md`, `user-guide.md`, `admin-guide.md`, `configuration.md`, `deployment.md`, `evaluation.md`, `development.md` |
-| S4 | A guide, sample/test documents and how to do a test run | done | `knowledge-search demo` (fictional corpus), `docs/getting-started.md` |
+| S4 | A guide, sample/test documents and how to do a test run | done | `ferret demo` (fictional corpus), `docs/getting-started.md` |
 | S5 | Minimum prerequisites; fast on any machine | done | CPU only; ~0.5 GB of models; indexing ~5–7 passages/s on a 4-core VM |
 | S6 | Commit in logical commits, push, keep the handoff current | done | `docs/HANDOFF.md`, git history |
 | S7 | Acknowledge questions while background jobs run | done (process) | — |

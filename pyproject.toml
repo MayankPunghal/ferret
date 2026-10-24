@@ -26,7 +26,8 @@ dependencies = [
 ]
 
 [project.scripts]
-knowledge-search = "knowledge_search:main"
+ferret = "knowledge_search:main"
+knowledge-search = "knowledge_search:main"  # the earlier name, kept so existing setups keep working
 
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]

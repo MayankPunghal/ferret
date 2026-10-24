@@ -80,7 +80,7 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
                 runtime.rerank_scores(rt.rerank_model, "warm up", ["warm up"])
             except runtime.RerankError as e:
                 log.warning("reranker not available yet: %s", e)
-        # Summaries run where indexing runs: here, or in `knowledge-search worker` (KS_INPROCESS_WORKERS=0).
+        # Summaries run where indexing runs: here, or in `ferret worker` (KS_INPROCESS_WORKERS=0).
         state.enricher = enrich.Enricher(settings) if start_workers else None
         if state.enricher and settings.inprocess_workers > 0:
             if state.enricher.available:
@@ -109,7 +109,7 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
         if not settings.database_url:
             db.release_embedded()
 
-    app = FastAPI(title="Knowledge Search", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="Ferret", version="1.0.0", lifespan=lifespan)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
@@ -316,9 +316,9 @@ def _routes(app: FastAPI) -> None:
     def tokens(request: Request, p: User, conn: Conn):
         rows = conn.execute("SELECT id, label, created_at, expires_at, read_only FROM sessions WHERE user_id = %s "
                             "AND label IS NOT NULL AND expires_at > now() ORDER BY created_at DESC", (p.user_id,)).fetchall()
-        exe = Path(sys.executable).with_name("knowledge-search" + (".exe" if sys.platform == "win32" else ""))
+        exe = Path(sys.executable).with_name("ferret" + (".exe" if sys.platform == "win32" else ""))
         return {"tokens": rows, "mcp_url": str(request.base_url) + "mcp", "url": str(request.base_url).rstrip("/"),
-                "command": str(exe if exe.is_file() else shutil.which("knowledge-search") or "knowledge-search")}
+                "command": str(exe if exe.is_file() else shutil.which("ferret") or "ferret")}
 
     @app.post("/api/tokens")
     def create_token(body: TokenBody, request: Request, p: User, conn: Conn):

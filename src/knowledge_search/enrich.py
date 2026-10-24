@@ -2,7 +2,7 @@
 type from a fixed list (runbook, how-to, policy, ...), up to 6 topics and, when the document's own title is
 vague ("Overview", "Home", a file name), a clearer title.
 
-- Optional. The model is the one installed by setup (`knowledge-search download-llm`: llama.cpp's
+- Optional. The model is the one installed by setup (`ferret download-llm`: llama.cpp's
   llama-server + a small GGUF model, started by the app on 127.0.0.1) or any OpenAI-compatible local
   endpoint (`KS_LLM_URL`: Ollama, LM Studio). Without one, nothing changes and nothing is sent anywhere.
 - Never in the way: one document at a time, each as soon as it is indexed (while the others are still being
@@ -224,7 +224,7 @@ def llm_dir(settings) -> Path:
 
 
 def installed(settings, file: str = "") -> tuple[Path, Path] | None:
-    """(llama-server executable, .gguf model) installed by `knowledge-search download-llm`, if present: the
+    """(llama-server executable, .gguf model) installed by `ferret download-llm`, if present: the
     model `file`, else KS_LLM_MODEL, else the one selected by the last download."""
     d = llm_dir(settings)
     exe = next((p for p in (d / "bin").rglob("llama-server.exe" if sys.platform == "win32" else "llama-server")
@@ -503,7 +503,7 @@ class Enricher:
         self.stop()
 
 
-# --- download (setup --summaries / `knowledge-search download-llm`) ----------------------------------------
+# --- download (setup --summaries / `ferret download-llm`) ----------------------------------------
 
 # The llama.cpp build the summaries were measured with; every platform's CPU build is published per release.
 LLAMA_CPP_TAG = "b11836"
@@ -554,7 +554,7 @@ def download(settings, name: str = DEFAULT_LLM, select: bool = True) -> Path:
         url = f"https://github.com/ggml-org/llama.cpp/releases/download/{LLAMA_CPP_TAG}/{asset_name()}"
         archive = d / asset_name()
         print("downloading", url, flush=True)
-        req = urllib.request.Request(url, headers={"User-Agent": "knowledge-search"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Ferret"})
         with urllib.request.urlopen(req, timeout=120) as r, open(archive, "wb") as f:
             shutil.copyfileobj(r, f, 1 << 20)
         unpack(archive, d / "bin" / "partial")

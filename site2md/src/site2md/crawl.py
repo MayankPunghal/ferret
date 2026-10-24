@@ -60,7 +60,7 @@ SKIP_TYPES = re.compile(r"\.(png|jpe?g|gif|svg|webp|ico|css|js|mjs|json|xml|zip|
                         r"mp3|wav|avi|mov|woff2?|ttf|eot|pptx?|xlsx?|csv)$", re.IGNORECASE)
 TRACKING = re.compile(r"^(utm_\w+|fbclid|gclid|mc_cid|mc_eid|_ga|ref|refid|sessionid|jsessionid|phpsessid|sid|authuser)$",
                       re.IGNORECASE)  # authuser: Google's account selector, same page
-MAX_BYTES = 500_000_000  # the same limit as knowledge-search uploads
+MAX_BYTES = 500_000_000  # the same limit as Ferret uploads
 DOCUMENT = re.compile(r"pdf|wordprocessingml|octet-stream|html", re.IGNORECASE)  # worth downloading (html: an
 # answer such as "download disabled", recorded as such)
 # Google Drive / Docs / Slides files embedded in a page (Google Sites viewers, iframes, links): downloaded

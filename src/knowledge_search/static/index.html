@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Knowledge Search</title>
+  <title>Ferret</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app.css">
   <script type="module" src="/app.js"></script>
@@ -19,7 +19,7 @@
     <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5 5 0 0 1 3 4.6V20"/></symbol>
     <symbol id="i-logs" viewBox="0 0 24 24"><path d="m5 8 4 4-4 4M12 17h7"/></symbol>
     <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
-    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></symbol>
+    <symbol id="i-spider" viewBox="0 0 24 24"><path d="M12 1v6"/><circle cx="12" cy="9.5" r="2"/><ellipse cx="12" cy="15" rx="3" ry="3.8"/><path d="M10 10 6 7.5 4 9M14 10l4-2.5 2 1.5M9.2 13 5 12.5 3 15M14.8 13l4.2-.5 2 2.5M9.4 16.5 6 18l-1 3M14.6 16.5 18 18l1 3"/></symbol>
     <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
     <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
     <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
@@ -29,12 +29,11 @@
     <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
     <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></symbol>
     <symbol id="i-signout" viewBox="0 0 24 24"><path d="M10 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4M15 16l4-4-4-4M19 12H9"/></symbol>
-    <symbol id="i-mark" viewBox="0 0 24 24"><rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" stroke="none"/><g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M6.5 7.5h8M6.5 11h4"/><circle cx="14.5" cy="14.5" r="3.2"/><path d="m17 17 2.4 2.4"/></g></symbol>
   </svg>
 
   <div id="login-view" class="entry" hidden>
     <form id="login-form" class="entry-card">
-      <div class="brand"><svg class="mark"><use href="#i-mark"/></svg> Knowledge Search</div>
+      <div class="brand"><img class="mark" src="/favicon.svg" alt=""> Ferret</div>
       <h1>Sign in</h1>
       <label>Username <input name="username" autocomplete="username" required></label>
       <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
@@ -45,7 +44,7 @@
 
   <div id="setup-view" class="entry" hidden>
     <form id="setup-form" class="entry-card">
-      <div class="brand"><svg class="mark"><use href="#i-mark"/></svg> Knowledge Search</div>
+      <div class="brand"><img class="mark" src="/favicon.svg" alt=""> Ferret</div>
       <h1>Create the administrator</h1>
       <p class="muted">You can add more users and collections afterwards. Everything stays on this computer.</p>
       <label>Username <input name="username" value="admin" pattern="[a-z0-9_.\-]{2,64}" autocomplete="username" required></label>
@@ -58,7 +57,7 @@
 
   <div id="app-view" class="shell" hidden>
     <aside id="sidebar" class="sidebar" aria-label="Navigation">
-      <div class="brand"><svg class="mark"><use href="#i-mark"/></svg> Knowledge Search</div>
+      <div class="brand"><img class="mark" src="/favicon.svg" alt=""> Ferret</div>
       <nav>
         <button class="tab" data-tab="search" aria-current="page"><svg class="i"><use href="#i-search"/></svg>Search</button>
         <button class="tab" data-tab="documents"><svg class="i"><use href="#i-docs"/></svg>Documents</button>
@@ -69,7 +68,7 @@
         <button class="tab admin-only" data-tab="settings" hidden><svg class="i"><use href="#i-settings"/></svg>Settings</button>
         <button class="tab admin-only" data-tab="admin" hidden><svg class="i"><use href="#i-users"/></svg>Users &amp; access</button>
         <button class="tab admin-only" data-tab="folders" hidden><svg class="i"><use href="#i-folder"/></svg>Synced folders</button>
-        <button class="tab admin-only" data-tab="crawler" hidden><svg class="i"><use href="#i-globe"/></svg>Crawler</button>
+        <button class="tab admin-only" data-tab="crawler" hidden><svg class="i"><use href="#i-spider"/></svg>Crawler</button>
         <button class="tab admin-only" data-tab="database" hidden><svg class="i"><use href="#i-db"/></svg>Database</button>
         <button class="tab admin-only" data-tab="logs" hidden><svg class="i"><use href="#i-logs"/></svg>Logs</button>
       </nav>
@@ -172,7 +171,7 @@
           <h1>Synced folders</h1>
           <button type="button" class="primary" id="folder-add">Add folder</button>
         </div>
-        <p class="muted lede-small">Folders on the computer running Knowledge Search, kept in step with the index: new and
+        <p class="muted lede-small">Folders on the computer running Ferret, kept in step with the index: new and
           changed files are indexed, deleted ones removed. Subfolders come too, except those starting with <code>.</code>
           or <code>_</code>. The files are only read. Website copies from the Crawler are synced folders too.</p>
         <form id="folder-form" class="folder-form" hidden>
@@ -385,7 +384,7 @@
       </section>
 
       <section id="tab-crawler" hidden>
-        <iframe id="crawler-frame" title="Crawler: copy a website into Knowledge Search"></iframe>
+        <iframe id="crawler-frame" title="Crawler: copy a website into Ferret"></iframe>
       </section>
 
       <section id="tab-logs" hidden>

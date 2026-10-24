@@ -31,7 +31,7 @@ uv sync                      # includes dev tools
 uv run pytest -q             # starts its own throwaway embedded PostgreSQL; no Docker needed
 ```
 
-Tests use the real embedding model from `data/models` (run `uv run knowledge-search download-model` once).
+Tests use the real embedding model from `data/models` (run `uv run ferret download-model` once).
 To run against an external PostgreSQL set `KS_TEST_ADMIN_URL` and `KS_TEST_DATABASE_URL`.
 
 | Test module | Covers |

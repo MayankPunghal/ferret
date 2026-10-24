@@ -1,8 +1,8 @@
-# Knowledge Search
+# Ferret
 
 **Private, offline document search that shows its evidence — and says so when it has none.**
 
-Knowledge Search indexes your PDF, Word, PowerPoint, HTML, Markdown and text documents and lets people search
+Ferret indexes your PDF, Word, PowerPoint, HTML, Markdown and text documents and lets people search
 them in plain language or by exact terms (error codes, file names, API paths). Every result is a real
 passage from your documents, with a link to the original file. Everything — database, search models,
 search — runs on your own machine or server: no cloud account, no GPU and no external AI provider are
@@ -84,7 +84,7 @@ app, an embedded PostgreSQL and the offline AI models (~900 MB in total, one tim
 if the internet connection drops during a download, run it again and completed files are reused. At the end
 it opens <http://127.0.0.1:8000>, where you create the administrator account.
 
-Start the app later with the **Knowledge Search** desktop shortcut or `start.bat` (Windows), or `./start.sh`
+Start the app later with the **Ferret** desktop shortcut or `start.bat` (Windows), or `./start.sh`
 (macOS/Linux). Full walkthrough and a test run with your own documents:
 **[Getting started](docs/getting-started.md)**.
 
@@ -96,9 +96,9 @@ Start the app later with the **Knowledge Search** desktop shortcut or `start.bat
    the site's sections fill in. You get `site2md/output/<name>/`: one
    Markdown file per page, plus the PDF, Word and PowerPoint files the pages link to or embed (Google Drive
    files and folders included), as they are.
-2. **Index the copy:** on site2md's done page, **Send to Knowledge Search** (an access token created with
+2. **Index the copy:** on site2md's done page, **Send to Ferret** (an access token created with
    *May also make changes*; on the same computer, as administrator, the copy becomes a synced folder). Or by
-   hand: sign in to Knowledge Search as the administrator → **Users & access** → create a
+   hand: sign in to Ferret as the administrator → **Users & access** → create a
    collection (e.g. `intranet`) and grant it to the people who should see it → **Documents** → choose
    that collection → **choose a folder** → select `output/<name>`. Every page and file is uploaded; the rest
    (`manifest.json`) is skipped.
@@ -106,7 +106,7 @@ Start the app later with the **Knowledge Search** desktop shortcut or `start.bat
    the documents it attaches, so the page and its PDFs are found together and connected under
    **Connections**.
 
-Command-line alternative for step 2: `uv run knowledge-search ingest intranet site2md/output/<name> --wait`.
+Command-line alternative for step 2: `uv run ferret ingest intranet site2md/output/<name> --wait`.
 
 ## Documentation
 

@@ -42,7 +42,7 @@ step "Installing Python 3.13, dependencies and the embedded database (first run 
 uv sync --no-dev || die "dependency installation failed"
 
 step "Downloading the offline AI models (embedding model + reranker; one-time)"
-uv run --no-dev knowledge-search download-model || die "model download failed (network/proxy?)"
+uv run --no-dev ferret download-model || die "model download failed (network/proxy?)"
 
 if [ "$SUMMARIES" = ask ]; then
   if [ -t 0 ]; then
@@ -54,14 +54,14 @@ if [ "$SUMMARIES" = ask ]; then
 fi
 if [ "$SUMMARIES" = yes ]; then
   step "Downloading the optional local language model for document summaries (one-time)"
-  uv run --no-dev knowledge-search download-llm \
+  uv run --no-dev ferret download-llm \
     || echo "WARNING: the summary model could not be downloaded now; the app retries in the background when it starts. Search works without it."
 elif [ "$SUMMARIES" = no ]; then  # remembered: the app would otherwise download it on first start
   grep -q '^KS_ENRICH_ENABLED=' .env 2>/dev/null || echo "KS_ENRICH_ENABLED=false" >> .env
 fi
 
 step "Initialising the local database"
-uv run --no-dev knowledge-search migrate || die "database initialisation failed"
+uv run --no-dev ferret migrate || die "database initialisation failed"
 
 if [ "$DEMO" = ask ]; then
   if [ -t 0 ]; then
@@ -73,7 +73,7 @@ if [ "$DEMO" = ask ]; then
 fi
 if [ "$DEMO" = yes ]; then
   step "Loading fictional sample documents and demo users"
-  uv run --no-dev knowledge-search demo || die "loading sample data failed"
+  uv run --no-dev ferret demo || die "loading sample data failed"
 fi
 
 step "Setup complete"
@@ -81,5 +81,5 @@ echo "Start the app any time with ./start.sh  ->  http://127.0.0.1:8000"
 echo "On first start the browser asks you to create the administrator account."
 if [ "$START" = 1 ]; then
   echo "Starting now (Ctrl+C to stop)..."
-  exec uv run --no-dev knowledge-search serve --open
+  exec uv run --no-dev ferret serve --open
 fi

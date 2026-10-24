@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Command-line client for a running Knowledge Search server, for Claude (or a person) to use.
+"""Command-line client for a running Ferret server, for Claude (or a person) to use.
 
 Standard library only. Prints JSON (or plain text for `doc --text`). Configuration:
   KS_URL       server address (default http://127.0.0.1:8000)
@@ -66,7 +66,7 @@ def _request(method, path, token=None, body=None, headers=None):
 def _login():
     user, pw = os.environ.get("KS_USER"), os.environ.get("KS_PASSWORD")
     if not (user and pw):
-        raise Fail("set KS_TOKEN, or KS_USER and KS_PASSWORD (an account of the Knowledge Search app)")
+        raise Fail("set KS_TOKEN, or KS_USER and KS_PASSWORD (an account of the Ferret app)")
     code, out = _request("POST", "/api/auth/login", body={"username": user, "password": pw})
     if code != 200:
         raise Fail(f"login failed ({code}): {out.get('detail') if out else ''}")

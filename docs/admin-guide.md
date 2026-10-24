@@ -36,7 +36,7 @@ All models run locally (ONNX Runtime on CPU); nothing is sent to external servic
 - **Users** — create users and tick their groups (only existing groups can be chosen; the API refuses unknown
   names too). Changing a user's groups, disabling or resetting a password signs that user out everywhere.
   Admins can read and write every collection.
-- The command line (`knowledge-search add-to-group`, `grant`) still creates a group by naming it, for setting
+- The command line (`ferret add-to-group`, `grant`) still creates a group by naming it, for setting
   up a server from a script.
 
 Permissions are enforced inside every database query: users never see restricted documents, snippets,
@@ -69,12 +69,12 @@ The endpoint is `/mcp` on the app's own address; there is nothing extra to run o
 ## Command line equivalents
 
 ```bash
-uv run knowledge-search create-collection policies --description "Company policies"
-uv run knowledge-search grant policies everyone              # read
-uv run knowledge-search grant policies policy-editors --write
-uv run knowledge-search create-user maria --password -        # prints a generated password
-uv run knowledge-search add-to-group maria everyone
-uv run knowledge-search ingest policies ./policies --wait     # bulk import a folder
+uv run ferret create-collection policies --description "Company policies"
+uv run ferret grant policies everyone              # read
+uv run ferret grant policies policy-editors --write
+uv run ferret create-user maria --password -        # prints a generated password
+uv run ferret add-to-group maria everyone
+uv run ferret ingest policies ./policies --wait     # bulk import a folder
 ```
 
 `ingest` follows the same folder rules as uploads: subfolders included, names starting with `.` or `_` left
@@ -83,7 +83,7 @@ out, each file keyed by its path under the folder's name.
 ## Synced folders
 
 **Synced folders** tab (administrators) → **Add folder**: give the full path of a folder **on the computer
-running Knowledge Search**, for example `C:\Users\me\Docs\repo-kit`, the collection and the file types to take.
+running Ferret**, for example `C:\Users\me\Docs\repo-kit`, the collection and the file types to take.
 It is indexed and remembered.
 - **Sync now** takes in only the difference: new and changed files are indexed; documents whose file was
   deleted (or is now of an unticked type) are removed from the index. The files themselves are never changed.
@@ -113,7 +113,7 @@ opens), run by the app with your session, so no access token is needed.
 - Copies are kept in `<data>/crawls` unless you choose another folder on the tab (**Change**, kept in
   `<data>/crawler.json`).
 - **Sites behind a sign-in:** choose the browser to sign in with on the tab; a browser window opens on the
-  computer running Knowledge Search and you sign in there once. The sign-in is kept in that browser's profile
+  computer running Ferret and you sign in there once. The sign-in is kept in that browser's profile
   (`~/.site2md`) for later copies; the app never sees or stores the password.
 
 Assistants (MCP, administrator tokens) can do the same:
@@ -128,11 +128,11 @@ Assistants (MCP, administrator tokens) can do the same:
 The crawler is a separate, shareable package, **site2md** (`site2md/`, standard-library Python; see
 `site2md/README.md`). It saves a website as Markdown, one file per page, next to the original PDF, Word and
 PowerPoint files the site links to or embeds, ready to ingest. It needs no database or models and sends requests only to the site.
-`knowledge-search crawl …` runs the same tool.
+`ferret crawl …` runs the same tool.
 
 ```bash
-uv run knowledge-search crawl https://wiki.example.internal/ --out data/crawl/wiki
-uv run knowledge-search ingest wiki data/crawl/wiki --wait
+uv run ferret crawl https://wiki.example.internal/ --out data/crawl/wiki
+uv run ferret ingest wiki data/crawl/wiki --wait
 ```
 
 **Sites behind a sign-in** (Google Sites, SharePoint, Confluence with SSO): install the browser extra
@@ -140,7 +140,7 @@ uv run knowledge-search ingest wiki data/crawl/wiki --wait
 local browser profile, one per browser (`~/.site2md/profile-<channel>`):
 
 ```bash
-uv run knowledge-search crawl "https://sites.google.com/acme.com/intranet/home" --out data/crawl/intranet \
+uv run ferret crawl "https://sites.google.com/acme.com/intranet/home" --out data/crawl/intranet \
     --browser --login --channel chrome   # or msedge; firefox/chromium: `playwright install <name>` once
 ```
 
@@ -176,8 +176,8 @@ Later runs drop `--login`. Browser mode also renders pages that build their cont
   `Crawl Website.bat` (Windows) or `Crawl Website.command` (macOS). It installs what it needs on first use
   and opens a page in their browser (127.0.0.1 only, one-time key in the address): copy a site, sign in in a
   browser window (no console steps), watch progress per section, pause, stop, continue, update, retry what
-  failed, and send the copy to Knowledge Search with an access token that may make changes. On the computer
-  running Knowledge Search, as administrator, the copy becomes a synced folder; otherwise each file is
+  failed, and send the copy to Ferret with an access token that may make changes. On the computer
+  running Ferret, as administrator, the copy becomes a synced folder; otherwise each file is
   uploaded with its path, so sending an update again adds only what changed. Pages are saved in
   `site2md/output/<name>/`; the optional original HTML goes to `<name>-html/` beside it and is never sent.
 

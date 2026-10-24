@@ -185,7 +185,7 @@ A token is **read-only** unless you tick **May also make changes** when you crea
 later under **Your tokens**, keeping the same token; the assistant sees its new tools when it reconnects).
 With that, the assistant can also:
 - add documents to collections you can write to (for example notes it writes for you), retry or delete them;
-- if you are an administrator: index and sync a folder on the computer running Knowledge Search, copy a
+- if you are an administrator: index and sync a folder on the computer running Ferret, copy a
   website into a collection, create collections, read and change settings, download models and re-index.
 
 Assistants ask you before each of these (Claude Code shows a permission prompt), and every change is in the
@@ -209,7 +209,7 @@ policy first.
 
 ## Using it from Claude through the skill (optional; sends passages to Anthropic)
 
-`skills/knowledge-search/` is a skill for Claude Code. With it, Claude searches your Knowledge Search,
+`skills/ferret/` is a skill for Claude Code. With it, Claude searches your Ferret,
 reads the passages and whole documents, follows links, and answers with citations. It says when your
 documents do not cover a question instead of guessing. It can also upload folders, report indexing status,
 retry failed documents and delete them (only after you confirm).
@@ -221,7 +221,7 @@ that can read only the collections you are willing to share.
 Set it up on the machine that runs the app (Claude Code reaches `http://127.0.0.1:8000`; skills uploaded to
 claude.ai run in Anthropic's cloud and cannot reach your computer):
 
-1. Copy the folder into your personal skills folder: `~/.claude/skills/knowledge-search/` (Windows:
+1. Copy the folder into your personal skills folder: `~/.claude/skills/ferret/` (Windows:
    `%USERPROFILE%\.claude\skills\knowledge-search\`).
 2. Create an account for Claude in **Users & access**, read-only unless it should upload. Give it the
    groups of the collections it may read.
@@ -235,4 +235,4 @@ claude.ai run in Anthropic's cloud and cannot reach your computer):
 4. Ask a question ("how do we roll back the orders service?"), or a task ("upload C:\docs\runbooks to the
    engineering collection").
 
-The helper also works by hand: `python skills/knowledge-search/ks.py --help`. It needs Python 3, no packages.
+The helper also works by hand: `python skills/ferret/ks.py --help`. It needs Python 3, no packages.

@@ -1,11 +1,11 @@
 ---
-name: knowledge-search
-description: Answers questions from the user's own documents (runbooks, design docs, wikis, policies, slide decks, PDFs) through their local Knowledge Search app, and manages that app (upload folders, check indexing, retry failed documents, re-index). Use when the user asks something their organisation's documents should answer ("how do we roll back X", "what does error ERR-… mean", "who owns the ledger service", "what breaks if we change Y"), asks to search, read or upload their docs, or asks about the knowledge-search index.
+name: ferret
+description: Answers questions from the user's own documents (runbooks, design docs, wikis, policies, slide decks, PDFs) through their local Ferret app, and manages that app (upload folders, check indexing, retry failed documents, re-index). Use when the user asks something their organisation's documents should answer ("how do we roll back X", "what does error ERR-… mean", "who owns the ledger service", "what breaks if we change Y"), asks to search, read or upload their docs, or asks about the Ferret index.
 ---
 
-# Knowledge Search
+# Ferret
 
-The user runs Knowledge Search, a local search app over their documents, at `KS_URL` (default
+The user runs Ferret, a local search app over their documents, at `KS_URL` (default
 `http://127.0.0.1:8000`). `ks.py`, next to this file, is the only way to reach it: Python 3 with no dependencies,
 JSON output.
 

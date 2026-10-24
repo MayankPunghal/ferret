@@ -1,5 +1,5 @@
 """Functional + visual UI walkthrough (Playwright, headless Chromium) against a running server that was set up
-with demo data but no administrator yet (fresh data dir: `knowledge-search serve`, then `knowledge-search demo`).
+with demo data but no administrator yet (fresh data dir: `ferret serve`, then `ferret demo`).
 
     pip install playwright && playwright install chromium     (or set CHROMIUM_PATH to an existing Chromium)
     python scripts/ui_check.py docs/screenshots [http://127.0.0.1:8000]

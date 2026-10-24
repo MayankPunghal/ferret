@@ -2,7 +2,7 @@
 tests and the labelled evaluation in eval/corpus_eval.py.
 
     uv run python eval/make_k8s_corpus.py            # -> data/corpora/kubernetes/*.md (needs git + network)
-    uv run knowledge-search ingest kubernetes data/corpora/kubernetes --wait   # then search in the UI
+    uv run ferret ingest kubernetes data/corpora/kubernetes --wait   # then search in the UI
 
 Pages: concepts, tasks, tutorials, setup, glossary and a few reference sections of kubernetes/website at a
 pinned commit, so results are reproducible. Hugo shortcodes are reduced to plain text, front matter to the

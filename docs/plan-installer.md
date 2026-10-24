@@ -67,12 +67,12 @@ Intel Macs are not supported as pinned.
 
 - **macOS (Apple silicon):** the same portable folder in a `.app` and a `.dmg`. Without an Apple Developer ID
   (signing and notarisation) users must right-click → Open. The owner decides when to pay for it.
-- **Linux:** `uv tool install knowledge-search`, with `knowledge-search service install` to start it on login
+- **Linux:** `uv tool install knowledge-search`, with `ferret service install` to start it on login
   (a systemd user unit). Docker for servers (docs/plan-docker.md). An AppImage only if users ask.
 
 ## CI checks (copy holler's windows-app workflow)
 
-- Build the folder, then run `knowledge-search selftest` (defined in docs/plan-docker.md): embedded
+- Build the folder, then run `ferret selftest` (defined in docs/plan-docker.md): embedded
   PostgreSQL, index the samples, 3 known searches, 1 refusal.
 - Build the installer.
 - Silent install `/VERYSILENT /MERGETASKS=!autostart`, run `selftest` from the installed folder, silent

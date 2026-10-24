@@ -1,4 +1,4 @@
-/* site2md page. Same tokens as the Knowledge Search app (src/knowledge_search/static/app.css), so the two read
+/* site2md page. Same tokens as the Ferret app (src/knowledge_search/static/app.css), so the two read
    as one product: a grey ground holding a white sheet; colour only on data (bars, status pills). */
 
 :root {
@@ -53,8 +53,7 @@ a:hover { text-decoration-color: currentColor; }
 .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 24px; }
 .brand { font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .brand .muted { font-weight: 400; }
-.logo { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--accent);
-  color: var(--on-primary); font-size: 14px; }
+.logo { width: 24px; height: 24px; border-radius: 6px; vertical-align: middle; }
 .sheet { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sheet);
   margin: 0 16px 16px; padding: 32px; min-height: calc(100vh - 72px); max-width: 1120px; }
 @media (min-width: 1160px) { .sheet { margin: 0 auto 16px; } }
@@ -209,7 +208,7 @@ table.data { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .inline-form { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .inline-form .grow { flex: 1 1 320px; }
 
-/* inside Knowledge Search: its own header and sheet are around this page */
+/* inside Ferret: its own header and sheet are around this page */
 .in-ks .top { display: none; }
 .in-ks .sheet { margin: 0; border: 0; border-radius: 0; padding: 24px 28px; min-height: 100vh; max-width: none; }
 .in-ks .standalone-only { display: none; }

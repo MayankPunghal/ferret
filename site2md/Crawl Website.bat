@@ -3,7 +3,7 @@ rem Double-click to copy a website or intranet as Markdown files. Opens a page i
 rem kept in the "output" folder next to this file.
 setlocal
 cd /d "%~dp0"
-title site2md - keep this window open while you copy
+title Ferret Crawler - keep this window open while you copy
 
 where uv >nul 2>nul
 if errorlevel 1 (

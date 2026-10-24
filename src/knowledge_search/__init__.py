@@ -1,4 +1,4 @@
-"""Knowledge Search: CPU-first, retrieval-only enterprise document search."""
+"""Ferret: CPU-first, retrieval-only enterprise document search."""
 
 import os
 

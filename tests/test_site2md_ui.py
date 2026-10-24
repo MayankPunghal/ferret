@@ -1,5 +1,5 @@
 """site2md's page in the browser: the key and Host checks, a copy with its HTML kept apart, an update that
-replaces the copy (and its HTML) when finished, and Send to Knowledge Search uploading Markdown with path keys."""
+replaces the copy (and its HTML) when finished, and Send to Ferret uploading Markdown with path keys."""
 
 import json
 import threading
@@ -88,7 +88,7 @@ def test_copy_keep_html_apart_update_and_send(page):
 
     got = []
 
-    class KS(BaseHTTPRequestHandler):  # just enough of Knowledge Search: who am I, and an upload
+    class KS(BaseHTTPRequestHandler):  # just enough of Ferret: who am I, and an upload
         def do_GET(self):
             self._json({"username": "ann", "is_admin": False, "collections": [{"id": 3, "name": "Wiki", "can_write": True}]})
 

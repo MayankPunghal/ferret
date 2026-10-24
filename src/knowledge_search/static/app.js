@@ -1,4 +1,4 @@
-// Knowledge Search UI. Plain ES module, no build step. All document text is inserted with
+// Ferret UI. Plain ES module, no build step. All document text is inserted with
 // textContent (never innerHTML) so indexed content cannot inject markup.
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -1250,7 +1250,7 @@ async function loadLogs() {
   const r = await api(`/api/admin/logs?level=${$("#log-level").value}`);
   const head = Object.entries(r.diagnostics).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join("\n");
   const lines = r.records.map((x) => `${x.time} ${x.level} ${x.logger} ${x.message}${x.traceback ? "\n" + x.traceback.trimEnd() : ""}`);
-  logText = `Knowledge Search diagnostics (${new Date().toISOString()})\n${head}\n\n` +
+  logText = `Ferret diagnostics (${new Date().toISOString()})\n${head}\n\n` +
     (lines.length ? lines.join("\n") : "(no log records at this level since the app started)");
   $("#log-text").textContent = logText;
   $("#log-msg").textContent = `${r.records.length} record(s)`;
@@ -1266,7 +1266,7 @@ $("#log-copy").addEventListener("click", async () => {
   }
 });
 $("#log-download").addEventListener("click", () => {
-  const a = el("a", { href: URL.createObjectURL(new Blob([logText], { type: "text/plain" })), download: "knowledge-search-logs.txt" });
+  const a = el("a", { href: URL.createObjectURL(new Blob([logText], { type: "text/plain" })), download: "ferret-logs.txt" });
   document.body.append(a); a.click(); a.remove();
 });
 
@@ -1276,15 +1276,15 @@ $("#log-download").addEventListener("click", () => {
 let mcpInfo = null, newToken = "", mcpClient = "claude-code";
 const MCP_CLIENTS = {
   "claude-code": ["Claude Code", "Run this in a terminal, then restart Claude Code. Check with /mcp.",
-    (i, t) => `claude mcp add --transport http knowledge-search ${i.mcp_url} --header "Authorization: Bearer ${t}"`],
+    (i, t) => `claude mcp add --transport http ferret ${i.mcp_url} --header "Authorization: Bearer ${t}"`],
   "claude-desktop": ["Claude Desktop", "Claude Desktop → Settings → Developer → Edit Config: add this to claude_desktop_config.json and restart Claude. "
-    + "It starts the knowledge-search command on that computer, so Knowledge Search must be installed there.",
-    (i, t) => JSON.stringify({ mcpServers: { "knowledge-search": { command: i.command, args: ["mcp"], env: { KS_URL: i.url, KS_TOKEN: t } } } }, null, 2)],
+    + "It starts the ferret command on that computer, so Ferret must be installed there.",
+    (i, t) => JSON.stringify({ mcpServers: { "ferret": { command: i.command, args: ["mcp"], env: { KS_URL: i.url, KS_TOKEN: t } } } }, null, 2)],
   cursor: ["Cursor", "Cursor → Settings → MCP → Add new server, or put this in ~/.cursor/mcp.json.",
-    (i, t) => JSON.stringify({ mcpServers: { "knowledge-search": { url: i.mcp_url, headers: { Authorization: `Bearer ${t}` } } } }, null, 2)],
+    (i, t) => JSON.stringify({ mcpServers: { "ferret": { url: i.mcp_url, headers: { Authorization: `Bearer ${t}` } } } }, null, 2)],
   vscode: ["VS Code", "Put this in .vscode/mcp.json (one project) or run “MCP: Open User Configuration” (all projects).",
-    (i, t) => JSON.stringify({ servers: { "knowledge-search": { type: "http", url: i.mcp_url, headers: { Authorization: `Bearer ${t}` } } } }, null, 2)],
-  other: ["Other", "Any MCP client that supports Streamable HTTP. The Claude skill in skills/knowledge-search reads KS_URL and KS_TOKEN.",
+    (i, t) => JSON.stringify({ servers: { "ferret": { type: "http", url: i.mcp_url, headers: { Authorization: `Bearer ${t}` } } } }, null, 2)],
+  other: ["Other", "Any MCP client that supports Streamable HTTP. The Claude skill in skills/ferret reads KS_URL and KS_TOKEN.",
     (i, t) => `MCP URL:  ${i.mcp_url}\nHeader:   Authorization: Bearer ${t}\n\nKS_URL=${i.url}\nKS_TOKEN=${t}`],
 };
 function showMcpConfig() {

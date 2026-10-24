@@ -21,7 +21,7 @@ foreach ($a in $Rest) {
 # ErrorActionPreference is "Stop" (uv writes progress to stderr), so check exit codes explicitly.
 $ErrorActionPreference = "Continue"
 Set-Location -Path $PSScriptRoot
-$Host.UI.RawUI.WindowTitle = "Knowledge Search setup"
+$Host.UI.RawUI.WindowTitle = "Ferret setup"
 
 function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 function Die($msg) {
@@ -54,7 +54,7 @@ Step "Installing Python 3.13, dependencies and the embedded database (first run 
 Run uv sync --no-dev
 
 Step "Downloading the offline AI models (embedding model + reranker; one-time)"
-& uv run --no-dev knowledge-search download-model
+& uv run --no-dev ferret download-model
 if ($LASTEXITCODE -ne 0) {
     Die ("Downloading the AI models failed, most likely because the internet connection was interrupted " +
          "(it is retried automatically several times). Files that finished downloading are kept, so simply " +
@@ -68,7 +68,7 @@ if (-not $Summaries -and -not $NoSummaries) {
 }
 if ($getLlm) {
     Step "Downloading the optional local language model for document summaries (one-time)"
-    & uv run --no-dev knowledge-search download-llm
+    & uv run --no-dev ferret download-llm
     if ($LASTEXITCODE -ne 0) {
         Write-Host ("WARNING: the summary model could not be downloaded now; the app retries in the background " +
                     "when it starts (allow github.com and huggingface.co through the proxy). Search works without it.") -ForegroundColor Yellow
@@ -79,7 +79,7 @@ if ($getLlm) {
 }
 
 Step "Initialising the local database"
-Run uv run --no-dev knowledge-search migrate
+Run uv run --no-dev ferret migrate
 
 $loadDemo = $Demo
 if (-not $Demo -and -not $NoDemo) {
@@ -88,17 +88,17 @@ if (-not $Demo -and -not $NoDemo) {
 }
 if ($loadDemo) {
     Step "Loading fictional sample documents and demo users"
-    Run uv run --no-dev knowledge-search demo
+    Run uv run --no-dev ferret demo
 }
 
 if (-not $NoShortcut) {
-    Step "Creating a 'Knowledge Search' shortcut on the desktop"
+    Step "Creating a 'Ferret' shortcut on the desktop"
     try {
         $shell = New-Object -ComObject WScript.Shell
-        $lnk = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Knowledge Search.lnk"))
+        $lnk = $shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath("Desktop")) "Ferret.lnk"))
         $lnk.TargetPath = Join-Path $PSScriptRoot "start.bat"
         $lnk.WorkingDirectory = $PSScriptRoot
-        $lnk.Description = "Start Knowledge Search and open it in the browser"
+        $lnk.Description = "Start Ferret and open it in the browser"
         $lnk.Save()
         Write-Host "Shortcut created."
     } catch { Write-Host "Could not create the shortcut ($_). Use start.bat in this folder instead." -ForegroundColor Yellow }
@@ -109,5 +109,5 @@ Write-Host "Start the app any time with the desktop shortcut or start.bat. It op
 Write-Host "On first start the browser asks you to create the administrator account."
 if (-not $NoStart) {
     Write-Host "Starting now - keep this window open while you use the app (close it to stop)."
-    & uv run --no-dev knowledge-search serve --open
+    & uv run --no-dev ferret serve --open
 }

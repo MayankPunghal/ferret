@@ -13,7 +13,7 @@ def main(argv: list[str] | None = None) -> None:
     if not args or args[0] == "ui":  # the page in the browser (Crawl Website launchers)
         from . import ui
 
-        p = argparse.ArgumentParser(prog="site2md ui", description="Open site2md's page in your browser.")
+        p = argparse.ArgumentParser(prog="site2md ui", description="Open Ferret Crawler's page in your browser.")
         p.add_argument("--copies", default="", help="folder for the copies (default ~/site2md)")
         p.add_argument("--no-browser", action="store_true", help="only print the address")
         a = p.parse_args(args[1:])

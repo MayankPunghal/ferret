@@ -16,7 +16,7 @@ those.
 | `KS_OFFLINE` | `false` | `true` = never download models at runtime (air-gapped servers; pre-fill the cache). |
 | `KS_EMBED_THREADS` | `0` | ONNX Runtime threads per model (0 = automatic). |
 | `KS_VECTOR_SEARCH` | `auto` | Where vector similarity is computed: `memory` (in the app process), `database` (pgvector in SQL), `auto` = memory with the embedded database, database with an external server. Memory mode avoids a crash in the Windows build of the embedded pgvector and is fast at laptop scale; servers with large corpora should use `database`. |
-| `KS_INPROCESS_WORKERS` | `1` | Indexing threads inside the web process. Use `0` plus `knowledge-search worker` processes on servers. |
+| `KS_INPROCESS_WORKERS` | `1` | Indexing threads inside the web process. Use `0` plus `ferret worker` processes on servers. |
 | `KS_WORKER_POLL_SECONDS` | `1.0` | Job queue poll interval. |
 | `KS_AUTO_REINDEX` | `true` | At startup, queue documents indexed with an older model/chunking for background re-indexing. |
 
@@ -35,11 +35,11 @@ those.
 | Variable | Default | Meaning |
 |---|---|---|
 | `KS_ENRICH_ENABLED` | `true` | Default of the Settings switch "Summarise each document in the background". While on and no model is installed, the app downloads the default one in the background (not with `KS_OFFLINE=true`). Setup writes `false` to `.env` when you answer No. |
-| `KS_LLM_URL` | *(empty)* | Empty = use the model in `KS_MODEL_CACHE/llm` (downloaded by setup, by the app on first start, or by `knowledge-search download-llm`): the app starts llama.cpp's server on a free `127.0.0.1` port and stops it on exit. Set it to use another **local** OpenAI-compatible server instead, e.g. Ollama `http://127.0.0.1:11434/v1` or LM Studio `http://127.0.0.1:1234/v1`. Document text is sent to this address, so never point it at a service outside your control. |
+| `KS_LLM_URL` | *(empty)* | Empty = use the model in `KS_MODEL_CACHE/llm` (downloaded by setup, by the app on first start, or by `ferret download-llm`): the app starts llama.cpp's server on a free `127.0.0.1` port and stops it on exit. Set it to use another **local** OpenAI-compatible server instead, e.g. Ollama `http://127.0.0.1:11434/v1` or LM Studio `http://127.0.0.1:1234/v1`. Document text is sent to this address, so never point it at a service outside your control. |
 | `KS_LLM_MODEL` | *(empty)* | Model name for `KS_LLM_URL` (e.g. `qwen3.5:0.8b` in Ollama), or the `.gguf` file name in `KS_MODEL_CACHE/llm` to use instead of the one selected by `download-llm`. |
 | `KS_LLM_THREADS` | `0` | CPU threads for the installed model (0 = half the cores, so indexing and search keep the rest). |
 
-`knowledge-search download-llm [--model gemma-4-e2b|qwen3.5-0.8b]` downloads llama.cpp's CPU server (release
+`ferret download-llm [--model gemma-4-e2b|qwen3.5-0.8b]` downloads llama.cpp's CPU server (release
 `b11836`, from github.com) and the model (from huggingface.co) into `KS_MODEL_CACHE/llm`. Gemma 4 E2B
 (~3.1 GB, Apache-2.0) is the default: in a blind review it made no wrong claim in 9 summaries, Qwen3.5-0.8B
 (~0.5 GB, Apache-2.0, about 3x faster) made 3 (`eval/results/blind-review.json`). Take Qwen only on a machine

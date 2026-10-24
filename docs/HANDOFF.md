@@ -1,4 +1,4 @@
-# Handoff — Knowledge Search
+# Handoff — Ferret
 
 State at the end of the cloud session (2026-10-23, version 1.0). Read with `CLAUDE.md` (owner instructions and end
 goal), `docs/requirements-brief.md` (every owner ask and its status), `README.md`, and the docs listed there. Scope authority: `docs/brief/…master_prompt.md` §11.
@@ -228,10 +228,10 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
   up to 6 topics, and a title. The title is used only when the document's own is vague ("Overview", a file
   name, "Page 3"; `vague_title`) and the proposal is not (`clearer_title`). Stored in `documents.enrichment`
   per indexed version, model and prompt version; failures retried 3 times; claims expire after 15 min.
-- **Where it runs:** where indexing runs: the app (laptop) or `knowledge-search worker` (server profile).
+- **Where it runs:** where indexing runs: the app (laptop) or `ferret worker` (server profile).
   The app starts llama.cpp's `llama-server` on a free 127.0.0.1 port (half the cores, `-np 1`) and stops it
   on exit, even mid-request. `KS_LLM_URL` points it at another local OpenAI-compatible server instead.
-- **Install:** automatic: with summaries on and no model, the app downloads the default in the background on first start (once per start on failure, never with `KS_OFFLINE`); setup asks (Y downloads now, N writes `KS_ENRICH_ENABLED=false` to `.env`); `knowledge-search download-llm` by hand. llama.cpp release
+- **Install:** automatic: with summaries on and no model, the app downloads the default in the background on first start (once per start on failure, never with `KS_OFFLINE`); setup asks (Y downloads now, N writes `KS_ENRICH_ENABLED=false` to `.env`); `ferret download-llm` by hand. llama.cpp release
   **b11836** CPU build (the build used for every measurement here; all 6 platform files checked to exist)
   + `unsloth/gemma-4-E2B-it-GGUF` Q4_K_M (~3.1 GB, Apache-2.0; `--model qwen3.5-0.8b` for Qwen3.5-0.8B, ~0.5 GB).
   Default switched from Qwen to Gemma after the blind review below; Gemma verified starting through
@@ -275,7 +275,7 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
 
 ## 4g. Claude skill (owner request 2026-10-23; external AI, opt-in)
 
-`skills/knowledge-search/`:
+`skills/ferret/`:
 - `SKILL.md`: the workflow, which is search, read the outcome, search again, read the context or the whole
   document, follow links or impact, then answer only from what was read with citations, abstaining otherwise.
   It also covers management (upload, status, retry, delete with confirmation, reindex) and tells the user once
@@ -379,7 +379,7 @@ Verified: every command run against a fresh demo app on Linux, covering:
   now open a page on 127.0.0.1 (one-time key, Host check, CSP without inline code): Your copies → Copy a
   website (instant address check) → sign in in a browser window (the page notices by itself; no console)
   → progress bars per site section, Pause/Stop/Continue → done page with what was not copied grouped by
-  reason and *Try these again* → *Send to Knowledge Search* (local admin: synced folder; otherwise uploads
+  reason and *Try these again* → *Send to Ferret* (local admin: synced folder; otherwise uploads
   keyed by path). Update copies into `<name>.new` and swaps when finished. Three sign-in pages in a row stop
   the copy as "sign-in expired" instead of recording failures. Verified: Playwright walkthrough at 1280 and
   390 px (`$scratchpad/s2m/`, not committed), a real send into a running app (6 files queued as a synced
@@ -431,8 +431,8 @@ Verified: every command run against a fresh demo app on Linux, covering:
   and others. Tokens are labelled sessions (migration 0007); only a browser session can create one (an
   assistant holding a token gets 403), so an assistant cannot mint itself more. Changing a user's groups,
   disabling them or resetting the password revokes their tokens too (existing sign-out-everywhere rule).
-- **Claude Desktop** only starts local commands: `knowledge-search mcp` relays stdin/stdout to the endpoint
-  (KS_URL, KS_TOKEN). It needs Knowledge Search installed on that computer.
+- **Claude Desktop** only starts local commands: `ferret mcp` relays stdin/stdout to the endpoint
+  (KS_URL, KS_TOKEN). It needs Ferret installed on that computer.
 - **Verified:** `tests/test_mcp.py` (handshake, tools scoped to the user incl. HR hidden from bob, token
   create/list/revoke, 403 for bearer-created tokens, the official `mcp` 2.3.0 SDK client connecting over
   Streamable HTTP, the stdio bridge against a live uvicorn); `scripts/ui_check.py` creates a token in the UI,
@@ -617,7 +617,7 @@ Still open, in the order to do them:
 3. **Installer** for both apps (`docs/plan-installer.md`, `plan-release.md`), **Docker** brought up to date
    (`plan-docker.md`), **invite and password-reset links** (`plan-invites.md`): plans only.
 4. **Owner checks on Windows:** crawler sign-in with installed Chrome/Edge (the Crawler tab opens that browser
-   on the computer running Knowledge Search); a real intranet copy through the Crawler tab.
+   on the computer running Ferret); a real intranet copy through the Crawler tab.
 5. **Owner's own documents** with 50–100 labelled questions (the tricks were measured on public docs only).
 6. "Neighbour summaries instead of overlap": not measured (run lost in a container restart; see evaluation §8).
 7. Lint debt: ~20 older `ruff` findings (unused noqa, import order, two B023/B008) — harmless, clean up once.
@@ -628,7 +628,7 @@ Still open, in the order to do them:
   in pgvector unless `KS_VECTOR_SEARCH=memory`).
 - Changing the model or chunking marks documents outdated until reindexed (Settings → Reindex).
 - Thresholds are per model (`ModelSpec.gate_high/gate_min`); untuned models show a warning in Settings.
-- Never `pkill -f "knowledge-search serve"` from a shell command line that contains that text.
+- Never `pkill -f "ferret serve"` from a shell command line that contains that text.
 - The cloud environment rewrote the literal `NUL` in shell commands; Windows scripts were written with the
   editor tool and `.gitattributes` forces CRLF for `.bat/.ps1`.
 - The embedded PG refuses to run as root on Linux; the package creates a `pgserver` user automatically. In the

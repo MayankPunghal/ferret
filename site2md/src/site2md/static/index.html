@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>site2md · Copy a website</title>
+  <title>Ferret Crawler</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="ui.css">
   <script src="ui.js" defer></script>
 </head>
 <body>
   <header class="top">
-    <div class="brand"><span class="logo" aria-hidden="true">⇣</span> site2md <span class="muted">· copy a website as Markdown</span></div>
+    <div class="brand"><img class="logo" src="favicon.svg" alt=""> Ferret Crawler <span class="muted">· copy a website as Markdown</span></div>
   </header>
 
   <main class="sheet">
@@ -28,7 +29,7 @@
       </form>
       <p id="folder-error" class="error" role="alert" hidden></p>
       <div id="empty" class="empty" hidden>
-        <p class="lede">Copy a website or intranet as Markdown files, one per page, so Knowledge Search or any AI
+        <p class="lede">Copy a website or intranet as Markdown files, one per page, so Ferret or any AI
           tool can search it. Sites that need you to sign in work too: you sign in once, in your own browser.</p>
       </div>
       <ul id="copies" class="copies"></ul>
@@ -71,7 +72,7 @@
             <label class="check"><input type="checkbox" name="attachments" checked> Save linked PDF, Word and text files</label>
             <label class="check"><input type="checkbox" name="browser"> Use a real browser (for pages built with JavaScript)</label>
             <label class="check"><input type="checkbox" name="keep_html"> Also keep each page's original HTML
-              <span class="hint">in a separate folder next to the copy; not sent to Knowledge Search</span></label>
+              <span class="hint">in a separate folder next to the copy; not sent to Ferret</span></label>
             <label class="check"><input type="checkbox" name="ignore_robots"> Ignore the site's robots.txt
               <span class="hint">only for your own sites or ones you have permission to copy</span></label>
           </div>
@@ -108,10 +109,10 @@
       <div id="copy-notice" class="notice" hidden></div>
 
       <section id="send" class="block send" hidden>
-        <div class="block-head"><h2>Send to Knowledge Search</h2>
+        <div class="block-head"><h2>Send to Ferret</h2>
           <button type="button" class="link" id="send-close">Close</button></div>
         <form id="send-form" class="form inline">
-          <label class="standalone-only">Knowledge Search address <input name="server" id="ks-server" value="http://127.0.0.1:8000"></label>
+          <label class="standalone-only">Ferret address <input name="server" id="ks-server" value="http://127.0.0.1:8000"></label>
           <label class="standalone-only">Access token <span class="hint">from its AI assistants page, with “May also make changes”</span>
             <input name="token" id="ks-token" type="password" autocomplete="off" placeholder="paste it here"></label>
           <label id="ks-col-row" hidden>Collection <select id="ks-col"></select></label>

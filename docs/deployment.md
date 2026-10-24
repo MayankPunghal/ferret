@@ -6,7 +6,7 @@ One codebase, two supported profiles. GPU is optional and not yet implemented.
 |---|---|---|
 | Install | `setup.bat` / `./setup.sh` | Docker Compose (below) or the same setup script + a service manager |
 | Database | embedded PostgreSQL in `data/pg` | external PostgreSQL 16+ with pgvector (container or managed) |
-| Indexing | thread inside the app | separate `knowledge-search worker` process(es) |
+| Indexing | thread inside the app | separate `ferret worker` process(es) |
 | Access | <http://127.0.0.1:8000> | HTTPS via reverse proxy (Caddy config included) |
 
 ## Laptop
@@ -25,7 +25,7 @@ Services: `db` (PostgreSQL 17 + pgvector, volume `ks-pg`), `app` (web + API, `KS
 `worker` (indexing; scale with `--scale worker=N` — jobs are claimed with `SKIP LOCKED`, never twice),
 `caddy` (TLS on 443, profile `tls`, `deploy/Caddyfile`). The image bakes in the default models and runs
 with `KS_OFFLINE=1`. Then open `https://<host>/` **from the server itself** to create the admin, or run
-`docker compose exec app /app/.venv/bin/knowledge-search create-user admin --admin --password -`.
+`docker compose exec app /app/.venv/bin/ferret create-user admin --admin --password -`.
 
 Verification status: the server topology (separate web and worker processes, PostgreSQL container,
 multi-user HTTP, concurrency test) was verified natively; the Docker image build was not (registry rate
@@ -37,8 +37,8 @@ Use the setup script, set `KS_DATABASE_URL` to your PostgreSQL (with `CREATE EXT
 `KS_INPROCESS_WORKERS=0`, then run two services (systemd / NSSM on Windows):
 
 ```bash
-uv run --no-dev knowledge-search serve --host 127.0.0.1 --port 8000 --workers 2
-uv run --no-dev knowledge-search worker
+uv run --no-dev ferret serve --host 127.0.0.1 --port 8000 --workers 2
+uv run --no-dev ferret worker
 ```
 
 and put a TLS reverse proxy in front.

@@ -10,7 +10,7 @@ tried with a real build, locally or in CI.
 | # | Gap | Effect | Fix |
 |---|---|---|---|
 | 1 | The image bakes and selects **bge-small** (`ARG KS_EMBED_MODEL=BAAI/bge-small-en-v1.5`); the app default is **bge-base** | a Docker install searches less accurately than a laptop install, and its vectors differ | drop the `ARG`/`ENV` override so the image uses the app default; `download-model` already bakes the default reranker too |
-| 2 | **No local model for summaries.** `KS_OFFLINE=1` blocks the first-use download of `llama-server` and the GGUF, and `/models` is read-only for the `ks` user | Summaries, types and topics never appear in Docker. The Settings **Download** buttons fail. | Two image tags: `:latest` without the local model (small), and `:full` with `knowledge-search download-llm` run at build time (≈ +3.5 GB, unmeasured). Models live in a volume (`ks-models:/models`), seeded from the image on first start, so the Settings buttons work. |
+| 2 | **No local model for summaries.** `KS_OFFLINE=1` blocks the first-use download of `llama-server` and the GGUF, and `/models` is read-only for the `ks` user | Summaries, types and topics never appear in Docker. The Settings **Download** buttons fail. | Two image tags: `:latest` without the local model (small), and `:full` with `ferret download-llm` run at build time (≈ +3.5 GB, unmeasured). Models live in a volume (`ks-models:/models`), seeded from the image on first start, so the Settings buttons work. |
 | 3 | `llama-server` is the **Ubuntu** build of llama.cpp | It may need shared libraries missing from `python:3.13-slim` (for example `libgomp1`, `libcurl4`). Unverified. | `RUN apt-get install -y --no-install-recommends libgomp1 libcurl4` if the self-test (below) shows missing libraries; check with `ldd` in the build |
 | 4 | The **worker** container runs the summariser (`_worker` starts `Enricher`); the app container does not | correct split, but it is not documented, and the model and server must be in the worker container | document it; give the worker the `ks-models` volume and the memory note below |
 | 5 | **Memory:** compose sets no limits | Gemma 4 E2B needs about 3–4 GB in the worker, plus the embedding model in both containers | set `mem_limit` in compose comments with the measured figure (measure first), and a minimum host size in docs/deployment.md |
@@ -23,8 +23,8 @@ tried with a real build, locally or in CI.
 
 ## Self-test inside the image (CI, before pushing)
 
-A new command `knowledge-search selftest` (holler has the same idea), run as
-`docker run --rm <image> knowledge-search selftest`:
+A new command `ferret selftest` (holler has the same idea), run as
+`docker run --rm <image> ferret selftest`:
 - starts the embedded PostgreSQL in a temporary folder;
 - indexes the 16 sample documents;
 - runs 3 known searches and checks the expected document is first, and that one off-topic question is

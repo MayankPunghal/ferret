@@ -11,9 +11,9 @@ COPY src ./src
 RUN uv sync --frozen --no-dev
 ARG KS_EMBED_MODEL=BAAI/bge-small-en-v1.5
 ENV KS_EMBED_MODEL=${KS_EMBED_MODEL}
-RUN KS_OFFLINE=0 /app/.venv/bin/knowledge-search download-model
+RUN KS_OFFLINE=0 /app/.venv/bin/ferret download-model
 RUN useradd --system --uid 10001 ks && mkdir -p /data && chown ks /data && chmod -R a+rX /models
 USER ks
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/healthz')"
-CMD ["sh", "-c", "/app/.venv/bin/knowledge-search migrate && exec /app/.venv/bin/knowledge-search serve --host 0.0.0.0"]
+CMD ["sh", "-c", "/app/.venv/bin/ferret migrate && exec /app/.venv/bin/ferret serve --host 0.0.0.0"]
