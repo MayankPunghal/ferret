@@ -49,11 +49,12 @@ def authenticate(conn: Connection, username: str, password: str) -> int | None:
     return row["id"] if row else None
 
 
-def create_session(conn: Connection, user_id: int, hours: int) -> str:
+def create_session(conn: Connection, user_id: int, hours: int, label: str | None = None) -> str:
+    """A browser session, or with a label an access token for an AI assistant (same rights as the user)."""
     token = secrets.token_urlsafe(32)
     conn.execute(
-        "INSERT INTO sessions(token_hash, user_id, expires_at) VALUES (%s, %s, %s)",
-        (_token_hash(token), user_id, datetime.now(UTC) + timedelta(hours=hours)),
+        "INSERT INTO sessions(token_hash, user_id, expires_at, label) VALUES (%s, %s, %s, %s)",
+        (_token_hash(token), user_id, datetime.now(UTC) + timedelta(hours=hours), label),
     )
     return token
 

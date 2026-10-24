@@ -3,9 +3,12 @@
 import logging
 import mimetypes
 import re
+import shutil
+import sys
 import threading
 from contextlib import asynccontextmanager
 from importlib import resources
+from pathlib import Path
 from uuid import UUID
 
 import psycopg
@@ -15,7 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin, auth, db, enrich, graph, runtime
+from . import admin, auth, db, enrich, graph, mcp, runtime
 from .auth import Principal
 from .config import Settings, get_settings
 from .deps import COOKIE, Conn, User, state
@@ -127,6 +130,7 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
     _routes(app)
     app.include_router(admin.router)
     app.include_router(graph.router)
+    app.include_router(mcp.router)
     static = resources.files("knowledge_search") / "static"
     app.mount("/", StaticFiles(directory=str(static), html=True), name="ui")
     return app
@@ -145,6 +149,11 @@ def _record_index_meta(rt: "runtime.Runtime") -> None:
                 (k, v),
             )
         conn.commit()
+
+
+class TokenBody(BaseModel):
+    label: str = Field(min_length=1, max_length=80)
+    days: int = Field(default=90, ge=1, le=365)
 
 
 class LoginBody(BaseModel):
@@ -236,6 +245,34 @@ def _routes(app: FastAPI) -> None:
         auth.delete_session(conn, token)
         conn.commit()
         response.delete_cookie(COOKIE, path="/")
+        return {"ok": True}
+
+    # Access tokens for AI assistants (MCP, skill): the user's own rights, listed and revoked by their owner.
+    @app.get("/api/tokens")
+    def tokens(request: Request, p: User, conn: Conn):
+        rows = conn.execute("SELECT id, label, created_at, expires_at FROM sessions WHERE user_id = %s "
+                            "AND label IS NOT NULL AND expires_at > now() ORDER BY created_at DESC", (p.user_id,)).fetchall()
+        exe = Path(sys.executable).with_name("knowledge-search" + (".exe" if sys.platform == "win32" else ""))
+        return {"tokens": rows, "mcp_url": str(request.base_url) + "mcp", "url": str(request.base_url).rstrip("/"),
+                "command": str(exe if exe.is_file() else shutil.which("knowledge-search") or "knowledge-search")}
+
+    @app.post("/api/tokens")
+    def create_token(body: TokenBody, request: Request, p: User, conn: Conn):
+        if request.headers.get("authorization"):  # an assistant cannot mint itself more tokens
+            raise HTTPException(403, "create access tokens in the app, signed in with your password")
+        token = auth.create_session(conn, p.user_id, body.days * 24, body.label.strip())
+        auth.audit(conn, p.user_id, "token_created", None, label=body.label.strip(), days=body.days)
+        conn.commit()
+        return {"token": token}
+
+    @app.delete("/api/tokens/{token_id}")
+    def revoke_token(token_id: int, p: User, conn: Conn):
+        n = conn.execute("DELETE FROM sessions WHERE id = %s AND user_id = %s AND label IS NOT NULL",
+                         (token_id, p.user_id)).rowcount
+        if not n:
+            raise HTTPException(404, "not found")
+        auth.audit(conn, p.user_id, "token_revoked", str(token_id))
+        conn.commit()
         return {"ok": True}
 
     @app.get("/api/me")

@@ -56,12 +56,14 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("args", nargs=argparse.REMAINDER, help="URL --out DIR [options]")
     sub.add_parser("demo", help="load the FICTIONAL sample corpus with demo users alice/bob/hannah (idempotent)")
     sub.add_parser("worker", help="run ingestion workers as a separate process")
+    sub.add_parser("mcp", help="MCP over stdin/stdout for AI assistants that start a local command (Claude Desktop); "
+                   "needs KS_TOKEN (the app's AI assistants page) and KS_URL")
     p = sub.add_parser("download-model", help="fetch the configured embedding model and reranker into KS_MODEL_CACHE")
     p.add_argument("--model", help="a specific embedding model (default: KS_EMBED_MODEL)")
     p.add_argument("--reranker", help="a specific reranker (default: KS_RERANK_MODEL)")
     p = sub.add_parser("download-llm", help="optional: fetch a local language model (and llama.cpp's server) for "
                        "document summaries; nothing is sent anywhere")
-    p.add_argument("--model", default=None, help="gemma-4-e2b (default, ~3.1 GB) or qwen3.5-0.8b (~0.5 GB, faster, less accurate)")
+    p.add_argument("--model", default=None, help="gemma-4-e2b (default, ~3.1 GB), gemma-4-e4b (~5 GB, servers), qwen3.5-2b (~1.3 GB) or qwen3.5-0.8b (~0.5 GB, faster, less accurate)")
     a = ap.parse_args(argv)
     s = get_settings()
 
@@ -113,6 +115,10 @@ def main(argv: list[str] | None = None) -> None:
         _demo(s)
     elif a.cmd == "worker":
         _worker(s)
+    elif a.cmd == "mcp":
+        from .mcp import bridge_main
+
+        bridge_main()
     elif a.cmd == "download-llm":
         from . import enrich
 
