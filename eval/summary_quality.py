@@ -7,6 +7,8 @@ For each page with an author description that every named model summarised (same
   agreement   meaning similarity of summary and author description (bge-base cosine), mean
   identifies  given only the summary, the page's own author description is the closest of all reference
               descriptions (1.0 = every summary points at its page and no other)
+  type        document type against eval/k8s_doc_types.jsonl where the page has a gold type (exact, and
+              compatible as in eval/llm_labels.py), when the run recorded types
 Also scored: the fallback without a model (first paragraph of the page without its description: what the
 "document summary in each passage" setting uses when no summary is written). Writes
 eval/results/summary-quality.json.
@@ -46,6 +48,8 @@ def main():
     pages = [p for p in refs if all(p in r and not r[p].get("unparsed") for r in runs.values())]
     runs["no model (first paragraph)"] = {p: {"summary": " ".join(first_paragraph(body(NODESC / p)).split())}
                                           for p in pages}
+    gold = {g["file"]: g["type"] for g in map(json.loads, (ROOT / "eval" / "k8s_doc_types.jsonl").read_text().splitlines())}
+    from llm_labels import CLOSE
     emb = Embedder("BAAI/bge-base-en-v1.5", str(ROOT / "data" / "models"), offline=True)
     ref_names = list(refs)
     R = emb.embed_documents([refs[p] for p in ref_names])
@@ -62,11 +66,17 @@ def main():
         out["models"][name] = {"agreement": round(float(own.mean()), 3), "identifies": round(float(top1.mean()), 3),
                                "median_seconds": statistics.median(secs) if secs else None,
                                "words": round(statistics.mean(len(run[p]["summary"].split()) for p in pages), 1)}
+        typed = [p for p in pages if p in gold and "type" in run[p]]
+        if typed:
+            out["models"][name]["type"] = {
+                "pages": len(typed), "exact": round(sum(run[p]["type"] == gold[p] for p in typed) / len(typed), 3),
+                "compatible": round(sum(run[p]["type"] in CLOSE[gold[p]] for p in typed) / len(typed), 3)}
     (ROOT / "eval" / "results" / "summary-quality.json").write_text(json.dumps(out, indent=1))
     print(f"{len(pages)} pages scored against {len(refs)} author descriptions")
     for n, m in out["models"].items():
         print(f"  {n:32s} agreement {m['agreement']:.3f}  identifies {m['identifies']:.3f}  "
-              f"words {m['words']}  median s {m['median_seconds']}")
+              f"words {m['words']}  median s {m['median_seconds']}"
+              + (f"  type {m['type']['exact']:.3f} / {m['type']['compatible']:.3f} (n={m['type']['pages']})" if "type" in m else ""))
 
 
 if __name__ == "__main__":
