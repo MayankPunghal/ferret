@@ -320,6 +320,32 @@ run was lost when the container restarted, and the closest measured variants (ov
 at rerank, summary context) gave nothing, so it was not re-run. Caveat: one corpus (public technical docs);
 the owner's own documents may differ.
 
+## 9. Reading pictures: GLM-4.6V-Flash 9B (2026-10-24, `eval/image_ocr.py`)
+
+20 generated pictures with known text (`eval/image_set.py`: documentation pages, app screens, tables, an org
+chart, two flowcharts, slides, half-size screenshots, a scanned page; public or made-up content). GLM-4.6V-Flash
+Q4_K_M with its Q8_0 image projector, llama.cpp, thinking off, 4-core CPU. Two container restarts cut the run:
+**19 of 20 pictures measured** (the scanned page is missing). Results: `eval/results/images-glm-4.6v-flash-part1.txt`
+and `-part2.txt`.
+
+| Kind | Pictures | Word recall | Word precision | Arrows (recall / precision) |
+|---|---|---|---|---|
+| Documentation pages | 6 | 1.00 | 0.99–1.00 | |
+| App screens | 4 | 1.00 | 1.00 | |
+| Tables (calendar, banner) | 2 | 1.00 | 1.00 | |
+| Org chart, 2 flowcharts | 3 | 1.00 | 1.00 | **1.00 / 1.00** on all three |
+| Slides | 2 | 0.88, 1.00 | 1.00 | |
+| Half-size screenshots | 2 | 0.99, 0.93 | 1.00, 0.93 | |
+
+**Time: median 126 s per picture, 52–961 s** (the two tables took 960 s each). Character error is high on the
+slides (0.10–0.41) only because the reading order differs; the words are right.
+
+**Compared with Gemma 4 E2B:** not on the same set yet (its run was lost to the restarts). The earlier,
+smaller check of E2B (HANDOFF §4k) read text accurately at 20–56 s per picture but got about half of a
+diagram's arrows wrong. So GLM is the one that reads diagrams correctly, but several times slower (median 126 s against 20–56 s). For
+background indexing of pictures, where time matters less than accuracy, GLM is the stronger candidate;
+**to confirm:** run E2B on the same 20 pictures, and GLM on the scanned page.
+
 ## Not measured
 
 Real company corpus; corpora beyond ~8.5k chunks; large embedding models (bge-large); GPU; Windows performance; Docker

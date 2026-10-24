@@ -1,0 +1,10 @@
+# GLM-4.6V-Flash 9B (Q4_K_M + mmproj Q8_0), eval/image_ocr.py --no-thinking, 4-core CPU: 8 of the remaining 9 images.
+# A second container restart stopped it before scan-postmortem; Gemma 4 E2B was not re-run on this set.
+table-holiday-banner             table     recall 1.00 precision 1.00 cer 0.00  960.6s
+orgchart-company                 orgchart  recall 1.00 precision 1.00 cer 0.00 edges 1.00/1.00  376.9s
+flowchart-leave-approval         flowchart recall 1.00 precision 1.00 cer 0.00 edges 1.00/1.00  101.0s
+flowchart-incident               flowchart recall 1.00 precision 1.00 cer 0.30 edges 1.00/1.00  113.5s
+slide-it-induction               slide     recall 0.88 precision 1.00 cer 0.10  93.3s
+slide-lta                        slide     recall 1.00 precision 1.00 cer 0.41  98.3s
+small-ui-attendance              small     recall 0.99 precision 1.00 cer 0.01  51.8s
+small-docs-configmap             small     recall 0.93 precision 0.93 cer 0.08  86.1s

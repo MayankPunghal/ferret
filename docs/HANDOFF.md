@@ -626,9 +626,11 @@ following links in page text (the AWS guide case); clickable tiles, Pages table 
 with progress and Stop; Documents page simplified; token access editable; groups created on their own tab and
 picked from menus; the 7 search tricks measured (docs/evaluation.md §8: no gain).
 Still open, in the order to do them:
-1. **Vision comparison** GLM-4.6V-Flash vs Gemma 4 E2B (`eval/image_ocr.py`, 20 images): a container restart
-   cut the first run after 11 images (all recall 1.00, 90–960 s per image on 4 CPU cores); the other 9 run
-   as `--name glm-4.6v-flash-part2 --only …`, then Gemma on all 20. Then: site2md saves images, and image text is indexed through the one ingestion path (§4o rule).
+1. **Vision comparison** GLM-4.6V-Flash vs Gemma 4 E2B (`eval/image_ocr.py`, 20 pictures): GLM measured on 19
+   (docs/evaluation.md §9): words read almost perfectly, **every arrow right** in the org chart and both
+   flowcharts, median 126 s per picture (52–961 s) on 4 cores. Still to run: Gemma 4 E2B on the same 20, GLM on
+   the scanned page (two container restarts stopped them). Then: site2md saves images, and image text is
+   indexed through the one ingestion path (§4o rule).
 2. **CPU/GPU switch in Settings** for embedding, reranking, summaries and enrichment (owner has an Intel iGPU):
    plan in `docs/plan-gpu.md`, not built.
 3. **Installer** for both apps (`docs/plan-installer.md`, `plan-release.md`), **Docker** brought up to date
