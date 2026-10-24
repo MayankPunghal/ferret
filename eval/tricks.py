@@ -75,6 +75,25 @@ def setup_tables(conn, emb, questions: dict | None, keyword_context: bool) -> No
     conn.commit()
 
 
+def neighbour_vectors(conn, emb, contexts: dict) -> None:
+    """Embed each passage with the local model's summary of its neighbours (eval/neighbour_context.py)."""
+    rows = conn.execute("SELECT c.id, d.source_key, c.ordinal, c.doc_title, c.heading_path, c.text FROM chunks c "
+                        "JOIN documents d ON d.id = c.document_id ORDER BY c.id").fetchall()
+    missing = [r for r in rows if f"{r['source_key']}#{r['ordinal']}" not in contexts]
+    print(f"neighbour context: {len(rows) - len(missing)} of {len(rows)} passages", flush=True)
+    texts = []
+    for r in rows:
+        head = r["doc_title"] if not r["heading_path"] else f"{r['doc_title']} — {r['heading_path']}"
+        ctx = contexts.get(f"{r['source_key']}#{r['ordinal']}", "")
+        texts.append(f"{head}\n{ctx}\n{r['text']}" if ctx else f"{head}\n{r['text']}")
+    for i in range(0, len(rows), 256):
+        for r, v in zip(rows[i:i + 256], emb.embed_documents(texts[i:i + 256]), strict=True):
+            conn.execute("UPDATE chunks SET embedding = %s WHERE id = %s", (v, r["id"]))
+    conn.execute("CREATE TABLE IF NOT EXISTS neighbour_done (n int)")
+    conn.execute("INSERT INTO neighbour_done VALUES (%s)", (len(rows) - len(missing),))
+    conn.commit()
+
+
 def make_questions(conn, url: str, path: Path) -> None:
     done = json.loads(path.read_text()) if path.exists() else {}
     docs = conn.execute("SELECT id, source_key FROM documents ORDER BY source_key").fetchall()
@@ -146,6 +165,8 @@ def main():
     ap.add_argument("--chunk-size", type=int, default=900)
     ap.add_argument("--overlap", type=int, default=150)
     ap.add_argument("--keyword-context", action="store_true", help="summary in the keyword index (weight D)")
+    ap.add_argument("--neighbour-context", default="", help="JSON from eval/neighbour_context.py: embed passages "
+                    "with the summary of their neighbours (use with --overlap 0)")
     ap.add_argument("--questions", default="", help="JSON from --make-questions: enables the questions variants")
     ap.add_argument("--make-questions", default="", help="local model server URL: write questions per document")
     ap.add_argument("--hyde-url", default="")
@@ -153,7 +174,7 @@ def main():
     ap.add_argument("--name", default="")
     a = ap.parse_args()
     corpus = Path(a.corpus)
-    tag = f"{corpus.name}-c{a.chunk_size}-o{a.overlap}" + ("-kw" if a.keyword_context else "")
+    tag = f"{corpus.name}-c{a.chunk_size}-o{a.overlap}" + ("-kw" if a.keyword_context else "") + ("-nb" if a.neighbour_context else "")
     admin_url, _ = db.start_embedded(ROOT / "data" / f"tricks-pg-{tag}", database="postgres")
     with psycopg.connect(admin_url, autocommit=True) as c:
         fresh = not c.execute("SELECT 1 FROM pg_database WHERE datname = 'ks_tricks'").fetchone()
@@ -186,6 +207,8 @@ def main():
             return
         questions = json.loads(Path(a.questions).read_text()) if a.questions else None
         setup_tables(conn, emb, questions, a.keyword_context)
+        if a.neighbour_context and not conn.execute("SELECT to_regclass('neighbour_done') AS t").fetchone()["t"]:
+            neighbour_vectors(conn, emb, json.loads(Path(a.neighbour_context).read_text()))
         pages = {r["source_key"].removesuffix(".md") for r in conn.execute("SELECT source_key FROM documents")}
         keys = {str(r["id"]): r["source_key"].removesuffix(".md") for r in conn.execute("SELECT id, source_key FROM documents")}
         queries = []

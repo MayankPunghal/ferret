@@ -40,13 +40,13 @@ Problems found while checking:
      data yes/no; start on login yes/no.
    - Publish from CI on a `v*` tag with trusted publishing, as holler does.
    - `setup.sh`/`setup.ps1` stay for people who clone the repository.
-3. **Docker image on GitHub's registry** (`ghcr.io/mayankpunghal/knowledge-search`), built and tested in CI on
+3. **Docker image on GitHub's registry** (details and the gaps found: docs/plan-docker.md) (`ghcr.io/mayankpunghal/knowledge-search`), built and tested in CI on
    each tag:
    - **One-container mode** for a small team: `docker run -p 8000:8000 -v ks-data:/data ghcr.io/…`, using the
      embedded PostgreSQL inside the container.
    - **Compose** stays for a real server: separate PostgreSQL, worker and HTTPS.
    - Models are baked in, so it runs offline. Fix the model mismatch above.
-4. **Windows installer** (`KnowledgeSearch-Setup-<version>.exe`), copying holler's PyInstaller + Inno Setup +
+4. **Windows installer** (details: docs/plan-installer.md) (`KnowledgeSearch-Setup-<version>.exe`), copying holler's PyInstaller + Inno Setup +
    CI install test:
    - A tray icon: "Knowledge Search is running · Open · Stop · Start on login".
    - Hard parts: bundling the embedded PostgreSQL binaries and onnxruntime; downloading `llama-server` on
