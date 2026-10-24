@@ -1344,8 +1344,22 @@ $("#mcp-copy").addEventListener("click", async () => {
   catch { getSelection().selectAllChildren($("#mcp-config")); $("#mcp-msg").textContent = "Text selected — press Ctrl+C to copy."; }
 });
 
+// Groups are created by naming them; a name not seen before is confirmed, so a typo does not make a new group.
+let groupNames = [];
+const splitGroups = (v) => v.split(",").map((x) => x.trim()).filter(Boolean);
+const newGroupsOk = (names) => {
+  const fresh = names.filter((g) => !groupNames.includes(g));
+  return !fresh.length || confirm(`Create the new group${fresh.length > 1 ? "s" : ""} ${fresh.map((g) => `“${g}”`).join(", ")}? `
+    + "Existing groups: " + (groupNames.join(", ") || "none") + ".");
+};
 async function loadAdmin() {
-  const [cols, users] = await Promise.all([api("/api/admin/collections"), api("/api/admin/users")]);
+  const [cols, users, groups] = await Promise.all([api("/api/admin/collections"), api("/api/admin/users"), api("/api/admin/groups")]);
+  groupNames = groups;
+  $("#group-names").replaceChildren(...groups.map((g) => el("option", { value: g })));
+  $("#group-rows").replaceChildren(...groups.map((g) => el("tr", {}, el("td", {}, el("strong", { textContent: g })),
+    el("td", { textContent: users.filter((u) => u.groups.includes(g)).map((u) => u.username).join(", ") || "—" }),
+    el("td", { textContent: cols.flatMap((c) => c.grants.filter((x) => x.group === g).map((x) => `${c.name} (${x.can_write ? "read & write" : "read"})`)).join(", ") || "—" }))));
+  $("#groups-empty").hidden = groups.length > 0;
   $("#col-rows").replaceChildren(...cols.map((c) => {
     const grants = el("td");
     for (const g of c.grants) {
@@ -1356,10 +1370,11 @@ async function loadAdmin() {
     }
     if (!c.grants.length) grants.append(el("span", { className: "muted", textContent: "administrators only" }));
     const grp = el("input", { placeholder: "group", ariaLabel: "Group" });
+    grp.setAttribute("list", "group-names");
     const w = el("input", { type: "checkbox" });
     const add = el("button", { className: "small", type: "button", textContent: "Grant" });
     add.addEventListener("click", async () => {
-      if (!grp.value.trim()) return;
+      if (!grp.value.trim() || !newGroupsOk([grp.value.trim()])) return;
       try { await api(`/api/admin/collections/${c.id}/grants`, { method: "PUT", json: { group: grp.value.trim(), can_write: w.checked } }); loadAdmin(); refreshMe(); }
       catch (err) { $("#admin-msg").textContent = err.message; }
     });
@@ -1370,7 +1385,8 @@ async function loadAdmin() {
     const groups = el("input", { value: u.groups.join(", "), ariaLabel: `Groups of ${u.username}` });
     const save = el("button", { className: "small", type: "button", textContent: "Save groups" });
     save.addEventListener("click", async () => {
-      try { await api(`/api/admin/users/${u.id}`, { method: "PATCH", json: { groups: groups.value.split(",").map((s) => s.trim()).filter(Boolean) } }); $("#admin-msg").textContent = `Updated ${u.username}.`; loadAdmin(); }
+      if (!newGroupsOk(splitGroups(groups.value))) return;
+      try { await api(`/api/admin/users/${u.id}`, { method: "PATCH", json: { groups: splitGroups(groups.value) } }); $("#admin-msg").textContent = `Updated ${u.username}.`; loadAdmin(); }
       catch (err) { $("#admin-msg").textContent = err.message; }
     });
     const toggle = el("button", { className: "link", type: "button", textContent: u.disabled ? "Enable" : "Disable" });
@@ -1392,8 +1408,9 @@ $("#col-form").addEventListener("submit", async (e) => {
 $("#user-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
+  if (!newGroupsOk(splitGroups(f.get("groups") || ""))) return;
   try {
-    await api("/api/admin/users", { method: "POST", json: { username: f.get("username"), password: f.get("password"), is_admin: !!f.get("is_admin"), groups: (f.get("groups") || "").split(",").map((s) => s.trim()).filter(Boolean) } });
+    await api("/api/admin/users", { method: "POST", json: { username: f.get("username"), password: f.get("password"), is_admin: !!f.get("is_admin"), groups: splitGroups(f.get("groups") || "") } });
     e.target.reset(); $("#admin-msg").textContent = "User created."; loadAdmin();
   } catch (err) { $("#admin-msg").textContent = err.message; }
 });

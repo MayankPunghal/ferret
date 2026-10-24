@@ -32,7 +32,8 @@ All models run locally (ONNX Runtime on CPU); nothing is sent to external servic
   without grants are visible to admins only.
 - **Users** — create users and type their groups (comma-separated). Changing a user's groups, disabling or
   resetting a password signs that user out everywhere. Admins can read and write every collection.
-- Groups are created implicitly the first time you use a name.
+- Groups are created the first time you use a name (the page asks before making a new one, so a typo does not
+  silently create a group). The **Groups** table shows who is in each group and what it opens.
 
 Permissions are enforced inside every database query: users never see restricted documents, snippets,
 counts, or even whether a restricted document exists.

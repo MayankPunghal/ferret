@@ -522,10 +522,15 @@ ORDER BY passages DESC</textarea>
 
       <section id="tab-admin" hidden>
         <div class="title-row"><h1>Users &amp; access</h1></div>
+        <p class="muted lede-small">Access goes through <strong>groups</strong>, one per team or role (for example
+          <code>hr</code>, <code>eng-writers</code>): give a group read or write access to a collection, and put users in
+          groups. Someone new gets the right access by joining their team's group, and one change covers the whole team.
+          A group is created the first time you use its name, in <em>Grant access</em> or on a user.</p>
         <p id="admin-msg" class="muted" role="status"></p>
+        <datalist id="group-names"></datalist>
         <section class="block">
           <div class="block-head"><h2>Collections</h2>
-            <p class="muted">A collection is a set of documents. Give groups read or write access; users in those groups inherit it.</p></div>
+            <p class="muted">A collection is a set of documents. Grant access to groups; their users inherit it.</p></div>
           <form id="col-form" class="inline-form">
             <input name="name" placeholder="new-collection-name" pattern="[a-z0-9_\-]{2,64}" required aria-label="Collection name">
             <input name="description" placeholder="Description (optional)" aria-label="Description">
@@ -539,12 +544,19 @@ ORDER BY passages DESC</textarea>
           <form id="user-form" class="inline-form">
             <input name="username" placeholder="username" pattern="[a-z0-9_.\-]{2,64}" required aria-label="Username">
             <input name="password" type="password" placeholder="password (10+ characters)" minlength="10" required aria-label="Password" autocomplete="new-password">
-            <input name="groups" placeholder="groups, comma separated" aria-label="Groups">
+            <input name="groups" placeholder="groups, comma separated" aria-label="Groups" list="group-names">
             <label class="check"><input type="checkbox" name="is_admin"> Administrator</label>
             <button type="submit" class="primary">Create user</button>
           </form>
           <table class="data"><thead><tr><th>User</th><th>Groups</th><th>Role</th><th><span class="sr">Actions</span></th></tr></thead>
             <tbody id="user-rows"></tbody></table>
+        </section>
+        <section class="block">
+          <div class="block-head"><h2>Groups</h2>
+            <p class="muted">Who is in each group, and what it opens. Administrators see everything without a group.</p></div>
+          <table class="data"><thead><tr><th>Group</th><th>Users</th><th>Collections</th></tr></thead>
+            <tbody id="group-rows"></tbody></table>
+          <p id="groups-empty" class="muted" hidden>No groups yet.</p>
         </section>
       </section>
     </main>
