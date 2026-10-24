@@ -426,7 +426,10 @@ Verified: every command run against a fresh demo app on Linux, covering:
   pages (28 of 52 glossary entries called "reference") reflects the gold filing, not better
   understanding. The 100 pages are mostly glossary entries (52 of the 67 with a gold type), so document
   types get a balanced 105-page sample (30 tasks, 30 concepts, 30 reference, 15 tutorials), E2B with and
-  without thinking: _result pending_.
+  without thinking. **E2B: 72.4% exact, 76.2% close; without the 25 glossary entries 90% exact, 95%
+  close (76 of 80)** (`llm-labels-kubernetes-gemma-4-e2b-ps30.json`). With E2B already at 95% on ordinary
+  pages, thinking could add only a few pages at 4x the time, so that run was stopped and thinking is not
+  offered.
   Not yet run (planned, blocked by disk in the cloud session): GLM-4.6V-Flash 9B (Z.ai),
   DeepSeek-R1-0528-Qwen3-8B, Gemma 4 12B.
 
