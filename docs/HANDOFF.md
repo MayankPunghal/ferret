@@ -635,7 +635,7 @@ Still open, in the order to do them:
 4. **Owner checks on Windows:** crawler sign-in with installed Chrome/Edge (the Crawler tab opens that browser
    on the computer running Ferret); a real intranet copy through the Crawler tab.
 5. **Owner's own documents** with 50–100 labelled questions (the tricks were measured on public docs only).
-6. "Neighbour summaries instead of overlap": not measured (run lost in a container restart; see evaluation §8).
+6. "Neighbour summaries instead of overlap": not measured; discussed and rejected by the owner (2026-10-24).
 7. **Large documents** (`docs/plan-large-documents.md`) and **Summaries counts** (`docs/plan-summaries-status.md`):
    plans; run `eval/bench_parallel.py` on an idle machine first.
 8. Lint debt: ~20 older `ruff` findings (unused noqa, import order, two B023/B008) — harmless, clean up once.
