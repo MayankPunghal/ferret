@@ -502,7 +502,7 @@ LLMS = {  # name: (Hugging Face repo, file, note); the notes are what the blind 
                     ("~5 GB, needs ~9 GB of memory, Apache-2.0; for a server: summaries as good as E2B, document types "
                      "a little better (10 vs 8 of 14 pages), 2.3x slower")),
     "qwen3.5-2b": ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf",
-                   "~1.3 GB, Apache-2.0; as accurate in the blind review, about as fast; document types not measured"),
+                   "~1.3 GB, Apache-2.0; as accurate in the blind review, about as fast; document types worse (7 vs 8 of 14 pages)"),
     "qwen3.5-0.8b": ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q4_K_M.gguf",
                      "~0.5 GB, Apache-2.0; about 3x faster, more mistakes (3 wrong claims in 9 pages)"),
 }

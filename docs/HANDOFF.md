@@ -408,6 +408,36 @@ Verified: every command run against a fresh demo app on Linux, covering:
   8/14 on the same pages; compatible 10 vs 8 (E4B better on 3 pages, worse on 1: too few to call); median
   40.7 s vs 17.4 s per page, ~8.7 GB resident. Offered in Settings as the server choice; E2B stays default.
 
+  **More candidates (2026-10-24, owner: "other small summarizers", thinking mode).** The same 14 pages
+  (`eval/results/llm-labels-kubernetes-*-every3.json`), with exact and close types counted together:
+  E4B 10 · Ministral 3 3B 10 (all 4 concept pages called how-to) · Qwen3.5-4B 9 · SmolLM3 3B 9 (6 exact) ·
+  E2B with thinking 9 (4–7x slower) · **E2B 8** · Phi-4-mini 8 · Qwen3.5-2B 7 · Granite 4.0 micro 7.
+  Fourteen pages cannot separate these, so the finalists ran on the **100 described pages** with the
+  app's current prompt (`eval/summary_quality.py`, `eval/results/summary-quality-app3.json`):
+
+  | Model | Agrees with author description | Picks out its own page (of 228) | Median s/page | Type, 15 non-glossary pages |
+  |---|---|---|---|---|
+  | **Gemma 4 E2B** | **0.800** | 75% | **18** | 10 |
+  | E2B with thinking | 0.796 | 76% | 78 | 11 |
+  | Ministral 3 3B | 0.771 | 65% | 31 | 4 |
+
+  **Decision:** E2B stays the default. Thinking mode is not offered: the summaries are the same and it is
+  4.3x slower. Ministral is not added: its summaries are worse and it is slower. Its type score on these
+  pages (28 of 52 glossary entries called "reference") reflects the gold filing, not better
+  understanding. The 100 pages are mostly glossary entries (52 of the 67 with a gold type), so document
+  types get a balanced 105-page sample (30 tasks, 30 concepts, 30 reference, 15 tutorials), E2B with and
+  without thinking: _result pending_.
+  Not yet run (planned, blocked by disk in the cloud session): GLM-4.6V-Flash 9B (Z.ai),
+  DeepSeek-R1-0528-Qwen3-8B, Gemma 4 12B.
+
+  **Vision (Gemma 4 E2B + its mmproj, 20–56 s per image on CPU, `$scratchpad/vision`, not committed):**
+  - The text inside images is read accurately: every label of a flow diagram, including `ERR-PAY-4012`
+    and `POST /orders`, and nearly all the text of a Settings screenshot.
+  - Arrows are not: about half the relations in the diagram were wrong (it treated an edge label as a
+    box), and most relations it listed for the graph screenshot were wrong or invented.
+  - So for future image indexing, use it for the text and a one-line description only, never for
+    "A → B" relations.
+
   Glossary entries (one-paragraph definitions filed under reference) are called "concept" by Gemma 8
   times out of 10, which is defensible; the gold mapping is the weak point there. Unmeasured: business
   types (policy, process, incident report) on a real company corpus; on the 16 demo documents Qwen
