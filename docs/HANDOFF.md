@@ -344,6 +344,32 @@ Verified: every command run against a fresh demo app on Linux, covering:
   bge-base 0.964, answered 0.875 vs 0.911, 1.0–2.6 s vs 0.27 s per search → recommend bge-base. Owner's
   own documents still unmeasured.
 
+## 4m. MCP server for AI assistants (owner request 2026-10-24)
+
+- **What:** `POST /mcp` inside the app (`mcp.py`, ~230 lines, no new service; runtime dependency
+  `httpx` only). Streamable HTTP, stateless, JSON replies, protocols 2025-06-18 / 2025-03-26 / 2024-11-05.
+  Five read-only tools: search, read_passage, read_document, document_links, list_collections. Each tool
+  calls the app's own REST route in-process with the caller's token, so permissions, the evidence gate and
+  the audit log apply unchanged; nothing is duplicated. Server instructions tell the assistant to cite,
+  abstain on no_adequate_evidence and treat summaries as non-evidence.
+- **Tokens:** an **AI assistants** page (every user) creates a named token (30/90/365 days, shown once),
+  lists and revokes them, and prints ready-to-paste setup for Claude Code, Claude Desktop, Cursor, VS Code
+  and others. Tokens are labelled sessions (migration 0007); only a browser session can create one (an
+  assistant holding a token gets 403), so an assistant cannot mint itself more. Changing a user's groups,
+  disabling them or resetting the password revokes their tokens too (existing sign-out-everywhere rule).
+- **Claude Desktop** only starts local commands: `knowledge-search mcp` relays stdin/stdout to the endpoint
+  (KS_URL, KS_TOKEN). It needs Knowledge Search installed on that computer.
+- **Verified:** `tests/test_mcp.py` (handshake, tools scoped to the user incl. HR hidden from bob, token
+  create/list/revoke, 403 for bearer-created tokens, the official `mcp` 2.3.0 SDK client connecting over
+  Streamable HTTP, the stdio bridge against a live uvicorn); `scripts/ui_check.py` creates a token in the UI,
+  checks every client's snippet, runs an MCP search with it and revokes it. **Not verified:** a real Claude
+  Desktop / Cursor / VS Code session (none in the container).
+- **MCP vs the skill vs raw API (owner asked):** agree MCP is the better default for assistants: tool list
+  and schemas are discovered, auth is set once in the client config, and it works across clients. The
+  skill stays for Claude Code users who want admin tasks (upload, retry, delete), which MCP deliberately
+  does not expose. Cost of MCP: its tool definitions sit in the assistant's context every turn (~1.2k
+  characters here, kept short).
+
 ## 4k. Labels by the local model: document type, consistent topics, overnight hours (owner request 2026-10-23)
 
 - Prompt v3 (`enrich.py`) adds a **document type** from a described list of 16 (runbook, how-to,
@@ -366,6 +392,10 @@ Verified: every command run against a fresh demo app on Linux, covering:
   |---|---|---|
   | Gemma 4 E2B (default) | 64.3% | **78.1%** (25/32) |
   | Qwen3.5-0.8B | 57.1% | 56.2% (18/32); never says "concept" |
+
+  **Gemma 4 E4B** (2026-10-24, every 3rd page of the sample: 14 pages, `--every 3`): exact 9/14 vs E2B
+  8/14 on the same pages; compatible 10 vs 8 (E4B better on 3 pages, worse on 1: too few to call); median
+  40.7 s vs 17.4 s per page, ~8.7 GB resident. Offered in Settings as the server choice; E2B stays default.
 
   Glossary entries (one-paragraph definitions filed under reference) are called "concept" by Gemma 8
   times out of 10, which is defensible; the gold mapping is the weak point there. Unmeasured: business

@@ -32,6 +32,10 @@ second or two per query is fine. Scale target to plan for: an organisation's arc
 millions of passages) on a dedicated server — choose infrastructure (vector index, GPU, OCR) by measured
 scale tests, keeping exact re-scoring so approximation never lowers accuracy.
 
+**Disagree openly (owner, 2026-10-24):** when the owner proposes or assumes something, say plainly if you
+disagree and why ("correct me if I am wrong; if you disagree tell me, that's how we improve anything").
+Don't just comply with a weaker idea, and don't just agree to please.
+
 **Work like the lead architect:** keep going until satisfied with quality, look and functionality; audit
 your own work periodically against this goal and the brief's gates (re-read this file, run the tests and
 the UI walkthrough, check docs match behaviour); make decisions autonomously; keep the handoff current.

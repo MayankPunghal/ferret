@@ -162,7 +162,27 @@ effective_date: 2025-04-01
 
 lets search flag conflicts between versions of the same policy.
 
-## Using it from Claude (optional; sends passages to Anthropic)
+## Connecting an AI assistant (MCP; optional, sends passages to the assistant's provider)
+
+Claude (Code or Desktop), Cursor, VS Code and other assistants that speak MCP can search your documents,
+read passages and whole documents, and follow links, then answer with citations. They get your read access
+and nothing more: no uploads, changes or deletes.
+
+1. Open **AI assistants** in the sidebar.
+2. Name a token (one per assistant, e.g. "Claude Code on my laptop"), pick how long it is valid, and click
+   **Create token**. Copy it now: it is shown once.
+3. Pick your assistant; the page shows the exact command or settings, with your token and this server's
+   address filled in. Click **Copy**, paste it where the page says, restart the assistant.
+4. Ask ("how do we roll back the orders service?"). The assistant says when your documents do not cover it.
+
+Revoke a token on the same page when you stop using it; the assistant is refused at once. Changing your
+groups or password also revokes your tokens.
+
+**Before you connect one:** the app never calls an external AI service, but the assistant does. Every
+passage it reads goes to its provider (Anthropic, OpenAI, Microsoft, …). Check your organisation's data
+policy first.
+
+## Using it from Claude through the skill (optional; sends passages to Anthropic)
 
 `skills/knowledge-search/` is a skill for Claude Code. With it, Claude searches your Knowledge Search,
 reads the passages and whole documents, follows links, and answers with citations. It says when your
@@ -181,7 +201,7 @@ claude.ai run in Anthropic's cloud and cannot reach your computer):
 2. Create an account for Claude in **Users & access**, read-only unless it should upload. Give it the
    groups of the collections it may read.
 3. Start Claude Code with the account in the environment:
-   - `KS_USER` and `KS_PASSWORD`;
+   - `KS_TOKEN` (a token from **AI assistants**), or `KS_USER` and `KS_PASSWORD`;
    - `KS_URL` too if the app is not at `http://127.0.0.1:8000`.
 
    For example, in PowerShell: `$env:KS_USER="claude"; $env:KS_PASSWORD="…"; claude`.
