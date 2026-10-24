@@ -85,6 +85,15 @@ def test_access_tokens_create_list_revoke(client, corpus):
     # an assistant holding a token cannot mint more, and nobody revokes another user's token
     assert client.post("/api/tokens", headers=h, json={"label": "more", "days": 1}).status_code == 403
     assert client.delete(f"/api/tokens/{mine['id']}", headers=token(client, "bob")).status_code == 404
+    # its access changes in place: not by the assistant itself, only by its owner signed in to the app
+    tools = lambda: {t["name"] for t in rpc(client, h, "tools/list", {})["result"]["tools"]}
+    assert "add_document" not in tools()
+    assert client.patch(f"/api/tokens/{mine['id']}", headers=h, json={"allow_changes": True}).status_code == 403
+    client.post("/api/auth/login", json={"username": "alice", "password": PASSWORD})
+    assert client.patch(f"/api/tokens/{mine['id']}", headers={"x-ks-csrf": "1"}, json={"allow_changes": True}).status_code == 200
+    client.cookies.clear()
+    assert "add_document" in tools()
+    assert not next(t for t in client.get("/api/tokens", headers=h).json()["tokens"] if t["id"] == mine["id"])["read_only"]
     assert client.delete(f"/api/tokens/{mine['id']}", headers=h).status_code == 200
     assert client.post("/mcp", headers=h, json={"jsonrpc": "2.0", "id": 1, "method": "initialize"}).status_code == 401
     assert call(client, token(client, "alice"), "list_collections")  # her other sessions are unaffected

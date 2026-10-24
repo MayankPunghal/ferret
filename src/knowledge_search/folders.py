@@ -6,6 +6,7 @@ _tools) and files of types not chosen. Each file is keyed by its path under the 
 (``repo-kit/docs/modules/index.md``) and submitted as an upload would be: unchanged files stay as they are,
 changed files get a new version, new files are added. Documents that came from the folder (documents.folder_id)
 whose file is gone, or is now left out, are removed. A sync runs in the background; its counts are kept on the folder.
+A sync can be stopped between files: what was indexed stays, and nothing is removed (the next sync finishes it).
 """
 
 import logging
@@ -25,7 +26,8 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/folders", tags=["admin"])
 TYPES = {"markdown": (".md", ".markdown"), "text": (".txt",), "html": (".html", ".htm"), "word": (".docx",),
          "powerpoint": (".pptx",), "pdf": (".pdf",)}
-_running: set[int] = set()
+_running: dict[int, dict] = {}  # folder id -> progress {"done", "total"} while it syncs
+_stop: set[int] = set()  # folders asked to stop syncing
 _lock = threading.Lock()
 
 
@@ -38,7 +40,7 @@ class FolderBody(BaseModel):
 def _view(r: dict) -> dict:
     return {"id": r["id"], "path": r["path"], "collection_id": r["collection_id"], "collection": r["collection"],
             "types": r["types"], "synced_at": r["synced_at"], "syncing": r["id"] in _running,
-            "result": r["result"]}
+            "progress": _running.get(r["id"]), "result": r["result"]}
 
 
 def _rows(conn, folder_id: int | None = None) -> list[dict]:
@@ -59,7 +61,12 @@ def sync(folder_id: int, user_id: int | None) -> dict:
             result = {"files": len(files), "queued": 0, "unchanged": 0, "removed": 0, "rejected": [],
                       "skipped": skipped}
             seen, s = set(), state.settings
+            progress = _running.get(folder_id, {})
+            progress["total"] = len(files)
             for p in files:
+                if folder_id in _stop:  # what is indexed stays; nothing is removed from a sync cut short
+                    result["stopped"] = progress.get("done", 0)
+                    break
                 rel = p.relative_to(root).as_posix()
                 seen.add(f"{root.name}/{rel}")
                 try:
@@ -73,7 +80,8 @@ def sync(folder_id: int, user_id: int | None) -> dict:
                 except OSError as e:
                     result["rejected"].append(f"{rel}: {e.strerror or e}")
                 conn.commit()
-            for d in conn.execute("SELECT id, source_key FROM documents WHERE folder_id = %s", (folder_id,)).fetchall():
+                progress["done"] = progress.get("done", 0) + 1
+            for d in [] if "stopped" in result else conn.execute("SELECT id, source_key FROM documents WHERE folder_id = %s", (folder_id,)).fetchall():
                 if d["source_key"] not in seen:
                     delete_document(conn, state.blobs, d["id"])
                     result["removed"] += 1
@@ -90,7 +98,8 @@ def start(folder_id: int, user_id: int | None) -> bool:
     with _lock:
         if folder_id in _running:
             return False
-        _running.add(folder_id)
+        _running[folder_id] = {"done": 0, "total": 0}
+        _stop.discard(folder_id)
 
     def run():
         try:
@@ -98,7 +107,8 @@ def start(folder_id: int, user_id: int | None) -> bool:
         except Exception:
             log.exception("folder sync failed id=%s", folder_id)
         finally:
-            _running.discard(folder_id)
+            _running.pop(folder_id, None)
+            _stop.discard(folder_id)
 
     threading.Thread(target=run, daemon=True, name=f"folder-{folder_id}").start()
     return True
@@ -141,6 +151,16 @@ def sync_folder(folder_id: int, p: Admin, conn: Conn):
     if not _rows(conn, folder_id):
         raise HTTPException(404, "folder not found")
     start(folder_id, p.user_id)
+    return _view(_rows(conn, folder_id)[0])
+
+
+@router.post("/{folder_id}/stop")
+def stop_folder(folder_id: int, p: Admin, conn: Conn):
+    """Stop a running sync after the file it is on."""
+    if not _rows(conn, folder_id):
+        raise HTTPException(404, "folder not found")
+    if folder_id in _running:
+        _stop.add(folder_id)
     return _view(_rows(conn, folder_id)[0])
 
 

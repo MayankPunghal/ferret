@@ -532,9 +532,21 @@ td.actions-cell { width: 1%; text-align: right; }
 }
 @media (max-width: 1000px) { .nav-toggle { display: none !important; } }
 
-/* Documents: file types taken from folders; synced folders */
-.upload .types { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; flex-basis: 100%; }
+/* Documents: upload options; synced folders (one row each: name and path · status · actions) */
+.upload-options { flex-basis: 100%; display: grid; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--raised); }
+.upload .types { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
 .upload .types input { width: 16px; }
-#folder-form .grow { flex: 1; min-width: 260px; }
-#folders .mono { overflow-wrap: anywhere; }
-#folders-block { margin-bottom: 24px; }
+#tab-folders { max-width: 1100px; }
+#tab-folders > p { max-width: 760px; margin: -8px 0 20px; }
+.folder-form { display: grid; gap: 12px; max-width: 760px; padding: 16px; margin-bottom: 20px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--raised); }
+.folder-form label { display: grid; gap: 4px; }
+.folder-form .types { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+.folder-form .types label { display: inline-flex; }
+.folder-form .types input { width: 16px; }
+.folders { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.folder { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 170px; gap: 8px 24px; align-items: start; padding: 12px 0; border-top: 1px solid var(--rule); }
+.folder .actions { display: flex; gap: 12px; align-items: center; justify-content: flex-end; }
+.folder-status .syncing { display: inline-flex; align-items: center; gap: 8px; }
+.folder-more summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-top: 2px; width: max-content; }
+.folder-more p { margin: 4px 0 0; }
+@media (max-width: 760px) { .folder { grid-template-columns: 1fr; } .folder .actions { justify-content: flex-start; } }

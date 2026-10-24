@@ -216,6 +216,10 @@ class TokenBody(BaseModel):
     allow_changes: bool = False  # else read-only: search and read, nothing else
 
 
+class TokenAccessBody(BaseModel):
+    allow_changes: bool
+
+
 class LoginBody(BaseModel):
     username: str = Field(max_length=64)
     password: str = Field(max_length=256)
@@ -325,6 +329,19 @@ def _routes(app: FastAPI) -> None:
                    allow_changes=body.allow_changes)
         conn.commit()
         return {"token": token}
+
+    @app.patch("/api/tokens/{token_id}")
+    def change_token(token_id: int, body: TokenAccessBody, request: Request, p: User, conn: Conn):
+        """Switch a token between read only and read-and-make-changes, keeping the token itself."""
+        if request.headers.get("authorization"):  # an assistant cannot give itself more rights
+            raise HTTPException(403, "change access tokens in the app, signed in with your password")
+        n = conn.execute("UPDATE sessions SET read_only = %s WHERE id = %s AND user_id = %s AND label IS NOT NULL "
+                         "AND expires_at > now()", (not body.allow_changes, token_id, p.user_id)).rowcount
+        if not n:
+            raise HTTPException(404, "not found")
+        auth.audit(conn, p.user_id, "token_changed", str(token_id), allow_changes=body.allow_changes)
+        conn.commit()
+        return {"ok": True}
 
     @app.delete("/api/tokens/{token_id}")
     def revoke_token(token_id: int, p: User, conn: Conn):

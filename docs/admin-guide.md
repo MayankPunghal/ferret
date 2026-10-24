@@ -77,15 +77,18 @@ out, each file keyed by its path under the folder's name.
 
 ## Synced folders
 
-**Documents → Synced folders** (administrators): give the full path of a folder **on the computer running
-Knowledge Search**, for example `C:\Users\me\Docs\repo-kit`. It is indexed into the collection and file types
-chosen above it, and remembered.
-- **Sync** takes in only the difference: new and changed files are indexed; documents whose file was deleted
-  (or is now of an unticked type) are removed from the index. The files themselves are never changed.
+**Synced folders** tab (administrators) → **Add folder**: give the full path of a folder **on the computer
+running Knowledge Search**, for example `C:\Users\me\Docs\repo-kit`, the collection and the file types to take.
+It is indexed and remembered.
+- **Sync now** takes in only the difference: new and changed files are indexed; documents whose file was
+  deleted (or is now of an unticked type) are removed from the index. The files themselves are never changed.
+- While it syncs the row shows how far it got (*Syncing… 40 of 103*) and **Stop**. A stopped sync keeps what it
+  indexed and removes nothing; the next sync finishes it.
 - Folders and files starting with `.` or `_` are left out, with everything inside them.
-- The last sync's counts are shown: files, new or changed, unchanged, removed, what was left out and why, and
-  files that could not be read.
-- **Stop syncing** forgets the folder and asks whether to remove its documents from the index as well.
+- Each row shows the last sync (files, new or changed, removed); **Details** shows the file types, what was
+  left out and why, and files that could not be read.
+- **Remove** forgets the folder and asks whether to remove its documents from the index as well.
+- Website copies made in the **Crawler** tab are synced folders too.
 - It is for administrators only because the app reads its own disk. On a team server the path is on the
   server, not on your computer.
 

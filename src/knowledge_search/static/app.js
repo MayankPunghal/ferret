@@ -70,6 +70,7 @@ function renderMe() {
   scopeLabel();
   const sel = $("#upload-collection");
   sel.replaceChildren(...me.collections.filter((c) => c.can_write).map((c) => el("option", { value: c.id, textContent: c.name })));
+  $("#folder-collection").replaceChildren(...[...sel.options].map((o) => o.cloneNode(true)));
   $("#upload-form").hidden = $("#upload-actions").hidden = sel.options.length === 0;
   $("#no-writable").hidden = sel.options.length > 0;
 }
@@ -107,9 +108,10 @@ $("#logout").addEventListener("click", async () => { await api("/api/auth/logout
 
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
-  for (const t of ["search", "documents", "summaries", "status", "assistants", "settings", "admin", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
+  for (const t of ["search", "documents", "summaries", "status", "assistants", "settings", "admin", "folders", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
-  if (name === "documents") { loadDocs(); loadFolders(); pollTimer = setInterval(loadDocs, 3000); }
+  if (name === "folders") loadFolders();
+  if (name === "documents") { loadDocs(); pollTimer = setInterval(loadDocs, 3000); }
   if (name === "summaries") { loadSummaries(); pollTimer = setInterval(loadSummaries, 5000); }
   if (name === "status") loadStatus();
   if (name === "assistants") loadAssistants();
@@ -607,48 +609,75 @@ async function uploadFiles(files) {
   loadDocs();
 }
 
+$("#upload-more").addEventListener("click", (e) => {
+  const open = $("#upload-options").hidden;
+  $("#upload-options").hidden = !open; e.target.setAttribute("aria-expanded", open);
+});
+
 // Synced folders (administrators): a folder on the server's disk, indexed by path; Sync takes in the difference.
+// While a folder syncs it shows a spinner, how far it got, and Stop; otherwise Sync and Remove.
+const count = (n) => Number(n || 0).toLocaleString();
 const TYPE_NAME = { markdown: "Markdown", text: "Text", html: "HTML", word: "Word", powerpoint: "PowerPoint", pdf: "PDF" };
 function syncText(f) {
-  if (f.syncing) return "Syncing…";
   const r = f.result;
   if (!r) return "Not synced yet";
   if (r.error) return r.error;
-  const left = Object.entries(r.skipped || {}).map(([k, n]) => `${n} ${k}`).join(", ");
-  return `${ago(new Date(f.synced_at))} · ${r.files} files: ${r.queued} new or changed, ${r.unchanged} unchanged, ${r.removed} removed`
-    + (r.rejected.length ? `, ${r.rejected.length} could not be read` : "") + (left ? ` · left out: ${left}` : "");
+  const parts = [r.queued && `${count(r.queued)} new or changed`, r.removed && `${count(r.removed)} removed`,
+    r.rejected.length && `${r.rejected.length} could not be read`].filter(Boolean);
+  if (r.stopped !== undefined) return `Stopped ${ago(new Date(f.synced_at))} after ${count(r.stopped)} of ${count(r.files)} files · Sync to finish`;
+  return `Synced ${ago(new Date(f.synced_at))} · ${count(r.files)} files` + (parts.length ? ` · ${parts.join(", ")}` : " · no changes");
+}
+function folderDetails(f) {
+  const r = f.result || {}, left = Object.entries(r.skipped || {}).map(([k, n]) => `${n} ${k}`);
+  const d = el("details", { className: "folder-more" }, el("summary", { textContent: "Details" }),
+    el("p", { className: "meta", textContent: `Takes ${f.types.map((t) => TYPE_NAME[t]).join(", ")}` + (left.length ? ` · left out: ${left.join(", ")}` : "") }));
+  if (r.rejected?.length) d.append(el("ul", { className: "upload-errors" }, ...r.rejected.map((x) => el("li", { className: "meta error", textContent: x }))));
+  return d;
 }
 let folderTimer = null;
 async function loadFolders() {
   clearTimeout(folderTimer);
   if (!me?.is_admin) return;
   const rows = await api("/api/admin/folders");
-  $("#folders-table").hidden = !rows.length;
+  $("#folders-empty").hidden = rows.length > 0 || !$("#folder-form").hidden;
   $("#folders").replaceChildren(...rows.map((f) => {
-    const sync = el("button", { type: "button", className: "button", textContent: "Sync", disabled: f.syncing });
-    sync.addEventListener("click", async () => { await api(`/api/admin/folders/${f.id}/sync`, { method: "POST" }); loadFolders(); });
-    const stop = el("button", { type: "button", className: "button", textContent: "Stop syncing", disabled: f.syncing });
-    stop.addEventListener("click", async () => {
-      if (!confirm(`Stop syncing ${f.path}? Its documents stay searchable until you delete them.`)) return;
-      const docs = confirm("Also remove this folder's documents from the index? (The files on disk are not touched.)");
-      await api(`/api/admin/folders/${f.id}?documents=${docs}`, { method: "DELETE" }); loadFolders(); loadDocs();
-    });
-    const errs = f.result?.rejected?.length ? el("ul", { className: "upload-errors" }, ...f.result.rejected.map((x) => el("li", { className: "meta error", textContent: x }))) : "";
-    return el("tr", {},
-      el("td", {}, el("div", { className: "mono", textContent: f.path }), el("div", { className: "sub", textContent: f.types.map((t) => TYPE_NAME[t]).join(", ") })),
-      el("td", { className: "wide", textContent: f.collection }),
-      el("td", {}, el("span", { className: "meta", textContent: syncText(f) }), errs),
-      el("td", { className: "actions-cell" }, sync, stop));
+    const name = f.path.split(/[\\/]/).filter(Boolean).pop() || f.path;
+    const act = (text, cls, fn) => { const b = el("button", { type: "button", className: cls, textContent: text }); b.addEventListener("click", fn); return b; };
+    const status = f.syncing
+      ? el("span", { className: "meta syncing" }, el("span", { className: "spinner", ariaHidden: "true" }),
+          f.progress?.total ? ` Syncing… ${count(f.progress.done)} of ${count(f.progress.total)}` : " Syncing…")
+      : el("span", { className: "meta" + (f.result?.error ? " error" : ""), textContent: syncText(f) });
+    const actions = f.syncing
+      ? [act("Stop", "button", async (e) => { e.target.disabled = true; e.target.textContent = "Stopping…"; await api(`/api/admin/folders/${f.id}/stop`, { method: "POST" }); loadFolders(); })]
+      : [act("Sync now", "button", async (e) => { e.target.disabled = true; await api(`/api/admin/folders/${f.id}/sync`, { method: "POST" }); loadFolders(); }),
+         act("Remove", "link danger", async () => {
+           if (!confirm(`Stop syncing ${f.path}? The files on disk are not touched.`)) return;
+           const docs = confirm(`Also remove its documents from the index? OK removes them; Cancel keeps them searchable.`);
+           await api(`/api/admin/folders/${f.id}?documents=${docs}`, { method: "DELETE" }); loadFolders();
+         })];
+    return el("li", { className: "folder" },
+      el("div", { className: "folder-main" },
+        el("div", {}, el("strong", { textContent: name }), el("span", { className: "muted", textContent: ` into ${f.collection}` })),
+        el("div", { className: "mono sub", textContent: f.path, title: f.path })),
+      el("div", { className: "folder-status" }, status, f.syncing ? "" : folderDetails(f)),
+      el("div", { className: "actions" }, ...actions));
   }));
-  if (rows.some((f) => f.syncing)) folderTimer = setTimeout(() => { loadFolders(); loadDocs(); }, 1500);
+  if (rows.some((f) => f.syncing) && !$("#tab-folders").hidden) folderTimer = setTimeout(loadFolders, 1500);
 }
+const folderForm = (open) => {
+  $("#folder-form").hidden = !open; $("#folder-add").hidden = open; $("#folder-msg").hidden = true;
+  if (open) { $("#folders-empty").hidden = true; $("#folder-form [name=path]").focus(); }
+};
+$("#folder-add").addEventListener("click", () => folderForm(true));
+$("#folder-cancel").addEventListener("click", () => { $("#folder-form").reset(); folderForm(false); loadFolders(); });
 $("#folder-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const msg = $("#folder-msg"); msg.hidden = true;
   const path = new FormData(e.target).get("path").trim();
   try {
-    await api("/api/admin/folders", { method: "POST", json: { path, collection_id: Number($("#upload-collection").value), types: chosenTypes() } });
-    e.target.reset(); loadFolders();
+    await api("/api/admin/folders", { method: "POST", json: { path, collection_id: Number($("#folder-collection").value),
+      types: $$("#folder-types input:checked").map((x) => x.value) } });
+    e.target.reset(); folderForm(false); loadFolders();
   } catch (err) { msg.textContent = err.message; msg.hidden = false; }
 });
 
@@ -1281,8 +1310,17 @@ async function loadAssistants() {
       await api(`/api/tokens/${t.id}`, { method: "DELETE" }); loadAssistants();
     });
     const day = (d) => new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+    // the same token, with more or fewer rights; assistants see the new tool list when they reconnect
+    const access = el("select", { ariaLabel: `Access of ${t.label}`, className: "compact" },
+      el("option", { value: "read", textContent: "Read only", selected: t.read_only }),
+      el("option", { value: "write", textContent: "Read and make changes", selected: !t.read_only }));
+    access.addEventListener("change", async () => {
+      try { await api(`/api/tokens/${t.id}`, { method: "PATCH", json: { allow_changes: access.value === "write" } }); }
+      catch (err) { alert(err.message); }
+      loadAssistants();
+    });
     return el("tr", {}, el("td", {}, el("strong", { textContent: t.label })),
-      el("td", { textContent: t.read_only ? "Read only" : "Read and make changes" }), el("td", { textContent: day(t.created_at) }),
+      el("td", {}, access), el("td", { textContent: day(t.created_at) }),
       el("td", { textContent: day(t.expires_at) }), el("td", { className: "actions-cell" }, x));
   }));
   $("#tok-empty").hidden = mcpInfo.tokens.length > 0;

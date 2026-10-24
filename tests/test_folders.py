@@ -2,7 +2,7 @@
 
 import time
 
-from knowledge_search import db
+from knowledge_search import db, folders
 
 from .conftest import collection_id, token
 
@@ -77,6 +77,18 @@ def test_folder_source_syncs_only_the_difference(client, corpus, tmp_path):
     f = _wait(client, h, fid)["result"]
     assert (f["files"], f["queued"], f["unchanged"], f["removed"]) == (3, 2, 1, 1), f
     assert "repo-kit/AGENTS.md" not in _keys(cid) and "repo-kit/docs/new.md" in _keys(cid)
+
+    # a sync stopped part-way keeps what it indexed and removes nothing (the next sync finishes it)
+    (kit / "docs/workflows/index.md").unlink()
+    assert client.post(f"/api/admin/folders/{fid}/stop", headers=h).json()["syncing"] is False  # nothing to stop
+    folders._running[fid] = {}
+    folders._stop.add(fid)
+    try:
+        f = folders.sync(fid, None)
+    finally:
+        folders._running.pop(fid, None)
+        folders._stop.discard(fid)
+    assert f["stopped"] == 0 and f["removed"] == 0 and "repo-kit/docs/workflows/index.md" in _keys(cid), f
 
     # stop syncing and remove its documents from the index; the files stay
     gone = client.delete(f"/api/admin/folders/{fid}?documents=true", headers=h).json()

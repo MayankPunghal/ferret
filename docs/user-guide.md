@@ -181,8 +181,9 @@ lets search flag conflicts between versions of the same policy.
 Claude (Code or Desktop), Cursor, VS Code and other assistants that speak MCP can search your documents,
 read passages and whole documents, and follow links, then answer with citations.
 
-A token is **read-only** unless you tick **May also make changes** when you create it. With that, the
-assistant can also:
+A token is **read-only** unless you tick **May also make changes** when you create it (you can switch it
+later under **Your tokens**, keeping the same token; the assistant sees its new tools when it reconnects).
+With that, the assistant can also:
 - add documents to collections you can write to (for example notes it writes for you), retry or delete them;
 - if you are an administrator: index and sync a folder on the computer running Knowledge Search, copy a
   website into a collection, create collections, read and change settings, download models and re-index.
