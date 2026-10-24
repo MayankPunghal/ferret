@@ -7,16 +7,33 @@ an LLM tool or an offline copy. Standard-library Python; a real browser is optio
 
 1. Unzip this folder anywhere.
 2. Double-click **`Crawl Website.bat`** (Windows) or **`Crawl Website.command`** (macOS; on Linux run
-   `bash "Crawl Website.command"`).
-3. Paste the website address and give the copy a name. The first time, a browser window opens: sign in if
-   the site asks you to (company intranet), then press Enter in the black window.
+   `bash "Crawl Website.command"`). A page opens in your browser; keep the small black window open while you
+   copy (closing it stops site2md).
+3. **Copy a website** → paste the address. The page checks it at once ("Found “Engineering Wiki”", or "this
+   address asks you to sign in"). Give the copy a name and press **Start copying**. For a site behind a
+   sign-in, a browser window opens: sign in there; the page notices and starts copying by itself.
 
-The pages are saved in `output/<name>/`, one Markdown file per page, next to the original PDF, Word and
-PowerPoint files the pages link to or embed. The first run installs what it needs (uv, Python, about 1–2 minutes; the
-internet is needed for that). Running it again with the same name continues the copy and retries failed pages.
+While it copies you see each section of the site filling in, with Pause and Stop. When it is done, the page
+lists what was not copied, grouped by reason ("page not found · 12"), with **Try these again**, and can
+**send the copy to Knowledge Search**.
 
-You choose the browser: Chrome or Edge (already installed), or Firefox or Chromium (downloaded once). The
-sign-in is kept on your computer only, in `~/.site2md/profile-<browser>`. Delete that folder to sign out.
+The copies are in `output/<name>/`, one Markdown file per page, next to the original PDF, Word and
+PowerPoint files the pages link to or embed. The first run installs what it needs (uv, Python, about 1–2
+minutes; the internet is needed for that). **Your copies** lists them, with **Update** (copy the site again;
+the old copy is kept until the new one is finished), **Continue** for a stopped copy, Open folder and Delete.
+
+Sign-ins use Google Chrome or Microsoft Edge already on the computer (or a Chromium downloaded with
+`uv run --extra browser playwright install chromium`). The sign-in is kept on your computer only, in
+`~/.site2md/profile-<browser>`. Delete that folder to sign out. site2md never sees your password.
+
+**Original HTML (optional):** *More options → Also keep each page's original HTML* saves each page's HTML in
+`output/<name>-html/`, next to the copy rather than in it, to check what a page held. It is not sent to
+Knowledge Search: the Markdown already keeps the structure that search uses (headings, lists, tables, code,
+links), and indexing the same page twice would crowd results with duplicates.
+
+The page listens on 127.0.0.1 only, at an address with a one-time key, so other computers and other web
+pages cannot use it. `site2md ui --copies <folder>` opens it from a command line; `site2md <url> --out
+<folder>` still copies without the page.
 
 ## Install as a command (technical users)
 

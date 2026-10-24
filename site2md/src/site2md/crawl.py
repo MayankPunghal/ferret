@@ -130,9 +130,23 @@ class BrowserFetcher:
             self.ctx.route("**/*", lambda route: route.abort() if route.request.resource_type in
                            ("image", "media", "font") else route.continue_())
 
-    def login(self, url: str) -> None:
+    def login(self, url: str, done=None) -> None:
+        """Open the site to sign in. Without `done`, the person presses Enter in the console; with it, wait
+        until done(current address) is true (the browser is back on the site, or the page said continue)."""
         self.page.goto(url)
-        input("Sign in in the browser window until you see the site, then press Enter here... ")
+        if done is None:
+            input("Sign in in the browser window until you see the site, then press Enter here... ")
+            return
+        while True:
+            try:
+                where = self.page.url
+                if self.ctx.pages and self.page.is_closed():
+                    self.page = self.ctx.pages[0]
+                self.page.wait_for_timeout(1000)  # keeps the browser responsive while we wait
+            except Exception:  # noqa: BLE001 - the window was closed: take that as finished
+                return
+            if done(where):
+                return
 
     def get(self, url: str, render: bool) -> tuple[bytes, str, str, str]:
         if render:
@@ -326,7 +340,7 @@ class Crawler:
     def __init__(self, start: str, out: Path, *, prefixes: list[str] | None = None, allow_hosts: list[str] | None = None,
                  max_pages: int = 10_000, workers: int = 4, delay: float = 0.2, headers: dict | None = None,
                  robots: bool = True, files: bool = True, timeout: float = 30, log=print, browser=None,
-                 save_html: Path | None = None):
+                 save_html: Path | None = None, on_page=None):
         self.start, self.out = normalize(start), Path(out)
         host = urlsplit(self.start).netloc
         folder = self.start if self.start.endswith("/") else self.start.rsplit("/", 1)[0] + "/"
@@ -347,6 +361,17 @@ class Crawler:
         self.seen: set[str] = set()
         self.hashes: dict[str, str] = {}
         self.used: set[str] = set()
+        # for a program driving the crawl (the site2md page): a call per finished URL, pause and stop
+        self.on_page = on_page  # on_page(url, outcome text)
+        self.paused, self.stopped = threading.Event(), threading.Event()
+        self.progress = {"done": 0, "queued": 0, "running": 0}
+        self._again: list[str] = []  # failed URLs to try again (after signing in again)
+
+    def try_again(self, urls: list[str]) -> None:
+        with self.lock:
+            for u in urls:
+                self.manifest["failed"].pop(u, None)
+            self._again += urls
 
     # -- scope and politeness -------------------------------------------------------------------------------
     def in_scope(self, url: str) -> bool:
@@ -597,6 +622,7 @@ class Crawler:
         self.out.mkdir(parents=True, exist_ok=True)
         mpath = self.out / "manifest.json"
         queue: deque[str] = deque()
+        self.queue = queue  # read by the site2md page (pages waiting, per section)
 
         def add(urls):  # each URL is queued once (every page repeats the navigation links)
             for u in urls:
@@ -622,27 +648,41 @@ class Crawler:
         with _Inline() if self.browser else ThreadPoolExecutor(self.workers) as pool:  # browser: its own thread only
             running = {}
             try:
-                while queue or running:
-                    while queue and len(running) < self.workers and self._count() < self.max_pages:
+                while (queue or running or self._again or self.paused.is_set()) and not self.stopped.is_set():
+                    with self.lock:
+                        queue.extendleft(self._again)
+                        self._again = []
+                    while (queue and not self.paused.is_set() and len(running) < self.workers
+                           and self._count() < self.max_pages):
                         url, started = queue.popleft(), time.time()  # (browser mode runs fetch inside submit)
                         running[pool.submit(self.fetch, url)] = url, started
+                    self.progress = {"done": done, "queued": len(queue), "running": len(running)}
                     if not running:
+                        if self.paused.is_set():
+                            time.sleep(0.2)
+                            continue
                         break
-                    finished, _ = wait(running, return_when=FIRST_COMPLETED)
+                    finished, _ = wait(running, timeout=0.5, return_when=FIRST_COMPLETED)
                     for fut in finished:
                         url, started = running.pop(fut)
                         add(fut.result())
                         done += 1
+                        outcome = self._outcome(url)
                         self.log(f"[{done}/{done + len(queue) + len(running)}] {time.time() - started:4.1f} s  "
-                                 f"{url}  {self._outcome(url)}")
+                                 f"{url}  {outcome}")
+                        if self.on_page:
+                            self.on_page(url, outcome)
                     if time.time() - last_save > 30:
                         self._save_manifest(mpath, queue)
                         last_save = time.time()
+                if self.stopped.is_set():
+                    raise KeyboardInterrupt
             except KeyboardInterrupt:  # stopped by the person: keep what was saved, continue later with --resume
                 m = self.manifest
                 unfinished = [u for u, _ in running.values()] + ([url] if url else [])
                 queue.extendleft(u for u in unfinished if not any(u in m[k] for k in ("pages", "files", "skipped")))
                 self.log("stopped - saving what was crawled; run again with --resume to continue")
+            self.progress = {"done": done, "queued": len(queue), "running": 0}
         self.rewrite_links()
         self._save_manifest(mpath, queue)
         m = self.manifest

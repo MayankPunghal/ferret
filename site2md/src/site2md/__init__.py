@@ -7,6 +7,18 @@ __version__ = "1.0.0"
 
 
 def main(argv: list[str] | None = None) -> None:
+    import sys
+
+    args = sys.argv[1:] if argv is None else argv
+    if not args or args[0] == "ui":  # the page in the browser (Crawl Website launchers)
+        from . import ui
+
+        p = argparse.ArgumentParser(prog="site2md ui", description="Open site2md's page in your browser.")
+        p.add_argument("--copies", default="", help="folder for the copies (default ~/site2md)")
+        p.add_argument("--no-browser", action="store_true", help="only print the address")
+        a = p.parse_args(args[1:])
+        ui.main(a.copies, open_browser=not a.no_browser)
+        return
     from .crawl import BrowserFetcher, Crawler
 
     ap = argparse.ArgumentParser(prog="site2md", description="Save a website as Markdown files, one per page.")
@@ -32,7 +44,7 @@ def main(argv: list[str] | None = None) -> None:
     b.add_argument("--browser-path", default="", help="path to a Chromium/Chrome executable")
     ap.add_argument("--save-html", action="store_true", help="also keep the HTML each page was converted from, "
                     "in <out>-html (to check what a page held)")
-    a = ap.parse_args(argv)
+    a = ap.parse_args(args)
     fetcher = None
     a.profile = a.profile or str(Path.home() / ".site2md" / f"profile-{a.channel}")
     if a.browser or a.login:
