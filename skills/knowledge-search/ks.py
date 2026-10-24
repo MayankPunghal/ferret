@@ -141,11 +141,16 @@ def docs(a):
 
 
 def _files(paths):
+    """(file, path in its folder or None): a folder brings its subfolders, without names starting with . or _"""
     for p in map(Path, paths):
         if p.is_dir():
-            yield from (f for f in sorted(p.rglob("*")) if f.is_file() and not f.name.startswith("."))
+            root = p.resolve()
+            for f in sorted(root.rglob("*")):
+                rel = f.relative_to(root).parts
+                if f.is_file() and not any(x.startswith((".", "_")) for x in rel):
+                    yield f, f"{root.name}/{'/'.join(rel)}"
         elif p.is_file():
-            yield p
+            yield p, None
         else:
             raise Fail(f"no such file or folder: {p}")
 
@@ -154,7 +159,7 @@ def upload(a):
     if a.collection not in {c["id"] for c in call("GET", "/api/me")["collections"] if c["can_write"]}:
         raise Fail(f"this account cannot upload to collection {a.collection}; `ks.py me` lists the ones it can")
     counts, failed, skipped = {}, [], 0
-    for f in _files(a.paths):
+    for f, path in _files(a.paths):
         if f.suffix.lower() not in SUPPORTED:
             skipped += 1
             continue
@@ -162,6 +167,8 @@ def upload(a):
         ctype = mimetypes.guess_type(f.name)[0] or "application/octet-stream"
         body = b"".join([
             f'--{boundary}\r\nContent-Disposition: form-data; name="collection_id"\r\n\r\n{a.collection}\r\n'.encode(),
+            # its path in the folder identifies it, so same-named files in subfolders stay apart
+            f'--{boundary}\r\nContent-Disposition: form-data; name="path"\r\n\r\n{path}\r\n'.encode() if path else b"",
             f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{f.name}"\r\n'
             f"Content-Type: {ctype}\r\n\r\n".encode(), f.read_bytes(), f"\r\n--{boundary}--\r\n".encode()])
         try:
