@@ -1,9 +1,11 @@
 """MCP (Model Context Protocol) server for AI assistants: Claude Code, Claude Desktop, Cursor, VS Code.
 
 One endpoint, ``POST /mcp`` (Streamable HTTP, JSON responses, no streaming), inside the app: no extra
-process or dependency. Every tool is a read-only call to the app's own REST API, made in-process with the
-caller's access token, so an assistant sees exactly what that user may read and the evidence gate,
-permissions and audit log apply unchanged. Tokens are created on the app's "AI assistants" page.
+process or dependency. Every tool is a call to the app's own REST API, made in-process with the caller's
+access token, so an assistant sees and does exactly what that user may, and the evidence gate, permissions
+and audit log apply unchanged. Searching and reading are read-only; adding documents is offered to accounts
+that can write to a collection, and folders, crawls, settings and reindexing to administrators. Those tools
+are marked as not read-only, so assistants ask the user before running them. Tokens are created on the app's "AI assistants" page.
 
 Claude Desktop only starts local commands, so ``knowledge-search mcp`` relays its stdin/stdout to this
 endpoint (``bridge``). Passages an assistant reads go to that assistant's provider; the page says so.
@@ -27,15 +29,22 @@ Search first; answer only from passages whose "supported" is true and cite each 
 link. If the outcome is no_adequate_evidence, say the documents do not answer it instead of guessing; for
 conflicting_evidence, show the versions and their dates. Summaries, topics and types are written by a local
 model: use them to choose what to read, never as evidence. Read a passage or the whole document before
-relying on a detail the passage only hints at; follow document_links for "what depends on X" questions."""
+relying on a detail the passage only hints at; follow document_links for "what depends on X" questions.
+Tools that change things (add_document, add_folder, crawl_website, change_settings, reindex, delete_document)
+appear only when the user's token allows changes. Use them when the user asks; ask first before deleting,
+reindex all=true, or changing the embedding model or passage size (every document is indexed again)."""
 
 
-def _tool(name, description, properties, required=()):
-    return {"name": name, "description": description, "annotations": {"readOnlyHint": True},
+def _tool(name, description, properties, required=(), needs="", destructive=False):
+    """needs: "" (anyone), "write" (an account that can upload to a collection) or "admin". Tools that change
+    something are not read-only, so assistants ask the user before running them (unless the user allowed it)."""
+    hints = {"readOnlyHint": True} if not needs else {"readOnlyHint": False, "destructiveHint": destructive}
+    return {"name": name, "description": description, "annotations": hints, "needs": needs,
             "inputSchema": {"type": "object", "properties": properties, "required": list(required)}}
 
 
 _ID = {"type": "string", "description": "document_id from a search result"}
+_COL = {"type": "string", "description": "collection name (list_collections)"}
 TOOLS = [
     _tool("search", "Search the user's documents (keywords, identifiers like ERR-PAY-4012, or a question). "
           "Returns an outcome (evidence_found / conflicting_evidence / no_adequate_evidence) and ranked passages "
@@ -52,7 +61,62 @@ TOOLS = [
     _tool("document_links", "What a document links to, what links to it (incoming = what depends on it) and "
           "documents related in meaning: for dependency, ownership and impact questions.",
           {"document_id": _ID}, ["document_id"]),
-    _tool("list_collections", "The collections the user can search.", {}),
+    _tool("list_collections", "The collections the user can search, and whether this account can add documents to each.", {}),
+    _tool("index_status", "Indexing progress: documents indexed, waiting, failed; the models in use; summaries.", {}),
+    _tool("list_documents", "Documents with their status (indexed, pending, failed + error_code), optionally of one "
+          "collection or status. For 'is X indexed', 'what failed'.",
+          {"collection": _COL, "status": {"type": "string", "enum": ["indexed", "pending", "processing", "failed"]},
+           "name_contains": {"type": "string"}}),
+    # --- adding and managing documents (accounts with write access) ---
+    _tool("add_document", "Add or update one document from text (Markdown), e.g. notes the user asked you to keep. "
+          "The same path again replaces it with a new version; unchanged text is skipped.",
+          {"collection": _COL, "path": {"type": "string", "description": "its name, e.g. notes/2026-10-24-meeting.md "
+                                        "(.md or .txt); identifies the document in the collection"},
+           "text": {"type": "string"}}, ["collection", "path", "text"], needs="write"),
+    _tool("retry_document", "Index a failed document again.", {"document_id": _ID}, ["document_id"], needs="write"),
+    _tool("delete_document", "Remove a document and all its versions from the index (not the original file). "
+          "Ask the user first.", {"document_id": _ID}, ["document_id"], needs="write", destructive=True),
+    # --- administration ---
+    _tool("add_folder", "Index a folder on the computer running Knowledge Search, with its subfolders, and keep it "
+          "synced. Leaves out folders and files whose name starts with . or _ (.git, .claude, _tools) and other "
+          "file types (code, JSON, YAML, images). Runs in the background: check with list_folders. Adding the same "
+          "folder again syncs it.",
+          {"path": {"type": "string", "description": "full path, e.g. C:\\Users\\me\\Docs\\repo-kit"},
+           "collection": _COL,
+           "types": {"type": "array", "items": {"type": "string", "enum": ["markdown", "text", "html", "word",
+                                                                          "powerpoint", "pdf"]},
+                     "description": "file types to take; default all six"}},
+          ["path", "collection"], needs="admin"),
+    _tool("list_folders", "Synced folders and what their last sync did (new or changed, unchanged, removed, left out).",
+          {}, needs="admin"),
+    _tool("sync_folder", "Sync a folder now: index new and changed files, remove documents whose file is gone.",
+          {"folder_id": {"type": "integer"}}, ["folder_id"], needs="admin"),
+    _tool("crawl_website", "Copy a website or intranet into Markdown (site2md) on the computer running Knowledge "
+          "Search and index it into a collection; crawling the same address again updates it. Stays under the "
+          "start address's folder. Runs in the background: check with list_crawls. Sites behind a sign-in need the "
+          "user to sign in once on that computer (knowledge-search crawl <url> --out <folder> --browser --login), "
+          "then browser=true.",
+          {"url": {"type": "string"}, "collection": _COL,
+           "max_pages": {"type": "integer", "minimum": 1, "maximum": 10000, "default": 1000},
+           "browser": {"type": "boolean", "default": False,
+                       "description": "use a real browser: pages built by JavaScript, or a saved sign-in"}},
+          ["url", "collection"], needs="admin"),
+    _tool("list_crawls", "Website copies: running, finished (pages, failed, sync counts) or kept from before.", {},
+          needs="admin"),
+    _tool("create_collection", "Create a collection (lowercase letters, digits, - and _). Only administrators see it "
+          "until access is granted in the app (Users & access).",
+          {"name": {"type": "string"}, "description": {"type": "string"}}, ["name"], needs="admin"),
+    _tool("get_settings", "Search and indexing settings: current values, defaults, the models available (embedding, "
+          "reranker, summary model) and how much of the index matches the current settings.", {}, needs="admin"),
+    _tool("change_settings", "Change settings, e.g. {\"rerank_enabled\": true} or {\"embed_model\": \"...\"}; names "
+          "and allowed values as in get_settings. Changing the embedding model or passage size makes every document "
+          "outdated until reindex runs (can take hours on a large archive): tell the user first.",
+          {"changes": {"type": "object"}}, ["changes"], needs="admin"),
+    _tool("download_model", "Download a model listed by get_settings (runs in the background; offline installs refuse).",
+          {"kind": {"type": "string", "enum": ["embed", "rerank", "llm"]}, "name": {"type": "string"}},
+          ["kind", "name"], needs="admin"),
+    _tool("reindex", "Index again the documents made with older settings, or all=true for every document (hours on a "
+          "large archive: ask the user first).", {"all": {"type": "boolean", "default": False}}, needs="admin"),
 ]
 
 
@@ -66,6 +130,9 @@ async def _call(c: httpx.AsyncClient, method: str, path: str, body=None):
         raise ToolError("the access token is invalid or expired: create a new one on the app's AI assistants page")
     if r.status_code == 404:
         raise ToolError("not found, or not readable with this account")
+    if r.status_code in (400, 409, 422):
+        detail = r.json().get("detail") if r.headers.get("content-type", "").startswith("application/json") else r.text
+        raise ToolError(f"refused: {detail}")
     if r.status_code >= 400 and not (r.headers.get("content-type", "").startswith("application/json")
                                      and "outcome" in r.json()):
         raise ToolError(f"{method} {path}: HTTP {r.status_code} {r.text[:300]}")
@@ -79,8 +146,10 @@ def _where(r: dict) -> str:
 async def _run(name: str, a: dict, c: httpx.AsyncClient, base: str) -> dict | list:
     link = lambda u: base + u if u and u.startswith("/") else u  # noqa: E731
     if name == "list_collections":
-        return [{"name": x["name"], "description": x.get("description") or ""}
+        return [{"name": x["name"], "description": x.get("description") or "", "can_add_documents": x["can_write"]}
                 for x in (await _call(c, "GET", "/api/me"))["collections"]]
+    if name in _MANAGE:
+        return await _MANAGE[name](a, c)
     if name == "search":
         body = {"query": str(a.get("query", "")), "limit": max(1, min(int(a.get("limit") or 8), 20))}
         if a.get("collections"):
@@ -130,6 +199,84 @@ async def _run(name: str, a: dict, c: httpx.AsyncClient, base: str) -> dict | li
                 "related_in_meaning": [item(x, "similar") for x in links.get("similar", [])],
                 "not_found": links.get("unresolved", [])}
     raise ToolError(f"unknown tool {name}")
+
+
+async def _collection(c: httpx.AsyncClient, name: str, write: bool = False) -> int:
+    for x in (await _call(c, "GET", "/api/me"))["collections"]:
+        if x["name"].lower() == str(name).lower() and (x["can_write"] or not write):
+            return x["id"]
+    raise ToolError(f"no collection named {name!r} that this account can {'add to' if write else 'read'}; "
+                    "see list_collections (administrators can create_collection)")
+
+
+async def _documents(a, c):
+    rows = await _call(c, "GET", "/api/documents")
+    want = (a.get("name_contains") or "").lower()
+    rows = [r for r in rows if (not a.get("collection") or r["collection"].lower() == str(a["collection"]).lower())
+            and (not a.get("status") or r["status"] == a["status"])
+            and (not want or want in f"{r['title']} {r['source_key']}".lower())]
+    keep = ("id", "title", "source_key", "collection", "status", "error_code", "error_detail", "updated_at")
+    return {"count": len(rows), "documents": [{k: r[k] for k in keep if r.get(k) not in (None, "")} for r in rows[:200]],
+            **({"note": "first 200 shown; narrow with collection, status or name_contains"} if len(rows) > 200 else {})}
+
+
+async def _add_document(a, c):
+    path = str(a["path"]).strip()
+    if not path.lower().endswith((".md", ".markdown", ".txt")):
+        raise ToolError("path must end in .md or .txt")
+    cid = await _collection(c, a["collection"], write=True)
+    r = await c.post("/api/documents", data={"collection_id": str(cid), "path": path},
+                     files={"file": (path.replace("\\", "/").split("/")[-1], str(a["text"]).encode())})
+    if r.status_code >= 400:
+        raise ToolError(f"not added: {r.text[:300]}")
+    return r.json() | {"next": "indexing runs in the background; list_documents shows when it is indexed"}
+
+
+async def _add_folder(a, c):
+    cid = await _collection(c, a["collection"], write=True)
+    return await _call(c, "POST", "/api/admin/folders", {"path": a["path"], "collection_id": cid,
+                                                         **({"types": a["types"]} if a.get("types") else {})})
+
+
+async def _crawl(a, c):
+    cid = await _collection(c, a["collection"], write=True)
+    return await _call(c, "POST", "/api/admin/crawls", {"url": a["url"], "collection_id": cid,
+                                                        "max_pages": int(a.get("max_pages") or 1000),
+                                                        "browser": bool(a.get("browser"))})
+
+
+async def _settings(a, c):
+    s = await _call(c, "GET", "/api/admin/settings")
+    return {"values": s["values"], "defaults": s["defaults"], "limits": s["limits"], "index": s["index"],
+            "models": {k: [x["name"] for x in v] for k, v in s["options"].items()}, "summary_model": s["llm"]}
+
+
+_MANAGE = {
+    "index_status": lambda a, c: _call(c, "GET", "/api/status"),
+    "list_documents": _documents,
+    "add_document": _add_document,
+    "retry_document": lambda a, c: _call(c, "POST", f"/api/documents/{a['document_id']}/retry"),
+    "delete_document": lambda a, c: _call(c, "DELETE", f"/api/documents/{a['document_id']}"),
+    "add_folder": _add_folder,
+    "list_folders": lambda a, c: _call(c, "GET", "/api/admin/folders"),
+    "sync_folder": lambda a, c: _call(c, "POST", f"/api/admin/folders/{int(a['folder_id'])}/sync"),
+    "crawl_website": _crawl,
+    "list_crawls": lambda a, c: _call(c, "GET", "/api/admin/crawls"),
+    "create_collection": lambda a, c: _call(c, "POST", "/api/admin/collections",
+                                            {"name": a["name"], "description": a.get("description", "")}),
+    "get_settings": _settings,
+    "change_settings": lambda a, c: _call(c, "PUT", "/api/admin/settings", a["changes"]),
+    "download_model": lambda a, c: _call(c, "POST", "/api/admin/models/download", {"kind": a["kind"], "name": a["name"]}),
+    "reindex": lambda a, c: _call(c, "POST", "/api/admin/reindex", {"all": bool(a.get("all"))}),
+}
+
+
+async def _tools_for(c: httpx.AsyncClient) -> list[dict]:
+    """The tools this account can use: administration for administrators, adding documents for writers."""
+    me = await _call(c, "GET", "/api/me")
+    can = {"", "admin", "write"} if me.get("is_admin") else {"", "write"} if any(
+        x["can_write"] for x in me["collections"]) else {""}
+    return [{k: v for k, v in t.items() if k != "needs"} for t in TOOLS if t["needs"] in can]
 
 
 def _error(id_, code: int, message: str) -> dict:
@@ -184,9 +331,11 @@ async def _handle(m, c: httpx.AsyncClient, base: str) -> dict | None:
     if method == "ping":
         return {"jsonrpc": "2.0", "id": id_, "result": {}}
     if method == "tools/list":
-        return {"jsonrpc": "2.0", "id": id_, "result": {"tools": TOOLS}}
+        return {"jsonrpc": "2.0", "id": id_, "result": {"tools": await _tools_for(c)}}
     if method == "tools/call":
         try:
+            if params.get("name") not in {t["name"] for t in await _tools_for(c)}:
+                raise ToolError(f"unknown tool {params.get('name')}, or not available to this account")
             out = await _run(params.get("name", ""), params.get("arguments") or {}, c, base)
             text, failed = json.dumps(out, ensure_ascii=False, indent=1), False
         except (ToolError, KeyError, ValueError, TypeError) as e:

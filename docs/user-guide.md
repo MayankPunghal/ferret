@@ -179,8 +179,17 @@ lets search flag conflicts between versions of the same policy.
 ## Connecting an AI assistant (MCP; optional, sends passages to the assistant's provider)
 
 Claude (Code or Desktop), Cursor, VS Code and other assistants that speak MCP can search your documents,
-read passages and whole documents, and follow links, then answer with citations. They get your read access
-and nothing more: no uploads, changes or deletes.
+read passages and whole documents, and follow links, then answer with citations.
+
+A token is **read-only** unless you tick **May also make changes** when you create it. With that, the
+assistant can also:
+- add documents to collections you can write to (for example notes it writes for you), retry or delete them;
+- if you are an administrator: index and sync a folder on the computer running Knowledge Search, copy a
+  website into a collection, create collections, read and change settings, download models and re-index.
+
+Assistants ask you before each of these (Claude Code shows a permission prompt), and every change is in the
+audit log and the Activity view. A page you index could contain instructions aimed at an assistant, so keep
+read-only tokens for day-to-day questions and use a change token when you want the assistant to do the work.
 
 1. Open **AI assistants** in the sidebar.
 2. Name a token (one per assistant, e.g. "Claude Code on my laptop"), pick how long it is valid, and click

@@ -43,7 +43,8 @@ def test_handshake_and_tool_list(client, corpus):
     r = client.post("/mcp", headers=h, json={"jsonrpc": "2.0", "method": "notifications/initialized"})
     assert r.status_code == 202
     names = {t["name"] for t in rpc(client, h, "tools/list")["result"]["tools"]}
-    assert names == {"search", "read_passage", "read_document", "document_links", "list_collections"}
+    assert names == {"search", "read_passage", "read_document", "document_links", "list_collections",
+                     "index_status", "list_documents"}  # bob cannot write: no tools that change anything
     assert rpc(client, h, "nope")["error"]["code"] == -32601
     assert client.get("/mcp", headers=h).status_code == 405
     # no token, or a wrong one: refused at connect time

@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin, auth, db, dbview, enrich, folders, graph, mcp, runtime, trace, vectors
+from . import admin, auth, crawls, db, dbview, enrich, folders, graph, mcp, runtime, trace, vectors
 from .auth import Principal
 from .config import Settings, get_settings, memory_vectors
 from .deps import COOKIE, Conn, User, state
@@ -187,6 +187,7 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
     app.include_router(admin.router)
     app.include_router(dbview.router)
     app.include_router(folders.router)
+    app.include_router(crawls.router)
     app.include_router(graph.router)
     app.include_router(mcp.router)
     static = resources.files("knowledge_search") / "static"
@@ -212,6 +213,7 @@ def _record_index_meta(rt: "runtime.Runtime") -> None:
 class TokenBody(BaseModel):
     label: str = Field(min_length=1, max_length=80)
     days: int = Field(default=90, ge=1, le=365)
+    allow_changes: bool = False  # else read-only: search and read, nothing else
 
 
 class LoginBody(BaseModel):
@@ -308,7 +310,7 @@ def _routes(app: FastAPI) -> None:
     # Access tokens for AI assistants (MCP, skill): the user's own rights, listed and revoked by their owner.
     @app.get("/api/tokens")
     def tokens(request: Request, p: User, conn: Conn):
-        rows = conn.execute("SELECT id, label, created_at, expires_at FROM sessions WHERE user_id = %s "
+        rows = conn.execute("SELECT id, label, created_at, expires_at, read_only FROM sessions WHERE user_id = %s "
                             "AND label IS NOT NULL AND expires_at > now() ORDER BY created_at DESC", (p.user_id,)).fetchall()
         exe = Path(sys.executable).with_name("knowledge-search" + (".exe" if sys.platform == "win32" else ""))
         return {"tokens": rows, "mcp_url": str(request.base_url) + "mcp", "url": str(request.base_url).rstrip("/"),
@@ -318,8 +320,9 @@ def _routes(app: FastAPI) -> None:
     def create_token(body: TokenBody, request: Request, p: User, conn: Conn):
         if request.headers.get("authorization"):  # an assistant cannot mint itself more tokens
             raise HTTPException(403, "create access tokens in the app, signed in with your password")
-        token = auth.create_session(conn, p.user_id, body.days * 24, body.label.strip())
-        auth.audit(conn, p.user_id, "token_created", None, label=body.label.strip(), days=body.days)
+        token = auth.create_session(conn, p.user_id, body.days * 24, body.label.strip(), not body.allow_changes)
+        auth.audit(conn, p.user_id, "token_created", None, label=body.label.strip(), days=body.days,
+                   allow_changes=body.allow_changes)
         conn.commit()
         return {"token": token}
 

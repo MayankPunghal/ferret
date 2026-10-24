@@ -1276,7 +1276,8 @@ async function loadAssistants() {
       await api(`/api/tokens/${t.id}`, { method: "DELETE" }); loadAssistants();
     });
     const day = (d) => new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
-    return el("tr", {}, el("td", {}, el("strong", { textContent: t.label })), el("td", { textContent: day(t.created_at) }),
+    return el("tr", {}, el("td", {}, el("strong", { textContent: t.label })),
+      el("td", { textContent: t.read_only ? "Read only" : "Read and make changes" }), el("td", { textContent: day(t.created_at) }),
       el("td", { textContent: day(t.expires_at) }), el("td", { className: "actions-cell" }, x));
   }));
   $("#tok-empty").hidden = mcpInfo.tokens.length > 0;
@@ -1285,7 +1286,7 @@ $("#tok-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
   try {
-    newToken = (await api("/api/tokens", { method: "POST", json: { label: f.get("label"), days: Number(f.get("days")) } })).token;
+    newToken = (await api("/api/tokens", { method: "POST", json: { label: f.get("label"), days: Number(f.get("days")), allow_changes: !!f.get("allow_changes") } })).token;
     $("#tok-value").textContent = `${newToken.slice(0, 6)}••••••••${newToken.slice(-4)}`;
     $("#tok-copied").textContent = ""; $("#tok-new").hidden = false; $("#tok-msg").textContent = "";
     e.target.reset(); loadAssistants();

@@ -42,8 +42,18 @@ counts, or even whether a restricted document exists.
 Every user can connect an AI assistant on the **AI assistants** page (setup: [User guide](user-guide.md)).
 The endpoint is `/mcp` on the app's own address; there is nothing extra to run or open.
 
-- An assistant gets its user's read access only (5 read-only tools); permissions, the evidence gate and the
-  audit log (`token_created`, `token_revoked`, every search) apply as in the browser.
+- **Read-only tokens** (the default) get 7 read-only tools: `search`, `read_passage`, `read_document`,
+  `document_links`, `list_collections`, `index_status`, `list_documents`.
+- **Tokens created with "May also make changes"** add tools within the user's rights. They are marked as not
+  read-only, so assistants ask before running them.
+  - Writers: `add_document`, `retry_document`, `delete_document`.
+  - Administrators: `add_folder` / `list_folders` / `sync_folder` (Synced folders), `crawl_website` /
+    `list_crawls`, `create_collection`, `get_settings` / `change_settings`, `download_model`, `reindex`.
+- Tokens made before 2026-10-24 stay read-only.
+- A read-only token is refused by the REST API as well (no uploads, no administration), so it cannot be used
+  around the MCP tool list.
+- Permissions, the evidence gate and the audit log (`token_created` with `allow_changes`, `token_revoked`,
+  every search and change) apply as in the browser.
 - Tokens are created only from a signed-in browser, last 30, 90 or 365 days and can be revoked by their
   owner. Disabling a user, resetting their password or changing their groups revokes all their tokens.
 - Assistants on other computers need to reach the app: serve on the network (`serve --host 0.0.0.0`)
@@ -78,6 +88,19 @@ chosen above it, and remembered.
 - **Stop syncing** forgets the folder and asks whether to remove its documents from the index as well.
 - It is for administrators only because the app reads its own disk. On a team server the path is on the
   server, not on your computer.
+
+## Copying a website from the app (crawl_website)
+
+Administrators (through an assistant's `crawl_website` tool, or `POST /api/admin/crawls`) can have the app
+copy a website into a collection:
+- The crawler (site2md) runs on the computer running Knowledge Search, into `<data>/crawls/<site-name>`,
+  and that folder becomes a synced folder of the collection.
+- Crawling the same address again replaces the copy and syncs it, so only changed pages are indexed again,
+  and pages gone from the site are removed.
+- **Sites behind a sign-in:** sign in once on that computer (`knowledge-search crawl <url> --out <folder>
+  --browser --login`), then crawl with `browser: true`, which reuses the saved sign-in. The app never asks
+  for or stores passwords.
+- `list_crawls` shows progress, pages saved, failures, and the sync counts.
 
 ## Crawling a website or intranet
 

@@ -14,7 +14,8 @@ python ks.py <command> ...       # run it from this skill's folder or give the f
 ```
 
 Sign-in comes from the environment: `KS_TOKEN`, or `KS_USER` + `KS_PASSWORD`, an account of the app. Use a
-read-only account unless the user wants you to upload or delete. The token is cached in
+read-only account unless the user wants you to upload or delete. A `KS_TOKEN` is read-only unless it was
+created with "May also make changes" on the app's AI assistants page. The token is cached in
 `~/.cache/knowledge-search/`. If they are missing, ask the user to set them. Never ask the user to paste a
 password into the chat.
 

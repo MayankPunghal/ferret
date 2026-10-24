@@ -49,12 +49,13 @@ def authenticate(conn: Connection, username: str, password: str) -> int | None:
     return row["id"] if row else None
 
 
-def create_session(conn: Connection, user_id: int, hours: int, label: str | None = None) -> str:
-    """A browser session, or with a label an access token for an AI assistant (same rights as the user)."""
+def create_session(conn: Connection, user_id: int, hours: int, label: str | None = None, read_only: bool = False) -> str:
+    """A browser session, or with a label an access token for an AI assistant: the user's rights, or with
+    read_only only their read access (no uploads, no administration)."""
     token = secrets.token_urlsafe(32)
     conn.execute(
-        "INSERT INTO sessions(token_hash, user_id, expires_at, label) VALUES (%s, %s, %s, %s)",
-        (_token_hash(token), user_id, datetime.now(UTC) + timedelta(hours=hours), label),
+        "INSERT INTO sessions(token_hash, user_id, expires_at, label, read_only) VALUES (%s, %s, %s, %s, %s)",
+        (_token_hash(token), user_id, datetime.now(UTC) + timedelta(hours=hours), label, read_only),
     )
     return token
 
@@ -65,13 +66,14 @@ def delete_session(conn: Connection, token: str) -> None:
 
 def load_principal(conn: Connection, token: str) -> Principal | None:
     row = conn.execute(
-        "SELECT u.id, u.username, u.is_admin FROM sessions s JOIN users u ON u.id = s.user_id "
+        "SELECT u.id, u.username, u.is_admin, s.read_only FROM sessions s JOIN users u ON u.id = s.user_id "
         "WHERE s.token_hash = %s AND s.expires_at > now() AND NOT u.disabled",
         (_token_hash(token),),
     ).fetchone()
     if not row:
         return None
-    return principal_for(conn, row["id"], row["username"], row["is_admin"])
+    p = principal_for(conn, row["id"], row["username"], row["is_admin"])
+    return Principal(p.user_id, p.username, False, p.readable, frozenset()) if row["read_only"] else p
 
 
 def principal_for(conn: Connection, user_id: int, username: str, is_admin: bool) -> Principal:
