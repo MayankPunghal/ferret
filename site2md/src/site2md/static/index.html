@@ -10,37 +10,50 @@
 <body>
   <header class="top">
     <div class="brand"><span class="logo" aria-hidden="true">⇣</span> site2md <span class="muted">· copy a website as Markdown</span></div>
-    <button type="button" class="link" id="open-copies" title="">Open the copies folder</button>
   </header>
 
   <main class="sheet">
-    <!-- 1. Your copies -->
+    <!-- Your copies -->
     <section id="s-home" hidden>
       <div class="title-row">
-        <h1>Your copies</h1>
+        <h1>Website copies</h1>
         <button type="button" class="primary" id="new-copy">Copy a website</button>
       </div>
+      <p class="where muted small">Saved in <button type="button" class="link mono" id="open-copies" title="Open this folder"></button>
+        · <button type="button" class="link" id="change-folder">Change</button></p>
+      <form id="folder-form" class="inline-form" hidden>
+        <input name="path" id="folder-path" class="grow mono" required aria-label="Folder for the copies">
+        <button class="primary">Save</button>
+        <button type="button" class="button" id="folder-cancel">Cancel</button>
+      </form>
+      <p id="folder-error" class="error" role="alert" hidden></p>
       <div id="empty" class="empty" hidden>
-        <p class="lede">site2md saves every page of a website or intranet as a Markdown file, so Knowledge Search,
-          or any AI tool, can search it. Sites that need you to sign in work too: you sign in once, in your own
-          browser.</p>
-        <button type="button" class="primary" id="empty-new">Copy a website</button>
+        <p class="lede">Copy a website or intranet as Markdown files, one per page, so Knowledge Search or any AI
+          tool can search it. Sites that need you to sign in work too: you sign in once, in your own browser.</p>
       </div>
       <ul id="copies" class="copies"></ul>
     </section>
 
-    <!-- 2. Copy a website -->
+    <!-- Copy a website -->
     <section id="s-new" hidden>
-      <button type="button" class="link back" data-go="home">← Your copies</button>
+      <button type="button" class="link back" data-go="home">← Website copies</button>
       <h1>Copy a website</h1>
       <form id="new-form" class="form" novalidate>
-        <label>Address of the site
+        <label>Address
           <input name="url" id="url" type="url" required placeholder="https://wiki.example.com/engineering/" autocomplete="url">
         </label>
         <p id="check" class="check-line" aria-live="polite"></p>
-        <label>Name of this copy
+        <label>Name
           <input name="name" id="name" required pattern="[A-Za-z0-9][A-Za-z0-9 ._\-]{0,79}" placeholder="filled in from the address">
-          <span class="hint">The folder it is saved in. Use the same name later to update it.</span>
+          <span class="hint">The folder it is saved in.</span>
+        </label>
+        <label>Links to other sites
+          <select name="follow">
+            <option value="linked" selected>Follow links in the pages' text, and copy the sections they lead to</option>
+            <option value="site">Stay on this site</option>
+            <option value="everything">Follow every link it finds, up to the page limit</option>
+          </select>
+          <span class="hint">Links in menus, headers and footers are followed only within the site.</span>
         </label>
         <div id="browser-row" hidden>
           <label>Browser to sign in with
@@ -52,16 +65,13 @@
         <details class="more">
           <summary>More options</summary>
           <div class="more-body">
-            <label>Most pages to copy <input name="max_pages" type="number" min="1" max="10000" value="10000"></label>
-            <label>Also copy these folders <span class="hint">one address per line; by default only pages under the
-              address's own folder are copied</span>
+            <label>Most pages to copy <input name="max_pages" type="number" min="1" max="100000" value="10000"></label>
+            <label>Also copy these folders <span class="hint">one address per line</span>
               <textarea name="prefixes" rows="2" placeholder="https://wiki.example.com/operations/"></textarea></label>
-            <label>Also follow links to these sites <span class="hint">one host per line, e.g. docs.example.com</span>
-              <textarea name="hosts" rows="2"></textarea></label>
             <label class="check"><input type="checkbox" name="attachments" checked> Save linked PDF, Word and text files</label>
             <label class="check"><input type="checkbox" name="browser"> Use a real browser (for pages built with JavaScript)</label>
             <label class="check"><input type="checkbox" name="keep_html"> Also keep each page's original HTML
-              <span class="hint">saved in a separate folder next to the copy, for checking what a page held; it is not sent to Knowledge Search</span></label>
+              <span class="hint">in a separate folder next to the copy; not sent to Knowledge Search</span></label>
             <label class="check"><input type="checkbox" name="ignore_robots"> Ignore the site's robots.txt
               <span class="hint">only for your own sites or ones you have permission to copy</span></label>
           </div>
@@ -71,15 +81,14 @@
       </form>
     </section>
 
-    <!-- 3. Sign in -->
+    <!-- Sign in -->
     <section id="s-signin" hidden>
       <h1>Sign in to <span class="site-name"></span></h1>
       <div class="signin">
         <div class="spinner" aria-hidden="true"></div>
         <div>
-          <p class="lede">A browser window opened. Sign in there until you see the site, then come back.</p>
-          <p class="muted">This page notices when you are signed in and starts copying by itself. Your password
-            stays in the browser; site2md never sees it.</p>
+          <p class="lede">A browser window opened. Sign in there until you see the site.</p>
+          <p class="muted">Copying starts by itself once you are in. Your password stays in the browser.</p>
         </div>
       </div>
       <div class="actions">
@@ -88,67 +97,83 @@
       </div>
     </section>
 
-    <!-- 4. Copying -->
-    <section id="s-run" hidden>
+    <!-- One copy: while it runs and after -->
+    <section id="s-copy" hidden>
+      <button type="button" class="link back" data-go="home">← Website copies</button>
       <div class="title-row">
-        <div><h1 class="site-name"></h1><p class="muted url-line mono"></p></div>
-        <div class="actions">
-          <button type="button" class="button" id="pause" data-act="pause">Pause</button>
-          <button type="button" class="button" id="resume" data-act="resume" hidden>Resume</button>
-          <button type="button" class="button danger" id="stop" data-act="stop">Stop</button>
-        </div>
+        <div class="title-text"><h1 class="site-name"></h1><p class="muted url-line mono" id="copy-url"></p></div>
+        <div class="actions" id="copy-actions"></div>
       </div>
-      <p id="run-state" class="state-line" aria-live="polite"></p>
-      <dl class="counters">
-        <div><dt>Pages saved</dt><dd id="c-pages">0</dd></div>
-        <div><dt>Attachments</dt><dd id="c-files">0</dd></div>
-        <div><dt>Still to visit</dt><dd id="c-queued">0</dd></div>
-        <div><dt>Skipped</dt><dd id="c-skipped">0</dd></div>
-        <div><dt>Failed</dt><dd id="c-failed">0</dd></div>
-        <div><dt>Time</dt><dd id="c-time">0:00</dd></div>
-        <div><dt>Pages a minute</dt><dd id="c-rate">–</dd></div>
-      </dl>
-      <div class="two-col">
-        <section class="block">
-          <h2>Sections of the site</h2>
-          <p class="muted small">Pages saved of those found so far. Gaps show where they are.</p>
-          <ul id="sections" class="sections"></ul>
-        </section>
-        <section class="block">
-          <h2>Just saved</h2>
-          <ul id="recent" class="recent"></ul>
-        </section>
-      </div>
-    </section>
+      <p id="copy-state" class="state-line" aria-live="polite"></p>
+      <div id="copy-notice" class="notice" hidden></div>
 
-    <!-- 5. Done (also stopped, sign-in expired, failed) -->
-    <section id="s-done" hidden>
-      <button type="button" class="link back" data-go="home">← Your copies</button>
-      <h1 id="done-title">Done</h1>
-      <p id="done-line" class="lede"></p>
-      <div id="done-notice" class="notice" hidden></div>
-      <div class="actions" id="done-actions"></div>
-
-      <section class="block" id="not-copied-block" hidden>
-        <h2>What was not copied</h2>
-        <ul id="not-copied" class="groups"></ul>
-      </section>
-
-      <section class="block" id="send-block">
-        <h2>Next: search it in Knowledge Search</h2>
-        <p class="muted">Sends this copy into a collection. Needs an access token from Knowledge Search's
-          <strong>AI assistants</strong> page, created with <strong>May also make changes</strong>. When Knowledge Search
-          runs on this computer and you are its administrator, the copy becomes a synced folder: later updates
-          only send what changed.</p>
+      <section id="send" class="block send" hidden>
+        <div class="block-head"><h2>Send to Knowledge Search</h2>
+          <button type="button" class="link" id="send-close">Close</button></div>
         <form id="send-form" class="form inline">
-          <label>Knowledge Search address <input name="server" id="ks-server" value="http://127.0.0.1:8000"></label>
-          <label>Access token <input name="token" id="ks-token" type="password" autocomplete="off" placeholder="paste it here"></label>
-          <button type="button" class="button" id="ks-load">Show my collections</button>
-          <label id="ks-col-row" hidden>Into collection <select name="collection_id" id="ks-col"></select></label>
+          <label class="standalone-only">Knowledge Search address <input name="server" id="ks-server" value="http://127.0.0.1:8000"></label>
+          <label class="standalone-only">Access token <span class="hint">from its AI assistants page, with “May also make changes”</span>
+            <input name="token" id="ks-token" type="password" autocomplete="off" placeholder="paste it here"></label>
+          <label id="ks-col-row" hidden>Collection <select id="ks-col"></select></label>
+          <label id="ks-new-row" hidden>Name of the new collection
+            <input id="ks-new" pattern="[a-z0-9_\-]{2,64}" placeholder="lower-case, e.g. aws-transform"></label>
           <button type="submit" class="primary" id="ks-send" hidden>Send</button>
         </form>
         <p id="send-state" class="state-line" aria-live="polite"></p>
       </section>
+
+      <div class="tiles" id="tiles" role="group" aria-label="Show these pages"></div>
+
+      <div class="tabbar" role="tablist">
+        <button type="button" role="tab" class="tab" data-tab="overview" aria-selected="true">Overview</button>
+        <button type="button" role="tab" class="tab" data-tab="pages" aria-selected="false">Pages</button>
+        <button type="button" role="tab" class="tab" data-tab="log" aria-selected="false">Log</button>
+      </div>
+
+      <div id="p-overview" class="panel">
+        <div class="two-col">
+          <section>
+            <h2>Sections</h2>
+            <p class="muted small">Pages copied of those found. Amber shows what could not be copied.</p>
+            <ul id="sections" class="sections"></ul>
+          </section>
+          <div class="side">
+            <section id="recent-block" hidden>
+              <h2>Just saved</h2>
+              <ul id="recent" class="recent"></ul>
+            </section>
+            <section id="groups-block" hidden>
+              <h2>Not copied</h2>
+              <ul id="groups" class="groups"></ul>
+            </section>
+            <section id="linked-block" hidden>
+              <h2>Sections reached through links</h2>
+              <ul id="linked" class="plain mono small"></ul>
+            </section>
+            <section id="outside-block" hidden>
+              <h2>Links not followed</h2>
+              <p class="muted small">Links in menus and footers, and links found in sections reached through links.</p>
+              <ul id="outside" class="groups"></ul>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div id="p-pages" class="panel" hidden>
+        <div class="filter-row">
+          <div class="chips" id="kinds" role="group" aria-label="Which pages"></div>
+          <input type="search" id="page-q" placeholder="Filter by address or file" aria-label="Filter pages">
+        </div>
+        <table class="data">
+          <thead><tr><th>Address</th><th>Result</th></tr></thead>
+          <tbody id="page-rows"></tbody>
+        </table>
+        <p id="page-more" class="muted small"></p>
+      </div>
+
+      <div id="p-log" class="panel" hidden>
+        <pre id="log" class="log" tabindex="0" aria-label="Log"></pre>
+      </div>
     </section>
   </main>
 </body>

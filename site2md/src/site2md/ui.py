@@ -26,7 +26,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from .crawl import BrowserFetcher, Crawler, normalize
+from .crawl import BrowserFetcher, Crawler, normalize, start_folder
 
 STATIC = Path(__file__).parent / "static"
 SIGNIN_HOSTS = re.compile(r"(^|\.)(accounts\.google\.com|login\.microsoftonline\.com|login\.live\.com|"
@@ -94,7 +94,10 @@ def browsers() -> list[dict]:
     return [dict(b, ready=have_pw) for b in out]
 
 
-# --- reading a copy ---------------------------------------------------------------------------------------
+# --- a copy on disk ----------------------------------------------------------------------------------------
+
+ACTIVE = ("starting", "signin", "copying", "paused", "stopping")
+
 
 def _manifest(folder: Path) -> dict:
     try:
@@ -104,18 +107,26 @@ def _manifest(folder: Path) -> dict:
 
 
 def _options(folder: Path) -> dict:
+    """.site2md.json: the address, the options, the total copying time and how the last run ended."""
     try:
         return json.loads((folder / ".site2md.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
 
 
+def _save_options(folder: Path, data: dict) -> None:
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / ".site2md.json").write_text(json.dumps(data, indent=1), encoding="utf-8")
+
+
 REASONS = [  # (pattern in the crawler's note, plain words), first match wins
-    (r"sign-in", "needed sign-in"), (r"robots\.txt", "the site asks robots not to copy it"),
-    (r"HTTP (404|410)", "page not found"), (r"HTTP \d+", "the server refused it"),
-    (r"no text of its own|no text", "no text on the page"), (r"same content as", "same as another page"),
-    (r"not a page|not a PDF|video|spreadsheet|larger than", "video, spreadsheet or file not kept"),
-    (r"out of scope|outside", "leads outside the copied site"), (r".", "other problems"),
+    (r"^embedded \S+ not saved", "embedded video or widget from another site"),
+    (r"^same page as", "the same page in another format"), (r"sign-in", "needed sign-in"),
+    (r"robots\.txt", "the site asks robots not to copy it"), (r"HTTP (404|410)", "page not found"),
+    (r"HTTP \d+", "the server refused it"), (r"timed? ?out", "the site did not answer in time"),
+    (r"no text of its own|no text", "no text on the page"), (r"same content as", "same text as another page"),
+    (r"not a page|not a PDF|video|spreadsheet|larger than|not downloadable", "video, spreadsheet or file not kept"),
+    (r"out of scope|outside", "redirects outside the copy"), (r".", "other problems"),
 ]
 
 
@@ -131,47 +142,111 @@ def not_copied(m: dict) -> list[dict]:
                                                  "note": note})
             g["count"] += 1
             g["failed"] += kind == "failed"
-    return sorted(groups.values(), key=lambda g: -g["count"])
+    return sorted(groups.values(), key=lambda g: (-g["failed"], -g["count"]))
+
+
+def sections(m: dict, queue: list[str]) -> list[dict]:
+    """The copy's sections: the first folder below the start folder, or the other site a page came from."""
+    start = m.get("start", "")
+    host, root = urlsplit(start).netloc, urlsplit(start_folder(start)).path.rstrip("/") if start else ""
+
+    def section(url: str) -> str:
+        p = urlsplit(url)
+        if p.netloc != host:
+            return p.netloc
+        parts = [x for x in (p.path.removeprefix(root) if p.path.startswith(root) else p.path).split("/") if x]
+        return parts[0] if len(parts) > 1 else "(top level)"
+
+    out: dict[str, dict] = {}
+    skipped = [u for u, note in m.get("skipped", {}).items() if not note.startswith(("embedded ", "same page as"))]
+    for kind, urls in (("saved", [*m.get("pages", {}), *m.get("files", {})]), ("failed", list(m.get("failed", {}))),
+                       ("skipped", skipped), ("waiting", queue)):
+        for u in urls:
+            s = out.setdefault(section(u), {"name": section(u), "saved": 0, "failed": 0, "skipped": 0, "waiting": 0})
+            s[kind] += 1
+    rows = sorted(out.values(), key=lambda s: (s["name"] != "(top level)", "." in s["name"],
+                                               -(s["saved"] + s["waiting"]), s["name"]))
+    return rows[:40] + ([{"name": f"{len(rows) - 40} more sections", "more": True}] if len(rows) > 40 else [])
+
+
+def outside_groups(m: dict, limit: int = 12) -> list[dict]:
+    """Links that lead out of the copy, grouped by site and folder, with the folder that would bring them in."""
+    groups: dict[tuple, list] = {}
+    for url in m.get("outside", {}):
+        p = urlsplit(url)
+        first = next((x for x in p.path.split("/") if x), "")
+        groups.setdefault((p.scheme, p.netloc, first), []).append(url)
+    out = []
+    for (scheme, netloc, _), urls in groups.items():
+        dirs = [urlsplit(u).path.split("/")[1:-1] for u in urls]  # folders of each link's path
+        common = dirs[0]
+        for d in dirs[1:]:
+            common = [a for a, b in zip(common, d, strict=False) if a == b][:len(common)]
+            n = next((i for i, (a, b) in enumerate(zip(common, d, strict=False)) if a != b), len(common))
+            common = common[:n]
+        prefix = f"{scheme}://{netloc}/" + "".join(f"{x}/" for x in common)
+        if len(urls) == 1 and not common:  # one link to a site's front page: just that page
+            prefix = urls[0]
+        out.append({"prefix": prefix, "count": len(urls), "example": urls[0], "from": m["outside"][urls[0]]})
+    return sorted(out, key=lambda g: -g["count"])[:limit]
+
+
+def copy_state(m: dict, o: dict) -> str:
+    if not m:
+        return "not started"
+    return o.get("last", {}).get("state") or ("stopped" if m.get("queue") else "done")
 
 
 def copy_view(folder: Path) -> dict:
     m, o = _manifest(folder), _options(folder)
-    pages, files, failed, left = (len(m.get("pages", {})), len(m.get("files", {})), m.get("failed", {}),
+    pages, files, failed, left = (len(m.get("pages", {})), len(m.get("files", {})), len(m.get("failed", {})),
                                   len(m.get("queue", [])))
-    signin = sum("sign-in" in v for v in failed.values())
-    if left:
-        status = f"stopped at {pages + files:,} of about {pages + files + left:,}"
-    elif signin:
-        status = f"{signin:,} page{'s' if signin != 1 else ''} need sign-in"
-    elif failed:
-        status = f"complete · {len(failed):,} could not be copied"
-    else:
-        status = "complete" if m else "not started"
+    state = copy_state(m, o)
+    status = {"done": "complete", "stopped": "stopped", "signin-expired": "sign-in expired", "failed": "stopped with an error"
+              }.get(state, state)
     try:
         updated = (folder / "manifest.json").stat().st_mtime
     except OSError:
         updated = None
     return {"name": folder.name, "url": m.get("start") or o.get("url", ""), "pages": pages, "files": files,
-            "failed": len(failed), "left": left, "status": status, "updated": updated, "options": o,
-            "updating": folder.with_name(folder.name + ".new").is_dir(), "folder": str(folder)}
+            "failed": failed, "left": left, "state": state, "status": status, "updated": updated,
+            "options": o.get("options", {}), "updating": folder.with_name(folder.name + ".new").is_dir()}
+
+
+def _tail(path: Path, n: int = 3000) -> list[str]:
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return [x.rstrip("\n") for x in deque(f, maxlen=n)]
+    except OSError:
+        return []
 
 
 # --- the running copy ------------------------------------------------------------------------------------
 
 class Run:
-    """The one copy running now: its state for the page, and its controls."""
+    """The one copy running now: its state for the page, its controls and its log."""
 
-    def __init__(self, name: str, url: str, opts: dict):
+    def __init__(self, name: str, url: str, opts: dict, folder: Path, target: Path, prior_seconds: float):
         self.name, self.url, self.opts = name, url, opts
+        self.folder, self.target = folder, target  # the copy, and where this run writes (<name>.new for Update)
         self.state = "starting"  # signin, copying, paused, stopping, done, stopped, signin-expired, failed
         self.error = ""
         self.crawler: Crawler | None = None
-        self.started, self.finished = time.time(), None
+        self.started, self.finished, self.prior = time.time(), None, prior_seconds
         self.recent: deque = deque(maxlen=8)
         self.signin_done = threading.Event()
         self.signin_failures = 0
-        self.folder: Path | None = None
-        self.resumed = False
+
+    @property
+    def elapsed(self) -> float:
+        return self.prior + (self.finished or time.time()) - self.started
+
+    def log(self, line: str) -> None:
+        try:
+            with open(self.target / ".site2md.log", "a", encoding="utf-8") as f:
+                f.write(f"{time.strftime('%H:%M:%S')}  {line}\n")
+        except OSError:
+            pass
 
     def on_page(self, url: str, outcome: str) -> None:
         if outcome.startswith("-> ") and outcome != "-> (redirected)":
@@ -181,42 +256,6 @@ class Run:
         if self.signin_failures >= 3 and self.crawler and self.state == "copying":
             self.state = "signin-expired"
             self.crawler.stopped.set()
-
-    def view(self) -> dict:
-        c = self.crawler
-        m = c.manifest if c else {}
-        with (c.lock if c else threading.Lock()):
-            pages, files = len(m.get("pages", {})), len(m.get("files", {}))
-            failed, skipped = len(m.get("failed", {})), len(m.get("skipped", {}))
-            sections = self._sections(c) if c else []
-            groups = not_copied(m) if self.state in ("done", "stopped", "signin-expired") else []
-        p = c.progress if c else {"queued": 0, "running": 0}
-        elapsed = (self.finished or time.time()) - self.started
-        return {"name": self.name, "url": self.url, "state": self.state, "error": self.error,
-                "pages": pages, "files": files, "failed": failed, "skipped": skipped, "queued": p["queued"],
-                "running": p["running"], "elapsed": round(elapsed), "per_minute": round(pages / elapsed * 60, 1)
-                if elapsed > 5 else None, "sections": sections, "recent": list(self.recent), "groups": groups,
-                "folder": str(self.folder) if self.folder else "", "resumed": self.resumed}
-
-    def _sections(self, c: Crawler) -> list[dict]:
-        """The site's sections (first folder of the address under the start folder): saved, found, gaps."""
-        root = c.root
-
-        def section(url: str) -> str:
-            path = urlsplit(url).path
-            rest = path.removeprefix(root)
-            parts = [x for x in rest.split("/") if x]
-            return parts[0] if len(parts) > 1 else "(top level)"
-
-        out: dict[str, dict] = {}
-        for kind, urls in (("saved", list(c.manifest["pages"]) + list(c.manifest["files"])),
-                           ("failed", list(c.manifest["failed"])), ("skipped", list(c.manifest["skipped"])),
-                           ("waiting", _queued(c))):
-            for u in urls:
-                s = out.setdefault(section(u), {"name": section(u), "saved": 0, "failed": 0, "skipped": 0, "waiting": 0})
-                s[kind] += 1
-        rows = sorted(out.values(), key=lambda s: (s["name"] != "(top level)", -(s["saved"] + s["waiting"]), s["name"]))
-        return rows[:40] + ([{"name": f"{len(rows) - 40} more sections", "more": True}] if len(rows) > 40 else [])
 
 
 def _queued(c: Crawler) -> list[str]:
@@ -230,9 +269,10 @@ def _queued(c: Crawler) -> list[str]:
 
 
 class App:
-    def __init__(self, copies: Path):
+    def __init__(self, copies: Path, on_copies=None):
         self.copies = copies
         self.copies.mkdir(parents=True, exist_ok=True)
+        self.on_copies = on_copies  # called with the new folder when the person changes it
         self.run: Run | None = None
         self.sends: dict[str, dict] = {}
         self.lock = threading.Lock()
@@ -242,51 +282,54 @@ class App:
             raise ValueError("a name uses letters, digits, spaces, dots, dashes and underscores")
         return self.copies / name
 
+    def busy(self) -> bool:
+        return bool(self.run and self.run.state in ACTIVE)
+
     # -- copying
     def start(self, body: dict) -> dict:
         with self.lock:
-            if self.run and self.run.state in ("starting", "signin", "copying", "paused", "stopping"):
+            if self.busy():
                 raise ValueError("a copy is already running; stop it first")
             url = str(body.get("url") or "").strip()
             name = str(body.get("name") or "").strip() or name_for(url)
             folder = self.folder(name)
-            old = _options(folder)
-            if not url:
-                url = old.get("url", "")
-            if not re.match(r"^https?://", url):
-                raise ValueError("give the address of the site, starting with https://")
             mode = body.get("mode", "new")  # new | continue | update
-            if mode == "new" and (folder / "manifest.json").exists():
-                raise ValueError(f"a copy named {name} exists: choose another name, or use Update on it")
             if mode not in ("new", "continue", "update"):
                 raise ValueError("mode is new, continue or update")
-            opts = {**old.get("options", {}), **(body.get("options") or {})}
-            self.run = Run(name, normalize(url), opts)
-            self.run.resumed = mode == "continue"  # the clock covers this run only
-            threading.Thread(target=self._crawl, args=(self.run, folder, mode, bool(body.get("signin"))),
+            if mode == "new" and (folder / "manifest.json").exists():
+                raise ValueError(f"a copy named {name} exists: choose another name, or use Update on it")
+            new = folder.with_name(folder.name + ".new")
+            # update: a fresh copy beside the old one, which it replaces when finished; continue: what was stopped
+            target = new if mode == "update" or (mode == "continue" and new.is_dir()) else folder
+            old = _options(target) if mode == "continue" else _options(folder)
+            url = url or old.get("url", "")
+            if not re.match(r"^https?://", url):
+                raise ValueError("give the address of the site, starting with https://")
+            if mode == "update":
+                shutil.rmtree(new, ignore_errors=True)
+            opts = {"follow": "linked", **old.get("options", {}), **(body.get("options") or {})}
+            target.mkdir(parents=True, exist_ok=True)
+            if mode != "continue":
+                (target / ".site2md.log").unlink(missing_ok=True)
+            prior = old.get("seconds", 0) if mode == "continue" else 0
+            _save_options(target, {"url": normalize(url), "options": opts, "seconds": prior})
+            self.run = Run(name, normalize(url), opts, folder, target, prior)
+            threading.Thread(target=self._crawl, args=(self.run, mode, bool(body.get("signin"))),
                              daemon=True, name="site2md-copy").start()
-            return self.run.view()
+            return {"name": name, "state": self.run.state}
 
-    def _crawl(self, run: Run, folder: Path, mode: str, signin: bool) -> None:
-        o = run.opts
-        new = folder.with_name(folder.name + ".new")
-        # update: a fresh copy beside the old one, which it replaces when finished; continue: what was stopped
-        target = new if mode == "update" or (mode == "continue" and new.is_dir()) else folder
-        if mode == "update":
-            shutil.rmtree(new, ignore_errors=True)
-        resume = mode == "continue"
-        run.folder = target
-        target.mkdir(parents=True, exist_ok=True)
-        (target / ".site2md.json").write_text(json.dumps({"url": run.url, "options": o}, indent=1), encoding="utf-8")
+    def _crawl(self, run: Run, mode: str, signin: bool) -> None:
+        o, folder, target = run.opts, run.folder, run.target
         fetcher = None
+        run.log(f"{'continuing' if mode == 'continue' else 'updating' if mode == 'update' else 'copying'} {run.url}")
         try:
             channel = o.get("channel") or ""
-            use_browser = bool(signin or o.get("browser"))
-            if use_browser:
+            if signin or o.get("browser") or channel:  # a browser profile keeps the sign-in between runs
                 profile = Path.home() / ".site2md" / f"profile-{channel or 'chromium'}"
                 profile.mkdir(parents=True, exist_ok=True)
                 if signin:
                     run.state = "signin"
+                    run.log("waiting for you to sign in, in the browser window")
                     login = BrowserFetcher(profile, channel or "chromium", headless=False)
                     login.login(run.url, done=lambda where: run.signin_done.is_set() or (
                         where.startswith(run.url.rsplit("/", 1)[0]) and not looks_like_signin(where, run.url)))
@@ -294,25 +337,20 @@ class App:
                     if run.state != "signin":  # stopped while signing in
                         return
                 fetcher = BrowserFetcher(profile, channel or "chromium", headless=True)
-            prefixes = [p for p in o.get("prefixes", []) if p] or None
+            prefixes = list(dict.fromkeys([start_folder(run.url), *(p for p in o.get("prefixes", []) if p)]))
             c = Crawler(run.url, target, prefixes=prefixes, allow_hosts=[h for h in o.get("hosts", []) if h] or None,
                         max_pages=int(o.get("max_pages") or 10_000), robots=not o.get("ignore_robots"),
-                        files=o.get("attachments", True), browser=fetcher, log=lambda *_: None, on_page=run.on_page,
-                        save_html=Path(str(target) + "-html") if o.get("keep_html") else None)
+                        files=o.get("attachments", True), browser=fetcher, log=run.log, on_page=run.on_page,
+                        save_html=Path(f"{target}-html") if o.get("keep_html") else None,
+                        follow=o.get("follow") or "linked")
             run.crawler, run.state = c, "copying"
-            c.run(resume=resume)
+            c.run(resume=mode == "continue")
             if run.state == "signin-expired":
                 pass
             elif c.stopped.is_set():
                 run.state = "stopped"
             else:
                 run.state = "done"
-                if target != folder:  # an update finished: it replaces the copy (and its HTML, if kept)
-                    for a, b in ((target, folder), (Path(f"{target}-html"), Path(f"{folder}-html"))):
-                        if a.is_dir():
-                            shutil.rmtree(b, ignore_errors=True)
-                            a.rename(b)
-                    run.folder = folder
         except SystemExit as e:  # Playwright missing
             run.state, run.error = "failed", str(e)
         except Exception as e:  # noqa: BLE001 - shown on the page
@@ -324,6 +362,16 @@ class App:
                 except Exception:  # noqa: BLE001, S110 - closing a browser that already went away
                     pass
             run.finished = time.time()
+            if run.error:
+                run.log(f"stopped with an error: {run.error}")
+            _save_options(target, {**_options(target), "seconds": round(run.elapsed),
+                                   "last": {"state": run.state, "error": run.error, "finished": run.finished}})
+            if run.state == "done" and target != folder:  # an update finished: it replaces the copy (and its HTML)
+                for a, b in ((target, folder), (Path(f"{target}-html"), Path(f"{folder}-html"))):
+                    if a.is_dir():
+                        shutil.rmtree(b, ignore_errors=True)
+                        a.rename(b)
+                run.target = folder
 
     def control(self, action: str) -> dict:
         r = self.run
@@ -345,20 +393,91 @@ class App:
                 r.crawler.paused.clear()
                 r.crawler.stopped.set()
                 r.state = "stopping"
-        return r.view()
+        return {"name": r.name, "state": r.state}
+
+    def _requeue(self, name: str, urls: list[str], options: dict | None = None, signin: bool = False) -> dict:
+        folder = self.folder(name)
+        m = _manifest(folder)
+        for u in urls:
+            for k in ("failed", "skipped", "outside"):
+                m.get(k, {}).pop(u, None)
+        m["queue"] = list(dict.fromkeys(urls + m.get("queue", [])))
+        (folder / "manifest.json").write_text(json.dumps(m, indent=1), encoding="utf-8")
+        return self.start({"name": name, "mode": "continue", "signin": signin, "options": options})
 
     def try_again(self, name: str, reason_words: str) -> dict:
         """Copy the pages of one 'not copied' group again (continues the copy)."""
+        m = _manifest(self.folder(name))
+        again = [u for k in ("failed", "skipped") for u, note in m.get(k, {}).items() if reason(note) == reason_words]
+        return self._requeue(name, again, signin=reason_words == "needed sign-in")
+
+    def also_copy(self, name: str, prefix: str) -> dict:
+        """Bring the links under ``prefix`` (another site's folder) into the copy, and continue it."""
+        prefix = normalize(prefix)
+        if not re.match(r"^https?://[^/]+/", prefix):
+            raise ValueError("give a folder address starting with https://")
         folder = self.folder(name)
-        m = _manifest(folder)
-        again = [u for u, note in m.get("failed", {}).items() if reason(note) == reason_words]
-        again += [u for u, note in m.get("skipped", {}).items() if reason(note) == reason_words]
-        for u in again:
-            m.get("failed", {}).pop(u, None)
-            m.get("skipped", {}).pop(u, None)
-        m["queue"] = list(dict.fromkeys(again + m.get("queue", [])))
-        (folder / "manifest.json").write_text(json.dumps(m, indent=1), encoding="utf-8")
-        return self.start({"name": name, "mode": "continue", "signin": reason_words == "needed sign-in"})
+        o = _options(folder).get("options", {})
+        links = [u for u in _manifest(folder).get("outside", {}) if u.startswith(prefix)] or [prefix]
+        return self._requeue(name, links, {"prefixes": list(dict.fromkeys([*o.get("prefixes", []), prefix]))})
+
+    # -- what a copy holds, running or not
+    def _snapshot(self, name: str) -> tuple[dict, list[str], Run | None, Path]:
+        folder = self.folder(name)
+        run = self.run if self.run and self.run.name == name else None
+        if run and run.state in ACTIVE and run.crawler:
+            c = run.crawler
+            with c.lock:
+                m = {k: dict(v) if isinstance(v, dict) else list(v) if isinstance(v, list) else v
+                     for k, v in c.manifest.items()}
+            return m, _queued(c), run, run.target
+        where = run.target if run else folder
+        m = _manifest(where)
+        return m, m.get("queue", []), run, where
+
+    def detail(self, name: str) -> dict:
+        m, queue, run, where = self._snapshot(name)
+        o = _options(where)
+        live = bool(run and run.state in ACTIVE)
+        state = run.state if run else copy_state(m, o)
+        elapsed = round(run.elapsed if run else o.get("seconds", 0))
+        pages = len(m.get("pages", {}))
+        return {
+            "name": name, "url": (run.url if run else "") or m.get("start") or o.get("url", ""), "state": state,
+            "error": run.error if run else o.get("last", {}).get("error", ""), "live": live,
+            "counts": {"saved": pages, "files": len(m.get("files", {})), "waiting": len(queue),
+                       "skipped": len(m.get("skipped", {})), "failed": len(m.get("failed", {})),
+                       "outside": len(m.get("outside", {}))},
+            "running": run.crawler.progress["running"] if live and run.crawler else 0,
+            "elapsed": elapsed, "per_minute": round(pages / elapsed * 60, 1) if elapsed > 5 and pages else None,
+            "sections": sections(m, queue), "groups": not_copied(m), "outside": outside_groups(m),
+            "linked": m.get("linked", []), "recent": list(run.recent) if live else [],
+            "options": o.get("options", {}), "updating": where.name.endswith(".new"),
+            "folder": str(self.folder(name).resolve()),
+        }
+
+    def pages(self, name: str, kind: str = "all", q: str = "", offset: int = 0) -> dict:
+        m, queue, _, _ = self._snapshot(name)
+        rows: list[dict] = []
+        if kind in ("all", "saved"):
+            rows += [{"url": u, "kind": "saved", "file": v["file"], "note": v.get("title", "")}
+                     for u, v in m.get("pages", {}).items()]
+        if kind in ("all", "files"):
+            rows += [{"url": u, "kind": "file", "file": f, "note": ""} for u, f in m.get("files", {}).items()]
+        for k in ("failed", "skipped"):
+            if kind in ("all", k):
+                rows += [{"url": u, "kind": k, "note": note, "reason": reason(note)} for u, note in m.get(k, {}).items()]
+        if kind in ("all", "waiting"):
+            rows += [{"url": u, "kind": "waiting", "note": ""} for u in queue]
+        if kind == "outside":
+            rows += [{"url": u, "kind": "outside", "note": f"linked from {page}"} for u, page in m.get("outside", {}).items()]
+        if q := q.strip().lower():
+            rows = [r for r in rows if q in r["url"].lower() or q in r.get("file", "").lower() or q in r["note"].lower()]
+        return {"total": len(rows), "rows": rows[offset:offset + 200]}
+
+    def log(self, name: str) -> list[str]:
+        _, _, _, where = self._snapshot(name)
+        return _tail(where / ".site2md.log")
 
     # -- copies
     def copies_view(self) -> list[dict]:
@@ -369,10 +488,81 @@ class App:
 
     def delete(self, name: str) -> None:
         folder = self.folder(name)
-        if self.run and self.run.name == name and self.run.state in ("starting", "signin", "copying", "paused", "stopping"):
+        if self.busy() and self.run.name == name:
             raise ValueError("stop the copy first")
         for d in (folder, folder.with_name(name + ".new"), Path(f"{folder}-html"), Path(f"{folder}.new-html")):
             shutil.rmtree(d, ignore_errors=True)
+
+    # -- the page's API, shared by the stand-alone server and Knowledge Search's Crawler tab
+    def handle(self, method: str, path: str, q: dict, body: dict) -> tuple:
+        """(status, body[, content type]) for GET/POST <path> (without /api/)."""
+        try:
+            if method == "GET":
+                if path == "copies":
+                    r = self.run
+                    return 200, {"copies": self.copies_view(), "folder": str(self.copies),
+                                 "run": {"name": r.name, "state": r.state} if r else None}
+                if path == "copy":
+                    return 200, self.detail(q["name"])
+                if path == "pages":
+                    return 200, self.pages(q["name"], q.get("kind", "all"), q.get("q", ""), int(q.get("offset", 0)))
+                if path == "log":
+                    return 200, {"lines": self.log(q["name"])}
+                if path == "browsers":
+                    return 200, browsers()
+                if path == "sent":
+                    return 200, self.sends.get(q.get("name", ""))
+                if path == "file":  # a saved page, to read it
+                    folder = self.folder(q["name"])
+                    f = (folder / q["file"]).resolve()
+                    if folder.resolve() not in f.parents or not f.is_file():
+                        return 404, {"error": "not found"}
+                    return 200, f.read_bytes(), "text/plain; charset=utf-8"
+            elif method == "POST":
+                if path == "check":
+                    url = str(body.get("url", ""))
+                    return 200, check(url) | {"name": name_for(url)}
+                if path == "start":
+                    return 200, self.start(body)
+                if path == "control":
+                    return 200, self.control(str(body.get("action", "")))
+                if path == "try-again":
+                    return 200, self.try_again(str(body["name"]), str(body["reason"]))
+                if path == "also-copy":
+                    return 200, self.also_copy(str(body["name"]), str(body["prefix"]))
+                if path == "open":
+                    open_folder(self.folder(str(body["name"])) if body.get("name") else self.copies)
+                    return 200, {"ok": True}
+                if path == "delete":
+                    self.delete(str(body["name"]))
+                    return 200, {"ok": True}
+                if path == "folder":
+                    return 200, {"folder": str(self.set_copies(str(body.get("path", ""))))}
+                if path == "ks/collections":
+                    return 200, self.ks_collections(body)
+                if path == "send":
+                    return 200, self.send(body)
+        except (ValueError, KeyError, TypeError) as e:
+            return 400, {"error": str(e)}
+        return 404, {"error": "not found"}
+
+    def set_copies(self, path: str) -> Path:
+        """Keep copies in another folder from now on (existing copies stay where they are)."""
+        if self.busy():
+            raise ValueError("wait until the copy running now has finished")
+        folder = Path(path.strip()).expanduser()
+        if not folder.is_absolute():
+            raise ValueError("give the full path of a folder, e.g. C:\\Users\\me\\Documents\\Websites")
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            (folder / ".site2md-write-test").write_text("")
+            (folder / ".site2md-write-test").unlink()
+        except OSError as e:
+            raise ValueError(f"cannot save copies there: {e.strerror or e}") from None
+        self.copies = folder
+        if self.on_copies:
+            self.on_copies(folder)
+        return folder
 
     # -- Knowledge Search
     def ks_collections(self, body: dict) -> dict:
@@ -385,13 +575,20 @@ class App:
         folder = self.folder(name)
         if self.sends.get(name, {}).get("state") == "sending":
             raise ValueError("already sending")
+        new_name = str(body.get("new_collection") or "").strip().lower()
+        if new_name and not re.match(r"^[a-z0-9_-]{2,64}$", new_name):
+            raise ValueError("a collection name uses 2–64 lower-case letters, digits, - or _")
         st = self.sends[name] = {"state": "sending", "done": 0, "total": 0, "queued": 0, "unchanged": 0,
-                                 "rejected": [], "how": ""}
+                                 "rejected": [], "how": "", "collection": new_name}
 
         def run():
             try:
                 server = str(body.get("server", "")).rstrip("/")
                 me = _ks(body, "GET", "/api/me")
+                if new_name:
+                    if not me.get("is_admin"):
+                        raise ValueError("only a Knowledge Search administrator can create a collection")
+                    body["collection_id"] = _ks(body, "POST", "/api/admin/collections", {"name": new_name})["id"]
                 local = urlsplit(server).hostname in ("127.0.0.1", "localhost", "::1")
                 if local and me.get("is_admin"):  # same computer: a synced folder (later updates remove old pages)
                     _ks(body, "POST", "/api/admin/folders", {"path": str(folder.resolve()),
@@ -500,25 +697,7 @@ def make_handler(app: App, key: str, port_holder: list):
                 return self._send(200, (STATIC / u.path[1:]).read_bytes(), ctype + "; charset=utf-8")
             if not self._key_ok(q):
                 return self._send(403, {"error": "missing key"})
-            try:
-                if u.path == "/api/copies":
-                    return self._send(200, {"copies": app.copies_view(), "folder": str(app.copies),
-                                            "run": app.run.view() if app.run else None})
-                if u.path == "/api/run":
-                    return self._send(200, app.run.view() if app.run else None)
-                if u.path == "/api/browsers":
-                    return self._send(200, browsers())
-                if u.path == "/api/sent":
-                    return self._send(200, app.sends.get(q.get("name", [""])[0]))
-                if u.path == "/file":  # a saved page, to read it
-                    folder = app.folder(q["name"][0])
-                    f = (folder / q["file"][0]).resolve()
-                    if folder.resolve() not in f.parents or not f.is_file():
-                        return self._send(404, {"error": "not found"})
-                    return self._send(200, f.read_bytes(), "text/plain; charset=utf-8")
-            except (ValueError, KeyError) as e:
-                return self._send(400, {"error": str(e)})
-            return self._send(404, {"error": "not found"})
+            self._send(*app.handle("GET", u.path.removeprefix("/api/"), {k: v[0] for k, v in q.items()}, {}))
 
         def do_POST(self):
             u = urlsplit(self.path)
@@ -526,35 +705,28 @@ def make_handler(app: App, key: str, port_holder: list):
                 return self._send(403, {"error": "missing key"})
             try:
                 body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0) or 0) or b"{}")
-                if u.path == "/api/check":
-                    return self._send(200, check(str(body.get("url", ""))) | {"name": name_for(str(body.get("url", "")))})
-                if u.path == "/api/start":
-                    return self._send(200, app.start(body))
-                if u.path == "/api/control":
-                    return self._send(200, app.control(str(body.get("action", ""))))
-                if u.path == "/api/try-again":
-                    return self._send(200, app.try_again(str(body["name"]), str(body["reason"])))
-                if u.path == "/api/open":
-                    open_folder(app.folder(str(body["name"])) if body.get("name") else app.copies)
-                    return self._send(200, {"ok": True})
-                if u.path == "/api/delete":
-                    app.delete(str(body["name"]))
-                    return self._send(200, {"ok": True})
-                if u.path == "/api/ks/collections":
-                    return self._send(200, app.ks_collections(body))
-                if u.path == "/api/send":
-                    return self._send(200, app.send(body))
-            except (ValueError, KeyError, TypeError) as e:
-                return self._send(400, {"error": str(e)})
-            return self._send(404, {"error": "not found"})
+            except ValueError:
+                return self._send(400, {"error": "not JSON"})
+            self._send(*app.handle("POST", u.path.removeprefix("/api/"), {}, body))
 
     return Handler
 
 
-def serve(copies: Path, open_browser: bool = True, port: int = 0) -> tuple[ThreadingHTTPServer, str]:
+CONFIG = Path.home() / ".site2md" / "config.json"  # the copies folder the person chose
+
+
+def _remember(folder: Path) -> None:
+    try:
+        CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        CONFIG.write_text(json.dumps({"copies": str(folder)}), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def serve(copies: Path, open_browser: bool = True, port: int = 0, remember: bool = False) -> tuple[ThreadingHTTPServer, str]:
     key = secrets.token_urlsafe(24)
     holder = [port]
-    srv = ThreadingHTTPServer(("127.0.0.1", port), make_handler(App(copies), key, holder))
+    srv = ThreadingHTTPServer(("127.0.0.1", port), make_handler(App(copies, _remember if remember else None), key, holder))
     holder[0] = srv.server_address[1]
     url = f"http://127.0.0.1:{holder[0]}/?k={key}"
     if open_browser:
@@ -563,8 +735,14 @@ def serve(copies: Path, open_browser: bool = True, port: int = 0) -> tuple[Threa
 
 
 def main(copies: str = "", open_browser: bool = True) -> None:
-    folder = Path(copies).expanduser() if copies else Path.home() / "site2md"
-    srv, url = serve(folder, open_browser)
+    """``copies`` is the default folder (the launchers pass ``output`` next to them); a folder the person chose
+    on the page wins."""
+    try:
+        chosen = json.loads(CONFIG.read_text(encoding="utf-8")).get("copies", "")
+    except (OSError, ValueError):
+        chosen = ""
+    folder = Path(chosen or copies or Path.home() / "site2md").expanduser()
+    srv, url = serve(folder, open_browser, remember=True)
     print(("site2md is open in your browser. If it did not open, go to:" if open_browser else "site2md is at:")
           + f"\n  {url}\nKeep this window open while you copy; close it to stop.")
     try:

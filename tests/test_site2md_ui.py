@@ -31,9 +31,9 @@ def call(base, key, path, body=None, headers=None):
         return json.loads(r.read())
 
 
-def finish(base, key):
+def finish(base, key, name="acme"):
     for _ in range(200):
-        run = call(base, key, "/api/run")
+        run = call(base, key, f"/api/copy?name={name}")
         if run["state"] in ("done", "stopped", "failed"):
             return run
         time.sleep(0.1)
@@ -49,6 +49,12 @@ def test_the_page_needs_its_key_and_its_own_address(page):
         call(base, key, "/api/copies", headers={"Host": "attacker.example"})
     assert e.value.code == 403
     assert call(base, key, "/api/copies")["copies"] == []
+    with pytest.raises(urllib.error.HTTPError) as e:  # the copies folder must be a full path
+        call(base, key, "/api/folder", {"path": "relative/dir"})
+    assert e.value.code == 400
+    other = page[0].parent / "elsewhere"
+    assert call(base, key, "/api/folder", {"path": str(other)})["folder"] == str(other)
+    assert call(base, key, "/api/copies")["folder"] == str(other) and other.is_dir()
 
 
 def test_copy_keep_html_apart_update_and_send(page):
@@ -59,7 +65,12 @@ def test_copy_keep_html_apart_update_and_send(page):
         assert call(base, key, "/api/check", {"url": start})["name"] == "127-0-0-1"
         call(base, key, "/api/start", {"url": start, "name": "acme", "options": {"keep_html": True}})
         run = finish(base, key)
-        assert run["state"] == "done" and run["pages"] >= 5, run
+        assert run["state"] == "done" and run["counts"]["saved"] >= 5, run
+        assert run["counts"]["outside"] >= 1 and run["outside"]  # the footer's link to another site, listed
+        log = call(base, key, "/api/log?name=acme")["lines"]
+        assert any("->" in x for x in log) and any(x.endswith("left in queue -> " + str(copies / "acme")) for x in log)
+        failed = call(base, key, "/api/pages?name=acme&kind=all&q=private")
+        assert failed["total"] == 1 and failed["rows"][0]["reason"] == "the site asks robots not to copy it"
         md = sorted(p.name for p in (copies / "acme").rglob("*.md"))
         html = sorted(p.name for p in (copies / "acme-html").glob("*.html"))
         assert html and {h.removesuffix(".html") for h in html} <= {m.removesuffix(".md") for m in md}
