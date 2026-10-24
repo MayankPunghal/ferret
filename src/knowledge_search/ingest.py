@@ -76,6 +76,40 @@ def normalize_source_key(filename: str) -> str:
     return name
 
 
+def path_key(path: str) -> str:
+    """A file's place in an uploaded folder, its key in the collection: '\\kit\\docs\\a.md' -> 'kit/docs/a.md'.
+    Keys by path keep docs/modules/index.md and docs/workflows/index.md apart."""
+    parts = [x.strip() for x in path.replace("\\", "/").split("/") if x.strip() not in ("", ".")]
+    if not parts or ".." in parts:
+        raise ParseError("invalid_filename", "bad path")
+    return "/".join(parts)
+
+
+SKIP = (".", "_")  # folders and files starting with these are left out of a folder (.git, .claude, _tools, _notes)
+
+
+def folder_files(root: Path, suffixes) -> tuple[list[Path], dict[str, int]]:
+    """The files of a folder and its subfolders to index, in path order, and counts of what was left out:
+    names starting with '.' or '_' (with everything inside), and files of other types. Links are not followed."""
+    keep, skipped = [], {}
+    for here, dirs, files in os.walk(root):
+        left = [d for d in dirs if d.startswith(SKIP)]
+        if left:
+            skipped["folders starting with . or _"] = skipped.get("folders starting with . or _", 0) + len(left)
+        dirs[:] = sorted(d for d in dirs if not d.startswith(SKIP))
+        for f in sorted(files):
+            ext = os.path.splitext(f)[1].lower()
+            if f.startswith(SKIP):
+                why = "files starting with . or _"
+            elif ext in suffixes:
+                keep.append(Path(here) / f)
+                continue
+            else:
+                why = ext or "no extension"
+            skipped[why] = skipped.get(why, 0) + 1
+    return keep, skipped
+
+
 def submit(
     conn: Connection,
     blobs: BlobStore,
@@ -98,6 +132,11 @@ def submit(
     key = source_key or filename
     sha = blobs.put(data)
     with conn.transaction():
+        if key != filename:  # by path: a document uploaded earlier under its bare file name moves to the path
+            conn.execute(
+                "UPDATE documents SET source_key = %(key)s WHERE collection_id = %(c)s AND source_key = %(name)s "
+                "AND NOT EXISTS (SELECT 1 FROM documents WHERE collection_id = %(c)s AND source_key = %(key)s)",
+                {"key": key, "name": filename, "c": collection_id})
         doc = conn.execute(
             "INSERT INTO documents(collection_id, source_key, source_uri, title) VALUES (%s, %s, %s, %s) "
             "ON CONFLICT (collection_id, source_key) DO UPDATE SET updated_at = now() "

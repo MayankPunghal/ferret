@@ -20,12 +20,12 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin, auth, db, dbview, enrich, graph, mcp, runtime, trace, vectors
+from . import admin, auth, db, dbview, enrich, folders, graph, mcp, runtime, trace, vectors
 from .auth import Principal
 from .config import Settings, get_settings, memory_vectors
 from .deps import COOKIE, Conn, User, state
 from .embedder import Embedder
-from .ingest import BlobStore, Worker, delete_document, reindex, retry_document, submit
+from .ingest import BlobStore, Worker, delete_document, path_key, reindex, retry_document, submit
 from .parsing import CHUNKER_VERSION, DOCX, PARSER_VERSION, PPTX, ParseError
 from .search import MESSAGES, RETRIEVAL_FAILURE, coverage_for, search
 
@@ -186,6 +186,7 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
     _routes(app)
     app.include_router(admin.router)
     app.include_router(dbview.router)
+    app.include_router(folders.router)
     app.include_router(graph.router)
     app.include_router(mcp.router)
     static = resources.files("knowledge_search") / "static"
@@ -410,7 +411,9 @@ def _routes(app: FastAPI) -> None:
         file: UploadFile = File(...),
         collection_id: int = Form(...),
         source_uri: str | None = Form(None),
+        path: str | None = Form(None),
     ):
+        """One file; `path` is its place in an uploaded folder (kit/docs/a.md), which then identifies it."""
         if collection_id not in p.writable:
             raise HTTPException(404, "collection not found")
         max_bytes = state.settings.max_upload_mb * 1024 * 1024
@@ -419,6 +422,7 @@ def _routes(app: FastAPI) -> None:
             res = submit(
                 conn, state.blobs, collection_id=collection_id, filename=file.filename or "", data=data,
                 user_id=p.user_id, max_bytes=max_bytes, source_uri=(source_uri or None),
+                source_key=path_key(path) if path else None,
             )
         except ParseError as e:
             raise HTTPException(422, {"code": e.code, "detail": e.detail}) from e

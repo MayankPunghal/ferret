@@ -128,11 +128,36 @@
         <form id="upload-form" class="upload">
           <label class="inline">Into collection <select name="collection_id" id="upload-collection" required></select></label>
           <label class="inline"><span>Original location <span class="muted">(optional)</span></span> <input name="source_uri" placeholder="https://wiki/… or \\share\…"></label>
-          <p class="muted small" id="dropzone-hint">Or drop files or a folder anywhere on this page. Markdown, text, HTML, Word,
-            PowerPoint and PDF; in a folder, every supported file in it and its subfolders.</p>
+          <div class="types" id="upload-types" role="group" aria-label="File types taken from a folder">
+            <span class="muted">From folders take</span>
+            <label class="check"><input type="checkbox" value="markdown" checked> Markdown</label>
+            <label class="check"><input type="checkbox" value="text" checked> Text</label>
+            <label class="check"><input type="checkbox" value="html" checked> HTML</label>
+            <label class="check"><input type="checkbox" value="word" checked> Word</label>
+            <label class="check"><input type="checkbox" value="powerpoint" checked> PowerPoint</label>
+            <label class="check"><input type="checkbox" value="pdf" checked> PDF</label>
+          </div>
+          <p class="muted small" id="dropzone-hint">Or drop files or a folder anywhere on this page. A folder brings its
+            subfolders too, without those whose name starts with <code>.</code> or <code>_</code> (<code>.git</code>,
+            <code>_tools</code>). Uploading a folder again only indexes what changed.</p>
           <input id="file-input" type="file" name="file" accept=".md,.markdown,.txt,.html,.htm,.docx,.pptx,.pdf" multiple hidden>
           <input id="folder-input" type="file" webkitdirectory multiple hidden>
         </form>
+        <section id="folders-block" class="block admin-only" hidden>
+          <div class="block-head"><h2>Synced folders</h2>
+            <p class="muted">A folder on the computer running Knowledge Search, indexed with its subfolders by its path,
+              into the collection and file types chosen above. <strong>Sync</strong> takes in only the difference: new
+              and changed files are indexed, deleted ones removed. The files themselves are never changed.</p></div>
+          <form id="folder-form" class="inline-form">
+            <input name="path" required class="grow" placeholder="Full path, e.g. C:\Users\me\Docs\repo-kit" aria-label="Folder path">
+            <button class="primary">Add and sync</button>
+          </form>
+          <p id="folder-msg" class="meta error" hidden></p>
+          <table class="data" id="folders-table" hidden>
+            <thead><tr><th>Folder</th><th class="wide">Collection</th><th>Last sync</th><th><span class="sr">Actions</span></th></tr></thead>
+            <tbody id="folders"></tbody>
+          </table>
+        </section>
         <div id="dropzone" class="drop-overlay" hidden><span>Drop to upload into <strong id="drop-target"></strong></span></div>
         <div id="model-banner" class="notice" hidden role="status"></div>
         <ul id="upload-list" class="upload-list"></ul>

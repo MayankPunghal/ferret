@@ -541,9 +541,10 @@ def _linked(conn: Connection, scope: list[int], query: str, order: list[int], qv
     doc_of = {r["id"]: r["document_id"] for r in rows}
     named = {}  # document -> the strings by which the query names it (removed before scoring linked passages)
     for r in conn.execute(
-        "SELECT id, title, lower(regexp_replace(source_key, '\\.[^.]+$', '')) AS stem FROM documents "
-        "WHERE collection_id = ANY(%(scope)s) AND (length(title) >= 4 AND strpos(%(q)s, lower(title)) > 0 "
-        "OR strpos(%(q)s, lower(regexp_replace(source_key, '\\.[^.]+$', ''))) > 0)", {"scope": scope, "q": q}):
+        "SELECT id, title, lower(regexp_replace(regexp_replace(source_key, '^.*/', ''), '\\.[^.]+$', '')) AS stem "
+        "FROM documents WHERE collection_id = ANY(%(scope)s) AND (length(title) >= 4 AND strpos(%(q)s, lower(title)) > 0 "
+        "OR strpos(%(q)s, lower(regexp_replace(regexp_replace(source_key, '^.*/', ''), '\\.[^.]+$', ''))) > 0)",
+        {"scope": scope, "q": q}):
         named[r["id"]] = [n for n in (r["title"].lower(), r["stem"]) if len(n) >= 4 and n in q]
     ranked_docs = list(dict.fromkeys(doc_of[c] for c in order if c in doc_of))
     seeds = ([d for d in ranked_docs if d in named] + [d for d in named if d not in ranked_docs])[:GRAPH_SEEDS]

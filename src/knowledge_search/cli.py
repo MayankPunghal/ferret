@@ -196,18 +196,21 @@ def _demo(s) -> None:
 
 
 def _ingest(a, s) -> None:
-    from .ingest import BlobStore, submit
+    from .ingest import BlobStore, folder_files, submit
     from .parsing import MEDIA_TYPES, ParseError
 
     blobs = BlobStore(s.data_dir)
-    files = [a.path] if a.path.is_file() else sorted(f for f in a.path.rglob("*") if f.suffix.lower() in MEDIA_TYPES)
+    root = a.path.resolve()
+    # a folder: its subfolders too, without names starting with . or _; each file keyed by its path in the folder
+    files = [root] if root.is_file() else folder_files(root, set(MEDIA_TYPES))[0]
     with _conn() as c:
         cid = auth.ensure_collection(c, a.collection)
         c.commit()
         for f in files:
             try:
                 r = submit(c, blobs, collection_id=cid, filename=f.name, data=f.read_bytes(), user_id=None,
-                           max_bytes=s.max_upload_mb * 1024 * 1024, source_uri=f"file://{f.resolve()}")
+                           max_bytes=s.max_upload_mb * 1024 * 1024, source_uri=f.resolve().as_uri(),
+                           source_key=None if f == root else f"{root.name}/{f.relative_to(root).as_posix()}")
                 print(f"{r.outcome:9} {f}")
             except ParseError as e:
                 print(f"rejected  {f}: {e.code}")

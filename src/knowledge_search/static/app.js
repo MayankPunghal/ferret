@@ -109,7 +109,7 @@ function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
   for (const t of ["search", "documents", "summaries", "status", "assistants", "settings", "admin", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
-  if (name === "documents") { loadDocs(); pollTimer = setInterval(loadDocs, 3000); }
+  if (name === "documents") { loadDocs(); loadFolders(); pollTimer = setInterval(loadDocs, 3000); }
   if (name === "summaries") { loadSummaries(); pollTimer = setInterval(loadSummaries, 5000); }
   if (name === "status") loadStatus();
   if (name === "assistants") loadAssistants();
@@ -556,15 +556,26 @@ async function droppedFiles(dt) {
   return out;
 }
 const SUPPORTED = /\.(md|markdown|txt|html?|docx|pptx|pdf)$/i;
+const TYPE_EXT = { markdown: ["md", "markdown"], text: ["txt"], html: ["html", "htm"], word: ["docx"], powerpoint: ["pptx"], pdf: ["pdf"] };
+const chosenTypes = () => $$("#upload-types input:checked").map((x) => x.value);
+try { const t = JSON.parse(localStorage.getItem("ks-folder-types") || "null"); if (t) $$("#upload-types input").forEach((x) => { x.checked = t.includes(x.value); }); } catch { /* defaults */ }
+$("#upload-types").addEventListener("change", () => { try { localStorage.setItem("ks-folder-types", JSON.stringify(chosenTypes())); } catch { /* not kept */ } });
 
 // One line per upload (not per file): counts while it runs; only rejected files are listed by name.
 async function uploadFiles(files) {
   const list = $("#upload-list");
-  const other = files.filter((f) => !SUPPORTED.test(f.name));
+  // a file from a folder has a path (kit/docs/a.md): it identifies the document, so same-named files stay apart
+  const rel = (f) => (f.relPath || f.webkitRelativePath || "").replace(/^\/+/, "");
+  const hidden = files.filter((f) => rel(f).split("/").some((x) => /^[._]/.test(x)));
+  const exts = new Set(chosenTypes().flatMap((t) => TYPE_EXT[t]));
+  const ok = (f) => SUPPORTED.test(f.name) && (!rel(f) || exts.has(f.name.split(".").pop().toLowerCase()));
+  files = files.filter((f) => !hidden.includes(f));
+  const other = files.filter((f) => !ok(f));
   // in folder and name order (numbers in order: 2 before 10), so they are indexed in the order you see them
-  const path = (f) => f.relPath || f.webkitRelativePath || f.name;
-  files = files.filter((f) => SUPPORTED.test(f.name)).sort((a, b) => collator.compare(path(a), path(b)));
-  const skipped = other.length ? ` · skipped ${other.length} of other types (${[...new Set(other.map((f) => (f.name.split(".").pop() || "").toLowerCase()))].join(", ")})` : "";
+  const path = (f) => rel(f) || f.name;
+  files = files.filter(ok).sort((a, b) => collator.compare(path(a), path(b)));
+  const skipped = (other.length ? ` · skipped ${other.length} of other types (${[...new Set(other.map((f) => (f.name.split(".").pop() || "").toLowerCase()))].join(", ")})` : "")
+    + (hidden.length ? ` · left out ${hidden.length} in folders or files starting with . or _` : "");
   const line = el("span", { className: "meta" }), errors = el("ul", { className: "upload-errors" });
   list.replaceChildren(el("li", {}, line, errors));
   let queued = 0, unchanged = 0, rejected = 0;
@@ -577,6 +588,7 @@ async function uploadFiles(files) {
     show(false);
     const fd = new FormData();
     fd.append("file", f); fd.append("collection_id", $("#upload-collection").value);
+    if (rel(f)) fd.append("path", rel(f));
     const uri = $("#upload-form [name=source_uri]").value; if (uri) fd.append("source_uri", uri);
     try {
       const r = await api("/api/documents", { method: "POST", body: fd });
@@ -589,6 +601,51 @@ async function uploadFiles(files) {
   show(true);
   loadDocs();
 }
+
+// Synced folders (administrators): a folder on the server's disk, indexed by path; Sync takes in the difference.
+const TYPE_NAME = { markdown: "Markdown", text: "Text", html: "HTML", word: "Word", powerpoint: "PowerPoint", pdf: "PDF" };
+function syncText(f) {
+  if (f.syncing) return "Syncing…";
+  const r = f.result;
+  if (!r) return "Not synced yet";
+  if (r.error) return r.error;
+  const left = Object.entries(r.skipped || {}).map(([k, n]) => `${n} ${k}`).join(", ");
+  return `${ago(new Date(f.synced_at))} · ${r.files} files: ${r.queued} new or changed, ${r.unchanged} unchanged, ${r.removed} removed`
+    + (r.rejected.length ? `, ${r.rejected.length} could not be read` : "") + (left ? ` · left out: ${left}` : "");
+}
+let folderTimer = null;
+async function loadFolders() {
+  clearTimeout(folderTimer);
+  if (!me?.is_admin) return;
+  const rows = await api("/api/admin/folders");
+  $("#folders-table").hidden = !rows.length;
+  $("#folders").replaceChildren(...rows.map((f) => {
+    const sync = el("button", { type: "button", className: "button", textContent: "Sync", disabled: f.syncing });
+    sync.addEventListener("click", async () => { await api(`/api/admin/folders/${f.id}/sync`, { method: "POST" }); loadFolders(); });
+    const stop = el("button", { type: "button", className: "button", textContent: "Stop syncing", disabled: f.syncing });
+    stop.addEventListener("click", async () => {
+      if (!confirm(`Stop syncing ${f.path}? Its documents stay searchable until you delete them.`)) return;
+      const docs = confirm("Also remove this folder's documents from the index? (The files on disk are not touched.)");
+      await api(`/api/admin/folders/${f.id}?documents=${docs}`, { method: "DELETE" }); loadFolders(); loadDocs();
+    });
+    const errs = f.result?.rejected?.length ? el("ul", { className: "upload-errors" }, ...f.result.rejected.map((x) => el("li", { className: "meta error", textContent: x }))) : "";
+    return el("tr", {},
+      el("td", {}, el("div", { className: "mono", textContent: f.path }), el("div", { className: "sub", textContent: f.types.map((t) => TYPE_NAME[t]).join(", ") })),
+      el("td", { className: "wide", textContent: f.collection }),
+      el("td", {}, el("span", { className: "meta", textContent: syncText(f) }), errs),
+      el("td", { className: "actions-cell" }, sync, stop));
+  }));
+  if (rows.some((f) => f.syncing)) folderTimer = setTimeout(() => { loadFolders(); loadDocs(); }, 1500);
+}
+$("#folder-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("#folder-msg"); msg.hidden = true;
+  const path = new FormData(e.target).get("path").trim();
+  try {
+    await api("/api/admin/folders", { method: "POST", json: { path, collection_id: Number($("#upload-collection").value), types: chosenTypes() } });
+    e.target.reset(); loadFolders();
+  } catch (err) { msg.textContent = err.message; msg.hidden = false; }
+});
 
 // Documents: state tabs (counts from the documents you can see), a name filter, one row per document with
 // its status and a row menu. Refreshed every 3 s while the tab is open, except while a row menu is open.

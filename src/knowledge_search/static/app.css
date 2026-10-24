@@ -528,3 +528,10 @@ td.actions-cell { width: 1%; text-align: right; }
   .nav-collapsed .nav-toggle svg { transform: scaleX(-1); }
 }
 @media (max-width: 1000px) { .nav-toggle { display: none !important; } }
+
+/* Documents: file types taken from folders; synced folders */
+.upload .types { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; flex-basis: 100%; }
+.upload .types input { width: 16px; }
+#folder-form .grow { flex: 1; min-width: 260px; }
+#folders .mono { overflow-wrap: anywhere; }
+#folders-block { margin-bottom: 24px; }

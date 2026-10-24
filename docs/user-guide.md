@@ -128,7 +128,21 @@ the indexing of the rest (measured).
 
 **Documents** page (needs write access to a collection): pick the collection under **Into collection**, then
 click **Upload files** or **Upload a folder**, or drop files or a folder anywhere on the page. Several files can be
-uploaded at once; files are indexed in folder and name order (2 before 10). The tabs above the list (All,
+uploaded at once; files are indexed in folder and name order (2 before 10).
+
+**Folders:**
+- A folder brings its subfolders too, but not folders or files whose name starts with `.` or `_` (`.git`,
+  `.claude`, `_tools`, `_notes`).
+- **From folders take** chooses the file types: untick Text to leave out `llms.txt`, for example. Code, JSON,
+  YAML and images are never taken.
+- Each file is identified by its path in the folder (`repo-kit/docs/modules/index.md`), so files with the same
+  name in different subfolders stay separate documents.
+- **Uploading the same folder again only takes in the difference:** unchanged files are skipped (same
+  content), changed files get a new version of the same document, and new files are added. Nothing is
+  duplicated. A browser upload cannot tell that a file was deleted, so deleted files stay until you delete
+  them. Administrators can use **Synced folders** (Administrator guide), which removes them too.
+
+The tabs above the list (All,
 Indexing, Failed, Outdated settings), the type and name filters narrow the list; click a column header to sort
 by it (click again to reverse; documents waiting to be indexed sort in queue order under Status).
 

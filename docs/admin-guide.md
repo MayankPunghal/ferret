@@ -62,6 +62,23 @@ uv run knowledge-search add-to-group maria everyone
 uv run knowledge-search ingest policies ./policies --wait     # bulk import a folder
 ```
 
+`ingest` follows the same folder rules as uploads: subfolders included, names starting with `.` or `_` left
+out, each file keyed by its path under the folder's name.
+
+## Synced folders
+
+**Documents → Synced folders** (administrators): give the full path of a folder **on the computer running
+Knowledge Search**, for example `C:\Users\me\Docs\repo-kit`. It is indexed into the collection and file types
+chosen above it, and remembered.
+- **Sync** takes in only the difference: new and changed files are indexed; documents whose file was deleted
+  (or is now of an unticked type) are removed from the index. The files themselves are never changed.
+- Folders and files starting with `.` or `_` are left out, with everything inside them.
+- The last sync's counts are shown: files, new or changed, unchanged, removed, what was left out and why, and
+  files that could not be read.
+- **Stop syncing** forgets the folder and asks whether to remove its documents from the index as well.
+- It is for administrators only because the app reads its own disk. On a team server the path is on the
+  server, not on your computer.
+
 ## Crawling a website or intranet
 
 The crawler is a separate, shareable package, **site2md** (`site2md/`, standard-library Python; see

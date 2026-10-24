@@ -2,7 +2,7 @@
 
 Edges come from Markdown links, [[wiki links]] and front-matter relations (parsing.extract_links /
 RELATION_KEYS), stored per chunk in ``doc_links``. Targets are resolved at query time against document
-file names (with or without extension) and titles, so a link starts working as soon as its target is
+file names (with or without extension; the last part of a folder path) and titles, so a link starts working as soon as its target is
 ingested. Pages that do not link explicitly (crawled intranet pages, exported docs) are connected by
 *mentions*: a passage naming another page's title (``mentions``), and by *meaning*: pages that are each
 other's closest by document vector (``similar``). Mentions feed search expansion; both appear in the
@@ -27,8 +27,9 @@ SIMILAR_K = 3  # "closest": among each other's SIMILAR_K nearest documents (meas
 
 def _resolves(doc: str, link: str) -> str:
     """SQL condition: link `link` points at document `doc`."""
-    return (f"(lower({doc}.source_key) = {link}.target OR lower({doc}.source_key) = {link}.target || '.md' "
-            f"OR lower(regexp_replace({doc}.source_key, '\\.[^.]+$', '')) = {link}.target "
+    name = f"lower(regexp_replace({doc}.source_key, '^.*/', ''))"  # the file name of a folder path key
+    return (f"({name} = {link}.target OR {name} = {link}.target || '.md' "
+            f"OR regexp_replace({name}, '\\.[^.]+$', '') = {link}.target "
             f"OR lower({doc}.title) = {link}.target)")
 
 
