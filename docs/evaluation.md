@@ -274,9 +274,23 @@ near-topic questions whose subject exists but whose specific fact does not ("rat
 "roll back a database migration", "orders api rate limits") — the hard case for any similarity gate; a
 reader model that checks the passage states the fact is the planned fix (second-brain step).
 
+**Embedding model × reranker on the same corpus** (623 pages without author descriptions, 8.5k passages,
+56 answerable / 16 must-refuse queries, each model's shipped gate; 2026-10-24):
+
+| Embedding + reranker | Right page first | Right page in top 5 | False answers | Answered | Precision | Search p50 |
+|---|---|---|---|---|---|---|
+| **bge-base, no reranker** | **0.964** | **1.000** | 0/16 | **0.911** | **0.961** | **0.27 s** |
+| bge-base + MiniLM (shipped default) | 0.946 | 1.000 | 0/16 | 0.911 | 0.961 | 1.26 s |
+| Qwen3-Embedding-0.6B, no reranker | 0.893 | 0.982 | 0/16 | 0.875 | 0.939 | 1.01 s |
+| Qwen3-Embedding-0.6B + bge-reranker-base | 0.929 | 0.982 | 0/16 | 0.875 | 0.959 | 2.65 s |
+
+Qwen3 is worse here on every measure and 4–10× slower; it was ahead only on the 12-document fixtures (§3).
+Indexing with Qwen3 took ~2 h for 623 pages on 4 cores (bge-base: minutes). Rerankers move at most one
+query on this corpus; MiniLM stays the default for its SciFact gain (§4).
+
 ## Not measured
 
-Real company corpus; corpora beyond ~8.5k chunks; large embedding models (bge-large, Qwen3 on the Kubernetes corpus: pending); GPU; Windows performance; Docker
+Real company corpus; corpora beyond ~8.5k chunks; large embedding models (bge-large); GPU; Windows performance; Docker
 image; multilingual content.
 
 ## Reproduce

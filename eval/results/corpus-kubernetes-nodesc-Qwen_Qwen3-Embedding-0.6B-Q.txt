@@ -1,0 +1,72 @@
+p001 keyword       ANSWER  ok  rolling back a deployment                                  top=deployment                             sim=0.6117 cov=1.0 rr=None
+p002 question      ANSWER  ok  how do I roll back a deployment to a previous revision     top=deployment                             sim=0.8011 cov=1.0 rr=None
+p003 identifier    ANSWER  BAD kubectl rollout undo                                       top=management                             sim=0.7805 cov=0.667 rr=None
+p004 keyword       ANSWER  ok  pod disruption budget                                      top=pod-disruption-budget                  sim=0.6471 cov=1.0 rr=None
+p005 question      ANSWER  ok  how many pods can be unavailable during a voluntary disrup top=disruptions                            sim=0.6691 cov=0.6 rr=None
+p006 keyword       ANSWER  ok  liveness probe                                             top=probes                                 sim=0.7106 cov=1.0 rr=None
+p007 question      abstain BAD my container keeps restarting because the health check fai top=init-containers                        sim=0.5843 cov=0.333 rr=None
+p008 identifier    ANSWER  ok  CrashLoopBackOff                                           top=pod-lifecycle                          sim=0.6536 cov=1.0 rr=None
+p009 question      ANSWER  ok  how do I expose a deployment outside the cluster           top=expose-external-ip-address             sim=0.6507 cov=0.75 rr=None
+p010 identifier    ANSWER  ok  NodePort                                                   top=service                                sim=0.7038 cov=1.0 rr=None
+p011 keyword       ANSWER  ok  network policy default deny ingress                        top=network-policies                       sim=0.8062 cov=1.0 rr=None
+p012 question      ANSWER  ok  how can I restrict which pods are allowed to talk to each  top=pods                                   sim=0.6149 cov=0.25 rr=None
+p013 question      abstain BAD where should I store a database password for my app        top=managing-secret-using-kubectl          sim=0.4544 cov=0.75 rr=None
+p014 keyword       ANSWER  ok  encrypt secrets at rest in etcd                            top=encrypt-data                           sim=0.7577 cov=1.0 rr=None
+p015 keyword       ANSWER  BAD taints and tolerations                                     top=device-taints                          sim=0.6466 cov=1.0 rr=None
+p016 question      abstain BAD how do I keep ordinary pods off a dedicated node           top=daemonset                              sim=0.6128 cov=0.4 rr=None
+p017 keyword       ANSWER  BAD drain a node for maintenance                               top=upgrading-linux-nodes                  sim=0.6185 cov=1.0 rr=None
+p018 keyword       ANSWER  ok  horizontal pod autoscaler cpu target                       top=horizontal-pod-autoscale               sim=0.7348 cov=0.8 rr=None
+p019 question      ANSWER  ok  how can pods scale automatically when load increases       top=horizontal-pod-autoscale               sim=0.626 cov=1.0 rr=None
+p020 keyword       ANSWER  ok  resource requests and limits                               top=manage-resources-containers            sim=0.6988 cov=1.0 rr=None
+p021 question      ANSWER  ok  what happens when a container uses more memory than its li top=assign-memory-resource                 sim=0.7875 cov=0.8 rr=None
+p022 identifier    abstain BAD OOMKilled                                                  top=manage-resources-containers            sim=0.3466 cov=1.0 rr=None
+p023 question      abstain BAD how do I run a job every night at 2am                      top=automated-tasks-with-cron-jobs         sim=0.5327 cov=0.2 rr=None
+p024 identifier    ANSWER  ok  concurrencyPolicy                                          top=cron-jobs                              sim=0.7018 cov=0.0 rr=None
+p025 keyword       ANSWER  ok  persistent volume claim                                    top=persistent-volume-claim                sim=0.8169 cov=1.0 rr=None
+p026 keyword       ANSWER  ok  persistent volume reclaim policy                           top=change-pv-reclaim-policy               sim=0.837 cov=0.75 rr=None
+p027 keyword       ANSWER  ok  RBAC role binding                                          top=access-authn-authz-rbac                sim=0.7171 cov=1.0 rr=None
+p028 question      ANSWER  ok  give a service account read-only access to pods in one nam top=service-accounts                       sim=0.7184 cov=0.667 rr=None
+p029 keyword       ANSWER  ok  upgrade kubeadm cluster                                    top=cluster-upgrade                        sim=0.8384 cov=1.0 rr=None
+p030 keyword       ANSWER  ok  renew kubeadm certificates                                 top=kubeadm-certs                          sim=0.666 cov=1.0 rr=None
+p031 question      ANSWER  ok  pods cannot resolve service names, how do I debug DNS      top=debug-service                          sim=0.7524 cov=0.714 rr=None
+p032 keyword       ANSWER  ok  init containers                                            top=init-container                         sim=0.7647 cov=1.0 rr=None
+p033 keyword       ANSWER  ok  sidecar containers                                         top=sidecar-container                      sim=0.6919 cov=1.0 rr=None
+p034 question      abstain BAD stable network identity for database replicas              top=statefulset                            sim=0.4805 cov=0.6 rr=None
+p035 keyword       ANSWER  ok  configmap environment variables                            top=configmap                              sim=0.755 cov=1.0 rr=None
+p036 keyword       ANSWER  ok  pod security standards restricted profile                  top=pod-security-standards                 sim=0.7285 cov=1.0 rr=None
+p037 question      ANSWER  ok  what replaced PodSecurityPolicy                            top=migrate-from-psp                       sim=0.7443 cov=0.5 rr=None
+p038 identifier    ANSWER  ok  kubectl port-forward                                       top=port-forward-access-application-cluster sim=0.8589 cov=1.0 rr=None
+p039 question      ANSWER  ok  how do I get a shell inside a running container            top=get-shell-running-container            sim=0.7955 cov=0.8 rr=None
+p040 keyword       ANSWER  ok  ephemeral debug container                                  top=debug-running-pod                      sim=0.7763 cov=1.0 rr=None
+p041 keyword       ANSWER  ok  dockershim removal                                         top=check-if-dockershim-removal-affects-you sim=0.6812 cov=1.0 rr=None
+p042 keyword       ANSWER  ok  etcd backup and restore                                    top=configure-upgrade-etcd                 sim=0.7676 cov=0.667 rr=None
+p043 keyword       ANSWER  ok  audit policy                                               top=audit                                  sim=0.6532 cov=1.0 rr=None
+p044 keyword       ANSWER  ok  kube-proxy iptables mode                                   top=virtual-ips                            sim=0.8359 cov=1.0 rr=None
+p045 keyword       ANSWER  ok  spread pods across zones                                   top=topology-spread-constraints            sim=0.6729 cov=1.0 rr=None
+p046 keyword       ANSWER  ok  node affinity                                              top=assign-pods-nodes-using-node-affinity  sim=0.7669 cov=1.0 rr=None
+p047 keyword       ANSWER  ok  pod priority and preemption                                top=pod-priority-preemption                sim=0.771 cov=1.0 rr=None
+p048 question      abstain BAD namespace stuck in terminating because of finalizers       top=finalizers                             sim=0.5872 cov=0.5 rr=None
+p049 keyword       ANSWER  ok  resource quota per namespace                               top=resource-quotas                        sim=0.7888 cov=1.0 rr=None
+p050 keyword       ANSWER  ok  default memory limit for a namespace                       top=memory-default-namespace               sim=0.7285 cov=1.0 rr=None
+p051 keyword       ANSWER  ok  ingress TLS certificate                                    top=ingress                                sim=0.7341 cov=1.0 rr=None
+p052 keyword       ANSWER  ok  install kubectl on windows                                 top=install-kubectl-windows                sim=0.9085 cov=1.0 rr=None
+p053 keyword       ANSWER  ok  kubeconfig multiple clusters                               top=configure-access-multiple-clusters     sim=0.7725 cov=1.0 rr=None
+p054 keyword       ANSWER  ok  swap memory on nodes                                       top=swap-memory-management                 sim=0.7324 cov=1.0 rr=None
+p055 keyword       ANSWER  ok  IPv4 IPv6 dual stack                                       top=dual-stack                             sim=0.7724 cov=1.0 rr=None
+p056 question      ANSWER  ok  how do I pull images from a private registry               top=pull-image-private-registry            sim=0.7646 cov=1.0 rr=None
+n001 negative      abstain ok  how do I reset my VPN password                             top=troubleshoot-kubectl                   sim=0.4329 cov=0.333 rr=None
+n002 negative      abstain ok  what is the office wifi password                           top=authentication                         sim=0.3791 cov=0.0 rr=None
+n003 negative      abstain ok  quarterly sales targets for the EMEA region                top=horizontal-pod-autoscale-walkthrough   sim=0.3227 cov=0.2 rr=None
+n004 negative      abstain ok  parental leave policy                                      top=change-pv-reclaim-policy               sim=0.3673 cov=0.333 rr=None
+n005 negative      abstain ok  how to bake sourdough bread                                top=authorization                          sim=0.2445 cov=0.0 rr=None
+n006 negative      abstain ok  python list comprehension syntax                           top=dra-api                                sim=0.383 cov=0.25 rr=None
+n007 negative      abstain ok  SAP invoice approval workflow                              top=approver                               sim=0.382 cov=0.25 rr=None
+n008 negative      abstain ok  company holiday calendar 2026                              top=system-metrics                         sim=0.267 cov=0.0 rr=None
+n009 near_negative abstain ok  Docker Swarm overlay network                               top=windows-networking                     sim=0.5871 cov=0.5 rr=None
+n010 near_negative abstain ok  Nomad job specification                                    top=job                                    sim=0.3811 cov=0.333 rr=None
+n011 near_negative abstain ok  ArgoCD sync waves                                          top=kubelet-sync-loop                      sim=0.3547 cov=0.333 rr=None
+n012 near_negative abstain ok  Prometheus Alertmanager silence routing                    top=gateway                                sim=0.4784 cov=0.25 rr=None
+n013 near_negative abstain ok  Kubernetes 2.0 release date                                top=kubeadm-upgrade                        sim=0.5401 cov=0.25 rr=None
+n014 near_negative abstain ok  Terraform state locking in S3                              top=labels-annotations-taints              sim=0.5464 cov=0.25 rr=None
+n015 near_negative abstain ok  Jenkins pipeline stages                                    top=audit                                  sim=0.4434 cov=0.333 rr=None
+n016 near_negative abstain ok  Ansible playbook for nginx                                 top=run-stateless-application-deployment   sim=0.5647 cov=0.333 rr=None

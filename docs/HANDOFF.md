@@ -56,7 +56,7 @@ or operator in SQL on the embedded-DB path**. Fix not yet re-run by the owner on
 - **Embedding models, BEIR SciFact subset (2,000 abstracts, 300 human-labelled queries), CPU:**
   bge-small nDCG@10 0.779 (8.3 docs/s, query 6.6 ms) · **bge-base 0.818** (3.3 docs/s, 23 ms) ·
   arctic-embed-m 0.814 (3.7 docs/s, 22 ms). nomic-v1.5 was OOM-killed (now bounded by batch/token caps;
-  not re-measured). Qwen3-Embedding-0.6B **not measured** (too slow for the session on this CPU).
+  not re-measured). Qwen3-Embedding-0.6B not measured on SciFact; on Kubernetes worse than bge-base (§4l).
 - **Fusion:** equal-weight RRF hurt natural-language retrieval (0.746 vs dense 0.815); keyword weight
   0.1 restores 0.794 and keeps identifiers perfect on fixtures → default.
 - **Rerankers (top-10, real pipeline):** MiniLM 0.795 → 0.809 at ~0.4 s (default on); bge-reranker-base
@@ -339,7 +339,10 @@ Verified: every command run against a fresh demo app on Linux, covering:
   types not measured), Qwen3.5-0.8B; downloaded in the background after a disk-space check (found when a
   switch here started a 3.1 GB download onto a 2.6 GB disk).
 - **Model defaults:** shipped defaults are bge-base + MiniLM (recommended in the lists now). The owner's
-  install ran Qwen3-Embedding-0.6B + bge-reranker-base, chosen in their Settings earlier.
+  install ran Qwen3-Embedding-0.6B + bge-reranker-base, chosen in their Settings earlier. **Measured on
+  Kubernetes** (docs/evaluation.md §7): Qwen3 right page first 0.893 (0.929 with bge-reranker-base) vs
+  bge-base 0.964, answered 0.875 vs 0.911, 1.0–2.6 s vs 0.27 s per search → recommend bge-base. Owner's
+  own documents still unmeasured.
 
 ## 4k. Labels by the local model: document type, consistent topics, overnight hours (owner request 2026-10-23)
 
