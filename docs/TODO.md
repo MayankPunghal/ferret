@@ -32,7 +32,7 @@ Status words: **bug** · **running** · **plan ready** (written, not built) · *
 | 8 | Faster indexing of very large documents: several embedding sessions, small documents not stuck behind a large one, re-use vectors of unchanged passages | 24 Oct 14:52 · [plan-large-documents.md](plan-large-documents.md) |
 | 9 | Summaries tab with count tiles and a per-collection table like Index status, paged list | 24 Oct 14:53 · [plan-summaries-status.md](plan-summaries-status.md) |
 | 10 | Images: the crawler saves images, a local vision model writes their text, indexed through the same path as other files (crawler, folder sync and MCP all included) | 23 Oct 11:51, 12:21 (owner: hold), 24 Oct 11:55 · [plan-images-and-models.md](plan-images-and-models.md); waits for item 2 |
-| 16 | **Ask** tab: a conversation where a local model (Gemma 4 E2B or E4B) answers from what search finds, with checked citations and follow-up questions; search's evidence check decides whether to answer; optional MCP `ask` tool | 23 Oct 07:37, 24 Oct (owner: separate tab, back-and-forth) · [plan-answers.md](plan-answers.md) |
+| 16 | **Ask**: a chat window like Claude Code / OpenCode / the DeepSeek harness. Saved conversations, follow-ups, step cards, pictures, Think first; a local model (Gemma 4 E2B or E4B) answers from what search finds, with checked citations; search's evidence check decides whether to answer; optional MCP `ask` tool. Six phases | 23 Oct 07:37, 24 Oct (owner: separate tab, then a full chat window) · [plan-answers.md](plan-answers.md) |
 
 ## 4. Needs the owner
 

@@ -1,13 +1,14 @@
-# Plan: an **Ask** tab, where you ask questions and a local model answers from your documents (owner request, 2026-10-24)
+# Plan: **Ask**, a chat window where a local model answers from your documents (owner request, 2026-10-24)
 
-Owner request: "a separate tab, similar to search with a text box but with a back-and-forth, text-based
-conversation. Gemma 4 E4B or E2B answers, and behind the model it uses search to get the documents and
-answers from the search results." Also: an `ask` tool in the MCP server, as an option for people without a
-Claude subscription. This is the "second brain" step of the end goal (CLAUDE.md).
+Owner request, in three steps on 2026-10-24: (1) a local model answers from what search finds and the
+reranker ranks; (2) a separate tab, a text box with back-and-forth conversation, Gemma 4 E4B or E2B, search
+behind the model; an MCP `ask` tool for people without a Claude subscription; (3) **the goal: a proper
+conversation window like Claude Code, OpenCode or the DeepSeek harness, with picture upload, thinking,
+to-and-fro chat, and every conversation saved.** This is the "second brain" step of the end goal (CLAUDE.md).
 
-**Status: plan, not built.** The numbers quoted come from `eval/llm_answers.py`
-(`eval/results/answers-gemma-4-E2B-report.json`) and the summary-model comparison (HANDOFF §4f, §4k), all
-on a 4-core CPU. Everything else is unmeasured.
+**Status: plan, not built.** Numbers quoted come from `eval/llm_answers.py`
+(`eval/results/answers-gemma-4-E2B-report.json`), the summary-model comparison and the vision check
+(HANDOFF §4f, §4k), all on a 4-core CPU. Everything else is unmeasured.
 
 ## What was already measured
 
@@ -22,122 +23,163 @@ Gemma 4 E2B answering from search's top 5 passages (2026-10-23):
 | Search's own first passage is a right one | 95% | 100% |
 | Time per answer (median) | 15 s | 15 s |
 
-Gemma 4 E4B against E2B on summaries: no better on 9 graded pages, slightly better document types on 14
-(10 vs 8, too few to call), **about 2.3× slower** (40.7 s vs 17.4 s per page) and ~8.7 GB of memory.
+- **Gemma 4 E4B vs E2B** (summaries): no better on 9 graded pages, document types 10 vs 8 of 14 (too few to
+  call), **about 2.3× slower** (40.7 s vs 17.4 s per page), ~8.7 GB of memory.
+- **Thinking mode** (E2B, summaries): about **4× slower** (78 s vs 18 s per request) for at most a page or two
+  better; not offered for summaries.
+- **Vision** (E2B + its image projector): text inside images read accurately (labels, `ERR-PAY-4012`, a
+  Settings screenshot), **20–56 s per image**; arrows and relations in diagrams about half wrong. The
+  GLM-4.6V-Flash comparison is unfinished ([TODO.md](TODO.md) item 2).
 
-What this means for the design:
+Design rules that follow:
 
-1. **Search decides whether there is evidence, not the model.** Letting the model veto answers cost 28
-   points of answered questions on Kubernetes for no fewer false answers there.
-2. **The model is a worse ranker than search** (61% vs 95%), so it never reorders the sources.
-3. **An answer takes ~15 s with E2B and probably ~35 s with E4B** (estimate from the summary timings), so it
-   must stream word by word, with visible steps, and a Stop button.
+1. **Search decides whether there is evidence, not the model.** Letting the model veto cost 28 points of
+   answered questions on Kubernetes for no fewer false answers there.
+2. **The model never reorders sources** (it is a worse ranker: 61% vs 95%).
+3. **Everything streams and every step is visible:** an answer takes ~15 s with E2B, about 2.3× that with
+   E4B, about 4× with thinking, plus 20–56 s per picture.
 
-## The Ask tab
+## The window
 
 ```
-Ask                                                        [ New conversation ]
-
-  You   How do I roll back the orders service?
-
-  Ferret   Run `hctl rollback orders-svc` [1]. Rollback restores the previous
-           ReplicaSet but does not revert database migrations, so migrations must
-           stay backwards compatible for one release [1][2].
-           Sources  [1] Orders Service Deployment Runbook › Rollback
-                    [2] Orders Service › Deployments
-           Searched for "roll back orders service" · Gemma 4 E2B · 14 s   Copy
-
-  You   And what if a migration already ran?
-
-  Ferret   ● Searching… ● Reading 5 passages… ● Writing…           [ Stop ]
-
-┌───────────────────────────────────────────────────────────────┐
-│ Ask about your documents…                                  ⏎  │
-└───────────────────────────────────────────────────────────────┘
-Answers are written by a local model from your documents. Check the sources.
+┌──────────────────────┬─────────────────────────────────────────────────────────────┐
+│ + New conversation   │  Orders rollback after a migration           Gemma 4 E2B ▾  │
+│ 🔍 Search chats       │                                                             │
+│ Today                │  You   How do I roll back the orders service?               │
+│ ● Orders rollback…   │                                                             │
+│   Payment error 4012 │  Ferret ▸ Searched "roll back orders service" · 5 passages  │
+│ Yesterday            │         Run `hctl rollback orders-svc` [1]. Rollback        │
+│   VPN setup (image)  │         restores the previous ReplicaSet but does not       │
+│   …                  │         revert database migrations [1][2].                  │
+│                      │         Sources [1] Deployment Runbook › Rollback           │
+│                      │                 [2] Orders Service › Deployments            │
+│                      │         14 s · 1,840 tokens   Copy  Retry                   │
+│                      │                                                             │
+│                      │  You   [screenshot.png]  What does this error mean?         │
+│                      │                                                             │
+│                      │  Ferret ▸ Read the picture (31 s): "ERR-PAY-4012 card       │
+│                      │           declined by issuer"                               │
+│                      │         ▸ Thinking (collapsed)                              │
+│                      │         ● Writing…                               [ Stop ]   │
+│                      │ ┌─────────────────────────────────────────────────────────┐ │
+│                      │ │ Ask about your documents…                               │ │
+│                      │ │ 📎 Picture   💭 Think first   Scope: All collections ▾   ⏎ │ │
+│                      │ └─────────────────────────────────────────────────────────┘ │
+└──────────────────────┴─────────────────────────────────────────────────────────────┘
 ```
 
-- One text box, the conversation above it, **New conversation** to start over. Each [n] and each source opens
-  the passage panel (the same one search uses, with Back).
-- Each answer shows **what was searched for**, the model and the time, so a wrong answer can be traced to a
-  wrong search.
-- When search finds no evidence: "I couldn't find this in your documents." plus what was searched and a link
-  to the search results for that query. No answer is written.
-- With conflicting sources: both versions, each cited, and the "sources disagree" note search already shows.
-- Collections: the same scope picker as Search.
-- Search stays as it is: no answer box on the Search tab. One place for answers keeps both pages simple.
+**Conversation list (left):** New conversation; every conversation saved and listed by date; a title written
+by the model after the first answer (editable); search over titles and messages; rename, delete; collapses
+on a phone like the main navigation.
+
+**Messages:**
+- Answers rendered as Markdown (lists, tables, code blocks with Copy), streamed word by word.
+- **Step cards, as in Claude Code or OpenCode:** each step the app ran is a small collapsible line above
+  the answer: "Read the picture", "Searched '…' · 5 passages", "Thinking". Opening one shows the details:
+  the query, the passages with their scores, the picture's text, the thinking.
+- **Sources** under each answer; every [n] and every source opens the passage panel search uses (with Back).
+- Footer per answer: time, tokens, model. Actions: Copy, **Retry** (write again, optionally with another
+  model or thinking on), and on your own message **Edit** (re-runs from there; the old branch is replaced).
+- "I couldn't find this in your documents" when search finds no evidence, with what was searched and a link
+  to the search results. With conflicting sources: both versions, each cited.
+
+**Composer:** multi-line box (Enter sends, Shift+Enter new line); **📎 Picture** (button, paste or drag and
+drop; PNG/JPEG/WebP up to 10 MB, up to 4 per message, thumbnails before sending); **💭 Think first**
+(per message; slower, the thinking is shown collapsed); **scope** picker (collections, as on Search); the
+**model** picker in the header (any installed model, measured ones marked). **Stop** while writing.
+
+**Export:** a conversation as Markdown (with sources as links), from its menu.
+
+The Search tab stays as it is. The DeepSeek harness's request/response detail already exists for admins in
+Logs → Activity; each chat turn appears there too.
 
 ## How one turn works
 
-Fixed steps run by the app. The model does not choose when or what to search:
+Fixed steps run by the app; each is shown as a step card:
 
-1. **Rewrite a follow-up into a stand-alone search** (from the second question on). "And what if a migration
-   already ran?" becomes "orders service rollback after database migration ran". The model gets the last 3
-   turns and returns one line (~2–4 s). The first question is searched as typed.
-2. **Search** with that query, exactly as the Search tab does: hybrid search, reranker, evidence check,
-   permission filter for the signed-in user.
-3. **Evidence check decides.** Evidence found or conflicting sources → step 4. Anything else → the "couldn't
-   find" reply above.
-4. **Answer** from the top 5 passages (numbered [1]–[5] with document title and section) and the last 3 turns
-   (earlier answers shortened). The model must answer only from the passages, cite every sentence with [n],
-   and reply `NOT_FOUND` if they do not contain the answer.
-5. **Check, without a model:** remove citations to passages that do not exist; every number, identifier,
-   command and file path in the answer must appear in a passage it cites, or that sentence is flagged
-   "not in the cited passage"; an answer with no valid citation is replaced by "I couldn't write an answer
-   supported by these passages" with the sources listed.
+1. **Read pictures** (if any): the vision model writes the picture's text and a one-line description
+   (20–56 s each, measured with E2B). That text is saved with the message.
+2. **Make a search query:** the first question is searched as typed (plus the picture's text if any).
+   From the second turn on, the model rewrites the question with the recent turns into one stand-alone
+   query ("and what if a migration already ran?" → "orders service rollback after a database migration ran").
+3. **Search** exactly as the Search tab does (hybrid, reranker, evidence check), with the signed-in user's
+   permissions and the chosen scope.
+4. **Evidence check decides:** evidence found or conflicting → step 5; otherwise the "couldn't find" reply.
+5. **Answer** from the top 5 passages ([1]–[5], with document title and section), the pictures (if the model
+   can see) and the conversation so far (see Long conversations). With **Think first**, the model reasons
+   before answering and the reasoning streams into the collapsed Thinking card. The model must use only the
+   passages for facts, cite every sentence with [n], and say `NOT_FOUND` if they do not contain the answer.
+6. **Check, without a model:** drop citations to passages that do not exist; every number, identifier,
+   command and file path in the answer must appear in a passage it cites, or that sentence is marked "not in
+   the cited passage"; an answer left with no valid citation becomes "I couldn't write an answer supported by
+   these passages", with the sources.
 
-**Why not let the model call search as a tool, agent-style?** Small models choose tools unreliably, and each
-extra model step costs 5–15 s on a CPU. The fixed steps give the same "the model uses search" behaviour,
-predictably. Later, if measured useful: one extra search when the model replies `NOT_FOUND`.
+Questions about the conversation itself ("summarise what we found", "shorter please") skip steps 2–4 and
+answer from the earlier turns and their sources, cited the same way.
 
-## Conversations and privacy
+**Why fixed steps, not the model calling tools freely (yet)?** Small models choose tools unreliably, and each
+extra model step costs 5–15 s on a CPU. Fixed steps give the same visible "searched → read → answered" flow,
+predictably. **Agent mode** (the model may call `search`, `read_passage`, `document_links` itself, up to a few
+steps, each shown as a step card) is phase 6, only if it answers multi-hop questions measurably better.
 
-- The conversation lives **in the browser tab** (kept until New conversation or sign-out). The browser sends
-  the recent turns with each question; the server stores nothing.
-- Passages are always fetched again on the server, through the signed-in user's own search, so nobody can
-  get an answer built from documents they cannot read.
-- Text inside documents is treated as data: the prompt says so, and the model has no tools, so a document
-  that contains instructions can at worst change the wording of an answer, which the citation check and
-  the visible sources expose.
-- Logs → Activity shows each turn (search query, passages used, timings, tokens), like other model calls.
-- Later, if wanted: saved conversations per user (a table, deleted with the user).
+## Long conversations
+
+- The model sees the last turns in full while they fit its context (16,384 tokens, raised from the summary
+  server's 8,192 if measured necessary); older turns are replaced by a short running summary the model
+  writes (shown as a "Earlier messages summarised" line, like compaction in Claude Code).
+- Sources of earlier turns are not re-sent; each new question searches again.
+
+## Saved history and privacy
+
+- **Saved on the server, per user,** in two tables: `conversations` (user, title, scope, model, created,
+  updated) and `messages` (role, text, thinking, step details, citations as passage references, picture
+  references, tokens, timings). Pictures go to the existing blob store. One migration.
+- **Only the owner of a conversation can open it.** Admins see counts, not content (the Database tab hides
+  these tables' text). Deleting a conversation deletes its pictures; deleting a user deletes their
+  conversations. Backups include them (same database and blob folder).
+- **Access changes are respected:** sources are re-checked when a saved conversation is opened; a source the
+  user can no longer read shows as "no longer available to you", and its answer is hidden with that note.
+- **Retention setting** (admin): keep for ever (default) or delete conversations older than N days.
+- Text inside documents and pictures is treated as data: the prompt says so, the model has no tools (until
+  agent mode), and citations plus visible sources expose a bad answer.
 
 ## Where it runs
 
-- **The llama.cpp server the app already runs for summaries** (`enrich.py`): one model in memory, nothing new
-  to install. Its context grows from 8,192 to 16,384 tokens if passages plus history need it (measure).
-- **Model:** Gemma 4 E2B by default; E4B selectable for a stronger machine. The default is chosen by the
-  evaluation below, not assumed.
-- **Questions come before background work:** while an answer is being written, summaries and indexing pause
-  between batches (one shared flag) and continue afterwards. The model server runs at the lowest CPU
-  priority for background summaries, so without this pause an answer during heavy indexing would be much
-  slower.
-- **One answer at a time per server;** others see "Waiting for the local model…". Many users at once need a
-  GPU or a bigger machine ([plan-gpu.md](plan-gpu.md)).
+- **The llama.cpp server the app already runs for summaries** (`enrich.py`), with the model's image
+  projector loaded when pictures are on: one model in memory, nothing new to install.
+- **Model:** Gemma 4 E2B by default; E4B selectable per conversation for stronger machines. The default is
+  set by the evaluation below. Pictures need a vision model (Gemma 4 E2B's was checked; E4B is described as
+  multimodal but was not checked; GLM-4.6V-Flash after its comparison).
+- **Chat comes before background work:** while a turn runs, summaries and indexing pause between batches
+  (one shared flag). The model server runs at the lowest CPU priority for background summaries, so without
+  this pause a turn during heavy indexing would be much slower.
+- **One turn at a time per server;** others see "Waiting for the local model…" with their place in line.
+  Many users at once need a GPU or a bigger machine ([plan-gpu.md](plan-gpu.md)).
 
 ## Settings (Settings → Ask)
 
-- **Ask tab:** off by default (like summaries); turning it on downloads the model if summaries have not.
-- **Model:** the summary model by default; any installed model, measured ones marked.
-- **Passages per answer:** 5 (measured); 3–8. **Turns remembered:** 3.
+Ask tab on/off (off by default; turning it on downloads the model if summaries have not) · default model ·
+pictures on/off · Think first allowed · passages per answer (5; 3–8) · retention.
 
 ## MCP: an optional `ask` tool
 
-For assistants that run a small or local model, or for people without a Claude subscription who connect a
-free client. It runs the same steps as one Ask turn and returns the answer, the citations and the sources.
-
-- Off unless enabled in Settings, read-only tokens may use it.
-- Its description tells capable assistants to prefer `search` + `read_passage` and write their own answer:
-  a strong model reading the passages does better than relaying a small model's answer.
+For assistants running a small or local model, or people without a Claude subscription using a free client.
+It runs one turn (steps 2–6, no pictures) and returns the answer, citations and sources; it can continue a
+saved conversation by id. Off unless enabled in Settings. Its description tells capable assistants to prefer
+`search` + `read_passage` and write their own answer.
 
 ## Phases
 
-1. **Ask tab, single questions:** steps 2–5, streaming, Stop, sources, Settings, Activity entries. Tests
-   against a fake model server (like `tests/test_enrich.py`), including two users with different access.
-2. **Follow-up questions:** step 1 (rewrite), the history window, New conversation.
-3. **MCP `ask` tool,** reusing phase 1–2 code.
-4. Only if measured useful: a second search on `NOT_FOUND`; saved conversations; document summaries as
-   extra context.
+1. **Chat window with saved history:** conversation list, steps 3–6, streaming, step cards, sources, citation
+   check, Stop, Copy, Settings, Activity entries; migration for the two tables. Tests against a fake model
+   server (like `tests/test_enrich.py`), including two users and a revoked grant.
+2. **Real conversation:** step 2 (rewriting follow-ups), long-conversation summary, Retry, Edit, model
+   titles, search over chats, export, retention.
+3. **Think first** (per message, collapsed thinking).
+4. **Pictures** (after the vision comparison, item 2 in TODO).
+5. **MCP `ask` tool.**
+6. Only if measured useful: **agent mode** (model calls the tools itself), a second search on `NOT_FOUND`,
+   document summaries as extra context.
 
 ## Evaluation before it is turned on for anyone
 
@@ -145,23 +187,25 @@ Extend `eval/llm_answers.py` to the shipped steps, on Kubernetes, the fixtures a
 ([TODO.md](TODO.md) item 12):
 
 - **False answers:** no more than the evidence check gives today (0 of 16 Kubernetes, 3 of 40 fixtures).
-- **Supported answers:** share of sentences whose citations support them: citation check plus a blind manual
-  review of 50 answers per corpus.
-- **Follow-ups:** 20 short labelled conversations (2–3 turns each, Kubernetes): does the rewritten query find
-  the labelled page (compare with searching the raw follow-up)?
-- **Models:** Gemma 4 E2B and E4B (owner's choice), plus Ministral 3 3B and Qwen3.5-4B, without thinking
-  mode (it took about 4× longer for summaries).
+- **Supported answers:** share of sentences whose citations support them; citation check plus a blind
+  manual review of 50 answers per corpus.
+- **Follow-ups:** 20 labelled conversations of 2–3 turns (Kubernetes): the rewritten query finds the labelled
+  page at least as often as the raw follow-up.
+- **Thinking:** the same 50 questions with and without; offered only if answers are measurably better.
+- **Pictures:** 20 screenshots of errors and settings screens with a labelled page each: does the picture's
+  text lead search to it?
+- **Models:** Gemma 4 E2B and E4B (owner's choice), plus Ministral 3 3B and Qwen3.5-4B for text-only.
 - **Speed on the owner's laptop:** time to the first word and to the full answer, idle and while indexing.
 
 ## Acceptance
 
-- No answer when search found no evidence; no permission leak (test with two users).
+- No answer when search found no evidence; no permission leak, including after a grant is revoked (tests).
 - At least 95% of answer sentences supported by their citations (manual review); no extra false answers.
-- Follow-up rewriting finds the labelled page at least as often as the raw follow-up does.
-- First words within ~5 s on the owner's laptop with E2B when idle (target, unmeasured); Stop works.
-- Search is exactly as fast as before; with the Ask tab off, nothing of it shows.
+- Conversations survive a restart and a backup/restore; only their owner can open them.
+- First words within ~5 s with E2B on the owner's laptop when idle (target, unmeasured); Stop works.
+- Search is exactly as fast as before; with Ask off, nothing of it shows.
 
 ## Size
 
-Medium: `answers.py` (rewrite, prompt, citation check), one streaming route, the shared pause flag, the Ask
-tab in `index.html`/`app.js`, a Settings section, the MCP tool, tests and the evaluation run.
+Large, in the phases above. Phase 1 alone: `answers.py` (prompt, citation check), a streaming route,
+conversation routes, one migration, the pause flag, the Ask tab in `index.html`/`app.js`, Settings, tests.
