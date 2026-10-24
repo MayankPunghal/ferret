@@ -1,7 +1,8 @@
 # Handoff — Ferret
 
-State at the end of the cloud session (2026-10-23, version 1.0). Read with `CLAUDE.md` (owner instructions and end
-goal), `docs/requirements-brief.md` (every owner ask and its status), `README.md`, and the docs listed there. Scope authority: `docs/brief/…master_prompt.md` §11.
+State at the end of the cloud session (2026-10-24, version 1.0). **Open work: `docs/TODO.md`**; prompt for the next
+(local) session: `docs/NEXT_SESSION_PROMPT.md`. Read with `CLAUDE.md` (owner instructions and end
+goal), `docs/requirements-brief.md` (owner asks up to 2026-10-23), `README.md`, and the docs listed there. Scope authority: `docs/brief/…master_prompt.md` §11.
 
 ## 1. Resume locally
 

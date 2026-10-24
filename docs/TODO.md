@@ -14,12 +14,12 @@ Status words: **bug** · **running** · **plan ready** (written, not built) · *
 |---|---|---|---|
 | 1 | `GET /api/documents` stops at 1,000 rows (`LIMIT 1000` in `api.py`): past 1,000 documents the Documents tab says "All 1000" and the Summaries tab's bar and list are wrong (and render thousands of rows) | **bug** | Found 2026-10-24 while planning the Summaries counts; fix is step 4 of [plan-summaries-status.md](plan-summaries-status.md) |
 
-## 2. Running or about to run (this cloud session)
+## 2. Measurements to finish
 
 | # | Item | Status | Source / where |
 |---|---|---|---|
-| 2 | Vision: GLM-4.6V-Flash 9B against Gemma 4 E2B on 20 images (text in images, diagram relations) | **running** (GLM's last 9 images, then Gemma) | 23 Oct 11:51, 24 Oct 03:27, 11:16 ("do they have vision? that's the only thing worth having them"). `eval/image_ocr.py`; GLM's first 11 results are in the scratchpad log only, all recall 1.00 |
-| 3 | Parallel embedding benchmark on an idle CPU (`eval/bench_parallel.py --passages 400 --layouts 1x0 2x0 2x2 4x1`) | **not measured** (one contended run: 6.7 → 11.2 passages/s, identical vectors) | 24 Oct 14:52; [plan-large-documents.md](plan-large-documents.md) step 1 |
+| 2 | Vision: GLM-4.6V-Flash 9B against Gemma 4 E2B on 20 images (text in images, diagram relations) | **running in the cloud session** when it ended (GLM's last 9 images, then Gemma). GLM's first 11: all recall 1.00, 90–960 s per image on 4 cores (`eval/results/images-glm-4.6v-flash-part1.txt`). If `images-glm-4.6v-flash-part2.json` and `images-gemma-4-e2b.json` are not in `eval/results/`, re-run locally: `uv run --group eval --with playwright --with pillow python eval/image_set.py`, start `llama-server -m <model>.gguf --mmproj <mmproj>.gguf -c 16384 --temp 0 --jinja --port 8082`, then `uv run --group eval python eval/image_ocr.py --name <model> [--no-thinking for GLM]` | 23 Oct 11:51, 24 Oct 03:27, 11:16 ("do they have vision? that's the only thing worth having them") |
+| 3 | Parallel embedding benchmark on an idle CPU: `uv run python eval/bench_parallel.py --passages 400 --layouts 1x0 2x0 2x2 4x1` (on your laptop: it is the machine that matters) | **not measured** (one contended run: 6.7 → 11.2 passages/s, identical vectors) | 24 Oct 14:52; [plan-large-documents.md](plan-large-documents.md) step 1 |
 
 ## 3. Plans ready, not built (owner asked for the plan first)
 

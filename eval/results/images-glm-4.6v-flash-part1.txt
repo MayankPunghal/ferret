@@ -1,0 +1,13 @@
+# GLM-4.6V-Flash 9B (Q4_K_M + mmproj Q8_0), eval/image_ocr.py, 4-core CPU, first 11 of 20 images.
+# The run was cut by a container restart; the other 9 run as images-glm-4.6v-flash-part2.json.
+docs-configmap                   docs      recall 1.00 precision 1.00 cer 0.00  216.5s
+docs-ingress                     docs      recall 1.00 precision 1.00 cer 0.00  142.3s
+docs-rbac-good-practices         docs      recall 1.00 precision 1.00 cer 0.00  159.0s
+docs-pod-lifecycle               docs      recall 1.00 precision 1.00 cer 0.00  183.9s
+docs-secret                      docs      recall 1.00 precision 0.99 cer 0.00  142.9s
+docs-assign-pod-node             docs      recall 1.00 precision 1.00 cer 0.00  121.3s
+ui-apply-leave                   ui        recall 1.00 precision 1.00 cer 0.00  126.4s
+ui-attendance                    ui        recall 1.00 precision 1.00 cer 0.00  97.7s
+ui-profile                       ui        recall 1.00 precision 1.00 cer 0.00  89.3s
+ui-approvals                     ui        recall 1.00 precision 1.00 cer 0.00  548.3s
+table-holidays                   table     recall 1.00 precision 1.00 cer 0.00  960.0s
