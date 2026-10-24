@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     chunk_overlap: int = 150
     context_chars: int = 0  # document summary in passage embeddings; helped ranking on Kubernetes docs, not on fixtures
     rerank_enabled: bool = True  # measured: +1.4 nDCG@10 on SciFact for ~0.4 s (docs/evaluation.md)
-    rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
+    # measured >= MiniLM on all three corpora where both ran (Kubernetes x2, CQADupStack); docs/evaluation.md
+    rerank_model: str = "jinaai/jina-reranker-v1-turbo-en"
     rerank_candidates: int = 10  # more candidates let the reranker promote wrong passages (measured)
     gate_mode: str = "similarity"  # similarity | rerank | rerank_and_similarity (needs reranker)
     gate_lexical: str = "coverage"  # coverage | idf

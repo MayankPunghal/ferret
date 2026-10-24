@@ -280,13 +280,16 @@ reader model that checks the passage states the fact is the planned fix (second-
 | Embedding + reranker | Right page first | Right page in top 5 | False answers | Answered | Precision | Search p50 |
 |---|---|---|---|---|---|---|
 | **bge-base, no reranker** | **0.964** | **1.000** | 0/16 | **0.911** | **0.961** | **0.27 s** |
-| bge-base + MiniLM (shipped default) | 0.946 | 1.000 | 0/16 | 0.911 | 0.961 | 1.26 s |
+| bge-base + MiniLM (default until 2026-10-24) | 0.946 | 1.000 | 0/16 | 0.911 | 0.961 | 1.26 s |
+| **bge-base + jina-reranker-v1-turbo (default now)** | **0.964** | **1.000** | 0/16 | **0.911** | **0.961** | 0.55 s |
+| bge-base + bge-reranker-base | 0.946 | 1.000 | 0/16 | 0.911 | 0.941 | 1.76 s |
 | Qwen3-Embedding-0.6B, no reranker | 0.893 | 0.982 | 0/16 | 0.875 | 0.939 | 1.01 s |
 | Qwen3-Embedding-0.6B + bge-reranker-base | 0.929 | 0.982 | 0/16 | 0.875 | 0.959 | 2.65 s |
 
 Qwen3 is worse here on every measure and 4–10× slower; it was ahead only on the 12-document fixtures (§3).
 Indexing with Qwen3 took ~2 h for 623 pages on 4 cores (bge-base: minutes). Rerankers move at most one
-query on this corpus; MiniLM stays the default for its SciFact gain (§4).
+query on this corpus. Default reranker changed to jina-turbo: equal or better than MiniLM on all three corpora
+where both ran (Kubernetes with and without descriptions, CQADupStack); not measured on SciFact.
 
 ## Not measured
 

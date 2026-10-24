@@ -38,7 +38,7 @@ needed. An optional small language model, also local, writes a short summary and
 |---|---|---|
 | Embedded PostgreSQL + pgvector | stores documents, passages, links and access rights | installed by setup |
 | Embedding model (bge-base-en-v1.5) | turns each passage and each question into numbers, so a search finds passages with the same *meaning*, not only the same words | ~210 MB |
-| Reranker (ms-marco-MiniLM-L-6-v2) | re-orders the top 10 results by how well each passage matches the question | ~90 MB |
+| Reranker (jina-reranker-v1-turbo-en) | re-orders the top 10 results by how well each passage matches the question | ~150 MB |
 | *Optional:* language model (Gemma 4 E2B, run by llama.cpp) | writes a summary, topics and (for vague titles) a clearer title per document, in the background | ~3.2 GB |
 
 The models run on any CPU and are downloaded once by setup. **Search never depends on the language model:**
@@ -111,7 +111,7 @@ Command-line alternative for step 2: `uv run knowledge-search ingest intranet si
 |---|---|
 | [Getting started](docs/getting-started.md) | Installing, first run, trying it with sample or your own documents |
 | [How it works](docs/how-it-works.md) | Plain-language explanation: embeddings, search, links, evidence check, why one database |
-| [User guide](docs/user-guide.md) | Searching, reading results and outcomes, uploading documents, answering with Claude through the optional skill |
+| [User guide](docs/user-guide.md) | Searching, reading results and outcomes, uploading documents, connecting an AI assistant (MCP: Claude, Cursor, VS Code) or the Claude skill |
 | [Admin guide](docs/admin-guide.md) | Settings (models, chunking, reranker, evidence thresholds), users and access, reindexing |
 | [Configuration](docs/configuration.md) | All `KS_*` environment variables |
 | [Deployment](docs/deployment.md) | Laptop vs. dedicated server, Docker/external PostgreSQL, TLS, backups, GPU notes |

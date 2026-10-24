@@ -19,7 +19,7 @@ from .parsing import PARSER_VERSION
 RERANKERS = {
     # name: (licence, approx download MB, note)
     "Xenova/ms-marco-MiniLM-L-6-v2": ("Apache-2.0", 80, "fast, English"),
-    "jinaai/jina-reranker-v1-turbo-en": ("Apache-2.0", 150, "fast, English"),
+    "jinaai/jina-reranker-v1-turbo-en": ("Apache-2.0", 150, "fast, English, best measured"),
     "BAAI/bge-reranker-base": ("MIT", 1040, "stronger, English/Chinese, slower"),
     "BAAI/bge-reranker-v2-m3-int8": ("Apache-2.0", 570, "multilingual, slowest"),
 }

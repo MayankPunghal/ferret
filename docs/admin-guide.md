@@ -12,7 +12,7 @@ Administrators see two extra tabs: **Settings** and **Users & access**.
 | **Add a line about the whole document to every passage** | Every passage is embedded in full under a header (document title — section heading). This adds one more header line that describes the whole document, the same on all its passages, so a passage that never names its subject is still found. The line is the document's front-matter `description`, else the local model's summary (when installed; the document is re-indexed once after it is written), else the document's first paragraph — cut to N characters; 0 = off. | 623 Kubernetes pages, 300 characters, right page first (56 questions): pages with author descriptions 94.6% → 98.2% (100% with MiniLM); pages without: first paragraph no gain (96.4% → 96.4%), Gemma 4 E2B summary 98.2%. Small test corpus slightly worse. Requires a reindex. |
 | **Summarise each document in the background** | A local language model (downloaded by setup, or by the app in the background on first start while this is on; ~3.2 GB, one-time) writes a two-sentence summary, up to six topics and, only for vague titles ("Overview", a file name), a clearer title. One document at a time, each as soon as it is indexed (the model runs at low priority, so indexing and search come first); nothing leaves the machine. Results and the passage view show them labelled as written by the model; they are never evidence. Progress on the Index status tab. | Gemma 4 E2B (default) on a 4-core CPU: ~17 s per document with 4 threads, 50 s with 1 (measured); the app uses half the cores (`KS_LLM_THREADS`), so plan ~30 s per document, i.e. ~1 h per 128 documents. Pick the model in the **Model** list: Gemma 4 E2B (recommended), Qwen3.5-2B (~1.3 GB, as accurate in the blind review) or Qwen3.5-0.8B (~0.5 GB, ~3x faster but more mistakes); a new one downloads in the background (refused with the sizes when the disk is too small) and rewrites every summary. `download-llm --model <name>` fetches one by hand. Runs at the lowest CPU priority (nice 19; idle class on Windows, not verified there): indexing speed measured unchanged. Untick to pause; summaries already written stay. |
 | **Reranker** | A local cross-encoder re-reads the top candidates together with the query, re-orders them and (in the reranker gate modes) decides what counts as evidence. | Better precision/coverage; adds CPU time per query (see [Evaluation](evaluation.md)). |
-| **Candidates to rerank** | How many top results the reranker reads. | More = better recall, slower. Models: MiniLM (fast), jina-turbo (fast, measured best on Kubernetes), bge-reranker-base (~3× slower), bge-reranker-v2-m3 (multilingual, slowest). |
+| **Candidates to rerank** | How many top results the reranker reads. | More = better recall, slower. Models: jina-turbo (default since 2026-10-24: fast, equal or better than MiniLM on every corpus where both ran), MiniLM (fast; the default before), bge-reranker-base (~3× slower, not better on Kubernetes), bge-reranker-v2-m3 (multilingual, slowest). On Kubernetes no reranker scored as well as jina-turbo at half its time; it is kept for ordering on harder corpora (SciFact: +1.4 nDCG@10 for MiniLM). |
 | **Evidence thresholds** (advanced) | When a passage counts as evidence. | Higher = fewer false answers, more "no adequate evidence". Tuned values come from the evaluation; re-tune after changing the model. |
 
 Changing the model, chunking or the line about the whole document marks already-indexed documents as **outdated**: the Settings page shows how
@@ -32,6 +32,20 @@ All models run locally (ONNX Runtime on CPU); nothing is sent to external servic
 
 Permissions are enforced inside every database query: users never see restricted documents, snippets,
 counts, or even whether a restricted document exists.
+
+## AI assistants (MCP)
+
+Every user can connect an AI assistant on the **AI assistants** page (setup: [User guide](user-guide.md)).
+The endpoint is `/mcp` on the app's own address; there is nothing extra to run or open.
+
+- An assistant gets its user's read access only (5 read-only tools); permissions, the evidence gate and the
+  audit log (`token_created`, `token_revoked`, every search) apply as in the browser.
+- Tokens are created only from a signed-in browser, last 30, 90 or 365 days and can be revoked by their
+  owner. Disabling a user, resetting their password or changing their groups revokes all their tokens.
+- Assistants on other computers need to reach the app: serve on the network (`serve --host 0.0.0.0`)
+  behind HTTPS (a reverse proxy) so tokens never travel in clear text.
+- Passages the assistant reads go to its provider. If that is against your data policy, tell users not to
+  connect one; tokens are the only way in, so listing them (Logs: `token_created`) shows who did.
 
 ## Command line equivalents
 
