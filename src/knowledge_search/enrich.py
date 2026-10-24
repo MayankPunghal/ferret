@@ -210,12 +210,13 @@ def llm_dir(settings) -> Path:
     return Path(settings.model_cache) / "llm"
 
 
-def installed(settings) -> tuple[Path, Path] | None:
-    """(llama-server executable, .gguf model) installed by `knowledge-search download-llm`, if present."""
+def installed(settings, file: str = "") -> tuple[Path, Path] | None:
+    """(llama-server executable, .gguf model) installed by `knowledge-search download-llm`, if present: the
+    model `file`, else KS_LLM_MODEL, else the one selected by the last download."""
     d = llm_dir(settings)
     exe = next((p for p in (d / "bin").rglob("llama-server.exe" if sys.platform == "win32" else "llama-server")
                 if p.is_file()), None) if (d / "bin").is_dir() else None
-    chosen = settings.llm_model or ((d / "selected.txt").read_text().strip() if (d / "selected.txt").is_file() else "")
+    chosen = file or settings.llm_model or ((d / "selected.txt").read_text().strip() if (d / "selected.txt").is_file() else "")
     model = d / chosen if chosen else next(iter(sorted(d.glob("*.gguf"))), None)
     return (exe, model) if exe and model and model.is_file() else None
 
@@ -323,8 +324,8 @@ class Enricher:
         if not self.url:
             self._find_installed()
 
-    def _find_installed(self) -> None:
-        found = installed(self.settings)
+    def _find_installed(self, file: str = "") -> None:
+        found = installed(self.settings, file)
         if found:
             threads = self.settings.llm_threads or max(1, (os.cpu_count() or 2) // 2)
             self.server = LocalServer(found[0], found[1], threads, Path(self.settings.data_dir) / "logs")
@@ -332,20 +333,34 @@ class Enricher:
         else:
             self.state = "no model"
 
-    def _download(self) -> None:
-        """No model yet and summaries are on: fetch the default one in the background, like the embedding
-        model on first use (setup can fetch it beforehand; KS_OFFLINE=true never downloads)."""
-        _, file, note = LLMS[DEFAULT_LLM]
+    def _download(self, name: str = "") -> None:
+        """No model yet (or another one chosen in Settings) and summaries are on: fetch it in the background,
+        like the embedding model on first use (setup can fetch it beforehand; KS_OFFLINE=true never downloads)."""
+        name = name or DEFAULT_LLM
+        _, file, note = LLMS[name]
         self.state = f"downloading the summary model {file} ({note.split(',')[0]}, one-time)"
         log.warning("document summaries: %s", self.state)
         try:
-            download(self.settings)
+            download(self.settings, name)
         except Exception as e:  # noqa: BLE001 - network errors come in many types; search is unaffected
             self.download_failed = True
             self.state = f"error: the summary model could not be downloaded ({type(e).__name__}: {e})"[:300]
             log.error("%s; retried at the next start", self.state)
             return
-        self._find_installed()
+        self._find_installed()  # download() selected it
+
+    def _use(self, name: str) -> None:
+        """Switch to the model chosen in Settings (documents written by another model are then rewritten)."""
+        file = LLMS[name][1]
+        if self.server and self.server.model.name == file:
+            return
+        if installed(self.settings, file):
+            self.stop_server()
+            self.broken = ""
+            self._find_installed(file)
+        elif not self.settings.offline and not self.download_failed:  # else the current model carries on
+            self.stop_server()
+            self._download(name)
 
     @property
     def available(self) -> bool:
@@ -364,10 +379,12 @@ class Enricher:
 
     def run_once(self) -> bool:
         """Summarise one document. False when there is nothing to do."""
-        if not self.available and not self.settings.llm_url and not self.download_failed and not self.settings.offline:
+        if not self.settings.llm_url:
             with db.pool().connection() as conn:
-                enabled = runtime.load(conn).enrich_enabled
-            if enabled:  # outside the connection: the download takes minutes
+                rt = runtime.load(conn)
+            if rt.enrich_enabled and rt.enrich_model:  # outside the connection: a download takes minutes
+                self._use(rt.enrich_model)
+            elif rt.enrich_enabled and not self.available and not self.download_failed and not self.settings.offline:
                 self._download()
                 return self.available
         with db.pool().connection() as conn:
@@ -471,9 +488,13 @@ class Enricher:
 
 # The llama.cpp build the summaries were measured with; every platform's CPU build is published per release.
 LLAMA_CPP_TAG = "b11836"
-LLMS = {  # name: (Hugging Face repo, file, note)
-    "qwen3.5-0.8b": ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q4_K_M.gguf", "~0.5 GB, Apache-2.0"),
-    "gemma-4-e2b": ("unsloth/gemma-4-E2B-it-GGUF", "gemma-4-E2B-it-Q4_K_M.gguf", "~3.1 GB, Apache-2.0"),
+LLMS = {  # name: (Hugging Face repo, file, note); the notes are what the blind review and type check measured
+    "gemma-4-e2b": ("unsloth/gemma-4-E2B-it-GGUF", "gemma-4-E2B-it-Q4_K_M.gguf",
+                    "~3.1 GB, Apache-2.0; recommended: no wrong claims in the blind review, best document types"),
+    "qwen3.5-2b": ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf",
+                   "~1.3 GB, Apache-2.0; as accurate in the blind review, about as fast; document types not measured"),
+    "qwen3.5-0.8b": ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q4_K_M.gguf",
+                     "~0.5 GB, Apache-2.0; about 3x faster, more mistakes (3 wrong claims in 9 pages)"),
 }
 DEFAULT_LLM = "gemma-4-e2b"  # blind review: no wrong claims in 9 pages; Qwen3.5-0.8B made 3 (eval/results/blind-review.json)
 

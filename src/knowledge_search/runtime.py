@@ -46,6 +46,7 @@ class Runtime:
     graph_expansion: bool  # add passages of linked documents to the results (search._linked)
     enrich_enabled: bool  # background summaries/topics/titles by the local language model (enrich.py)
     enrich_hours: str  # "22-6" = only between 22:00 and 06:00 local time; "" = any time
+    enrich_model: str  # enrich.LLMS name chosen in Settings; "" = the one setup installed
 
     def signature(self) -> str:
         ctx = f"|ctx={self.context_chars}" if self.context_chars else ""
@@ -85,6 +86,7 @@ def defaults(model: str | None = None) -> Runtime:
         gate_lex_coverage=lex, gate_rerank_min=s.gate_rerank_min,
         gate_mode=s.gate_mode, gate_lexical=s.gate_lexical, gate_all_terms_min=full, fusion_lexical_weight=s.fusion_lexical_weight,
         graph_expansion=s.graph_expansion, enrich_enabled=s.enrich_enabled, enrich_hours=s.enrich_hours,
+        enrich_model="",
     )
 
 
@@ -116,6 +118,11 @@ def validate(changes: dict) -> dict:
             raise ValueError("gate_mode must be similarity, rerank or rerank_and_similarity")
         if k == "gate_lexical" and v not in ("coverage", "idf"):
             raise ValueError("gate_lexical must be coverage or idf")
+        if k == "enrich_model":
+            from .enrich import LLMS  # enrich imports this module
+
+            if v and v not in LLMS:
+                raise ValueError(f"unsupported summary model {v}")
         if k == "enrich_hours":
             v = "".join(str(v).split()).replace("–", "-")
             m = re.fullmatch(r"(\d{1,2})(?::00)?-(\d{1,2})(?::00)?", v)

@@ -40,7 +40,7 @@ def fake_llm():
     server.shutdown()
     with db.pool().connection() as c:
         c.execute("UPDATE documents SET enrichment = NULL, enrich_claimed_at = NULL")
-        c.execute("DELETE FROM app_settings WHERE key IN ('enrich_enabled', 'context_chars', 'enrich_hours')")
+        c.execute("DELETE FROM app_settings WHERE key IN ('enrich_enabled', 'context_chars', 'enrich_hours', 'enrich_model')")
 
 
 def enricher(url):
@@ -204,6 +204,36 @@ def test_without_a_model_the_default_one_is_downloaded_in_the_background(client,
     assert e.run_once() and e.available and e.model == "model.gguf" and len(calls) == 2
     assert enrich.Enricher(settings.model_copy(update={"offline": True, "model_cache": tmp_path / "x"})).run_once() is False
     assert len(calls) == 2  # never downloads offline
+
+
+def test_the_model_chosen_in_settings_is_downloaded_and_used(client, corpus, drain, monkeypatch, tmp_path):
+    drain()
+    d = tmp_path / "llm"
+    (d / "bin" / "b1").mkdir(parents=True)
+    (d / "bin" / "b1" / "llama-server").write_text("")
+    gemma, qwen = enrich.LLMS["gemma-4-e2b"][1], enrich.LLMS["qwen3.5-0.8b"][1]
+    (d / gemma).write_bytes(b"GGUF")
+    (d / "selected.txt").write_text(gemma)
+    calls = []
+
+    def fake_download(settings, name=enrich.DEFAULT_LLM):
+        calls.append(name)
+        (d / enrich.LLMS[name][1]).write_bytes(b"GGUF")
+        (d / "selected.txt").write_text(enrich.LLMS[name][1])
+
+    monkeypatch.setattr(enrich, "download", fake_download)
+    e = enrich.Enricher(state.settings.model_copy(update={"llm_url": "", "model_cache": tmp_path}))
+    assert e.model == gemma
+    with db.pool().connection() as c:
+        runtime.save(c, runtime.validate({"enrich_model": "qwen3.5-0.8b"}), None)
+    e.run_once()  # the empty file cannot start as a server; the switch is what is checked
+    assert calls == ["qwen3.5-0.8b"] and e.model == qwen
+    with db.pool().connection() as c:
+        runtime.save(c, runtime.validate({"enrich_model": "gemma-4-e2b"}), None)
+    e.run_once()
+    assert calls == ["qwen3.5-0.8b"] and e.model == gemma  # installed already: no download
+    with pytest.raises(ValueError):
+        runtime.validate({"enrich_model": "gpt-5"})
 
 
 def test_documents_list_shows_the_summary_stage(client, corpus, drain, fake_llm, monkeypatch):

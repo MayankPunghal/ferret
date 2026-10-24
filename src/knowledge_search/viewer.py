@@ -17,7 +17,7 @@ STYLE = """
 :root { color-scheme: light dark; --fg: #131416; --muted: #5d5f63; --line: #e3e6e9; --bg: #fff; --code: #f5f6f8; --a: #1b6c80; }
 @media (prefers-color-scheme: dark) { :root { --fg: #ececed; --muted: #a2a4a8; --line: #2a2c2f; --bg: #17181a; --code: #1e1f22; --a: #6cc0d4; } }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
-header { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 16px;
+header { position: sticky; top: 0; z-index: 2; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 16px;
          display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
 header strong { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 header a, main a { color: var(--a); }
@@ -29,6 +29,7 @@ blockquote { margin: 0; padding-left: 12px; border-left: 3px solid var(--line); 
 hr { border: 0; border-top: 1px solid var(--line); } img { max-width: 100%; }
 .meta { color: var(--muted); font-size: 13px; }
 .slides { max-width: 1120px; margin: 0 auto; padding: 16px 16px 64px; display: grid; gap: 28px; }
+[id] { scroll-margin-top: 64px; }  /* a linked slide or section starts below the sticky header */
 .slides h2 { font-size: 13px; color: var(--muted); margin: 0 0 6px; font-weight: 600; }
 .slide { --sans: Calibri, Carlito, "Segoe UI", Arial, sans-serif; position: relative; container-type: inline-size;
          overflow: hidden; box-shadow: 0 1px 5px rgba(0,0,0,.3); color: #000; font-family: var(--sans); line-height: 1.2; }

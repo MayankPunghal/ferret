@@ -394,7 +394,10 @@ class Renderer:
         self.ids = 0  # arrow markers need ids unique in the page
 
     def slides(self) -> list[dict]:
-        headings = [ln[3:] for ln in pptx_to_markdown(self.data)[1].splitlines() if ln.startswith("## ")]
+        # the anchor search results link to: the slug of the slide's heading in the text ("Slide 3: Title"),
+        # matched by the number in it rather than by position
+        anchors = {int(m[1]): slugify(ln[3:]) for ln in pptx_to_markdown(self.data)[1].splitlines()
+                   if (m := re.match(r"## Slide (\d+)\b", ln))}
         out = []
         for n, part in enumerate(slide_parts(self.z), 1):
             s = Slide(self.d, part)
@@ -404,7 +407,7 @@ class Renderer:
                 from .convert import paragraphs
                 notes = " ".join(t for t in paragraphs(self.d.xml(notes_part)) if not t.isdigit())
             out.append({"n": n, "html": self.slide(s), "notes": notes, "hidden": s.sld.get("show") == "0",
-                        "anchor": slugify(headings[n - 1]) if n <= len(headings) else f"slide-{n}"})
+                        "anchor": anchors.get(n, f"slide-{n}")})
         return out
 
     # ------------------------------------------------------------------ slide

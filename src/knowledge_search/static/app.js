@@ -798,14 +798,30 @@ function fillSettings(v) {
   $("#s-rerank-on").checked = v.rerank_enabled; $("#s-rerank").value = v.rerank_model; $("#s-rerank-n").value = v.rerank_candidates;
   $("#s-graph-on").checked = v.graph_expansion;
   $("#s-enrich-on").checked = v.enrich_enabled; $("#s-hours").value = v.enrich_hours || "";
+  $("#s-llm").value = summaryModel(v); llmNote();
   $("#s-g-high").value = v.gate_dense_high; $("#s-g-min").value = v.gate_dense_min; $("#s-g-cov").value = v.gate_lex_coverage;
   $("#s-g-all").value = v.gate_all_terms_min;
   $("#s-g-rr").value = v.gate_rerank_min; $("#s-g-mode").value = v.gate_mode; $("#s-g-lex").value = v.gate_lexical;
 }
+// The summary model: the one chosen here, else the one running (installed by setup), else the default.
+const summaryModel = (v) => v.enrich_model || settings.options.llms.find((m) => m.file === settings.llm.current)?.name || settings.llm.default;
+const llmLabel = (m) => m.file.replace(/-Q\d.*\.gguf$/i, "").replace(/-it$/, "");
+function llmNote() {
+  const m = settings.options.llms.find((x) => x.name === $("#s-llm").value);
+  $("#s-llm-note").textContent = settings.llm.external
+    ? `Set by KS_LLM_URL (another local server): ${settings.llm.current || "its own model"}.`
+    : m ? m.note.split("; ").slice(1).join("; ") + "." + (m.installed ? "" : " Downloaded in the background when saved.")
+      + (m.name !== summaryModel(settings.values) ? " Every document is summarised and labelled again by the new model." : "") : "";
+}
+$("#s-llm").addEventListener("change", llmNote);
 function showSettings(s) {
   settings = s;
-  $("#s-model").replaceChildren(...s.options.embed_models.map((m) => el("option", { value: m.name, textContent: `${m.name} — ${m.dim}d, ~${m.size_mb} MB, ${m.license}` })));
-  $("#s-rerank").replaceChildren(...s.options.rerankers.map((m) => el("option", { value: m.name, textContent: `${m.name} — ~${m.size_mb} MB, ${m.license}, ${m.note}` })));
+  const rec = (name, key) => (s.recommended[key] === name ? " · recommended" : "");
+  $("#s-model").replaceChildren(...s.options.embed_models.map((m) => el("option", { value: m.name, textContent: `${m.name} — ${m.dim}d, ~${m.size_mb} MB, ${m.license}${rec(m.name, "embed_model")}` })));
+  $("#s-rerank").replaceChildren(...s.options.rerankers.map((m) => el("option", { value: m.name, textContent: `${m.name} — ~${m.size_mb} MB, ${m.license}, ${m.note}${rec(m.name, "rerank_model")}` })));
+  $("#s-llm").replaceChildren(...s.options.llms.map((m) => el("option", { value: m.name,
+    textContent: `${llmLabel(m)} — ${m.note.split(";")[0]}${m.name === s.llm.default ? " · recommended" : ""}${m.installed ? "" : " · not downloaded"}` })));
+  $("#s-llm").disabled = s.llm.external;
   fillSettings(s.values);
   const st = Object.entries(s.model_status).map(([k, v]) => `${k}: ${v}`).join(" · ");
   $("#s-model-status").textContent = (st ? "Model status: " + st + ". " : "") +
@@ -825,6 +841,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
     chunk_overlap: $("#s-overlap-on").checked ? +$("#s-overlap").value : 0, context_chars: +$("#s-ctx").value,
     rerank_enabled: $("#s-rerank-on").checked, rerank_model: $("#s-rerank").value, rerank_candidates: +$("#s-rerank-n").value,
     graph_expansion: $("#s-graph-on").checked, enrich_enabled: $("#s-enrich-on").checked, enrich_hours: $("#s-hours").value.trim(),
+    ...($("#s-llm").disabled || $("#s-llm").value === summaryModel(settings.values) ? {} : { enrich_model: $("#s-llm").value }),
     gate_dense_high: +$("#s-g-high").value, gate_dense_min: +$("#s-g-min").value, gate_lex_coverage: +$("#s-g-cov").value, gate_all_terms_min: +$("#s-g-all").value,
     gate_rerank_min: +$("#s-g-rr").value, gate_mode: $("#s-g-mode").value, gate_lexical: $("#s-g-lex").value,
   };

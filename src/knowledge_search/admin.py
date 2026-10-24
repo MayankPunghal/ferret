@@ -8,7 +8,7 @@ from dataclasses import asdict
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from . import auth, runtime
+from . import auth, enrich, runtime
 from .deps import Admin, Conn, state
 from .embedder import MODELS
 from .ingest import reindex
@@ -36,7 +36,7 @@ def _warm(kind: str, name: str) -> None:
 
 
 def _settings_view(conn) -> dict:
-    rt = runtime.load(conn)
+    rt, s, enricher = runtime.load(conn), runtime.base(), getattr(state, "enricher", None)
     cov = coverage_for(conn, [r["id"] for r in conn.execute("SELECT id FROM collections")], rt.signature())
     return {
         "values": asdict(rt),
@@ -48,7 +48,13 @@ def _settings_view(conn) -> dict:
                              for m in MODELS.values()],
             "rerankers": [{"name": k, "license": v[0], "size_mb": v[1], "note": v[2]}
                           for k, v in runtime.RERANKERS.items()],
+            "llms": [{"name": k, "file": v[1], "note": v[2], "installed": bool(enrich.installed(s, v[1]))}
+                     for k, v in enrich.LLMS.items()],
         },
+        # the model now writing summaries; fixed when KS_LLM_URL names another local server
+        "llm": {"current": getattr(enricher, "model", "") or "", "external": bool(s.llm_url),
+                "default": enrich.DEFAULT_LLM},
+        "recommended": {"embed_model": s.embed_model, "rerank_model": s.rerank_model},
         "model_status": {**runtime.model_states(), **{f"download: {k}": v for k, v in _loading.items()}},
         "index": {"signature": rt.signature(), **cov},
     }

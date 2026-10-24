@@ -226,6 +226,8 @@
             </div>
             <div class="setting-panel">
               <label class="check"><input type="checkbox" name="enrich_enabled" id="s-enrich-on"> Summarise and label each document in the background</label>
+              <label>Model <select name="enrich_model" id="s-llm"></select></label>
+              <p class="muted small" id="s-llm-note"></p>
               <label><span>Only between these hours <span class="muted">local time, e.g. 22-6; empty = any time</span></span> <input name="enrich_hours" id="s-hours" placeholder="22-6"></label>
               <p class="muted small">A two-sentence summary, a document type (runbook, how-to, policy, design, …), up to six
                 topics that reuse the names already common in the collection and, only when a document's own title is vague,
