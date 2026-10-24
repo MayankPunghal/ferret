@@ -48,7 +48,7 @@ too → both now computed in Python with the embedded DB (parity + backfill test
 or operator in SQL on the embedded-DB path**. Fix not yet re-run by the owner on Windows | owner messages |
 | UI walkthrough | **verified** (Playwright/Chromium, `scripts/ui_check.py`): first-run admin, settings save + reindex, collections/grants/users, multi-file upload incl. rejection, clean state after sign-out/in, search outcomes, passage drawer, source open, mobile width | `docs/screenshots/` |
 | Server profile (web + separate worker, external PG, concurrency) | verified natively earlier (0 errors at c=16, ~60–75 req/s on 4 vCPU, bge-small). Docker image build **not verified** (registry rate limits) | docs/evaluation.md |
-| GPU | **not available, not implemented** | — |
+| GPU | **not available here, not implemented**; plan for CPU/GPU switches in Settings (embeddings, reranker, local model; Intel GPU via DirectML / OpenVINO and llama.cpp Vulkan) with parity checks to run on the owner's laptop | docs/plan-gpu.md |
 | Backup/restore | **verified** (`scripts/backup_restore_check.sh`): data-folder copy and pg_dump/pg_restore + blobs both restore identical search results and all original files open. Found and fixed on the way: the embedded database kept running after the app stopped (the web server re-raises Ctrl+C after shutdown, so exit hooks never ran) — the app now releases it on shutdown | docs/deployment.md |
 
 ## 4. Measured results (tables and caveats in docs/evaluation.md)

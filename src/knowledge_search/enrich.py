@@ -314,7 +314,8 @@ def describe(enricher, conn: Connection, enabled: bool, collections: list[int]) 
     c = status(conn, enricher.model, collections)
     total = sum(c.values())
     failed = f", {c['failed']} could not be summarised" if c["failed"] else ""
-    return f"{enricher.model}: {c['summarised']} of {total} documents{failed} · {enricher.state}"
+    name = enricher.model or "local model"  # an external server (llm_url) may not name its model
+    return f"{name}: {c['summarised']} of {total} documents{failed} · {enricher.state}"
 
 
 class Enricher:
