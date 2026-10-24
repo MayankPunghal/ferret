@@ -247,6 +247,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 .graph-box > summary { cursor: pointer; color: var(--muted); margin: 16px 0 8px; }
 .graph svg { width: 100%; height: auto; display: block; }
 .graph-view.dense { overflow: auto; max-height: 72vh; border: 1px solid var(--border); border-radius: var(--radius-card); }
+.graph-view.dense .g-node text { font-size: 13px; }
 .g-extra { display: none; }
 .graph svg.focus .g-extra.on { display: inline; }
 .graph svg.focus .g-edge:not(.on) { opacity: .12; }
@@ -563,3 +564,13 @@ td.actions-cell { width: 1%; text-align: right; }
 .folder-more summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-top: 2px; width: max-content; }
 .folder-more p { margin: 4px 0 0; }
 @media (max-width: 760px) { .folder { grid-template-columns: 1fr; } .folder .actions { justify-content: flex-start; } }
+
+/* ⓘ: the longer explanation, on hover, keyboard focus or tap */
+.info { position: relative; display: inline-grid; place-items: center; width: 16px; height: 16px; padding: 0; margin-left: 2px;
+  border: 1px solid var(--border); border-radius: 50%; background: none; color: var(--muted); font: italic 600 10px/1 Georgia, serif;
+  vertical-align: 1px; cursor: help; }
+.info:hover, .info:focus-visible { color: var(--text); border-color: var(--muted); }
+.info:hover::after, .info:focus::after { content: attr(data-tip); position: absolute; z-index: 40; left: 50%; top: calc(100% + 6px);
+  transform: translateX(-50%); width: max-content; max-width: min(340px, 80vw); padding: 8px 10px; border-radius: 6px;
+  background: var(--text); color: var(--surface); font: 400 12.5px/1.45 var(--sans); text-align: left; white-space: normal;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .18); pointer-events: none; }

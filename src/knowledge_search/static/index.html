@@ -107,8 +107,7 @@
             <div><dt>Questions in your own words</dt><dd>Matched by meaning: <em>how do I roll back a release?</em></dd></div>
             <div><dt>Name a page</dt><dd>Its links are followed: <em>who owns the services the Orders Service depends on</em>.</dd></div>
           </dl>
-          <p class="muted">Every result cites the passage it came from. When nothing in your documents supports an
-            answer, the search says so instead of guessing. Press <kbd>/</kbd> to search from anywhere.</p>
+          <p class="muted">Every result cites its passage; with no support, the search says so. Press <kbd>/</kbd> to search from anywhere.</p>
         </div>
         <div id="outcome" class="outcome" hidden role="status"></div>
         <ol id="results" class="results"></ol>
@@ -143,8 +142,7 @@
               <label class="check"><input type="checkbox" value="powerpoint" checked> PowerPoint</label>
               <label class="check"><input type="checkbox" value="pdf" checked> PDF</label>
             </div>
-            <p class="muted small">A folder brings its subfolders, except those starting with <code>.</code> or <code>_</code>
-              (<code>.git</code>, <code>_tools</code>). Uploading a folder again indexes only what changed.</p>
+            <p class="muted small">Subfolders come too, except <code>.git</code>, <code>_tools</code> and others starting with <code>.</code> or <code>_</code>. Uploading again indexes only what changed.</p>
           </div>
           <input id="file-input" type="file" name="file" accept=".md,.markdown,.txt,.html,.htm,.docx,.pptx,.pdf" multiple hidden>
           <input id="folder-input" type="file" webkitdirectory multiple hidden>
@@ -171,9 +169,7 @@
           <h1>Synced folders</h1>
           <button type="button" class="primary" id="folder-add">Add folder</button>
         </div>
-        <p class="muted lede-small">Folders on the computer running Ferret, kept in step with the index: new and
-          changed files are indexed, deleted ones removed. Subfolders come too, except those starting with <code>.</code>
-          or <code>_</code>. The files are only read. Website copies from the Crawler are synced folders too.</p>
+        <p class="muted lede-small">Folders on this server, kept in step with the index. <button type="button" class="info" data-tip="New and changed files are indexed and deleted ones removed. Subfolders come too, except those starting with . or _. Files are only read, never changed. Website copies from the Crawler are synced folders too." aria-label="More about this: New and changed files are indexed and deleted ones removed. Subfolders come too, except those starting with . or _. Files are only read, never changed. Website copies from the Crawler are synced folders too.">i</button></p>
         <form id="folder-form" class="folder-form" hidden>
           <label>Folder <input name="path" required placeholder="Full path, e.g. C:\Users\me\Docs\repo-kit"></label>
           <label>Into collection <select id="folder-collection"></select></label>
@@ -196,8 +192,7 @@
 
       <section id="tab-summaries" hidden>
         <div class="title-row"><h1>Summaries</h1></div>
-        <p class="muted lede">Written in the background by the local language model, one document at a time as each is indexed.
-          Summaries help you find and judge documents; they are not evidence. Always check the passage.</p>
+        <p class="muted lede">Written by the local model to help you judge documents, never used as evidence. <button type="button" class="info" data-tip="Written in the background, one document at a time as each is indexed. Always check the passage before relying on a detail." aria-label="More about this: Written in the background, one document at a time as each is indexed. Always check the passage before relying on a detail.">i</button></p>
         <div id="summaries"></div>
       </section>
 
@@ -208,17 +203,12 @@
 
       <section id="tab-assistants" hidden>
         <div class="title-row"><h1>AI assistants</h1></div>
-        <p class="muted lede">Let Claude, Cursor, VS Code or another AI assistant search these documents for you (MCP).
-          A token is read-only unless you tick <strong>May also make changes</strong>: then the assistant can add
-          documents to collections you can write to, and, if you are an administrator, sync folders, copy websites
-          and change settings. Assistants ask you before each change. You can change a token's access later under
-          Your tokens.</p>
-        <p class="notice"><strong>Your documents leave this computer.</strong> Passages the assistant reads are sent to
-          its provider (Anthropic, OpenAI, Microsoft, …) like anything else you paste into it. Check your organisation's
-          policy before you connect one to confidential collections.</p>
+        <p class="muted lede">Let Claude, Cursor, VS Code or another assistant search your documents (MCP). <button type="button" class="info" data-tip="A token is read-only unless you tick “May also make changes”: then the assistant can add documents to collections you can write to and, for administrators, sync folders, copy websites and change settings. Assistants ask before each change. Change a token’s access any time under Your tokens." aria-label="More about this: A token is read-only unless you tick “May also make changes”: then the assistant can add documents to collections you can write to and, for administrators, sync folders, copy websites and change settings. Assistants ask before each change. Change a token’s access any time under Your tokens.">i</button></p>
+        <p class="notice"><strong>Passages the assistant reads go to its provider</strong> (Anthropic, OpenAI, Microsoft, …).
+          Check your policy before connecting confidential collections.</p>
         <section class="block">
           <div class="block-head"><h2>1. Create an access token</h2>
-            <p class="muted">One per assistant, so you can revoke it on its own. It is shown once.</p></div>
+            <p class="muted">One per assistant. Shown once.</p></div>
           <form id="tok-form" class="inline-form">
             <input name="label" class="wide-input" placeholder="Name, e.g. Claude Code on my laptop" maxlength="80" required aria-label="Token name">
             <label class="inline-label">Valid for <select name="days" aria-label="Valid for"><option value="30">30 days</option>
@@ -256,8 +246,7 @@
           <section class="setting">
             <div class="setting-label">
               <h2>Embedding model</h2>
-              <p>Larger models retrieve more accurately but index and answer more slowly on CPU. Changing the model
-                re-indexes every document in the background; keyword search keeps working meanwhile.</p>
+              <p>Turns text into meaning for search. <button type="button" class="info" data-tip="Larger models find more but index and answer more slowly on a CPU. Changing the model re-indexes every document in the background; keyword search keeps working meanwhile." aria-label="More about this: Larger models find more but index and answer more slowly on a CPU. Changing the model re-indexes every document in the background; keyword search keeps working meanwhile.">i</button></p>
             </div>
             <div class="setting-panel">
               <label>Model <select name="embed_model" id="s-model"></select></label>
@@ -269,8 +258,7 @@
           <section class="setting">
             <div class="setting-label">
               <h2>Passages</h2>
-              <p>Smaller passages are more precise; larger ones keep more context. Overlap repeats the end of one
-                passage at the start of the next so sentences at a boundary are not lost.</p>
+              <p>Smaller is more precise; larger keeps more context. <button type="button" class="info" data-tip="Overlap repeats the end of one passage at the start of the next, so a sentence on a boundary is not lost. Changes re-index." aria-label="More about this: Overlap repeats the end of one passage at the start of the next, so a sentence on a boundary is not lost. Changes re-index.">i</button></p>
             </div>
             <div class="setting-panel">
               <label><span>Passage size <span class="muted">characters</span></span> <input type="number" name="chunk_size" id="s-chunk" min="200" max="4000" step="50"></label>
@@ -278,7 +266,7 @@
               <label><span>Overlap <span class="muted">characters</span></span> <input type="number" name="chunk_overlap" id="s-overlap" min="0" max="1000" step="10"></label>
               <label><span>Line about the whole document on every passage <span class="muted">characters, 0 = off</span></span> <input type="number" name="context_chars" id="s-ctx" min="0" max="1000" step="50"></label>
               <details class="more">
-                <summary>What this line does, and what it measured</summary>
+                <summary>What this line does</summary>
                 <p class="muted small">Every passage is embedded under a header with the document title and section heading.
                   This adds one more line describing the whole document, so a passage that never names its subject
                   (“set the revision with --to-revision=2”) is still found for “roll back a Deployment”. The line is the
@@ -292,11 +280,10 @@
           <section class="setting">
             <div class="setting-label">
               <h2>Reranker</h2>
-              <p>An offline cross-encoder reads the top candidates against the question, reorders them and judges
-                whether they are evidence.</p>
+              <p>Re-reads the top results against the question. <button type="button" class="info" data-tip="An offline cross-encoder reorders the top candidates and judges whether each one is evidence." aria-label="More about this: An offline cross-encoder reorders the top candidates and judges whether each one is evidence.">i</button></p>
             </div>
             <div class="setting-panel">
-              <label class="check"><input type="checkbox" name="rerank_enabled" id="s-rerank-on"> Rerank top results and use the reranker to judge evidence</label>
+              <label class="check"><input type="checkbox" name="rerank_enabled" id="s-rerank-on"> Rerank top results</label>
               <label>Reranker model <select name="rerank_model" id="s-rerank"></select></label>
               <details class="more model-list"><summary id="ml-rerank-sum">Models on this computer</summary>
                 <table class="data"><tbody id="ml-rerank"></tbody></table></details>
@@ -306,20 +293,16 @@
           <section class="setting">
             <div class="setting-label">
               <h2>Linked documents</h2>
-              <p>For questions such as “who owns the services the Orders Service depends on”: results also include
-                pages that link to or from the page you name. Only pages you may read are followed.</p>
+              <p>Also search pages linked to a page named in the question. <button type="button" class="info" data-tip="For questions such as “who owns the services the Orders Service depends on”. Follows Markdown links, [[wiki links]] and front-matter relations such as depends_on; only pages the user may read. Up to half of the results come from linked pages." aria-label="More about this: For questions such as “who owns the services the Orders Service depends on”. Follows Markdown links, [[wiki links]] and front-matter relations such as depends_on; only pages the user may read. Up to half of the results come from linked pages.">i</button></p>
             </div>
             <div class="setting-panel">
               <label class="check"><input type="checkbox" name="graph_expansion" id="s-graph-on"> Follow links of pages named in the question</label>
-              <p class="muted small">Markdown links, [[wiki links]] and front-matter relations such as depends_on. Up to half
-                of the results come from linked pages.</p>
             </div>
           </section>
           <section class="setting">
             <div class="setting-label">
               <h2>Local language model</h2>
-              <p>Optional, installed with <code>setup --summaries</code>. Nothing leaves this computer. What it writes is
-                labelled as the model's and never used as evidence. Progress is on Index status.</p>
+              <p>Optional. Runs on this computer; never used as evidence. <button type="button" class="info" data-tip="Writes a two-sentence summary, a document type (runbook, how-to, policy, …), up to six topics and, only for vague titles, a clearer title. One document at a time, at low priority, so indexing and search come first. Outside its hours the model is stopped and its memory freed. With “line about the whole document” on, a document without its own description is re-indexed once to use the summary. Progress: Summaries tab." aria-label="More about this: Writes a two-sentence summary, a document type (runbook, how-to, policy, …), up to six topics and, only for vague titles, a clearer title. One document at a time, at low priority, so indexing and search come first. Outside its hours the model is stopped and its memory freed. With “line about the whole document” on, a document without its own description is re-indexed once to use the summary. Progress: Summaries tab.">i</button></p>
             </div>
             <div class="setting-panel">
               <label class="check"><input type="checkbox" name="enrich_enabled" id="s-enrich-on"> Summarise and label each document in the background</label>
@@ -328,11 +311,6 @@
               <details class="more model-list"><summary id="ml-llm-sum">Models on this computer</summary>
                 <table class="data"><tbody id="ml-llm"></tbody></table></details>
               <label><span>Only between these hours <span class="muted">local time, e.g. 22-6; empty = any time</span></span> <input name="enrich_hours" id="s-hours" placeholder="22-6"></label>
-              <p class="muted small">A two-sentence summary, a document type (runbook, how-to, policy, design, …), up to six
-                topics that reuse the names already common in the collection and, only when a document's own title is vague,
-                a clearer title; one document at a time, each as soon as it is indexed, at low priority so indexing and search come first. Outside its hours the
-                model is stopped and its memory freed. With the line about the
-                whole document on, a document without its own description is re-indexed once to use the summary.</p>
             </div>
           </section>
           <section class="setting">
@@ -405,10 +383,7 @@
           <button type="button" role="tab" data-view="logs" aria-selected="false">Warnings and errors</button>
         </div>
         <div id="view-activity">
-          <p class="muted lede">What the app did since it started: searches, changes, AI-assistant calls, the local model's
-            calls and each indexed document, with what was sent, what came back and where the time went. Only the last
-            300 calls are kept, in memory, for administrators. They contain search text and passages, so they are not part
-            of Copy for support.</p>
+          <p class="muted lede">The last 300 calls since start: searches, changes, assistant and model calls, indexing. <button type="button" class="info" data-tip="Each shows what was sent, what came back and where the time went. Kept in memory for administrators only. They contain search text and passages, so they are not part of Copy for support." aria-label="More about this: Each shows what was sent, what came back and where the time went. Kept in memory for administrators only. They contain search text and passages, so they are not part of Copy for support.">i</button></p>
           <div class="toolbar">
             <label class="inline">Show <select id="act-kind">
               <option value="">all calls</option><option value="http">searches and changes</option>
@@ -437,8 +412,7 @@
           </div>
         </div>
         <div id="view-logs" hidden>
-          <p class="muted lede">Recent warnings and errors with technical details. Logs never contain document or search text,
-            so they are safe to share with support. They are also written to the log file named below.</p>
+          <p class="muted lede">Warnings and errors. No document or search text, so safe to share with support.</p>
           <div class="toolbar">
             <label class="inline">Show <select id="log-level">
               <option value="ERROR">errors</option><option value="WARNING" selected>warnings and errors</option>
@@ -454,9 +428,7 @@
           <h1>Database</h1>
           <div class="actions"><button type="button" id="db-refresh" class="button">Refresh</button></div>
         </div>
-        <p class="muted lede">The tables behind the app, read-only: what is stored, how it is organised, and the rows
-          themselves. Password and access-token hashes are hidden; vectors and long text are shortened (click a row for
-          its full values).</p>
+        <p class="muted lede">The tables behind the app, read-only. <button type="button" class="info" data-tip="Password and token hashes are hidden; vectors and long text are shortened. Click a row for its full values." aria-label="More about this: Password and token hashes are hidden; vectors and long text are shortened. Click a row for its full values.">i</button></p>
         <p id="db-info" class="meta"></p>
         <div class="seg" role="tablist" id="db-views">
           <button type="button" role="tab" data-view="tables" aria-selected="true">Tables</button>
@@ -521,10 +493,7 @@ ORDER BY passages DESC</textarea>
 
       <section id="tab-admin" hidden>
         <div class="title-row"><h1>Users &amp; access</h1></div>
-        <p class="muted lede-small">Access goes through <strong>groups</strong>, one per team or role (for example
-          <code>hr</code>, <code>eng-writers</code>). Create the groups, give each one read or write access to
-          collections, and put users in groups: someone new gets the right access by joining their team's group.
-          Administrators can read and change everything.</p>
+        <p class="muted lede-small">Give <strong>groups</strong> access to collections, then put users in groups. <button type="button" class="info" data-tip="One group per team or role, for example hr or eng-writers: someone new gets the right access by joining their team’s group. Administrators can read and change everything." aria-label="More about this: One group per team or role, for example hr or eng-writers: someone new gets the right access by joining their team’s group. Administrators can read and change everything.">i</button></p>
         <div class="tabs-row"><div class="subtabs" role="tablist" id="admin-tabs">
           <button type="button" class="subtab" role="tab" data-sub="collections" aria-selected="true">Collections</button>
           <button type="button" class="subtab" role="tab" data-sub="users" aria-selected="false">Users</button>

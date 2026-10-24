@@ -72,13 +72,13 @@ this off (Settings → Linked documents).
   (`depends_on`, `related`, `calls`, `owned_by`, `part_of`, `see_also`); a link to `file.md#section`
   opens that section.
 - **Linked from** — documents that link to or depend on this one.
-- **Mentions (found automatically)** — documents connected without any link: this document names their
+- **Mentions** (found automatically) — documents connected without any link: this document names their
   title ("… uses the Asset Service …"), or they name this one. Works for crawled or exported pages that do
   not declare links; titles of two or more words are matched (singular/plural and case ignored).
-- **Related by meaning (found automatically)** — documents about the same thing even if neither names the
+- **Related by meaning** (found automatically) — documents about the same thing even if neither names the
   other: each is among the other's three closest documents by meaning (with the similarity shown). Useful
   for crawled pages; on the Kubernetes docs most such pairs are pages the authors also linked by hand.
-- **Depends on this (blast radius)** — documents that depend on it directly or via one more hop:
+- **Depends on this** (blast radius) — documents that depend on it directly or via one more hop:
   "what is affected if this changes?".
 
 **Show as graph** draws the same neighbourhood (1 or 2 hops; blue = depends on, grey =

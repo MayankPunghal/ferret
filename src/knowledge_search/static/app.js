@@ -7,6 +7,9 @@ const el = (tag, props = {}, ...kids) => {
   for (const k of kids) n.append(k);
   return n;
 };
+// ⓘ with a longer explanation (hover, keyboard focus or tap); see .info in app.css
+const info = (text) => { const b = el("button", { type: "button", className: "info", textContent: "i" });
+  b.dataset.tip = text; b.setAttribute("aria-label", "More: " + text); return b; };
 let me = null;
 let pollTimer = null;
 let topicFilter = null;  // Summaries tab: only the documents the local model gave this topic
@@ -281,7 +284,7 @@ function writtenSummary(r, labelled = true) {
   if (!labelled) return el("div", { className: "r-summary" }, el("p", { textContent: r.summary }),
     topics.length ? el("div", { className: "rel-row" }, ...topics) : "");
   return el("div", { className: "r-summary" },
-    el("p", { className: "rel-row" }, el("span", { className: "rel-label", textContent: "Summary by local model", title: "Written by the local language model from the document; not evidence" }), el("span", { textContent: r.summary })),
+    el("p", { className: "rel-row" }, el("span", { className: "rel-label" }, "AI summary", info("Written by the local language model from the whole document. Not evidence: check the passage.")), el("span", { textContent: r.summary })),
     topics.length ? el("div", { className: "rel-row" }, el("span", { className: "rel-label", textContent: "Topics" }), ...topics) : "");
 }
 
@@ -322,6 +325,14 @@ async function relatedDocs(box, docId, chunkId) {
   box.hidden = !groups.length;
 }
 
+// The search's verdict in a few words; the full sentence (also what assistants get) is behind the ⓘ.
+const HEADLINE = { evidence_found: "Relevant passages found", conflicting_evidence: "Sources disagree: check which one applies",
+  no_adequate_evidence: "No supporting evidence in your documents", index_coverage_incomplete: "No supporting evidence yet: indexing is not complete" };
+// what a search or the status page cannot see yet, e.g. "36 documents still indexing · 1 failed"
+const notCovered = (c) => {
+  const n = (v, what) => (v ? `${v.toLocaleString()} document${v === 1 ? "" : "s"} ${what}` : "");
+  return [n(c.pending, "still indexing"), n(c.outdated, "indexed with older settings"), n(c.failed, "could not be indexed")].filter(Boolean).join(" · ");
+};
 $("#search-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   if ($("#tab-search").hidden) { topicFilter = null; openTab("search"); }
@@ -341,13 +352,13 @@ $("#search-form").addEventListener("submit", async (e) => {
   catch (err) { clearTimeout(slow); out.className = "outcome bad"; out.textContent = "Search failed: " + err.message; return; }
   clearTimeout(slow);
   out.className = "outcome " + res.outcome;
-  out.replaceChildren(el("strong", { textContent: res.message }));
+  const cov = res.coverage, why = [res.message, res.reason_codes?.length ? "Reasons: " + res.reason_codes.join(", ") + "." : "",
+    cov ? `${cov.indexed} of ${cov.documents} documents in this scope are indexed with the current settings.` : ""].filter(Boolean).join(" ");
+  out.replaceChildren(el("div", {}, el("strong", { textContent: HEADLINE[res.outcome] || res.message }), " ", info(why)));
   lastQuery = $("#q").value;
   if (staleNote) out.append(el("div", { className: "meta", textContent: "A document was re-indexed after your search, so its passages changed; these are the results again." }));
   staleNote = false;
-  if (res.reason_codes?.length) out.append(el("div", { className: "meta", textContent: "Reason codes: " + res.reason_codes.join(", ") }));
-  if (res.coverage && res.coverage.complete === false)
-    out.append(el("div", { className: "meta", textContent: `Index coverage in this scope: ${res.coverage.indexed}/${res.coverage.documents} documents current (${res.coverage.pending} pending, ${res.coverage.failed} failed, ${res.coverage.outdated} outdated).` }));
+  if (cov && cov.complete === false) out.append(el("div", { className: "meta", textContent: notCovered(cov) }));
   const strong = res.results.filter((r) => r.supported), weak = res.results.filter((r) => !r.supported);
   $("#results").replaceChildren(...strong.map(resultItem));
   if (weak.length) {
@@ -357,7 +368,8 @@ $("#search-form").addEventListener("submit", async (e) => {
       : `Closest matches — not confirmed as evidence (${weak.length})`;
     $("#weak-results").replaceChildren(...weak.map(resultItem));
   }
-  if (res.timings_ms) $("#timing").textContent = `${Math.round(res.timings_ms.total)} ms · ${res.index.embedding_model}${res.index.reranker ? " · reranker " + res.index.reranker : ""}`;
+  if (res.timings_ms) Object.assign($("#timing"), { textContent: `${Math.round(res.timings_ms.total)} ms`,
+    title: res.index.embedding_model + (res.index.reranker ? " · reranker " + res.index.reranker : "") });
 });
 
 // A passage on one line: list items (slides, org charts) separated by " · " instead of running together.
@@ -425,9 +437,9 @@ async function renderLinks(docId) {
     g.kinds.push(KIND[i.kind] || i.kind); byDoc.set(i.document_id, g);
   }
   section("Linked from", [...byDoc.values()].map((g) => item(g.title, `${g.kinds.join(", ")} this · ${g.collection}`, g.chunk_id)));
-  section("Mentions (found automatically)", (links.mentions || []).map((m) => item(m.title, `${m.how} · ${m.collection}`, m.chunk_id)));
-  section("Related by meaning (found automatically)", (links.similar || []).map((m) => item(m.title, `similarity ${m.similarity.toFixed(2)} · ${m.collection}`, m.chunk_id)));
-  section("Depends on this (blast radius, 2 hops)", imp.nodes.map((n) => item(n.title, `${n.depth === 1 ? "directly" : "indirectly"} · ${KIND[n.kind] || n.kind} · ${n.collection}`, n.chunk_id)));
+  section("Mentions", (links.mentions || []).map((m) => item(m.title, `${m.how} · ${m.collection}`, m.chunk_id)));
+  section("Related by meaning", (links.similar || []).map((m) => item(m.title, `similarity ${m.similarity.toFixed(2)} · ${m.collection}`, m.chunk_id)));
+  section("Depends on this", imp.nodes.map((n) => item(n.title, `${n.depth === 1 ? "directly" : "indirectly"} · ${KIND[n.kind] || n.kind} · ${n.collection}`, n.chunk_id)));
   if (links.unresolved.length)
     box.append(el("p", { className: "meta", textContent: "Not found in documents you can access: " + links.unresolved.map((u) => u.label || u.target).join(", ") }));
   box.hidden = !box.childElementCount;
@@ -509,8 +521,8 @@ async function drawGraph(box, docId, depth, hops) {
     return c > 0.35 ? [x + 12, y + 4, "start", 0, text] : c < -0.35 ? [x - 12, y + 4, "end", 0, text] : [x, y + (sn < 0 ? -14 : 22), "middle", 0, text];
   };
   const xs = [], ys = [];
-  for (const n of g.nodes) {  // extent of each node and its label (6.2 units per character, rotated)
-    const [x, y] = pos.get(n.id), [lx, ly, anchor, deg, text] = labelOf(n), w = text.length * 6.2;
+  for (const n of g.nodes) {  // extent of each node and its label (units per character at 11 or 13 px, rotated)
+    const [x, y] = pos.get(n.id), [lx, ly, anchor, deg, text] = labelOf(n), w = text.length * (dense ? 7.4 : 6.2);
     const dir = anchor === "end" ? -1 : 1, rad = (deg * Math.PI) / 180;
     const ex = anchor === "middle" ? [lx - w / 2, lx + w / 2] : [lx, lx + dir * w * Math.cos(rad)];
     const ey = anchor === "middle" ? [ly - 12, ly + 6] : [ly - 12, ly + dir * w * Math.sin(rad) + 6];
@@ -520,7 +532,6 @@ async function drawGraph(box, docId, depth, hops) {
   const svg = sv("svg", { viewBox: `${x0} ${y0} ${W} ${H}`, role: "img", "aria-label": `Link graph of ${g.document.title}` },
     sv("defs", {}, sv("marker", { id: "arrow", viewBox: "0 0 10 10", refX: "16", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" },
       sv("path", { d: "M0,0 L10,5 L0,10 z", class: "g-arrow" }))));
-  if (dense) { svg.style.width = `${Math.round(W)}px`; svg.style.minWidth = "100%"; }
   const pairs = new Map();  // one line per source→target, styled by its strongest relation
   for (const e of g.edges) pairs.set(e.source + ">" + e.target, [...(pairs.get(e.source + ">" + e.target) || []), e]);
   const title = (id) => g.nodes.find((n) => n.id === id).title;
@@ -562,13 +573,20 @@ async function drawGraph(box, docId, depth, hops) {
   }
   const hidden = lines.filter((l) => l.classList.contains("g-extra")).length;
   const view = el("div", { className: "graph-view" + (dense ? " dense" : "") }, svg);
-  box.replaceChildren(view, el("p", { className: "meta g-legend" },
+  // a large graph opens fitted to the panel; Full size shows it at reading size, scrolling
+  const fit = dense ? el("button", { type: "button", className: "link g-fit" }) : "";
+  const size = (whole) => {
+    Object.assign(svg.style, { width: whole ? "100%" : `${Math.round(W)}px`, minWidth: "100%", maxHeight: whole ? "68vh" : "" });
+    fit.textContent = whole ? "Full size" : "Fit to panel";
+    if (!whole) view.scrollLeft = (view.scrollWidth - view.clientWidth) / 2;
+  };
+  if (fit) { fit.addEventListener("click", () => size(fit.textContent === "Fit to panel")); size(true); }
+  box.replaceChildren(view, el("p", { className: "meta g-legend" }, fit, fit ? " · " : "",
     el("span", { className: "g-key g-dep" }), " depends on  ", el("span", { className: "g-key g-link" }), " links to  ",
     el("span", { className: "g-key g-rel" }), " related / part of / other  ", el("span", { className: "g-key g-men" }), " mentions  ",
     el("span", { className: "g-key g-sim" }), " related in meaning",
     hidden ? ` · ${hidden} more links appear when you point at a document` : "",
     g.truncated ? " · the nearest 60 documents" : ""));
-  if (dense) view.scrollLeft = (view.scrollWidth - view.clientWidth) / 2;
 }
 function closeDrawer() { $("#drawer").hidden = $("#backdrop").hidden = true; trail = []; shown = null; }
 $("#d-close").addEventListener("click", closeDrawer);
@@ -939,7 +957,8 @@ async function loadStatus() {
   box.replaceChildren(
     el("p", { className: "outcome " + (c.complete ? "evidence_found" : "index_coverage_incomplete") },
       el("span", { textContent: c.complete ? "Every document you can read is indexed with the current settings."
-        : "Indexing is not complete, so a search cannot yet show that something is absent from your documents." })),
+        : c.pending || c.outdated ? "Indexing is not complete, so a search cannot yet rule something out."
+        : `${notCovered(c)}, so searches cannot see inside ${c.failed === 1 ? "it" : "them"}.` })),
     el("div", { className: "kpis" },
       kpi("Documents", c.documents ?? c.indexed + c.pending + c.failed, `in ${s.collections.length} collection${s.collections.length === 1 ? "" : "s"}`),
       kpi("Indexed", c.indexed, "searchable"), kpi("Waiting", c.pending, "queued or indexing"),
@@ -992,8 +1011,9 @@ function showSettings(s) {
   $("#s-llm").disabled = s.llm.external;
   fillSettings(s.values);
   const st = Object.entries(s.model_status).map(([k, v]) => `${k}: ${v}`).join(" · ");
-  $("#s-model-status").textContent = (st ? "Model status: " + st + ". " : "") +
-    (s.thresholds_tuned ? "" : "Evidence thresholds have not been tuned for this model yet — results may be stricter or looser than intended; run the evaluation to tune them.");
+  const ready = Object.values(s.model_status).every((v) => v === "ready");
+  $("#s-model-status").replaceChildren(st ? (ready ? "Models ready" : "Models: " + st) : "", st && ready ? info(st) : "",
+    s.thresholds_tuned ? "" : (st ? " · " : "") + "Evidence thresholds not yet tuned for this model; run the evaluation to tune them.");
   const ix = s.index;
   $("#reindex-info").textContent = `${ix.indexed}/${ix.documents} documents indexed with the current settings · ${ix.outdated} outdated · ${ix.pending} pending · ${ix.failed} failed`;
   const b = $("#settings-banner");
