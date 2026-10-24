@@ -1,58 +1,38 @@
-# Ferret
+<p align="center">
+  <img src="docs/brand/ferret.svg" width="104" alt="Ferret logo">
+</p>
 
-**Private, offline document search that shows its evidence — and says so when it has none.**
+<h1 align="center">Ferret</h1>
 
-Ferret indexes your PDF, Word, PowerPoint, HTML, Markdown and text documents and lets people search
-them in plain language or by exact terms (error codes, file names, API paths). Every result is a real
-passage from your documents, with a link to the original file. Everything — database, search models,
-search — runs on your own machine or server: no cloud account, no GPU and no external AI provider are
-needed. An optional small language model, also local, writes a short summary and topics for each document.
+<p align="center">
+  <strong>Private search for your team's documents. Every answer cites the passage it came from,<br>
+  and when nothing supports it, Ferret says so.</strong>
+</p>
 
-![Search results with evidence](docs/screenshots/07-conflict.png)
+<p align="center">
+  <img alt="Runs offline" src="https://img.shields.io/badge/runs-100%25%20offline-1b6c80">
+  <img alt="No cloud AI" src="https://img.shields.io/badge/cloud%20AI-none%20needed-1b6c80">
+  <img alt="Windows, macOS, Linux" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-555">
+  <img alt="Python 3.13" src="https://img.shields.io/badge/python-3.13-555">
+  <img alt="MCP server" src="https://img.shields.io/badge/MCP-Claude%20%7C%20Cursor%20%7C%20VS%20Code-555">
+</p>
 
-## Features
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#what-it-does">What it does</a> ·
+  <a href="#copy-a-website-with-ferret-crawler">Ferret Crawler</a> ·
+  <a href="#connect-an-ai-assistant">AI assistants</a> ·
+  <a href="#documentation">Docs</a>
+</p>
 
-- **Hybrid search** — keyword + semantic (local embedding model) + exact-identifier matching, fused by rank.
-- **Offline reranker** (on by default) — a local cross-encoder re-orders the top results for higher precision.
-- **Evidence-first answers** — each search states whether adequate evidence was found, sources conflict,
-  the index is incomplete, or nothing adequate exists in the sources *you* can access. No invented
-  confidence numbers.
-- **Traceable results** — passage, heading/page, neighbouring context and a link to the original file.
-- **Connections** — links between documents (Markdown/wiki links, HTML links, `depends_on`-style front matter) with a
-  "what depends on this" blast-radius view, permission-filtered.
-- **Related documents with every result** — what the page links to, what refers to it, what it mentions and
-  what is related in meaning, as one-click rows under each result; results cover 10 different documents.
-- **Optional document summaries** — a small local language model writes a two-sentence summary, topics and,
-  for vaguely titled pages, a clearer title, in the background while indexing is idle. Labelled as written by
-  the model; never used as evidence.
-- **Link-aware search** — questions that name a page also get passages from the pages it links to and from
-  ("who owns the services X depends on"); on a labelled synthetic wiki, multi-hop evidence recall 0.24 → 0.60
-  with no single-hop loss ([evaluation](docs/evaluation.md#6-link-aware-search-graph-assisted-retrieval)).
-- **Permissions** — collections with group-based read/write access, enforced inside every query.
-- **Admin UI** — upload by drag and drop, change models/chunking/reranking, manage users and access, reindex.
-- **One-click install** — embedded PostgreSQL + pgvector; nothing else to install.
-
-## What runs on your machine
-
-| Part | What it does | Size |
-|---|---|---|
-| Embedded PostgreSQL + pgvector | stores documents, passages, links and access rights | installed by setup |
-| Embedding model (bge-base-en-v1.5) | turns each passage and each question into numbers, so a search finds passages with the same *meaning*, not only the same words | ~210 MB |
-| Reranker (jina-reranker-v1-turbo-en) | re-orders the top 10 results by how well each passage matches the question | ~150 MB |
-| *Optional:* language model (Gemma 4 E2B, run by llama.cpp) | writes a summary, topics and (for vague titles) a clearer title per document, in the background | ~3.2 GB |
-
-The models run on any CPU and are downloaded once by setup. **Search never depends on the language model:**
-every result is a passage that is really in your documents; the summaries only help you read the results
-(and, with "Add a line about the whole document to every passage" on, help find passages that never name
-their subject). It works
-one document at a time, only while no files are waiting to be indexed, so new files become searchable first:
-about 8–13 seconds per document on the 4-core test machine, so ~128 documents take roughly 20–30 minutes
-after indexing. Nothing is sent anywhere. Writing answers and reading images with local models were tested
-too ([the plan](docs/plan-images-and-models.md)) and are not part of this release.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/ferret-search-dark.png">
+  <img alt="Ferret search results: cited passages, AI summaries, topics and linked documents" src="docs/screenshots/ferret-search.png">
+</picture>
 
 ## Quick start
 
-**Windows 10/11** — open *Command Prompt* (or PowerShell) and run:
+**Windows 10/11**: open *Command Prompt* and run
 
 ```bat
 git clone https://github.com/MayankPunghal/knowledge-search
@@ -60,10 +40,7 @@ cd knowledge-search
 setup.bat --demo
 ```
 
-(No git? Download the ZIP from GitHub, extract it and double-click `setup.bat` — it asks whether to load the
-sample documents.)
-
-**macOS / Linux:**
+**macOS / Linux**
 
 ```bash
 git clone https://github.com/MayankPunghal/knowledge-search
@@ -71,80 +48,106 @@ cd knowledge-search
 ./setup.sh --demo
 ```
 
-| Option (both scripts) | Effect |
+Setup takes a few minutes. It installs everything for your user account (no admin rights, no Docker),
+then opens **<http://127.0.0.1:8000>**, where you create the administrator account. `--demo` loads fictional
+sample documents to try it on.
+
+No git? **Code → Download ZIP**, unzip, double-click `setup.bat`. Next time, start Ferret from the desktop
+shortcut, `start.bat` or `./start.sh`.
+
+<details>
+<summary><b>Setup options</b></summary>
+
+| Option | Effect |
 |---|---|
-| `--demo` | load the fictional sample documents and demo users without asking |
-| `--no-demo` | skip the sample data |
-| `--no-start` | install only; do not start the app afterwards |
-| `--no-shortcut` | Windows only: do not create the desktop shortcut |
-| `--summaries` / `--no-summaries` | download the summary model during setup / turn summaries off, without asking (~3.2 GB; otherwise the app downloads it in the background on first start) |
+| `--demo` / `--no-demo` | load the sample documents and demo users, or skip them, without asking |
+| `--summaries` / `--no-summaries` | download the optional summary model now (~3.2 GB), or turn summaries off |
+| `--no-start` | install only |
+| `--no-shortcut` | Windows: no desktop shortcut |
 
-Setup installs everything for the current user (no administrator rights, no Docker): uv, Python 3.13, the
-app, an embedded PostgreSQL and the offline AI models (~900 MB in total, one time). It is safe to re-run —
-if the internet connection drops during a download, run it again and completed files are reused. At the end
-it opens <http://127.0.0.1:8000>, where you create the administrator account.
+Re-running setup is safe: finished downloads are reused. Full walkthrough: [Getting started](docs/getting-started.md).
+</details>
 
-Start the app later with the **Ferret** desktop shortcut or `start.bat` (Windows), or `./start.sh`
-(macOS/Linux). Full walkthrough and a test run with your own documents:
-**[Getting started](docs/getting-started.md)**.
+## What it does
 
-## Search a website or intranet
+- 🔎 **One box, two kinds of search** — Exact terms (`ERR-PAY-4012`, `/api/v2/invoices`, a file name) and plain questions ("how do I roll back a release?"), together.
+- 📎 **Evidence, not guesses** — Every result is a real passage with a link to the file and page. If nothing in *your* documents supports an answer, Ferret says so.
+- 🔒 **Stays on your machine** — Database, models and search all run locally. No account, no GPU, no API keys.
+- 🕸️ **Follows your links** — Wiki links, Markdown links and `depends_on` front matter: see what a page links to, what refers to it, and what breaks if it changes.
+- 🕷️ **Ferret Crawler** — Copies a website or intranet, even one behind a sign-in, into a collection.
+- 🤖 **Works with your AI assistant** — A built-in MCP server lets Claude, Cursor or VS Code search your documents. Tokens are read-only unless you allow changes.
+- 👥 **Teams and permissions** — Collections, groups and read/write access, enforced inside every query.
+- 📝 **Optional summaries** — A small local model writes a summary, a type and topics for each document, in the background. These are labelled and never used as evidence.
 
-1. **Copy the site** with **site2md** (in [`site2md/`](site2md/README.md); zip that folder to share it):
-   double-click `Crawl Website.bat` (Windows) or `Crawl Website.command` (macOS). A page opens in your
-   browser: **Copy a website**, paste the address, sign in in the browser window if the site asks, and watch
-   the site's sections fill in. You get `site2md/output/<name>/`: one
-   Markdown file per page, plus the PDF, Word and PowerPoint files the pages link to or embed (Google Drive
-   files and folders included), as they are.
-2. **Index the copy:** on site2md's done page, **Send to Ferret** (an access token created with
-   *May also make changes*; on the same computer, as administrator, the copy becomes a synced folder). Or by
-   hand: sign in to Ferret as the administrator → **Users & access** → create a
-   collection (e.g. `intranet`) and grant it to the people who should see it → **Documents** → choose
-   that collection → **choose a folder** → select `output/<name>`. Every page and file is uploaded; the rest
-   (`manifest.json`) is skipped.
-3. **Search.** Each page keeps its web address ("Original: https://…" in the passage view) and is linked to
-   the documents it attaches, so the page and its PDFs are found together and connected under
-   **Connections**.
+Reads **PDF, Word, PowerPoint, HTML, Markdown and text**. Scanned PDFs without a text layer and text inside
+images are not read yet (no OCR).
 
-Command-line alternative for step 2: `uv run ferret ingest intranet site2md/output/<name> --wait`.
+<table>
+  <tr>
+    <td width="44%"><img src="docs/screenshots/ferret-passage.png" alt="Passage panel with the cited passage, AI summary and connections"></td>
+    <td width="56%"><img src="docs/screenshots/ferret-graph.png" alt="Connection graph of a densely linked wiki, two hops"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The passage in context, with its document's summary and connections</sub></td>
+    <td align="center"><sub>Two hops of links around a page; point at one to see all its links</sub></td>
+  </tr>
+</table>
+
+## Copy a website with Ferret Crawler
+
+1. Sign in as administrator → **Crawler** → **Copy a website**. Paste the address. If the site asks you to
+   sign in, a browser window opens; sign in there.
+2. When the copy finishes, **Add to a collection** (an existing one or a new one). Its pages and the PDF, Word and
+   PowerPoint files they link to are indexed, each page keeping its web address.
+3. **Update** later brings in only what changed.
+
+Ferret Crawler also runs on its own (double-click `site2md/Crawl Website.bat` or `.command`); see
+[its README](site2md/README.md).
+
+## Connect an AI assistant
+
+Create a token under **AI assistants**, then, for Claude Code:
+
+```bash
+claude mcp add --transport http ferret http://127.0.0.1:8000/mcp --header "Authorization: Bearer <your token>"
+```
+
+The page has ready-to-copy setups for Claude Desktop, Cursor and VS Code. Passages the assistant reads go
+to its provider, so check your policy before connecting confidential collections.
+[More](docs/user-guide.md#connecting-an-ai-assistant-mcp-optional-sends-passages-to-the-assistants-provider).
+
+## What runs on your computer
+
+| Part | Size | Job |
+|---|---|---|
+| PostgreSQL + pgvector (embedded) | installed by setup | stores documents, passages, links and access rights |
+| bge-base-en-v1.5 | ~210 MB | finds passages by meaning |
+| jina-reranker-v1-turbo-en | ~150 MB | re-reads the top results and judges evidence |
+| *Optional:* Gemma 4 E2B or a smaller model (llama.cpp) | 0.5–3.2 GB | summaries, types and topics, in the background |
+
+**Needs:** 64-bit Windows 10/11, macOS or Linux; 4 GB free RAM (8 GB recommended); ~2 GB disk. Internet only
+during setup. **Speed:** a search usually answers in under a second on a CPU. Indexing runs in the background:
+about 5–7 passages per second on a 4-core test machine, so a 10-page PDF takes ~5 s. Measurements and their limits:
+[Evaluation](docs/evaluation.md).
 
 ## Documentation
 
 | Guide | For |
 |---|---|
-| [Getting started](docs/getting-started.md) | Installing, first run, trying it with sample or your own documents |
-| [How it works](docs/how-it-works.md) | Plain-language explanation: embeddings, search, links, evidence check, why one database |
-| [User guide](docs/user-guide.md) | Searching, reading results and outcomes, uploading documents, connecting an AI assistant (MCP: Claude, Cursor, VS Code) or the Claude skill |
-| [Admin guide](docs/admin-guide.md) | Settings (models, chunking, reranker, evidence thresholds), users and access, reindexing |
-| [Configuration](docs/configuration.md) | All `KS_*` environment variables |
-| [Deployment](docs/deployment.md) | Laptop vs. dedicated server, Docker/external PostgreSQL, TLS, backups, GPU notes |
-| [Development](docs/development.md) | Project layout, running tests, evaluation scripts, API |
-| [Evaluation](docs/evaluation.md) | Measured retrieval quality, abstention, latency — and their limits |
-| [Architecture](docs/architecture.md) | Design, decisions and alternatives considered, sources |
-| [Research: better search](docs/research-search.md) · [graph](docs/research-graph.md) | Techniques evaluated or planned, with sources |
-| [Troubleshooting](docs/troubleshooting.md) | Common problems and fixes |
-| [Handoff](docs/HANDOFF.md) | Project status, verified vs. unverified items, next steps |
+| [Getting started](docs/getting-started.md) | install, first run, try it on your own documents |
+| [User guide](docs/user-guide.md) | searching, reading results, uploading, AI assistants |
+| [Admin guide](docs/admin-guide.md) | settings, users and groups, synced folders, the crawler, reindexing |
+| [How it works](docs/how-it-works.md) | plain-language tour: embeddings, evidence check, links |
+| [Deployment](docs/deployment.md) · [Configuration](docs/configuration.md) | server setups, Docker, TLS, backups, `KS_*` variables |
+| [Evaluation](docs/evaluation.md) | measured retrieval quality, abstention and speed |
+| [Architecture](docs/architecture.md) · [Development](docs/development.md) | design decisions, project layout, tests, API |
+| [Troubleshooting](docs/troubleshooting.md) | common problems and fixes |
+| [Handoff](docs/HANDOFF.md) | project status: verified vs. not yet verified, next steps |
 
-## Requirements
+## Status and license
 
-64-bit Windows 10/11, macOS or Linux; 4 GB free RAM (8 GB recommended for the larger models); ~2 GB disk;
-(+3.2 GB disk and ~4 GB RAM with the optional summary model); internet access during setup only (to download the app's
-dependencies and models). Nothing needs to be
-installed beforehand. After setup it runs offline.
-
-**Speed:** search answers in under a second. Indexing is limited by the embedding model on the CPU: on the
-4-core test machine about 5–7 passages per second (a 10-page PDF has ~30 passages; 623 Kubernetes
-docs pages took 28 minutes), and faster on a modern
-laptop. It runs in the background; documents become searchable one by one. Scanned PDFs without a text
-layer and text inside images are not indexed (no OCR).
-
-## Status
-
-Version 1.0: search with cited passages, related documents and optional document summaries (no generated
-answers, no OCR). See [Handoff](docs/HANDOFF.md) for exactly what
-has been verified and what has not.
-
-## License
+Version 1.0: cited search, connections, optional summaries, crawler and MCP server. Ferret does not
+write generated answers yet. [Handoff](docs/HANDOFF.md) lists exactly what has been verified.
 
 No license has been chosen yet; all rights reserved by the repository owner. Third-party components and
-models are under their own licences (listed in [Architecture](docs/architecture.md#licences)).
+models keep their own licences ([list](docs/architecture.md#licences)).
