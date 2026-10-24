@@ -129,8 +129,10 @@ version, whether the database is embedded or external, its size and its extensio
   - **Rows:** 50 at a time. Sort by clicking a column; filter with "Where <column> contains <text>"; click a
     row to see all its values in full.
   - **Structure:** columns and types, indexes with their sizes, constraints, and the definition of a view.
+  - The button left of the table name hides the table list, for wide tables.
 - **SQL:** runs one statement of your own, for example a count per collection. At most 500 rows and 15
-  seconds.
+  seconds. Ctrl+Enter runs it. The example buttons above the box fill in a common query and run it.
+  **Copy as CSV** copies the result for a spreadsheet.
 
 It never changes data. Browsing runs read-only transactions. The SQL box connects as a separate database
 role (`ks_reader`) that is not a superuser, can only read, and has no access to password or access-token
@@ -141,6 +143,12 @@ query is recorded in the audit log (`db_query`).
   `KS_READONLY_DATABASE_URL`. Without it the SQL box is off, and browsing still works.
 
 Password and token hashes show as `•••`. Vectors show their first numbers and their length.
+
+## Sidebar
+
+The **Collapse** button at the bottom of the sidebar (or the `[` key) folds it to icons, which leaves more
+room for wide tables. Hover an icon to see its name. The browser remembers the choice. Below 1000 px wide
+the sidebar is already a bar at the top, and the button is hidden.
 
 ## Logs
 

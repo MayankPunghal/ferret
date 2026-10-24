@@ -18,6 +18,7 @@
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 5h-7M9 5H4M20 12h-9M7 12H4M20 19h-5M11 19H4M13 3v4M7 10v4M15 17v4"/></symbol>
     <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5 5 0 0 1 3 4.6V20"/></symbol>
     <symbol id="i-logs" viewBox="0 0 24 24"><path d="m5 8 4 4-4 4M12 17h7"/></symbol>
+    <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
     <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
     <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
@@ -68,6 +69,7 @@
         <button class="tab admin-only" data-tab="database" hidden><svg class="i"><use href="#i-db"/></svg>Database</button>
         <button class="tab admin-only" data-tab="logs" hidden><svg class="i"><use href="#i-logs"/></svg>Logs</button>
       </nav>
+      <button type="button" id="nav-toggle" class="tab nav-toggle" aria-controls="sidebar" aria-expanded="true" title="Collapse the sidebar ( [ )"><svg class="i"><use href="#i-sidebar"/></svg><span>Collapse</span></button>
       <div class="account">
         <span class="avatar" id="avatar" aria-hidden="true"></span>
         <span class="who"><span id="who"></span><span id="role" class="muted"></span></span>
@@ -411,7 +413,8 @@
         <div id="db-view-tables" class="dbv">
           <nav class="db-list" aria-label="Tables"><ul id="db-tables"></ul></nav>
           <div class="db-main">
-            <div class="db-head"><h2 id="db-name"></h2><span id="db-meta" class="meta"></span></div>
+            <div class="db-head"><button type="button" id="db-list-toggle" class="icon" aria-expanded="true" title="Hide the table list" aria-label="Hide the table list"><svg class="i"><use href="#i-sidebar"/></svg></button>
+              <h2 id="db-name"></h2><span id="db-meta" class="meta"></span></div>
             <div class="seg" role="tablist" id="db-panes">
               <button type="button" role="tab" data-pane="rows" aria-selected="true">Rows</button>
               <button type="button" role="tab" data-pane="structure" aria-selected="false">Structure</button>
@@ -437,16 +440,30 @@
           </aside>
         </div>
         <div id="db-view-sql" hidden>
-          <p class="muted">Runs one statement as a separate read-only database role: it cannot change anything or read
-            password and token hashes. At most 500 rows, 15 seconds. Every query is recorded in the audit log.</p>
-          <form id="db-sql-form">
-            <textarea id="db-sql" class="mono" rows="6" spellcheck="false" aria-label="SQL query">SELECT d.title, count(c.id) AS passages
+          <form id="db-sql-form" class="sql-editor">
+            <div class="sql-bar">
+              <span class="sql-examples" id="db-sql-examples"><span class="meta">Examples</span>
+                <button type="button" class="chip" data-sql="SELECT d.title, count(c.id) AS passages&#10;FROM documents d JOIN chunks c ON c.document_id = d.id&#10;GROUP BY d.title&#10;ORDER BY passages DESC">Passages per document</button>
+                <button type="button" class="chip" data-sql="SELECT co.name AS collection, count(d.id) AS documents&#10;FROM collections co LEFT JOIN documents d ON d.collection_id = co.id&#10;GROUP BY co.name&#10;ORDER BY documents DESC">Documents per collection</button>
+                <button type="button" class="chip" data-sql="SELECT status, count(*) AS jobs&#10;FROM jobs&#10;GROUP BY status&#10;ORDER BY jobs DESC">Jobs by status</button>
+                <button type="button" class="chip" data-sql="SELECT ts, action, target, detail&#10;FROM audit_events&#10;ORDER BY id DESC&#10;LIMIT 50">Latest audit events</button>
+                <button type="button" class="chip" data-sql="SELECT relname AS table_name, pg_size_pretty(pg_total_relation_size(oid)) AS size&#10;FROM pg_class&#10;WHERE relkind = 'r' AND relnamespace = 'public'::regnamespace&#10;ORDER BY pg_total_relation_size(oid) DESC">Largest tables</button>
+              </span>
+              <span class="sql-run"><kbd>Ctrl</kbd><kbd>Enter</kbd><button type="submit" class="primary small">Run</button></span>
+            </div>
+            <textarea id="db-sql" rows="7" spellcheck="false" aria-label="SQL query">SELECT d.title, count(c.id) AS passages
 FROM documents d JOIN chunks c ON c.document_id = d.id
-GROUP BY d.title ORDER BY passages DESC LIMIT 20</textarea>
-            <div class="toolbar"><button type="submit" class="primary">Run</button>
-              <span class="meta">Ctrl+Enter</span><span id="db-sql-msg" class="muted small" role="status"></span></div>
+GROUP BY d.title
+ORDER BY passages DESC</textarea>
           </form>
-          <div class="db-grid-wrap"><table class="data db-grid"><thead><tr id="db-sql-cols"></tr></thead><tbody id="db-sql-rows"></tbody></table></div>
+          <p class="meta sql-note">Read-only: runs one statement as a separate database role that cannot change anything or read
+            password and token hashes. At most 500 rows and 15 seconds. Every query is recorded in the audit log.</p>
+          <div class="sql-result">
+            <div class="sql-result-bar"><span id="db-sql-msg" role="status"></span>
+              <button type="button" id="db-sql-copy" class="small" hidden>Copy as CSV</button></div>
+            <div class="db-grid-wrap" id="db-sql-wrap" hidden><table class="data db-grid sql-grid"><thead><tr id="db-sql-cols"></tr></thead><tbody id="db-sql-rows"></tbody></table></div>
+            <p id="db-sql-empty" class="empty">Run a query, or pick an example above.</p>
+          </div>
         </div>
       </section>
 

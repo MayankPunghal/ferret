@@ -119,7 +119,20 @@ function openTab(name) {
   if (name === "database") loadDatabase();
   menu(false);
 }
-$$(".tab").forEach((b) => b.addEventListener("click", () => { topicFilter = null; openTab(b.dataset.tab); }));
+$$(".tab[data-tab]").forEach((b) => b.addEventListener("click", () => { topicFilter = null; openTab(b.dataset.tab); }));
+
+// Wide screens: the sidebar can fold to a rail of icons (remembered in this browser). Key: [
+function setNav(collapsed) {
+  $("#app-view").classList.toggle("nav-collapsed", collapsed);
+  const b = $("#nav-toggle");
+  b.setAttribute("aria-expanded", String(!collapsed));
+  b.title = collapsed ? "Expand the sidebar ( [ )" : "Collapse the sidebar ( [ )";
+  b.querySelector("span").textContent = collapsed ? "Expand" : "Collapse";
+  $$("#sidebar nav .tab").forEach((t) => { t.title = collapsed ? t.textContent.trim() : ""; });
+  try { localStorage.setItem("ks-nav-collapsed", collapsed ? "1" : ""); } catch { /* not kept */ }
+}
+$("#nav-toggle").addEventListener("click", () => setNav(!$("#app-view").classList.contains("nav-collapsed")));
+try { if (localStorage.getItem("ks-nav-collapsed")) setNav(true); } catch { /* private window */ }
 
 // Phone and tablet: the sidebar folds behind a menu button.
 function menu(open) {
@@ -497,6 +510,9 @@ $("#backdrop").addEventListener("click", closeDrawer);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !$("#drawer").hidden) closeDrawer();
   else if (e.key === "Escape") { menu(false); for (const d of $$("details.dropdown[open], details.menu[open]")) d.open = false; }
+  else if (e.key === "[" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && !$("#app-view").hidden) {
+    setNav(!$("#app-view").classList.contains("nav-collapsed"));
+  }
   else if (e.key === "/" && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && !$("#app-view").hidden) {
     e.preventDefault(); $("#q").focus(); $("#q").select();
   }
@@ -1101,17 +1117,41 @@ function showDbView(view) {
   $("#db-view-sql").hidden = view !== "sql";
 }
 $$("#db-views button").forEach((b) => b.addEventListener("click", () => showDbView(b.dataset.view)));
+let sqlResult = null;
 async function runSql() {
-  $("#db-sql-msg").textContent = "Running…";
+  const msg = $("#db-sql-msg");
+  msg.className = "meta"; msg.textContent = "Running…";
   let r;
   try { r = await api("/api/admin/db/query", { method: "POST", json: { sql: $("#db-sql").value } }); }
-  catch (err) { $("#db-sql-msg").textContent = err.message; $("#db-sql-cols").replaceChildren(); $("#db-sql-rows").replaceChildren(); return; }
-  $("#db-sql-cols").replaceChildren(...r.columns.map((c) => el("th", { scope: "col", textContent: c })));
-  $("#db-sql-rows").replaceChildren(...r.rows.map((row) => el("tr", {}, ...row.map((v) => el("td", { className: v === null ? "muted" : "", textContent: v === null ? "null" : String(v) })))));
-  $("#db-sql-msg").textContent = r.message || `${r.rows.length.toLocaleString()} row(s)${r.more ? " (first 500 shown)" : ""} in ${fmtMs(r.ms)}`;
+  catch (err) {
+    msg.className = "sql-error"; msg.textContent = err.message;
+    sqlResult = null; $("#db-sql-wrap").hidden = $("#db-sql-copy").hidden = true; $("#db-sql-empty").hidden = true; return;
+  }
+  sqlResult = r;
+  const numeric = r.columns.map((_, k) => r.rows.length > 0 && r.rows.every((row) => row[k] === null || typeof row[k] === "number"));
+  $("#db-sql-cols").replaceChildren(...r.columns.map((c, k) => el("th", { scope: "col", className: numeric[k] ? "num" : "", textContent: c })));
+  $("#db-sql-rows").replaceChildren(...r.rows.map((row) => el("tr", {}, ...row.map((v, k) => el("td", {
+    className: (v === null ? "muted " : "") + (numeric[k] ? "num" : ""), textContent: v === null ? "null" : String(v),
+    title: v !== null && String(v).length > 40 ? String(v) : "" })))));
+  const has = r.columns.length > 0;
+  $("#db-sql-wrap").hidden = !has; $("#db-sql-copy").hidden = !r.rows.length; $("#db-sql-empty").hidden = has;
+  if (!has) $("#db-sql-empty").textContent = r.message || "Done.";
+  msg.className = "meta";
+  msg.textContent = has ? `${r.rows.length.toLocaleString()} row${r.rows.length === 1 ? "" : "s"}${r.more ? " (the first 500)" : ""} · ${fmtMs(r.ms)}` : "";
 }
 $("#db-sql-form").addEventListener("submit", (e) => { e.preventDefault(); runSql(); });
 $("#db-sql").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); runSql(); } });
+$$("#db-sql-examples .chip").forEach((b) => b.addEventListener("click", () => { $("#db-sql").value = b.dataset.sql; runSql(); }));
+$("#db-sql-copy").addEventListener("click", () => {
+  const cell = (v) => { const t = v === null ? "" : String(v); return /[",\n]/.test(t) ? `"${t.replaceAll('"', '""')}"` : t; };
+  const csv = [sqlResult.columns, ...sqlResult.rows].map((row) => row.map(cell).join(",")).join("\n");
+  navigator.clipboard.writeText(csv).then(() => { $("#db-sql-copy").textContent = "Copied"; setTimeout(() => ($("#db-sql-copy").textContent = "Copy as CSV"), 1500); }, () => {});
+});
+$("#db-list-toggle").addEventListener("click", () => {
+  const hide = $("#db-view-tables").classList.toggle("tables-hidden");
+  const b = $("#db-list-toggle");
+  b.setAttribute("aria-expanded", String(!hide)); b.title = b.ariaLabel = hide ? "Show the table list" : "Hide the table list";
+});
 $("#db-refresh").addEventListener("click", loadDatabase);
 
 let logText = "";

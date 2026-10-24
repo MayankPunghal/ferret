@@ -299,6 +299,15 @@ with sync_playwright() as p:
     pg.fill("#db-sql", "DELETE FROM documents")
     pg.click("#db-sql-form button[type=submit]")
     pg.wait_for_selector("#db-sql-msg:has-text('read-only')")
+    # the sidebar folds to icons (remembered), and back
+    pg.click("#nav-toggle")
+    assert pg.locator("#sidebar").bounding_box()["width"] < 80
+    shot("24-nav-collapsed")
+    pg.reload()
+    pg.wait_for_selector("#app-view.nav-collapsed:not([hidden])")
+    pg.click("#nav-toggle")
+    assert pg.locator("#sidebar").bounding_box()["width"] > 200
+    pg.click(".tab[data-tab=database]")
     print("database: tables", len(tables), "| password hashes shown as", hashes, "| SQL:", msg, "| DELETE:", pg.inner_text("#db-sql-msg"))
     sign_in("alice", "demo-password-alice")
     run("per diem for domestic travel", "07-conflict")
