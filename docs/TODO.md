@@ -39,14 +39,11 @@ Status words: **bug** · **running** · **plan ready** (written, not built) · *
 |---|---|---|
 | 11 | Windows check of the current version: `git pull`, `setup.bat --summaries`, summary model download on Windows (not verified here), Crawler tab sign-in with installed Chrome/Edge, a real intranet copy sent to a collection | 23 Oct 17:02, 24 Oct 12:38 |
 | 12 | Your own documents (runbooks, the codebase-documenter `repo-kit` folder) with 50–100 labelled questions, including ones that must be refused. Every search setting so far was tuned on public docs | 23 Oct 04:01, 24 Oct 11:27 |
-| 13 | Rename the GitHub repository to `ferret` (optional; GitHub redirects the old address) | 24 Oct 14:43 |
-| 14 | Choose a license (README says none yet) | needed before sharing either app |
 
 ## 5. Search and graph ideas not built (each only with a measured gain)
 
 | # | Item | Status | Source |
 |---|---|---|---|
-| 15 | Summaries of the neighbouring passages instead of the 150-character overlap | **not measured** (the run was lost in a container restart); asked three times | 24 Oct 03:48, 08:25, 10:27 · evaluation.md §8 |
 | 16 | Second brain: a local model answers from the found passages, with checked citations, and refuses when there is no evidence | not built (trialled in `eval/llm_answers.py`) | end goal; 23 Oct 07:37 |
 | 17 | Shared-identifier (entity) links plus PageRank-style spreading (HippoRAG idea) | not built | 23 Oct 04:23 (owner's list, item 5) |
 | 18 | Learned keyword search (SPLADE) | not built | 23 Oct 04:23 (item 4) |
@@ -67,11 +64,15 @@ Status words: **bug** · **running** · **plan ready** (written, not built) · *
 - **The search tricks** (no overlap, passage size, summary in the keyword index, summary as a context line
   at three lengths, summary vectors, index-time question vectors, neighbour passages at rerank, convex
   fusion, RRF constant, HyDE): measured on 219 queries, none beat the shipped setup by more than noise
-  (evaluation.md §8). Item 15 is the one left.
+  (evaluation.md §8).
 - **Relations written by the local model, and topic links:** measured, worse than the shipped "related"
   rows (HANDOFF §4j).
 - **A separate vector or graph database:** not now. PostgreSQL holds vectors, links and text in one store
   with exact scoring; revisit with item 21.
+- **Neighbour summaries instead of the 150-character overlap:** discussed and rejected by the owner
+  (2026-10-24). Not measured; the closest measured variants (no overlap, neighbour passages at rerank,
+  summary context) gave nothing.
+- **Repository name and licence:** settled by the owner (2026-10-24).
 - **Spreadsheets and videos** are skipped by the crawler (owner, 23 Oct 11:27).
 
 ## 7. Housekeeping
