@@ -612,7 +612,7 @@ folders and the log file name are unchanged on purpose (no migration). The repos
 rewritten (logo, badges, quick start, light/dark screenshot). App text decluttered: short labels, detail
 behind ⓘ buttons (`info()` in app.js, `.info` in app.css). Graph: readable at 60 documents (only the lines
 that explain the layout; point at a document for all its links; labels along the radius; fitted to the
-panel with a Full size toggle), 17× faster neighbours (document vectors cached in `graph.py`), and a Back
+panel with a Full size toggle), ~15× faster neighbours (document vectors cached in `graph.py`), and a Back
 button in the passage panel. Plans added: `docs/plan-large-documents.md` (parallel embedding sessions:
 first contended reading 1.7×, identical vectors; vector reuse for unchanged passages) and
 `docs/plan-summaries-status.md` (count tiles + per-collection table; also fixes the 1,000-row cap that makes
