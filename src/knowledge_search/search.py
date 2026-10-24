@@ -8,6 +8,7 @@ Scores are ranking signals, not probabilities. The response exposes an ``outcome
 instead of a confidence number.
 """
 
+import json
 import math
 import time
 from dataclasses import asdict, dataclass, field
@@ -28,6 +29,14 @@ GRAPH_SLOTS = 5  # ... and reserve this many of the result slots for passages of
 # `limit` documents: often 2-3 of the top passages come from one page. Relationship questions needing several
 # pages had all of them in the results 42% -> 58% of the time; nothing is removed (eval/relational_eval.py).
 FILL_DOCUMENTS = True
+
+# Experiments (eval/tricks.py turns them on; off in the app until one is measured useful, docs/research-search.md)
+SUMMARY_WEIGHT = 0.0  # RRF weight of a branch from one vector per document summary (table summary_vectors)
+QUESTION_WEIGHT = 0.0  # ... from questions each section answers, written by the local model (question_vectors)
+RERANK_NEIGHBOURS = 0  # characters of the previous and next passage the reranker reads with each passage
+FUSION = "rrf"  # "convex": min-max normalised scores, CONVEX_ALPHA * dense + (1 - CONVEX_ALPHA) * keyword
+CONVEX_ALPHA = 0.7
+HYDE_URL = ""  # local model server: when nothing counts as evidence, search again with a model-written passage
 
 # Outcomes (stable API contract)
 EVIDENCE_FOUND = "evidence_found"
@@ -201,6 +210,7 @@ def search(
     branches: tuple[str, ...] = ("lexical", "dense", "exact"),
     gate: GateConfig | None = None,
     embedder: Embedder | None = None,
+    hyde_vec=None,
 ) -> SearchResponse:
     t0 = time.perf_counter()
     timings: dict[str, float] = {}
@@ -231,15 +241,18 @@ def search(
             qvec = embedder.embed_query(query)
             timings["query_embedding"] = (time.perf_counter() - t) * 1000
             t = time.perf_counter()
-            if in_memory:
-                ranked["dense"] = vectors.index.top_k(conn, model_key, qvec, scope, BRANCH_LIMIT)
-            else:
-                rows = conn.execute(
-                    "SELECT id FROM chunks WHERE collection_id = ANY(%s) AND embedding_model = %s "
-                    "ORDER BY embedding <=> %s LIMIT %s",
-                    (scope, model_key, qvec, BRANCH_LIMIT),
-                ).fetchall()
-                ranked["dense"] = [r["id"] for r in rows]
+            for name, vec in [("dense", qvec)] + ([("hyde", hyde_vec)] if hyde_vec is not None else []):
+                if in_memory:
+                    ranked[name] = vectors.index.top_k(conn, model_key, vec, scope, BRANCH_LIMIT)
+                else:
+                    rows = conn.execute(
+                        "SELECT id FROM chunks WHERE collection_id = ANY(%s) AND embedding_model = %s "
+                        "ORDER BY embedding <=> %s LIMIT %s",
+                        (scope, model_key, vec, BRANCH_LIMIT),
+                    ).fetchall()
+                    ranked[name] = [r["id"] for r in rows]
+            if SUMMARY_WEIGHT or QUESTION_WEIGHT:
+                ranked.update(_document_level(conn, scope, qvec, model_key))
             timings["dense"] = (time.perf_counter() - t) * 1000
         except Exception:  # noqa: BLE001 - surfaced as an explicit degraded state
             try:
@@ -253,11 +266,12 @@ def search(
     if "lexical" in branches and lexemes:
         t = time.perf_counter()
         rows = conn.execute(
-            "SELECT id FROM chunks, to_tsquery('english', %s) q WHERE collection_id = ANY(%s) AND tsv @@ q "
-            "ORDER BY ts_rank_cd(tsv, q, 32) DESC, id LIMIT %s",
+            "SELECT id, ts_rank_cd(tsv, q, 32) AS s FROM chunks, to_tsquery('english', %s) q "
+            "WHERE collection_id = ANY(%s) AND tsv @@ q ORDER BY s DESC, id LIMIT %s",
             (_or_tsquery(lexemes), scope, BRANCH_LIMIT),
         ).fetchall()
         ranked["lexical"] = [r["id"] for r in rows]
+        lex_scores = {r["id"]: float(r["s"]) for r in rows}
         timings["lexical"] = (time.perf_counter() - t) * 1000
 
     if "exact" in branches and q_idents:
@@ -274,8 +288,11 @@ def search(
 
     # Weighted RRF: the generic keyword branch is down-weighted (it adds weaker candidates for natural-language
     # questions); dense and exact-identifier branches keep full weight. Weights are tuned in eval/.
-    weights = {"lexical": rt.fusion_lexical_weight}
-    fused = _fuse(ranked, weights)
+    weights = {"lexical": rt.fusion_lexical_weight, "summary": SUMMARY_WEIGHT, "questions": QUESTION_WEIGHT}
+    if FUSION == "convex" and qvec is not None:
+        fused = _convex(ranked, qvec, model_key, in_memory, conn, locals().get("lex_scores", {}))
+    else:
+        fused = _fuse(ranked, weights)
     order = sorted(fused, key=lambda c: (-fused[c], c))
     pool = order[: max(limit, rt.rerank_candidates if rt.rerank_enabled else 0)]
     via: dict[int, str] = {}
@@ -321,8 +338,12 @@ def search(
     if rt.rerank_enabled and pool:
         t = time.perf_counter()
         try:
-            texts = [f"{rows_by_id[c]['doc_title']}\n{rows_by_id[c]['heading_path']}\n{rows_by_id[c]['text']}"
-                     for c in pool]
+            around = _neighbours(conn, pool, RERANK_NEIGHBOURS) if RERANK_NEIGHBOURS else {}
+            texts = []
+            for c in pool:
+                prev, nxt = around.get(c, ("", ""))
+                body = "\n".join(x for x in (prev, rows_by_id[c]["text"], nxt) if x)
+                texts.append(f"{rows_by_id[c]['doc_title']}\n{rows_by_id[c]['heading_path']}\n{body}")
             rerank = dict(zip(pool, runtime.rerank_scores(rt.rerank_model, query, texts), strict=True))
             pool.sort(key=lambda c: -rerank[c])
         except runtime.RerankError:
@@ -391,6 +412,14 @@ def search(
     if any(r.outdated_version for r in supported):
         reasons.append("evidence_from_outdated_indexed_version")
     timings["total"] = (time.perf_counter() - t0) * 1000
+    if HYDE_URL and not supported and hyde_vec is None and qvec is not None and outcome == NO_ADEQUATE_EVIDENCE:
+        written = _hypothetical(query)
+        if written:
+            again = search(conn, principal, query, rt, collection_ids, limit, branches, gate, embedder,
+                           hyde_vec=embedder.embed_documents([written])[0])
+            again.reason_codes.append("searched_again_with_written_answer")
+            again.timings_ms["total"] = round((time.perf_counter() - t0) * 1000, 2)
+            return again
     return SearchResponse(
         query=query, outcome=outcome, message=MESSAGES[outcome], reason_codes=reasons, results=results,
         coverage=cov, index=index_info, timings_ms={k: round(v, 2) for k, v in timings.items()},
@@ -411,6 +440,77 @@ def _other_documents(conn: Connection, order: list[int], pool: list[int], limit:
             seen.add(d)
             out.append(c)
     return out
+
+
+def _document_level(conn: Connection, scope: list[int], qvec, model_key: str) -> dict[str, list[int]]:
+    """Experiment branches: documents whose summary, or sections whose model-written questions, match the
+    query put their best passages forward. Never a filter: the other branches still rank every passage."""
+    hits: dict[str, list[tuple]] = {}
+    if SUMMARY_WEIGHT:
+        hits["summary"] = [(r["document_id"], None) for r in conn.execute(
+            "SELECT document_id FROM summary_vectors WHERE collection_id = ANY(%s) AND embedding_model = %s "
+            "ORDER BY embedding <=> %s LIMIT 10", (scope, model_key, qvec))]
+    if QUESTION_WEIGHT:
+        hits["questions"] = [(r["document_id"], r["heading_path"]) for r in conn.execute(
+            "SELECT document_id, heading_path FROM question_vectors WHERE collection_id = ANY(%s) "
+            "AND embedding_model = %s ORDER BY embedding <=> %s LIMIT 20", (scope, model_key, qvec))]
+    docs = list({d for h in hits.values() for d, _ in h})
+    if not docs:
+        return {}
+    passages = conn.execute(  # best first
+        "SELECT id, document_id, heading_path FROM chunks WHERE document_id = ANY(%s) AND embedding_model = %s "
+        "ORDER BY embedding <=> %s", (docs, model_key, qvec)).fetchall()
+    out = {}
+    for branch, found in hits.items():
+        ids: list[int] = []
+        for doc, head in found:
+            mine = [p for p in passages if p["document_id"] == doc and p["id"] not in ids]
+            best = next((p for p in mine if head and p["heading_path"].startswith(head)), mine[0] if mine else None)
+            if best:
+                ids.append(best["id"])
+        out[branch] = ids
+    return out
+
+
+def _convex(ranked, qvec, model_key, in_memory, conn, lex_scores) -> dict[int, float]:
+    """Experiment: score fusion instead of rank fusion (Bruch et al.): min-max normalised cosine and keyword
+    scores, CONVEX_ALPHA * dense + (1 - CONVEX_ALPHA) * keyword; an identifier match adds 1."""
+    ids = list({c for k in ("dense", "lexical", "exact") for c in ranked.get(k, [])})
+    if in_memory:
+        dense = vectors.index.similarities(model_key, qvec, ids)
+    else:
+        dense = {r["id"]: float(r["s"]) for r in conn.execute(
+            "SELECT id, 1 - (embedding <=> %s) AS s FROM chunks WHERE id = ANY(%s)", (qvec, ids))}
+
+    def norm(d):
+        if not d:
+            return {}
+        lo, hi = min(d.values()), max(d.values())
+        return {k: (v - lo) / (hi - lo) if hi > lo else 1.0 for k, v in d.items()}
+
+    dn, ln, ex = norm(dense), norm(lex_scores), set(ranked.get("exact", []))
+    return {c: CONVEX_ALPHA * dn.get(c, 0) + (1 - CONVEX_ALPHA) * ln.get(c, 0) + (c in ex) for c in ids}
+
+
+def _neighbours(conn: Connection, ids: list[int], chars: int) -> dict[int, tuple[str, str]]:
+    """The end of the previous and the start of the next passage of each passage (same document version)."""
+    rows = conn.execute(
+        "SELECT c.id, coalesce(p.text, '') AS prev, coalesce(n.text, '') AS next FROM chunks c "
+        "LEFT JOIN chunks p ON p.version_id = c.version_id AND p.ordinal = c.ordinal - 1 "
+        "LEFT JOIN chunks n ON n.version_id = c.version_id AND n.ordinal = c.ordinal + 1 WHERE c.id = ANY(%s)",
+        (ids,)).fetchall()
+    return {r["id"]: (r["prev"][-chars:], r["next"][:chars]) for r in rows}
+
+
+def _hypothetical(query: str) -> str:
+    """Experiment (HyDE): a short passage a local model writes as if it answered the question."""
+    try:
+        out = json.loads(enrich.chat(HYDE_URL, "", "Write the passage of technical documentation that answers "
+                                     "this question, in about 60 words, as the documentation would say it. "
+                                     f'Reply as JSON: {{"passage": "..."}}\nQuestion: {query}', max_tokens=200))
+        return " ".join(str(out.get("passage", "")).split())
+    except (enrich.LLMError, ValueError, AttributeError):
+        return ""
 
 
 def _fuse(ranked: dict[str, list[int]], weights: dict[str, float]) -> dict[int, float]:
