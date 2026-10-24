@@ -58,7 +58,7 @@ FILE_TYPES = {".pdf": "pdf", ".docx": "docx", ".pptx": "pptx", ".md": "md", ".ma
 KEEP = (".pdf", ".docx", ".pptx")  # embedded Drive files that are kept
 SKIP_TYPES = re.compile(r"\.(png|jpe?g|gif|svg|webp|ico|css|js|mjs|json|xml|zip|gz|tgz|tar|exe|msi|dmg|iso|mp4|"
                         r"mp3|wav|avi|mov|woff2?|ttf|eot|pptx?|xlsx?|csv)$", re.IGNORECASE)
-TRACKING = re.compile(r"^(utm_\w+|fbclid|gclid|mc_cid|mc_eid|_ga|ref|sessionid|jsessionid|phpsessid|sid|authuser)$",
+TRACKING = re.compile(r"^(utm_\w+|fbclid|gclid|mc_cid|mc_eid|_ga|ref|refid|sessionid|jsessionid|phpsessid|sid|authuser)$",
                       re.IGNORECASE)  # authuser: Google's account selector, same page
 MAX_BYTES = 500_000_000  # the same limit as knowledge-search uploads
 DOCUMENT = re.compile(r"pdf|wordprocessingml|octet-stream|html", re.IGNORECASE)  # worth downloading (html: an
@@ -254,15 +254,48 @@ def normalize(url: str) -> str:
     return urlunsplit((p.scheme.lower(), host + port, path, query, ""))
 
 
+class NavLink(str):
+    """A link in a page's menus, header, footer or sidebar (not its content): followed inside the copied site,
+    but never the reason to go to another site."""
+
+
+# social and video sites: a link to them is never the start of a section worth copying
+NOT_DOCS = re.compile(r"(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com|twitter\.com|x\.com|facebook\.com|"
+                      r"linkedin\.com|instagram\.com|tiktok\.com|reddit\.com|vimeo\.com|twitch\.tv)$")
+CHROME = {"nav", "header", "footer", "aside"}
+CHROME_ROLES = {"navigation", "banner", "contentinfo", "complementary", "menu", "menubar"}
+TRACKED = CHROME | {"div", "ul", "ol", "section"}
+
+
 class _Links(HTMLParser):
-    """Every followable URL on a page, wherever it appears (content, nav, header, footer, frames)."""
+    """Every followable URL on a page, wherever it appears (content, nav, header, footer, frames); links in
+    menus, header, footer and sidebars are marked as NavLink."""
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.base, self.links = "", []
+        self._chrome: list[tuple[str, int]] = []  # open menu/header/footer elements: (tag, nesting level)
+        self._depth = dict.fromkeys(TRACKED, 0)
+
+    def handle_endtag(self, tag):
+        if tag in TRACKED:
+            if self._chrome and self._chrome[-1] == (tag, self._depth[tag]):
+                self._chrome.pop()
+            self._depth[tag] = max(0, self._depth[tag] - 1)
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
+        if tag in TRACKED:
+            self._depth[tag] += 1
+            if tag in CHROME or (a.get("role") or "").lower() in CHROME_ROLES:
+                self._chrome.append((tag, self._depth[tag]))
+        n = len(self.links)
+        self._link(tag, a)
+        # menus, header, footer, and head links / language versions (rel=alternate, hreflang): same site only
+        if len(self.links) > n and (self._chrome or tag == "link" or a.get("hreflang")):
+            self.links[-1] = NavLink(self.links[-1])
+
+    def _link(self, tag, a):
         if tag == "base" and a.get("href"):
             self.base = a["href"]
         elif tag in ("a", "area") and a.get("href"):
@@ -288,9 +321,10 @@ def page_links(html: str, url: str) -> list[str]:
     base = urljoin(url, p.base) if p.base else url
     out = []
     for href in p.links:
-        href = href.strip()
-        if href and not href.lower().startswith(("mailto:", "tel:", "javascript:", "data:", "#")):
-            out.append(normalize(urljoin(base, href)))
+        h = href.strip()
+        if h and not h.lower().startswith(("mailto:", "tel:", "javascript:", "data:", "#")):
+            u = normalize(urljoin(base, h))
+            out.append(NavLink(u) if isinstance(href, NavLink) else u)
     return out
 
 
@@ -301,6 +335,12 @@ def _decode(data: bytes, content_type: str) -> str:
         return data.decode(enc, errors="replace")
     except LookupError:
         return data.decode("utf-8", errors="replace")
+
+
+def start_folder(url: str) -> str:
+    """The folder a crawl stays in by default: https://host/docs/intro.html -> https://host/docs/."""
+    url = normalize(url)
+    return (url if url.endswith("/") else url.rsplit("/", 1)[0] + "/").split("?")[0]
 
 
 def slug_for(url: str, used: set[str], root: str = "") -> str:
@@ -336,18 +376,45 @@ def file_name_for(filename: str, used: set[str]) -> str:
     return name
 
 
+class _Queue:
+    """Pages to visit: the copied site's own pages first, then sections its links lead to, so a page limit
+    never starves the site itself."""
+
+    def __init__(self, first):
+        self.first, self.now, self.later = first, deque(), deque()
+
+    def append(self, u: str) -> None:
+        (self.now if self.first(u) else self.later).append(u)
+
+    def extendleft(self, urls) -> None:
+        self.now.extendleft(urls)
+
+    def popleft(self) -> str:
+        return self.now.popleft() if self.now else self.later.popleft()
+
+    def __len__(self) -> int:
+        return len(self.now) + len(self.later)
+
+    def __iter__(self):
+        return iter([*self.now, *self.later])
+
+
 class Crawler:
     def __init__(self, start: str, out: Path, *, prefixes: list[str] | None = None, allow_hosts: list[str] | None = None,
                  max_pages: int = 10_000, workers: int = 4, delay: float = 0.2, headers: dict | None = None,
                  robots: bool = True, files: bool = True, timeout: float = 30, log=print, browser=None,
-                 save_html: Path | None = None, on_page=None):
+                 save_html: Path | None = None, on_page=None, follow: str = "linked"):
         self.start, self.out = normalize(start), Path(out)
         host = urlsplit(self.start).netloc
-        folder = self.start if self.start.endswith("/") else self.start.rsplit("/", 1)[0] + "/"
-        self.prefixes = [normalize(p) for p in prefixes] if prefixes else [folder.split("?")[0]]
+        self.prefixes = [normalize(p) for p in prefixes] if prefixes else [start_folder(self.start)]
         self.root = urlsplit(self.prefixes[0]).path.rstrip("/")  # file names are relative to it
         self.allow_hosts = set(allow_hosts or [])
-        self.hosts = {host, *self.allow_hosts}
+        self.hosts = {host, *self.allow_hosts, *(urlsplit(x).netloc for x in self.prefixes)}
+        # how far to follow links that leave the copied folders: "site" not at all; "linked" (default) a link in
+        # a page's content (not its menus) brings in the folder it points to, one step out from the start
+        # folders; "everything" every link anywhere, up to max_pages
+        self.follow = follow
+        self.base_prefixes = list(self.prefixes)
         self.max_pages, self.workers, self.delay, self.timeout = max_pages, workers, delay, timeout
         self.headers = {"User-Agent": USER_AGENT, **(headers or {})}
         self.robots, self.files, self.log = robots, files, log
@@ -357,7 +424,9 @@ class Crawler:
             self.workers = 1
         self._robots: dict[str, urllib.robotparser.RobotFileParser | None] = {}
         self.lock = threading.Lock()
-        self.manifest = {"start": self.start, "pages": {}, "files": {}, "failed": {}, "skipped": {}, "queue": []}
+        # outside: links leading out of the copy (url -> the page linking to it), so a person can add them
+        self.manifest = {"start": self.start, "pages": {}, "files": {}, "failed": {}, "skipped": {}, "queue": [],
+                         "outside": {}, "linked": []}
         self.seen: set[str] = set()
         self.hashes: dict[str, str] = {}
         self.used: set[str] = set()
@@ -376,11 +445,30 @@ class Crawler:
     # -- scope and politeness -------------------------------------------------------------------------------
     def in_scope(self, url: str) -> bool:
         p = urlsplit(url)
+        if self.follow == "everything" and p.scheme in ("http", "https") and not NOT_DOCS.search(p.hostname or ""):
+            return not NO_FOLLOW.search(url) and not SKIP_TYPES.search(p.path)
         if p.scheme not in ("http", "https") or p.netloc not in self.hosts:
             return False
         if p.netloc not in self.allow_hosts and not any(url.startswith(x) for x in self.prefixes):
             return False
         return not NO_FOLLOW.search(url) and not SKIP_TYPES.search(p.path)
+
+    def follow_out(self, url: str, page: str) -> bool:
+        """A content link from a start-folder page to somewhere else: bring in the folder it points to (only
+        the page itself when that folder is a site's front page). Returns True when the URL is now in scope."""
+        p = urlsplit(url)
+        if (self.follow != "linked" or isinstance(url, NavLink) or p.scheme not in ("http", "https")
+                or NOT_DOCS.search(p.hostname or "") or NO_FOLLOW.search(url) or SKIP_TYPES.search(p.path)
+                or not any(page.startswith(x) for x in self.base_prefixes)):
+            return False
+        folder = start_folder(url)
+        prefix = folder if urlsplit(folder).path != "/" else url
+        with self.lock:
+            self.prefixes.append(prefix)
+            self.hosts.add(p.netloc)
+            self.manifest.setdefault("linked", []).append(prefix)
+        self.log(f"following a link out of the site: {prefix} (from {page})")
+        return True
 
     def allowed(self, url: str) -> bool:
         if not self.robots:
@@ -621,17 +709,32 @@ class Crawler:
     def run(self, resume: bool = False) -> dict:
         self.out.mkdir(parents=True, exist_ok=True)
         mpath = self.out / "manifest.json"
-        queue: deque[str] = deque()
+        queue = _Queue(lambda u: any(u.startswith(x) for x in self.base_prefixes))
         self.queue = queue  # read by the site2md page (pages waiting, per section)
 
-        def add(urls):  # each URL is queued once (every page repeats the navigation links)
+        def add(urls, page=""):  # each URL is queued once (every page repeats the navigation links)
+            outside = self.manifest.setdefault("outside", {})
             for u in urls:
-                if u not in self.seen and self.in_scope(u):
+                if u in self.seen:
+                    continue
+                twin = re.sub(r"\.(md|markdown|txt)$", ".html", u, flags=re.IGNORECASE)
+                if twin != u and twin in self.seen:  # docs sites offer each page as Markdown too: the same page
+                    self.seen.add(u)
+                    self.manifest["skipped"][u] = f"same page as {twin}"
+                    continue
+                if self.in_scope(u) or (page and self.follow_out(u, page)):
                     self.seen.add(u)
                     queue.append(u)
+                    outside.pop(u, None)
+                elif page and len(outside) < 5000 and urlsplit(u).scheme in ("http", "https") \
+                        and not NO_FOLLOW.search(u) and not SKIP_TYPES.search(urlsplit(u).path):
+                    outside.setdefault(u, page)
 
         if resume and mpath.exists():
             self.manifest = json.loads(mpath.read_text())
+            for x in self.manifest.get("linked", []):  # sections brought in by links, in an earlier run
+                self.prefixes.append(x)
+                self.hosts.add(urlsplit(x).netloc)
             for url, v in self.manifest["pages"].items():
                 self.used.add(v["file"].removesuffix(".md"))
                 self.hashes[hashlib.sha256((self.out / v["file"]).read_bytes()).hexdigest()] = v["file"]
@@ -665,7 +768,7 @@ class Crawler:
                     finished, _ = wait(running, timeout=0.5, return_when=FIRST_COMPLETED)
                     for fut in finished:
                         url, started = running.pop(fut)
-                        add(fut.result())
+                        add(fut.result(), url)
                         done += 1
                         outcome = self._outcome(url)
                         self.log(f"[{done}/{done + len(queue) + len(running)}] {time.time() - started:4.1f} s  "

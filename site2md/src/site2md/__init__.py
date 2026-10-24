@@ -33,6 +33,9 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--ignore-robots", action="store_true", help="ignore robots.txt (only for your own sites)")
     ap.add_argument("--no-files", action="store_true", help="do not save linked PDF/Word/text files")
     ap.add_argument("--resume", action="store_true", help="continue an interrupted crawl in --out")
+    ap.add_argument("--follow", choices=("site", "linked", "everything"), default="linked",
+                    help="links leaving the start folder: site = never; linked (default) = a link in a page's content "
+                         "brings in the folder it points to; everything = every link anywhere, up to --max-pages")
     b = ap.add_argument_group("browser (sites behind a login or built with JavaScript; needs: pip install playwright)")
     b.add_argument("--browser", action="store_true", help="fetch pages with a real browser")
     b.add_argument("--login", action="store_true", help="open a browser window to sign in first (saved for next time)")
@@ -59,7 +62,7 @@ def main(argv: list[str] | None = None) -> None:
         Crawler(a.url, Path(a.out), prefixes=a.prefix, allow_hosts=a.allow_host, max_pages=a.max_pages,
                 workers=a.workers, delay=a.delay, headers={k.strip(): v.strip() for k, v in headers.items()},
                 robots=not a.ignore_robots, files=not a.no_files, browser=fetcher,
-                save_html=Path(str(Path(a.out)) + "-html") if a.save_html else None).run(resume=a.resume)
+                save_html=Path(str(Path(a.out)) + "-html") if a.save_html else None, follow=a.follow).run(resume=a.resume)
     finally:
         if fetcher:
             fetcher.close()

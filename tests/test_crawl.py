@@ -8,6 +8,7 @@ import urllib.error
 import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from site2md.crawl import EXPORT, FOLDER_VIEW, Crawler, file_name_for, normalize
 from site2md.html import html_to_markdown
@@ -301,3 +302,69 @@ def test_a_page_with_only_a_title_is_not_written(tmp_path):
         srv.shutdown()
     assert base + "/hub" not in m["pages"] and "no text of its own" in m["skipped"][base + "/hub"]
     assert not (tmp_path / "hub.md").exists()
+
+
+def test_content_links_to_other_sites_bring_in_that_folder_menus_do_not(tmp_path):
+    """A card in a page's content linking to another site's guide brings in the guide's folder (and its own
+    pages first); links in menus, footers, language versions and video sites stay out, and are listed."""
+    guide = {
+        "/guide/v1/what-is.html": "<html><head><title>What is it</title></head><body><main><h1>What is it</h1>"
+                                  "<p>The service explained in detail.</p><a href='setup.html'>Set up</a> "
+                                  "<a href='what-is.md'>Markdown</a> <a href='/blog/'>Blog</a></main></body></html>",
+        "/guide/v1/setup.html": "<html><head><title>Set up</title></head><body><main><h1>Set up</h1>"
+                                "<p>Run the installer, then sign in.</p></main></body></html>",
+        "/guide/v1/what-is.md": "# What is it\n\nThe service explained in detail.",
+        "/blog/": "<html><body><main><p>A blog post.</p></main></body></html>",
+        "/other/": "<html><body><main><p>Something else.</p></main></body></html>",
+    }
+
+    class G(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = guide.get(self.path.split("?")[0])
+            self.send_response(200 if body else 404)
+            self.send_header("Content-Type", "text/markdown" if self.path.endswith(".md") else "text/html")
+            self.end_headers()
+            self.wfile.write((body or "").encode())
+
+        def log_message(self, *a):
+            pass
+
+    docs = ThreadingHTTPServer(("127.0.0.1", 0), G)
+    threading.Thread(target=docs.serve_forever, daemon=True).start()
+    d = f"http://127.0.0.1:{docs.server_port}"
+    site = {
+        "/product/": f"<html><head><title>Product</title><link rel='alternate' hreflang='de' href='{d}/other/'></head>"
+                     f"<body><nav><a href='{d}/other/'>Docs home</a></nav><main><h1>Product</h1><p>What it does.</p>"
+                     f"<a class='card' href='{d}/guide/v1/what-is.html?refid=abc'>Explore the user guide</a> "
+                     "<a href='https://www.youtube.com/watch?v=x'>Video</a> <a href='faq'>FAQ</a></main>"
+                     f"<footer><a href='{d}/other/'>Contact</a></footer></body></html>",
+        "/product/faq": "<html><head><title>FAQ</title></head><body><main><h1>FAQ</h1><p>Answers.</p></main></body></html>",
+    }
+
+    class S(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = site.get(self.path)
+            self.send_response(200 if body else 404)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            self.wfile.write((body or "").encode())
+
+        def log_message(self, *a):
+            pass
+
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), S)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        order = []
+        m = Crawler(f"http://127.0.0.1:{srv.server_port}/product/", tmp_path, delay=0, workers=1, robots=False,
+                    on_page=lambda u, o: order.append(u)).run()
+    finally:
+        srv.shutdown()
+        docs.shutdown()
+    saved = sorted(urlsplit(u).path for u in m["pages"])
+    assert saved == ["/guide/v1/setup.html", "/guide/v1/what-is.html", "/product/", "/product/faq"]
+    assert m["linked"] == [f"{d}/guide/v1/"]
+    assert order.index(f"http://127.0.0.1:{srv.server_port}/product/faq") < order.index(f"{d}/guide/v1/what-is.html")
+    assert m["skipped"][f"{d}/guide/v1/what-is.md"].startswith("same page as")
+    assert f"{d}/other/" in m["outside"] and f"{d}/blog/" in m["outside"]  # menus/footer, and one step too far
+    assert "https://www.youtube.com/watch?v=x" in m["outside"]
