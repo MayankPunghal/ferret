@@ -13,7 +13,7 @@ const btn = (label, fn, kind = "button") => { const b = el("button", { type: "bu
 const num = (n) => (n ?? 0).toLocaleString();
 const plural = (n, one, many = one + "s") => `${num(n)} ${n === 1 ? one : many}`;
 const ACTIVE = ["starting", "signin", "copying", "paused", "stopping"];
-if (IN_KS) document.body.classList.add("in-ks");
+if (IN_KS) { document.body.classList.add("in-ks"); document.querySelector("#send h2").textContent = "Add to a collection"; }
 
 async function api(path, body) {
   const r = await fetch(BASE + path, body === undefined ? { headers: AUTH }
@@ -183,7 +183,7 @@ function renderCopy(d) {
     const stop = btn("Stop", () => control("stop"), "button danger"); stop.disabled = d.state === "stopping"; acts.push(stop);
   } else {
     if (d.counts.waiting && d.state !== "done") acts.push(btn(d.state === "signin-expired" ? "Sign in and continue" : "Continue", () => start({ name: d.name, mode: "continue", signin: d.state === "signin-expired" }), "primary"));
-    acts.push(btn("Send to Knowledge Search", openSend, acts.length ? "button" : "primary"),
+    acts.push(btn(IN_KS ? "Add to a collection" : "Send to Knowledge Search", openSend, acts.length ? "button" : "primary"),
       btn("Update", () => start({ name: d.name, mode: "update" })), btn("Open folder", () => api("open", { name: d.name })));
     acts.push(btn("Delete", async () => {
       if (!confirm(`Delete the copy “${d.name}” (${plural(d.counts.saved, "page")}) from this computer? The website is not affected.`)) return;
@@ -346,7 +346,8 @@ $("#send-form").addEventListener("submit", async (e) => {
       const id = isNew ? (await ks("/api/admin/collections", { name: newName })).id : Number($("#ks-col").value);
       await ks("/api/admin/folders", { path: detail.folder, collection_id: id });
       st.replaceChildren(`Added to ${colName}. Knowledge Search is indexing it now; after an Update here it takes in only what changed. `,
-        el("a", { href: "/#documents", target: "_top", textContent: "Open Documents" }));
+        el("button", { type: "button", className: "link", textContent: "Open Documents",
+          onclick: () => window.parent.postMessage({ open: "documents" }, location.origin) }));
       return;
     }
     await api("send", { ...ksBody(), name: current, ...(isNew ? { new_collection: newName } : { collection_id: Number($("#ks-col").value) }) });

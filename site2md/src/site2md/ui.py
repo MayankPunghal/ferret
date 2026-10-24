@@ -273,6 +273,7 @@ class App:
         self.copies = copies
         self.copies.mkdir(parents=True, exist_ok=True)
         self.on_copies = on_copies  # called with the new folder when the person changes it
+        self.on_done = None  # called with (name, folder, state) when a copy stops (Knowledge Search syncs it)
         self.run: Run | None = None
         self.sends: dict[str, dict] = {}
         self.lock = threading.Lock()
@@ -372,6 +373,11 @@ class App:
                         shutil.rmtree(b, ignore_errors=True)
                         a.rename(b)
                 run.target = folder
+            if self.on_done:
+                try:
+                    self.on_done(run.name, folder, run.state)
+                except Exception:  # noqa: BLE001, S110 - the host's follow-up must not break the copy
+                    pass
 
     def control(self, action: str) -> dict:
         r = self.run
