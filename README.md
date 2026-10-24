@@ -142,7 +142,7 @@ about 5–7 passages per second on a 4-core test machine, so a 10-page PDF takes
 | [Evaluation](docs/evaluation.md) | measured retrieval quality, abstention and speed |
 | [Architecture](docs/architecture.md) · [Development](docs/development.md) | design decisions, project layout, tests, API |
 | [Troubleshooting](docs/troubleshooting.md) | common problems and fixes |
-| [Handoff](docs/HANDOFF.md) · [To do](docs/TODO.md) | project status: verified vs. not yet verified; open work |
+| [Handoff](docs/HANDOFF.md) · [To do](docs/TODO.md) · [Plans](docs/PLANS.md) | project status: verified vs. not yet verified; open work |
 
 ## Status and license
 

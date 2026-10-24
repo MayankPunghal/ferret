@@ -23,6 +23,8 @@ Status words: **bug** · **running** · **plan ready** (written, not built) · *
 
 ## 3. Plans ready, not built (owner asked for the plan first)
 
+Catalogue with sizes and suggested order: [PLANS.md](PLANS.md).
+
 | # | Item | Source / plan |
 |---|---|---|
 | 4 | CPU/GPU switch in Settings for embedding, reranking, summaries and enrichment (owner's laptop has an Intel iGPU) | 24 Oct 05:08 · [plan-gpu.md](plan-gpu.md) |
@@ -32,6 +34,7 @@ Status words: **bug** · **running** · **plan ready** (written, not built) · *
 | 8 | Faster indexing of very large documents: small documents not stuck behind a large one (two workers), re-use vectors of unchanged passages. Several embedding sessions per document measured: no gain on 4 cores | 24 Oct 14:52 · [plan-large-documents.md](plan-large-documents.md) |
 | 9 | Summaries tab with count tiles and a per-collection table like Index status, paged list | 24 Oct 14:53 · [plan-summaries-status.md](plan-summaries-status.md) |
 | 10 | Images: the crawler saves images, a local vision model writes their text, indexed through the same path as other files (crawler, folder sync and MCP all included) | 23 Oct 11:51, 12:21 (owner: hold), 24 Oct 11:55 · [plan-images-and-models.md](plan-images-and-models.md); waits for item 2 |
+| 13 | Tables from crawled pages, Word and PowerPoint kept as real tables (merged cells repeated, header row), never cut in the middle of a passage | 24 Oct (AWS Transform quotas page) · [plan-tables.md](plan-tables.md) |
 | 16 | **Ask**: a chat window like Claude Code / OpenCode / the DeepSeek harness. Saved conversations, follow-ups, step cards, pictures, Think first; a local model (Gemma 4 E2B or E4B) answers from what search finds, with checked citations; search's evidence check decides whether to answer; optional MCP `ask` tool. Six phases | 23 Oct 07:37, 24 Oct (owner: separate tab, then a full chat window) · [plan-answers.md](plan-answers.md) |
 
 ## 4. Needs the owner
@@ -45,7 +48,6 @@ Status words: **bug** · **running** · **plan ready** (written, not built) · *
 
 | # | Item | Status | Source |
 |---|---|---|---|
-
 | 17 | Shared-identifier (entity) links plus PageRank-style spreading (HippoRAG idea) | not built | 23 Oct 04:23 (owner's list, item 5) |
 | 18 | Learned keyword search (SPLADE) | not built | 23 Oct 04:23 (item 4) |
 | 19 | Automatic clusters in the graph view | not built | 23 Oct 02:59, 04:23 (item 6) |

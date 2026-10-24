@@ -24,7 +24,8 @@ Then work through `docs/TODO.md` in its order, unless the owner picks something 
 - **Fix first:** the documents list stops at 1,000 rows (TODO item 1; the fix is in
   `docs/plan-summaries-status.md`, together with the Summaries-tab counts, item 9).
 - **Large documents:** steps 2–3 of `docs/plan-large-documents.md` (step 1 measured: no gain on 4 cores).
-- **Plans ready to build:** GPU switch (`plan-gpu.md`; the owner has an Intel iGPU), installer and release
+- **Tables:** `docs/plan-tables.md` (crawled and Word/PowerPoint tables kept as tables).
+- **Plans ready to build** (catalogue with sizes and order: `docs/PLANS.md`): GPU switch (`plan-gpu.md`; the owner has an Intel iGPU), installer and release
   (`plan-installer.md`, `plan-release.md`), Docker (`plan-docker.md`), invite links (`plan-invites.md`),
   the Ask chat window (`plan-answers.md`, six phases),
   images/vision (`plan-images-and-models.md`, after the vision result).
