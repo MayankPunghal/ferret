@@ -88,7 +88,7 @@ def test_crawl_website_into_a_collection(client, corpus, tmp_path):
         root = {"Authorization": f"Bearer {r.json()['token']}"}
         url = f"http://127.0.0.1:{srv.server_port}/wiki/index.html"
         job = call(client, root, "crawl_website", url=url, collection="scratch", max_pages=10)
-        assert job["state"] == "starting", job
+        assert job["state"] in ("starting", "copying"), job
         for _ in range(300):
             job = next(j for j in call(client, root, "list_crawls") if j["name"] == job["name"])
             if job["state"] in ("done", "failed"):

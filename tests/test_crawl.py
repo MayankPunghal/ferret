@@ -84,8 +84,10 @@ def test_crawl_follows_every_link_and_writes_one_markdown_per_page(tmp_path):
         srv.shutdown()
     pages = {u.removeprefix(base): v["file"] for u, v in m["pages"].items()}
     # nav, header, footer, content and sitemap links are all followed; the same page under two URLs is saved once
-    assert set(pages) == {"/", "/docs/a.html", "/docs/b/", "/about", "/orphan"}
-    assert "/about/" in {u.removeprefix(base) for u in m["skipped"]}
+    # (whichever of /about and /about/ is fetched first is kept: the fetches run in parallel)
+    about = pages.keys() & {"/about", "/about/"}
+    assert set(pages) - about == {"/", "/docs/a.html", "/docs/b/", "/orphan"} and len(about) == 1, pages
+    assert ({"/about", "/about/"} - about) <= {u.removeprefix(base) for u in m["skipped"]}
     assert m["files"] == {base + "/files/manual.pdf": "files-manual-pdf.pdf"}
     assert (tmp_path / "files-manual-pdf.pdf").read_bytes().startswith(b"%PDF")
     # never: logout, robots-disallowed, other hosts

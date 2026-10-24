@@ -321,7 +321,7 @@ class App:
 
     def _crawl(self, run: Run, mode: str, signin: bool) -> None:
         o, folder, target = run.opts, run.folder, run.target
-        fetcher = None
+        fetcher, complete = None, False
         run.log(f"{'continuing' if mode == 'continue' else 'updating' if mode == 'update' else 'copying'} {run.url}")
         try:
             channel = o.get("channel") or ""
@@ -351,7 +351,7 @@ class App:
             elif c.stopped.is_set():
                 run.state = "stopped"
             else:
-                run.state = "done"
+                complete = True  # "done" is shown only once an update has replaced the copy
         except SystemExit as e:  # Playwright missing
             run.state, run.error = "failed", str(e)
         except Exception as e:  # noqa: BLE001 - shown on the page
@@ -365,14 +365,16 @@ class App:
             run.finished = time.time()
             if run.error:
                 run.log(f"stopped with an error: {run.error}")
+            final = "done" if complete else run.state
             _save_options(target, {**_options(target), "seconds": round(run.elapsed),
-                                   "last": {"state": run.state, "error": run.error, "finished": run.finished}})
-            if run.state == "done" and target != folder:  # an update finished: it replaces the copy (and its HTML)
+                                   "last": {"state": final, "error": run.error, "finished": run.finished}})
+            if final == "done" and target != folder:  # an update finished: it replaces the copy (and its HTML)
                 for a, b in ((target, folder), (Path(f"{target}-html"), Path(f"{folder}-html"))):
                     if a.is_dir():
                         shutil.rmtree(b, ignore_errors=True)
                         a.rename(b)
                 run.target = folder
+            run.state = final
             if self.on_done:
                 try:
                     self.on_done(run.name, folder, run.state)
