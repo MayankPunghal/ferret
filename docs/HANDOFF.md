@@ -9,7 +9,7 @@ goal), `docs/requirements-brief.md` (every owner ask and its status), `README.md
 git clone https://github.com/MayankPunghal/knowledge-search && cd knowledge-search
 ./setup.sh --demo --no-start          # Windows: setup.bat -Demo -NoStart
 uv sync                               # adds dev tools
-uv run pytest -q                      # expect 99 passed (embedded PostgreSQL; no Docker)
+uv run pytest -q                      # expect 131 passed (embedded PostgreSQL; no Docker)
 uv run --group eval python eval/run_eval.py --reranker Xenova/ms-marco-MiniLM-L-6-v2
 ./start.sh                            # or start.bat → http://127.0.0.1:8000
 ```
@@ -604,14 +604,28 @@ embedding bake-offs → contextual passages → learned sparse → entity edges 
 
 ### Open owner requests (audit of the owner's recent messages, 2026-10-24)
 
+**Latest (2026-10-24, last):** renamed to **Ferret** (crawler: **Ferret Crawler**, spider icon; logos in
+`docs/brand/`). The command is `ferret` (`knowledge-search` still works), the crawler also installs as
+`ferret-crawler`, MCP server name `ferret`, skill folder `skills/ferret`. Python packages, database, data
+folders and the log file name are unchanged on purpose (no migration). The repository is still
+`knowledge-search` on GitHub; renaming it is the owner's call (GitHub redirects the old URL). README
+rewritten (logo, badges, quick start, light/dark screenshot). App text decluttered: short labels, detail
+behind ⓘ buttons (`info()` in app.js, `.info` in app.css). Graph: readable at 60 documents (only the lines
+that explain the layout; point at a document for all its links; labels along the radius; fitted to the
+panel with a Full size toggle), 17× faster neighbours (document vectors cached in `graph.py`), and a Back
+button in the passage panel. Plans added: `docs/plan-large-documents.md` (parallel embedding sessions:
+first contended reading 1.7×, identical vectors; vector reuse for unchanged passages) and
+`docs/plan-summaries-status.md` (count tiles + per-collection table; also fixes the 1,000-row cap that makes
+Documents say "All 1000").
+
 Done this session and verified: Crawler tab; MCP crawl into an existing or new collection (`send_crawl`);
 following links in page text (the AWS guide case); clickable tiles, Pages table and Log; Synced folders tab
 with progress and Stop; Documents page simplified; token access editable; groups created on their own tab and
 picked from menus; the 7 search tricks measured (docs/evaluation.md §8: no gain).
 Still open, in the order to do them:
-1. **Vision comparison** GLM-4.6V-Flash vs Gemma 4 E2B (`eval/image_ocr.py`, 20 images): running in the cloud
-   session at handoff (GLM 10/20 done, recall 1.00 on all ten, 90–550 s per image on 4 CPU cores); Gemma
-   next. Then: site2md saves images, and image text is indexed through the one ingestion path (§4o rule).
+1. **Vision comparison** GLM-4.6V-Flash vs Gemma 4 E2B (`eval/image_ocr.py`, 20 images): a container restart
+   cut the first run after 11 images (all recall 1.00, 90–960 s per image on 4 CPU cores); the other 9 run
+   as `--name glm-4.6v-flash-part2 --only …`, then Gemma on all 20. Then: site2md saves images, and image text is indexed through the one ingestion path (§4o rule).
 2. **CPU/GPU switch in Settings** for embedding, reranking, summaries and enrichment (owner has an Intel iGPU):
    plan in `docs/plan-gpu.md`, not built.
 3. **Installer** for both apps (`docs/plan-installer.md`, `plan-release.md`), **Docker** brought up to date
@@ -620,7 +634,9 @@ Still open, in the order to do them:
    on the computer running Ferret); a real intranet copy through the Crawler tab.
 5. **Owner's own documents** with 50–100 labelled questions (the tricks were measured on public docs only).
 6. "Neighbour summaries instead of overlap": not measured (run lost in a container restart; see evaluation §8).
-7. Lint debt: ~20 older `ruff` findings (unused noqa, import order, two B023/B008) — harmless, clean up once.
+7. **Large documents** (`docs/plan-large-documents.md`) and **Summaries counts** (`docs/plan-summaries-status.md`):
+   plans; run `eval/bench_parallel.py` on an idle machine first.
+8. Lint debt: ~20 older `ruff` findings (unused noqa, import order, two B023/B008) — harmless, clean up once.
 
 ## 8. Gotchas
 
