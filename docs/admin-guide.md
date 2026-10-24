@@ -18,7 +18,11 @@ Administrators see two extra tabs: **Settings** and **Users & access**.
 Changing the model, chunking or the line about the whole document marks already-indexed documents as **outdated**: the Settings page shows how
 many, and search reports *indexing incomplete* until they are reindexed. Click **Reindex outdated
 documents** (or **Reindex everything**); progress is visible on the Documents and Index status tabs.
-New models are downloaded once in the background (shown under the model selector).
+Under each model list, **Models on this computer** shows which models are downloaded and has a **Download**
+button for the others: fetch a model before you switch to it (after a disk-space check; it is not loaded or
+selected). A model chosen without downloading it first downloads in the background when you save. A
+spinner shows a model downloading or loading. The embedding model, reranker, search index and summary
+model all load when the app starts or when you switch, not on the first search or document.
 
 All models run locally (ONNX Runtime on CPU); nothing is sent to external services.
 

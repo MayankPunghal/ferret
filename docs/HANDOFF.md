@@ -344,6 +344,17 @@ Verified: every command run against a fresh demo app on Linux, covering:
   bge-base 0.964, answered 0.875 vs 0.911, 1.0–2.6 s vs 0.27 s per search → recommend bge-base. Owner's
   own documents still unmeasured.
 
+## 4n. Model downloads and loading (owner request 2026-10-24)
+
+- Settings lists every embedding model, reranker and summary model with "downloaded / Download / in use"
+  and a spinner while downloading or loading (`GET /api/admin/models`, `POST /api/admin/models/download`;
+  fastembed `download_model` fetches files without loading; the presence check reads the cache on disk,
+  because fastembed's own check logs an error per missing model). Tested (`test_model_list_and_download_requests`)
+  and clicked through in Chromium (a 640 MB embedding model downloaded, spinner then "downloaded").
+- Startup already loaded the embedding model and reranker before accepting traffic; it now also loads the
+  in-memory vector index (it loaded on the first search: slow on a large archive), and `knowledge-search
+  worker` loads its embedding model at start. The summary model server already started with the job loop.
+
 ## 4m. MCP server for AI assistants (owner request 2026-10-24)
 
 - **What:** `POST /mcp` inside the app (`mcp.py`, ~230 lines, no new service; runtime dependency

@@ -44,6 +44,7 @@ def main():
     ap.add_argument("--url", default="http://127.0.0.1:8090/v1")
     ap.add_argument("--name", default="gemma-4-e2b")
     ap.add_argument("--per-section", type=int, default=12)
+    ap.add_argument("--think", action="store_true", help="let the model reason before answering (slower)")
     ap.add_argument("--every", type=int, default=1, help="every k-th page of the standard sample (same pages as other runs)")
     a = ap.parse_args()
     gold = [json.loads(x) for x in (ROOT / "eval" / "k8s_doc_types.jsonl").read_text().splitlines() if x]
@@ -60,12 +61,13 @@ def main():
         t = time.time()
         try:  # the app retries a reply it cannot read; here it counts as wrong
             reply = enrich.parse_reply(enrich.chat(a.url, "", enrich.PROMPT.format(
-                title=title, title_note="", outline=outline, text=text, types=types, known="")))
+                title=title, title_note="", outline=outline, text=text, types=types, known=""),
+                max_tokens=4000 if a.think else 300, think=a.think))
         except enrich.LLMError:
-            reply = {"type": "(unreadable reply)", "topics": []}
+            reply = {"type": "(unreadable reply)", "topics": [], "summary": ""}
         kind = reply["type"]
         confusion[(g["type"], kind)] += 1
-        out.append({**g, "model_type": kind, "topics": reply["topics"], "seconds": round(time.time() - t, 1)})
+        out.append({**g, "model_type": kind, "topics": reply["topics"], "summary": reply["summary"], "seconds": round(time.time() - t, 1)})
         print(f"  {g['type']:10} {kind:16} {g['file']}", flush=True)
     exact = sum(r["model_type"] == r["type"] for r in out) / len(out)
     close = sum(r["model_type"] in CLOSE[r["type"]] for r in out) / len(out)
@@ -74,7 +76,7 @@ def main():
     res = {"llm": a.name, "pages": len(out), "exact": round(exact, 3), "compatible": round(close, 3),
            "compatible_by_section": per, "confusion": {f"{k[0]} -> {k[1]}": v for k, v in confusion.most_common()},
            "rows": out}
-    (ROOT / "eval" / "results" / f"llm-labels-kubernetes-{a.name}{f'-every{a.every}' if a.every > 1 else ''}.json").write_text(json.dumps(res, indent=1))
+    (ROOT / "eval" / "results" / f"llm-labels-kubernetes-{a.name}{'-think' if a.think else ''}{f'-every{a.every}' if a.every > 1 else ''}.json").write_text(json.dumps(res, indent=1))
     print(json.dumps({k: v for k, v in res.items() if k != "rows"}, indent=1))
 
 
