@@ -1,0 +1,1344 @@
+{
+ "admission-controller.md": {
+  "title": "Admission Controller: Kubernetes API Request Interception",
+  "summary": "Explains Kubernetes admission controllers\u2014configurable filters for API requests (validating/mutating) that can reject or modify objects before persistence. Covers their roles in security and policy enforcement.",
+  "topics": [
+   "Kubernetes API Server",
+   "Admission Control (Validating/Mutating)",
+   "Kubernetes Admission Controllers",
+   "Request Interception & Object Modification",
+   "Authorization & Authentication (AuthN/AuthZ)"
+  ],
+  "type": "reference",
+  "seconds": 55.1
+ },
+ "admission-policies.md": {
+  "title": "Declarative Admission Policies in Kubernetes: Validating & Mutating",
+  "summary": "Explains declarative admission policies in Kubernetes using CEL (Common Expression Language) for validation and mutation. Covers setup, policy types (Validating/Mutating), elements (policy/binding), and practical usage with examples like replica limits and label enforcement.",
+  "topics": [
+   "Kubernetes Admission Policies",
+   "ValidatingAdmissionPolicy",
+   "MutatingAdmissionPolicy",
+   "Common Expression Language (CEL)",
+   "ValidatingAdmissionPolicyBinding",
+   "MutatingAdmissionPolicyBinding"
+  ],
+  "type": "how-to",
+  "seconds": 82.1
+ },
+ "admission-webhooks-good-practices.md": {
+  "title": "Admission Webhook Best Practices for Kubernetes",
+  "summary": "This document outlines best practices for designing admission webhooks in Kubernetes, covering validation, mutation, performance, and failure prevention. It emphasizes careful design to avoid disruptions and compatibility issues with Kubernetes API changes.",
+  "topics": [
+   "Admission Controllers",
+   "Mutating Admission Webhooks",
+   "Validating Admission Webhooks",
+   "CustomResourceDefinitions (CRDs)",
+   "Kubernetes API Extensibility",
+   "Webhook Validation & Mutation"
+  ],
+  "type": "how-to",
+  "seconds": 53.5
+ },
+ "affinity.md": {
+  "title": "Kubernetes Affinity Scheduling Rules",
+  "summary": "Explains Kubernetes affinity rules for pod scheduling, covering node affinity and pod-to-pod affinity. Describes how labels and selectors influence placement with required/preferred enforcement.",
+  "topics": [
+   "Kubernetes Scheduler",
+   "Pod Scheduling",
+   "Node Affinity",
+   "Pod-to-Pod Affinity/Anti-Affinity",
+   "Kubernetes Labels",
+   "Selector Matching"
+  ],
+  "type": "reference",
+  "seconds": 30.8
+ },
+ "aggregation-layer.md": {
+  "title": "Configuring Kubernetes Aggregation Layer for Custom APIs",
+  "summary": "Explains how to install and configure the Kubernetes aggregation layer to add custom APIs by enabling `APIService` objects in the Kubernetes API Server.",
+  "topics": [
+   "Kubernetes API Server",
+   "APIService objects",
+   "Kubernetes-style APIs",
+   "Cluster extension",
+   "Custom API paths"
+  ],
+  "type": "how-to",
+  "seconds": 22.0
+ },
+ "annotation.md": {
+  "title": "What is an Annotation (Key-Value Metadata)",
+  "summary": "Explains annotations as key-value metadata for attaching arbitrary non-identifying metadata to objects. Describes flexibility in structure and content for clients to retrieve metadata.",
+  "topics": [
+   "metadata systems",
+   "key-value storage",
+   "object metadata",
+   "non-identifying attributes",
+   "client-side retrieval"
+  ],
+  "type": "concept",
+  "seconds": 22.1
+ },
+ "api-group.md": {
+  "title": "Understanding Kubernetes API Groups",
+  "summary": "Explains Kubernetes API groups\u2014sets of related paths in the Kubernetes API. Describes enabling/disabling groups via API server config and their role in API versioning and extension.",
+  "topics": [
+   "Kubernetes API Server",
+   "API versioning",
+   "REST path configuration",
+   "`apiVersion` field",
+   "API group extension"
+  ],
+  "type": "reference",
+  "seconds": 23.0
+ },
+ "api-resource.md": {
+  "title": "Kubernetes API Resource: Endpoint and Schema Definition",
+  "summary": "Explains Kubernetes API resources as HTTP endpoints defining schemas for objects/operations. Covers their role in the Kubernetes type system and examples like permissions or object representations.",
+  "topics": [
+   "Kubernetes API",
+   "HTTP endpoints (URIs)",
+   "Kubernetes resource types",
+   "API schema definitions",
+   "Kubernetes type system"
+  ],
+  "type": "reference",
+  "seconds": 30.9
+ },
+ "api-server-bypass-risks.md": {
+  "title": "Kubernetes API Server Bypass Risks: Static Pods, kubelet API, etcd API, and Runtime Socket Exploits",
+  "summary": "Explains risks of bypassing Kubernetes API server controls via static Pods, kubelet API, etcd API, and container runtime socket manipulation. Details attack vectors, restrictions, and mitigation strategies for cluster operators and security architects.",
+  "topics": [
+   "Static Pods",
+   "kubelet API (TCP port 10250)",
+   "etcd API",
+   "Container runtime socket",
+   "Admission control bypass",
+   "kubelet configuration access"
+  ],
+  "type": "troubleshooting",
+  "seconds": 49.5
+ },
+ "app-container.md": {
+  "title": "App Container in Kubernetes Pods",
+  "summary": "Explains the role of app containers within Kubernetes pods, distinguishing them from init containers and detailing their lifecycle after initialization tasks complete.",
+  "topics": [
+   "Kubernetes Pods",
+   "Init Containers",
+   "Application Containers",
+   "Container Lifecycle Management"
+  ],
+  "type": "concept",
+  "seconds": 20.3
+ },
+ "application-architect.md": {
+  "title": "Role of the Application Architect",
+  "summary": "Explains the role of an Application Architect in designing scalable, maintainable app implementations. Covers interactions with databases, microservices, and infrastructure components.",
+  "topics": [
+   "application design principles",
+   "scalability",
+   "maintainability",
+   "microservices architecture",
+   "database integration",
+   "logging infrastructure"
+  ],
+  "type": "concept",
+  "seconds": 33.7
+ },
+ "application-security-checklist.md": {
+  "title": "Kubernetes Application Security Checklist for Developers",
+  "summary": "A developer-focused checklist for securing Kubernetes applications, covering base hardening, security contexts, RBAC, image security, and network policies. Focuses on best practices for pod/container-level security and application design.",
+  "topics": [
+   "Kubernetes security principles",
+   "Resource requests/limits (QoS)",
+   "Service accounts (avoiding default, automount token control)",
+   "Pod-level securityContext (runAsNonRoot, fsGroup, Pod Securi",
+   "Container-level securityContext (privilege escalation, read-",
+   "Role-Based Access Control (RBAC)"
+  ],
+  "type": "how-to",
+  "seconds": 60.8
+ },
+ "approver.md": {
+  "title": "Role of Approvers in Kubernetes Code Contributions",
+  "summary": "Explains the distinction between code review and approval in Kubernetes contributions. Approvers validate holistic acceptance (compatibility, conventions, performance, system interactions) for scoped codebases, replacing the term 'maintainers'.",
+  "topics": [
+   "Kubernetes code contributions",
+   "code review vs. approval workflow",
+   "holistic acceptance criteria",
+   "scoped approval roles",
+   "API and flag conventions",
+   "system integration testing"
+  ],
+  "type": "concept",
+  "seconds": 27.6
+ },
+ "architecture.md": {
+  "title": "Kubernetes Cluster Architecture Overview",
+  "summary": "Describes the core components of a Kubernetes cluster, including control plane (kube-apiserver, etcd, kube-scheduler, kube-controller-manager, cloud-controller-manager) and node components (kubelet, kube-proxy, container runtime). Explains fault tolerance, high availability, and deployment variations.",
+  "topics": [
+   "Kubernetes control plane components",
+   "kube-apiserver",
+   "etcd",
+   "kube-scheduler",
+   "kube-controller-manager",
+   "cloud-controller-manager"
+  ],
+  "type": "reference",
+  "seconds": 73.6
+ },
+ "authentication-mechanisms.md": {
+  "title": "Authentication Mechanisms Hardening Guide",
+  "summary": "Guide on hardening authentication mechanisms in Kubernetes, detailing security considerations for X.509 client certificates, static token files, and other methods. Focuses on minimizing authentication sources and auditing credential sources for production clusters.",
+  "topics": [
+   "Kubernetes Authentication Mechanisms",
+   "X.509 Client Certificate Authentication",
+   "Static Token File Authentication",
+   "Service Account Tokens",
+   "TokenRequest API Tokens",
+   "OpenID Connect (OIDC) Token Authentication"
+  ],
+  "type": "how-to",
+  "seconds": 45.0
+ },
+ "authorization.md": {
+  "title": "Kubernetes Authorization: Request Verification and Policy Enforcement",
+  "summary": "Explains Kubernetes authorization mechanics, including how request verdicts (allow/deny) are determined, request attributes used, and authorization modes. Covers configuration via config files or CLI flags, and details about privilege escalation via workload operations.",
+  "topics": [
+   "Kubernetes API Server",
+   "Authorization modules",
+   "Request verbs (e.g., GET, POST, DELETE)",
+   "Resource vs. non-resource requests",
+   "Group-based and user-based access control",
+   "Admission controllers"
+  ],
+  "type": "reference",
+  "seconds": 60.0
+ },
+ "autoscaling.md": {
+  "title": "Kubernetes Autoscaling Strategies",
+  "summary": "Explains manual and automatic scaling techniques in Kubernetes, covering horizontal and vertical scaling methods, including HPA, VPA, and their configurations. Highlights limitations like in-place pod resizing for VPA.",
+  "topics": [
+   "Kubernetes Horizontal Pod Autoscaler (HPA)",
+   "Kubernetes Vertical Pod Autoscaler (VPA)",
+   "Manual scaling via `kubectl` and resource patching",
+   "Horizontal scaling (replica adjustments)",
+   "Vertical scaling (resource adjustments: CPU/memory)",
+   "Metrics Server integration for VPA"
+  ],
+  "type": "how-to",
+  "seconds": 42.6
+ },
+ "cadvisor.md": {
+  "title": "cAdvisor: Container Resource Monitoring and Metrics Collection",
+  "summary": "Explains cAdvisor's role in monitoring container resource usage, collecting metrics like CPU, memory, and network stats, and exporting aggregated data for container and machine-wide analysis.",
+  "topics": [
+   "containers",
+   "resource monitoring",
+   "metrics collection",
+   "Kubernetes (likely used for container orchestration)",
+   "container runtime metrics",
+   "histogram-based data aggregation"
+  ],
+  "type": "reference",
+  "seconds": 28.0
+ },
+ "cdi.md": {
+  "title": "Container Device Interface (CDI) Specification",
+  "summary": "Explains the Container Device Interface (CDI) specification for configuring devices inside Kubernetes containers, detailing its integration with device plugins and dynamic resource allocation for workload setup (e.g., bind mounts, environment variables).",
+  "topics": [
+   "Kubernetes",
+   "Device Plugins",
+   "Dynamic Resource Allocation",
+   "Containerized Device Configuration",
+   "Bind Mounts",
+   "Environment Variables"
+  ],
+  "type": "reference",
+  "seconds": 26.1
+ },
+ "cel.md": {
+  "title": "Common Expression Language (CEL) \u2013 Kubernetes",
+  "summary": "Explains CEL, a fast, portable, and safe expression language for Kubernetes. Details its use in dynamic admission control and dynamic resource allocation.",
+  "topics": [
+   "Kubernetes",
+   "Common Expression Language (CEL)",
+   "dynamic admission control",
+   "dynamic resource allocation (DRA)",
+   "expression evaluation",
+   "Kubernetes extensible admission controllers"
+  ],
+  "type": "reference",
+  "seconds": 23.8
+ },
+ "certificate.md": {
+  "title": "Kubernetes Cluster Certificate Authentication",
+  "summary": "Explains the role of cryptographic certificates in securing Kubernetes API access. Describes how certificates validate client authentication within the cluster.",
+  "topics": [
+   "Kubernetes API authentication",
+   "TLS/SSL certificates",
+   "Kubernetes cluster security",
+   "Service account certificates",
+   "Certificate Authority (CA) management",
+   "Kubernetes RBAC (Role-Based Access Control)"
+  ],
+  "type": "reference",
+  "seconds": 23.1
+ },
+ "cgroup.md": {
+  "title": "Linux cgroup: Resource Management for Process Groups",
+  "summary": "Explains Linux cgroup, a kernel feature for isolating and limiting CPU, memory, I/O, and network usage of process groups. Details resource accounting and management techniques.",
+  "topics": [
+   "Linux kernel",
+   "process management",
+   "resource isolation",
+   "Linux cgroups",
+   "CPU throttling",
+   "memory management"
+  ],
+  "type": "reference",
+  "seconds": 26.9
+ },
+ "cidr.md": {
+  "title": "CIDR in Kubernetes Networking",
+  "summary": "Explains CIDR (Classless Inter-Domain Routing) for IP address allocation in Kubernetes, detailing its use in assigning Node and Pod IPs via subnet masks (IPv4/IPv6).",
+  "topics": [
+   "Kubernetes networking",
+   "IPv4/IPv6 addressing",
+   "CIDR notation",
+   "Subnet masks",
+   "Pod IP assignment",
+   "Node IP ranges"
+  ],
+  "type": "reference",
+  "seconds": 26.4
+ },
+ "cla.md": {
+  "title": "Contributor License Agreement (CLA) - Legal Terms for Open Source Contributions",
+  "summary": "Describes the legal framework for contributors granting open-source project licenses to their code/IP. Ensures IP rights and dispute resolution for contributions.",
+  "topics": [
+   "open-source licensing",
+   "intellectual property (IP) management",
+   "contributor agreements",
+   "legal compliance for open-source projects"
+  ],
+  "type": "policy",
+  "seconds": 22.4
+ },
+ "cloud-controller-manager.md": {
+  "title": "Cloud Controller Manager: Kubernetes Cloud-Specific Control Plane Component",
+  "summary": "Explains the Cloud Controller Manager (CCM) as a Kubernetes control plane component embedding cloud-specific logic. It decouples cloud provider interactions from the cluster, enabling independent feature evolution between Kubernetes and cloud providers.",
+  "topics": [
+   "Kubernetes control plane",
+   "Cloud provider integration",
+   "Cloud controller manager (CCM)",
+   "API interoperability",
+   "Cloud-specific control logic",
+   "Kubernetes cloud-native architecture"
+  ],
+  "type": "reference",
+  "seconds": 35.3
+ },
+ "cloud-native-security.md": {
+  "title": "Kubernetes Cloud Native Security Lifecycle Guide",
+  "summary": "Explains cloud native security practices across Kubernetes lifecycle phases (Develop, Distribute, Deploy, Runtime). Covers security controls, threat modeling, supply chain security, and runtime protection strategies.",
+  "topics": [],
+  "type": "how-to",
+  "seconds": 26.8
+ },
+ "cloud-provider.md": {
+  "title": "Understanding Cloud Providers and Cloud Services",
+  "summary": "Explains what cloud providers (CSPs) are, their roles in cloud computing, and the different service models (IaaS, PaaS). Highlights managed infrastructure and Kubernetes services, including responsibilities of cloud providers vs. users.",
+  "topics": [
+   "cloud computing platform",
+   "cloud service providers (CSP)",
+   "Infrastructure as a Service (IaaS)",
+   "Platform as a Service (PaaS)",
+   "managed Kubernetes",
+   "Kubernetes control plane"
+  ],
+  "type": "concept",
+  "seconds": 41.9
+ },
+ "cluster-administration.md": {
+  "title": "Cluster Administration: Kubernetes Setup and Management Guide",
+  "summary": "This document provides an overview of Kubernetes cluster administration, covering planning, setup, and management. It includes considerations for choosing distros, managing nodes, securing clusters, and optional services like networking and authentication.",
+  "topics": [
+   "Kubernetes cluster planning",
+   "Kubernetes distros (solutions)",
+   "Node management",
+   "Node autoscaling",
+   "Resource quotas",
+   "Cluster networking"
+  ],
+  "type": "how-to",
+  "seconds": 40.6
+ },
+ "cluster-operations.md": {
+  "title": "Cluster Operations: Kubernetes Cluster Management Guide",
+  "summary": "This document outlines day-to-day Kubernetes cluster management tasks, including scaling, upgrades, security, networking, and observability. It covers operational workflows for coordinating cluster operations efficiently.",
+  "topics": [
+   "Kubernetes Cluster",
+   "Node Management (scaling)",
+   "Software Upgrades",
+   "Security Controls",
+   "Storage Management",
+   "Cluster Networking"
+  ],
+  "type": "runbook",
+  "seconds": 26.7
+ },
+ "cluster-operator.md": {
+  "title": "Role of Cluster Operator",
+  "summary": "Describes the responsibilities of a **Cluster Operator**, focusing on cluster management, maintenance, and monitoring. Distinguishes them from the Kubernetes Operator pattern.",
+  "topics": [
+   "cluster management",
+   "Kubernetes Operator pattern",
+   "cluster maintenance",
+   "cluster monitoring",
+   "Kubernetes clusters"
+  ],
+  "type": "concept",
+  "seconds": 20.8
+ },
+ "cluster.md": {
+  "title": "Understanding Kubernetes Cluster Architecture",
+  "summary": "Explains Kubernetes cluster basics: nodes, Pods, control plane, and fault-tolerance. Describes worker nodes, Pod management, and production-grade scaling for HA.",
+  "topics": [
+   "Kubernetes cluster architecture",
+   "worker nodes (Pod hosts)",
+   "control plane components",
+   "Pod management",
+   "fault-tolerance & high availability",
+   "container orchestration"
+  ],
+  "type": "concept",
+  "seconds": 25.8
+ },
+ "cncf.md": {
+  "title": "Overview of the Cloud Native Computing Foundation (CNCF)",
+  "summary": "Explains CNCF\u2019s role in promoting cloud-native computing ecosystems, particularly around containers and microservices. Highlights Kubernetes as a key CNCF project under the Linux Foundation\u2019s umbrella.",
+  "topics": [
+   "Cloud Native Computing Foundation (CNCF)",
+   "Linux Foundation",
+   "Kubernetes",
+   "containers",
+   "microservices architecture",
+   "cloud-native computing"
+  ],
+  "type": "concept",
+  "seconds": 27.7
+ },
+ "cni.md": {
+  "title": "Container Network Interface (CNI) Plugin Specification",
+  "summary": "Explains CNI plugins as CNI-compliant network interfaces for containers, detailing their role in Kubernetes networking and adherence to the appc/CNI specification.",
+  "topics": [
+   "Kubernetes networking",
+   "CNI plugins",
+   "Network plugins",
+   "Container networking architecture",
+   "appc/CNI specification"
+  ],
+  "type": "reference",
+  "seconds": 31.9
+ },
+ "components.md": {
+  "title": "Kubernetes Cluster Architecture Overview",
+  "summary": "Explains Kubernetes core components (control plane, nodes) and add-ons (DNS, monitoring, logging). Highlights flexibility in deployment for varying environments.",
+  "topics": [
+   "Kubernetes Control Plane",
+   "kube-apiserver",
+   "etcd",
+   "kube-scheduler",
+   "kube-controller-manager",
+   "cloud-controller-manager"
+  ],
+  "type": "reference",
+  "seconds": 77.8
+ },
+ "condition.md": {
+  "title": "Kubernetes Resource Conditions: Standardized Status Reporting",
+  "summary": "Explains Kubernetes conditions\u2014fields in resource statuses\u2014that describe resource states (e.g., Pod readiness). Covers `type`, `status` (True/False/Unknown), `reason`, and `message` fields for standardized communication between components.",
+  "topics": [
+   "Kubernetes API",
+   "Pod status",
+   "Resource health monitoring",
+   "Condition fields (type, status, reason, message)"
+  ],
+  "type": "reference",
+  "seconds": 185.9
+ },
+ "configuration.md": {
+  "title": "Kubernetes Configuration Methods: APIs, ConfigMaps, Secrets, and Helper Containers",
+  "summary": "Explains Kubernetes configuration approaches, including APIs (ConfigMaps/Secrets), sidecar/init containers, and filesystem/env variables. Focuses on separating config from code for reusability and security in cloud-native environments.",
+  "topics": [
+   "Kubernetes APIs (ConfigMap, Secret)",
+   "ConfigMaps",
+   "Secrets",
+   "Sidecar containers",
+   "Init containers",
+   "Configuration via filesystem"
+  ],
+  "type": "how-to",
+  "seconds": 241.3
+ },
+ "container-env-variables.md": {
+  "title": "Container Environment Variables: Use Cases and Best Practices",
+  "summary": "Explains how to configure and use environment variables in containers, covering their purpose (e.g., app settings, cluster metadata) and best practices for deployment and management.",
+  "topics": [
+   "containers",
+   "Kubernetes Pods",
+   "Docker",
+   "environment variables",
+   "configuration management",
+   "cluster resources (services, endpoints)"
+  ],
+  "type": "how-to",
+  "seconds": 110.2
+ },
+ "container-runtime.md": {
+  "title": "Container Runtime: Kubernetes CRI Overview",
+  "summary": "Explains Kubernetes' Container Runtime Interface (CRI) and supported runtimes like containerd and crio. Details how Kubernetes manages container lifecycle via CRI implementations.",
+  "topics": [
+   "Kubernetes CRI (Container Runtime Interface)",
+   "containerd",
+   "cri-o",
+   "container lifecycle management",
+   "Kubernetes node operations"
+  ],
+  "type": "reference",
+  "seconds": 31.6
+ },
+ "container.md": {
+  "title": "What is a Container? \u2013 Containerization Basics",
+  "summary": "Explains containers as lightweight, portable executable images bundling software and dependencies. Details how containers decouple apps from infrastructure for easier deployment and scaling across environments.",
+  "topics": [
+   "containerization",
+   "container images",
+   "containerized applications",
+   "portable execution environments",
+   "cloud-native deployment",
+   "dependency management"
+  ],
+  "type": "concept",
+  "seconds": 32.5
+ },
+ "containerd.md": {
+  "title": "containerd: Container Runtime Documentation",
+  "summary": "Explains containerd\u2019s architecture, core features (image management, container execution, networking), and its role as a lightweight, portable container runtime for Linux/Windows. Focuses on technical design and operational aspects.",
+  "topics": [],
+  "type": "reference",
+  "seconds": 21.6
+ },
+ "containers.md": {
+  "title": "Understanding Containers: Images and Runtimes",
+  "summary": "Explains containers, container images (immutable, stateless packages), and container runtimes. Covers Kubernetes integration, Pods, and runtime flexibility via RuntimeClass.",
+  "topics": [
+   "containers",
+   "container images",
+   "immutable infrastructure",
+   "Kubernetes Pods",
+   "container runtimes",
+   "RuntimeClass"
+  ],
+  "type": "concept",
+  "seconds": 29.9
+ },
+ "contributor.md": {
+  "title": "Understanding Kubernetes Contributors",
+  "summary": "Explains who Kubernetes contributors are\u2014volunteers who contribute code, docs, or time via PRs, issues, SIGs, or community events. Highlights their roles in the Kubernetes project and community.",
+  "topics": [
+   "Kubernetes project",
+   "community contributions",
+   "pull requests (PRs)",
+   "special interest groups (SIGs)",
+   "open-source collaboration"
+  ],
+  "type": "concept",
+  "seconds": 26.7
+ },
+ "control-plane.md": {
+  "title": "Control Plane: Container Orchestration Layer Documentation",
+  "summary": "Explains the control plane in container orchestration, detailing its API and interfaces for defining, deploying, and managing container lifecycles. Covers key components like etcd, API Server, Scheduler, Controller Manager, and Cloud Controller Manager.",
+  "topics": [
+   "container orchestration",
+   "etcd",
+   "API Server",
+   "Scheduler",
+   "Controller Manager",
+   "Cloud Controller Manager"
+  ],
+  "type": "reference",
+  "seconds": 38.7
+ },
+ "cpu-constraint-namespace.md": {
+  "title": "Configuring CPU Resource Constraints in Kubernetes Namespaces",
+  "summary": "Guides how to set minimum and maximum CPU limits for Pods in a Kubernetes namespace using LimitRange. Explains enforcement, default values, and validation rules for CPU requests/limits.",
+  "topics": [
+   "Kubernetes Namespace",
+   "LimitRange (Resource Quotas)",
+   "CPU Requests and Limits",
+   "Pod Creation Validation",
+   "Kubernetes Resource Management"
+  ],
+  "type": "how-to",
+  "seconds": 45.6
+ },
+ "cpu-default-namespace.md": {
+  "title": "Configure Default CPU Requests and Limits for Kubernetes Namespaces",
+  "summary": "Explains how to set default CPU requests and limits for a Kubernetes namespace by creating a LimitRange and Pod. Includes scenarios for when container requests/limits are omitted or specified.",
+  "topics": [
+   "Kubernetes Namespaces",
+   "LimitRange",
+   "Pods and Containers",
+   "CPU Requests and Limits",
+   "Kubernetes Resource Management",
+   "Namespace Isolation"
+  ],
+  "type": "how-to",
+  "seconds": 37.2
+ },
+ "cri-o.md": {
+  "title": "CRI-O: Kubernetes Container Runtime Interface (CRI) Implementation",
+  "summary": "CRI-O is an OCI-compliant container runtime for Kubernetes, enabling support for any OCI-compatible runtime. It allows Kubernetes to manage Pods and fetch images from remote registries via the CRI interface.",
+  "topics": [
+   "Kubernetes CRI (Container Runtime Interface)",
+   "OCI (Open Container Initiative) runtime spec",
+   "OCI-compliant container runtimes",
+   "container runtime for Kubernetes Pods",
+   "remote container image registries"
+  ],
+  "type": "reference",
+  "seconds": 45.8
+ },
+ "cron-jobs.md": {
+  "title": "CronJob: Scheduling Repeating Jobs in Kubernetes",
+  "summary": "Explains how to create and configure CronJobs in Kubernetes for periodic tasks like backups and reports. Covers schedule syntax, naming conventions, and limitations.",
+  "topics": [
+   "Kubernetes CronJob",
+   "Cron scheduling syntax (Vixie cron format)",
+   "Job naming conventions (DNS subdomain and label rules)",
+   "Concurrency control and job execution policies",
+   "Time zone handling and limitations",
+   "Pod lifecycle management in relation to CronJobs"
+  ],
+  "type": "how-to",
+  "seconds": 46.5
+ },
+ "csi.md": {
+  "title": "Container Storage Interface (CSI) Standardization and Deployment Guide",
+  "summary": "Explains the Container Storage Interface (CSI) standard for exposing storage to containers in Kubernetes, detailing how to deploy CSI drivers from storage vendors and create Storage Classes for them. Includes references to Kubernetes documentation and available drivers.",
+  "topics": [
+   "Kubernetes Storage",
+   "CSI (Container Storage Interface)",
+   "Storage Classes",
+   "CSI drivers (out-of-tree plugins)",
+   "Kubernetes CSI documentation",
+   "Storage provider integrations"
+  ],
+  "type": "how-to",
+  "seconds": 30.9
+ },
+ "customresourcedefinition.md": {
+  "title": "CustomResourceDefinition (CRD) in Kubernetes",
+  "summary": "Explains how CustomResourceDefinitions (CRDs) extend Kubernetes\u2019 API server to define custom resources without requiring a full custom server. Details their purpose and usage in extending API capabilities.",
+  "topics": [
+   "Kubernetes API Server",
+   "Custom Resources",
+   "API Extensions",
+   "Kubernetes CustomResourceDefinition (CRD) CRUD Operations",
+   "Schema Definition"
+  ],
+  "type": "reference",
+  "seconds": 35.0
+ },
+ "daemonset.md": {
+  "title": "DaemonSet in Kubernetes: Configuration and Usage Guide",
+  "summary": "Explains how to create, configure, and manage DaemonSets in Kubernetes for running pods on all (or select) nodes. Covers writing specs, pod templates, selectors, scheduling, and alternatives like Deployments.",
+  "topics": [
+   "Kubernetes DaemonSet",
+   "Pod scheduling on nodes",
+   "DaemonSet specification (YAML)",
+   "Pod selector and labels",
+   "Taints and tolerations",
+   "Daemon pod lifecycle and communication"
+  ],
+  "type": "how-to",
+  "seconds": 58.7
+ },
+ "debug-application.md": {
+  "title": "Troubleshooting Containerized Applications",
+  "summary": "This document provides guidance on diagnosing and resolving issues in containerized applications, focusing on Kubernetes resources (Pods, Services, StatefulSets) and container termination messages. It includes debugging techniques for running containers.",
+  "topics": [
+   "Kubernetes Pods",
+   "Kubernetes Services",
+   "Kubernetes StatefulSets",
+   "Containerized Applications",
+   "Container Debugging",
+   "Container Termination Messages"
+  ],
+  "type": "troubleshooting",
+  "seconds": 27.2
+ },
+ "debug-cluster.md": {
+  "title": "Troubleshooting Kubernetes Cluster Node Issues",
+  "summary": "Guides debugging cluster node problems, including verifying node status, interpreting logs, and diagnosing down/unreachable nodes. Focuses on `kubectl` commands and node-specific events.",
+  "topics": [
+   "kubectl commands",
+   "node status and readiness",
+   "kubelet and network connectivity",
+   "Pod eviction and scheduling",
+   "cluster health diagnostics",
+   "node events and conditions"
+  ],
+  "type": "troubleshooting",
+  "seconds": 44.5
+ },
+ "debug.md": {
+  "title": "Kubernetes Debugging, Monitoring, and Logging Guide",
+  "summary": "A guide for Kubernetes users to debug applications, clusters, logging, and monitoring. Covers operational steps, error resolution, and community resources for unresolved issues.",
+  "topics": [
+   "Kubernetes API",
+   "kubectl CLI",
+   "Kubernetes architecture/components",
+   "Kubernetes cluster management",
+   "Containerized applications",
+   "Logging in Kubernetes"
+  ],
+  "type": "other",
+  "seconds": 53.1
+ },
+ "deployment.md": {
+  "title": "Kubernetes Deployment: Declarative Pod Updates and Rollouts",
+  "summary": "Explains Kubernetes Deployments as a mechanism for declarative updates to Pods and ReplicaSets. Covers creation, updates, rollbacks, scaling, and rollout control with parameters like max unavailable/surge, canary deployments, and pause/resume functionality.",
+  "topics": [
+   "Kubernetes Deployment",
+   "ReplicaSet",
+   "Pod Template",
+   "Deployment Spec",
+   "Rolling Update Strategy",
+   "Canary Deployments"
+  ],
+  "type": "reference",
+  "seconds": 48.6
+ },
+ "device-plugin.md": {
+  "title": "Device Plugin: Kubernetes Hardware Access Guide",
+  "summary": "Explains how to deploy and use Kubernetes Device Plugins to expose vendor-specific hardware resources (e.g., GPUs, NVMe drives) to Pods running on worker nodes. Covers installation via DaemonSet or per-node deployment and integration with kubelet.",
+  "topics": [
+   "Kubernetes Device Plugin",
+   "kubelet integration",
+   "DaemonSet deployment",
+   "vendor-specific hardware access",
+   "Pod resource provisioning",
+   "worker node configuration"
+  ],
+  "type": "how-to",
+  "seconds": 39.3
+ },
+ "device-plugins.md": {
+  "title": "Kubernetes Device Plugin Framework: Implementation and Registration Guide",
+  "summary": "Explains how Kubernetes device plugins register with the kubelet, advertise hardware resources (e.g., GPUs, FPGAs), and integrate with Pod scheduling. Covers gRPC registration, resource naming conventions, and device allocation logic.",
+  "topics": [
+   "Kubernetes Device Plugin Framework",
+   "kubelet gRPC service (Registration)",
+   "extended resource naming (vendor-domain/resourcetype)",
+   "Pod scheduling with device constraints",
+   "hardware resource allocation (e.g., GPUs, NICs)",
+   "kubelet node status updates"
+  ],
+  "type": "how-to",
+  "seconds": 51.5
+ },
+ "device.md": {
+  "title": "Infrastructure Devices in Kubernetes Nodes",
+  "summary": "Explains infrastructure devices (e.g., GPUs, ASIC boards) attached to Kubernetes nodes, their role in resource access, and the need for device drivers for Pods to interact with them.",
+  "topics": [
+   "Kubernetes Pods",
+   "Device drivers",
+   "Infrastructure resources",
+   "GPUs",
+   "ASIC boards",
+   "Node hardware attachments"
+  ],
+  "type": "reference",
+  "seconds": 24.7
+ },
+ "deviceclass.md": {
+  "title": "DeviceClass: Dynamic Device Categorization for DRA",
+  "summary": "Explains DeviceClass as a category for devices in a cluster enabling dynamic resource allocation (DRA). Defines how DeviceClasses are used to group devices for ResourceClaims.",
+  "topics": [
+   "Dynamic Resource Allocation (DRA)",
+   "ResourceClaims",
+   "Device categorization",
+   "Cluster device management"
+  ],
+  "type": "reference",
+  "seconds": 23.8
+ },
+ "disruption.md": {
+  "title": "Understanding Pod Disruptions in Kubernetes",
+  "summary": "Explains Kubernetes' terminology for Pod disruptions\u2014voluntary (user-initiated) vs. involuntary (Node/cluster failures). Covers consequences for workload management and deployment resources.",
+  "topics": [
+   "Kubernetes Pods",
+   "Disruptions (voluntary/involuntary)",
+   "Workload management",
+   "Deployment mechanisms",
+   "Node failures",
+   "Cluster operator responsibilities"
+  ],
+  "type": "concept",
+  "seconds": 36.4
+ },
+ "dns-pod-service.md": {
+  "title": "Kubernetes DNS for Services and Pods: DNS Configuration and Resolution",
+  "summary": "Explains how Kubernetes manages DNS records for Services and Pods, including namespace-based resolution, record types (A/AAAA, SRV), and configuration details like DNS search domains and hostname settings.",
+  "topics": [
+   "Kubernetes DNS service discovery",
+   "Service DNS records (A/AAAA)",
+   "SRV records for named ports",
+   "Pod DNS resolution and namespaces",
+   "kubelet DNS configuration (`/etc/resolv.conf`)",
+   "DNS search domains and subdomain handling"
+  ],
+  "type": "reference",
+  "seconds": 43.7
+ },
+ "docker.md": {
+  "title": "Docker: Containerization Overview and Core Concepts",
+  "summary": "Explains Docker Engine as a containerization platform leveraging Linux kernel features (cgroups, namespaces) for lightweight, isolated runtime environments. Compares containers to VMs, highlighting efficiency and resource sharing.",
+  "topics": [
+   "containerization",
+   "Docker Engine",
+   "Linux kernel features (cgroups, namespaces)",
+   "union-capable file systems (OverlayFS)",
+   "virtualization (containers vs. VMs)",
+   "resource isolation in Linux"
+  ],
+  "type": "concept",
+  "seconds": 29.3
+ },
+ "dockershim.md": {
+  "title": "Dockershim in Kubernetes",
+  "summary": "Explains the **Dockershim** component in Kubernetes versions 1.23 and earlier, detailing its role in enabling kubelet communication with Docker Engine. Highlights its removal in Kubernetes 1.24+ and provides links to further details (e.g., FAQ).",
+  "topics": [
+   "Kubernetes (K8s) version 1.23 and earlier",
+   "kubelet",
+   "Docker Engine integration",
+   "container runtime API",
+   "containerd (alternative runtime in newer K8s versions)",
+   "container runtime shims"
+  ],
+  "type": "reference",
+  "seconds": 31.3
+ },
+ "downstream.md": {
+  "title": "Downstream in Kubernetes Ecosystem: Definitions and Usage",
+  "summary": "Explains the terminology 'downstream' in Kubernetes, distinguishing between third-party tools dependent on core Kubernetes code and GitHub forked repositories (where 'downstream' refers to the forked repo).",
+  "topics": [
+   "Kubernetes ecosystem",
+   "Kubernetes core codebase",
+   "third-party tools",
+   "GitHub/Git terminology (upstream/downstream)",
+   "dependency relationships in open-source projects"
+  ],
+  "type": "concept",
+  "seconds": 35.1
+ },
+ "downward-api.md": {
+  "title": "Downward API: Exposing Pod and Container Information in Kubernetes",
+  "summary": "Explains the Downward API in Kubernetes, detailing available fields for Pod and container information via `fieldRef` and `resourceFieldRef`. Covers environment variable and volume-based exposure methods for low-coupling applications.",
+  "topics": [
+   "Kubernetes Downward API",
+   "environment variables (exposing Pod info)",
+   "downwardAPI volume (exposing Pod info)",
+   "fieldRef (Pod-level fields)",
+   "resourceFieldRef (Container-level fields)",
+   "metadata.name, namespace, uid, annotations, labels"
+  ],
+  "type": "reference",
+  "seconds": 54.8
+ },
+ "drain.md": {
+  "title": "Pod Eviction Process for Node Maintenance (Drain)",
+  "summary": "Explains how to safely remove Pods from a Kubernetes Node using `kubectl drain` for maintenance or cluster cleanup. Covers eviction retry logic and timeout configurations.",
+  "topics": [
+   "Kubernetes Pod eviction",
+   "kubectl drain command",
+   "Node maintenance workflow",
+   "Pod termination retry mechanism",
+   "Kubernetes Node lifecycle management"
+  ],
+  "type": "runbook",
+  "seconds": 24.8
+ },
+ "dual-stack.md": {
+  "title": "IPv4/IPv6 Dual-Stack Kubernetes Networking Configuration",
+  "summary": "Explains how to enable and configure IPv4/IPv6 dual-stack networking in Kubernetes clusters (from version 1.21+) by setting CIDR ranges for cluster IPs, node IPs, and configuring service IP family policies.",
+  "topics": [
+   "Kubernetes cluster networking",
+   "IPv4/IPv6 dual-stack Pod and Service support",
+   "Service IP family policies (`SingleStack`, `PreferDualStack`",
+   "kube-apiserver, kube-controller-manager, kube-proxy, kubelet",
+   "Cloud provider and network plugin prerequisites",
+   "Egress routing via IPv4/IPv6 interfaces"
+  ],
+  "type": "how-to",
+  "seconds": 53.2
+ },
+ "duration.md": {
+  "title": "Kubernetes Duration Format Specification",
+  "summary": "Explains the format and syntax for representing time durations in Kubernetes using Go's `time.Duration` type, including valid units (ns, \u00b5s, ms, s, m, h) and examples like `5s` or `1m30s`.",
+  "topics": [
+   "Kubernetes API",
+   "time.Duration (Go)",
+   "duration formatting",
+   "time units (ns, \u00b5s, ms, s, m, h)"
+  ],
+  "type": "reference",
+  "seconds": 28.9
+ },
+ "dynamic-volume-provisioning.md": {
+  "title": "Dynamic Volume Provisioning: API-Based Storage Management",
+  "summary": "Explains how dynamic volume provisioning automates storage volume creation via API (StorageClass) and Volume Plugin, eliminating manual pre-provisioning by cluster admins. Details the workflow and parameters for automated storage allocation.",
+  "topics": [
+   "StorageClass API",
+   "Volume Plugin",
+   "Kubernetes Storage",
+   "Automated Storage Provisioning",
+   "Dynamic Volume Management",
+   "Cluster Administrator Workflow"
+  ],
+  "type": "how-to",
+  "seconds": 29.4
+ },
+ "endpoint-slice.md": {
+  "title": "EndpointSlice: Kubernetes Service Endpoint Management",
+  "summary": "Explains how EndpointSlices track IP addresses of backend endpoints (Pods) for Kubernetes Services, including automatic and manual management, especially for Services without selectors.",
+  "topics": [
+   "Kubernetes Service",
+   "EndpointSlices",
+   "Pods",
+   "Kubernetes Control Plane",
+   "Service Endpoints",
+   "Endpoint Management"
+  ],
+  "type": "reference",
+  "seconds": 33.8
+ },
+ "endpoint-slices.md": {
+  "title": "Kubernetes EndpointSlice: API and Management",
+  "summary": "Explains Kubernetes EndpointSlice, a resource grouping network endpoints for Services with selectors. Covers creation, address types (IPv4/IPv6), conditions (serving/terminating/ready), topology info, and management details like max endpoints per slice.",
+  "topics": [
+   "Kubernetes Service",
+   "EndpointSlice API (discovery.k8s.io/v1)",
+   "Network endpoints management",
+   "DNS subdomain naming",
+   "kube-proxy routing",
+   "Topology-aware routing"
+  ],
+  "type": "reference",
+  "seconds": 48.3
+ },
+ "endpoint.md": {
+  "title": "Deprecated Endpoints API Documentation",
+  "summary": "Explains the deprecated Endpoints API in Kubernetes, its replacement (EndpointSlices), and its limitations. Highlights scalability concerns and provides a link to the official concept documentation.",
+  "topics": [
+   "Kubernetes API",
+   "EndpointSlices (deprecated Endpoints replacement)",
+   "Service networking",
+   "Scalability concerns in Kubernetes"
+  ],
+  "type": "reference",
+  "seconds": 23.1
+ },
+ "ephemeral-container.md": {
+  "title": "Ephemeral Container: Temporary Debugging Containers in Kubernetes Pods",
+  "summary": "Explains how to use ephemeral containers for temporary debugging in Kubernetes pods, emphasizing their use for diagnostics and lack of resource guarantees.",
+  "topics": [
+   "Kubernetes Pods",
+   "Ephemeral Containers",
+   "Temporary Debugging",
+   "Container Scheduling",
+   "Diagnostics in Kubernetes"
+  ],
+  "type": "how-to",
+  "seconds": 25.5
+ },
+ "etcd.md": {
+  "title": "etcd as Kubernetes Backing Store",
+  "summary": "Explains etcd\u2019s role in Kubernetes as a highly-available key-value store, emphasizing backup requirements and linking to official documentation. Covers operational considerations for etcd clusters in Kubernetes environments.",
+  "topics": [
+   "etcd",
+   "Kubernetes cluster data storage",
+   "etcd backup procedures",
+   "high-availability key-value stores",
+   "Kubernetes configuration management"
+  ],
+  "type": "reference",
+  "seconds": 25.7
+ },
+ "event.md": {
+  "title": "Kubernetes Events: Object Describing Cluster State Changes",
+  "summary": "Explains Kubernetes Events as API objects tracking state changes or notable occurrences in a cluster. Highlights their ephemeral nature, non-guaranteed consistency, and role as best-effort supplemental data for auditing and monitoring.",
+  "topics": [],
+  "type": "reference",
+  "seconds": 17.7
+ },
+ "eviction.md": {
+  "title": "Eviction Process in Kubernetes: Terminating Pods on Nodes",
+  "summary": "Explains Kubernetes eviction mechanisms, including node-pressure evictions (due to resource constraints) and API-initiated evictions (manually triggered). Covers the two primary eviction types and their underlying causes.",
+  "topics": [
+   "Kubernetes Scheduling",
+   "Pod Management",
+   "Node Pressure",
+   "API Initiation",
+   "Resource Constraints",
+   "Kubernetes Eviction Mechanisms"
+  ],
+  "type": "concept",
+  "seconds": 34.5
+ },
+ "extend-kubernetes.md": {
+  "title": "Extending Kubernetes: Customization Approaches and Extension Patterns",
+  "summary": "Explains Kubernetes extension methods, dividing customization into configuration (command-line args, config files) and extensions (additional programs/services). Focuses on deep integration via extension points like API, storage, network, and scheduling plugins for advanced use cases.",
+  "topics": [
+   "Kubernetes API extensions",
+   "Custom Resource Definitions (CRDs)",
+   "API aggregation layer",
+   "Dynamic admission control",
+   "Infrastructure extensions",
+   "Device plugins"
+  ],
+  "type": "how-to",
+  "seconds": 46.6
+ },
+ "extensions.md": {
+  "title": "Extensions in Kubernetes: Software Components for Hardware Integration",
+  "summary": "Explains Kubernetes extensions\u2014software components that enhance the cluster to support specialized hardware. Details integration with Kubernetes for advanced use cases, typically requiring cluster admins but rarely developers or end-users.",
+  "topics": [
+   "Kubernetes clusters",
+   "extensions architecture",
+   "hardware integration",
+   "cluster administrators",
+   "pre-installed extensions",
+   "developer/end-user access"
+  ],
+  "type": "concept",
+  "seconds": 26.6
+ },
+ "feature-gates.md": {
+  "title": "Kubernetes Feature Gate Documentation",
+  "summary": "Explains Kubernetes feature gates\u2014a mechanism to enable/disable cluster features via opaque string keys. Covers usage via `--feature-gates` flag across components and references official Kubernetes documentation for available gates.",
+  "topics": [
+   "Kubernetes",
+   "feature gates",
+   "Kubernetes components",
+   "command-line configuration",
+   "feature control mechanism"
+  ],
+  "type": "reference",
+  "seconds": 24.4
+ },
+ "finalizer.md": {
+  "title": "Kubernetes Finalizers: Garbage Collection Control",
+  "summary": "Explains Kubernetes finalizers\u2014namespaced keys that ensure controllers wait for cleanup actions before fully deleting resources. Describes their role in post-deletion resource cleanup and garbage collection.",
+  "topics": [
+   "Kubernetes API",
+   "resource deletion lifecycle",
+   "finalizers (Kubernetes)",
+   "controller cleanup",
+   "garbage collection",
+   "terminating state management"
+  ],
+  "type": "reference",
+  "seconds": 26.9
+ },
+ "flexvolume.md": {
+  "title": "FlexVolume: Deprecated Kubernetes Volume Plugin Interface",
+  "summary": "Explains FlexVolume, a deprecated Kubernetes interface for out-of-tree volume plugins. Highlights its limitations and recommends the newer Container Storage Interface (CSI) instead. Covers driver installation requirements and root access needs.",
+  "topics": [
+   "Kubernetes Storage Interface",
+   "FlexVolume drivers",
+   "Container Storage Interface (CSI)",
+   "Volume plugins",
+   "Root access requirements",
+   "Storage SIG (Storage SIG)"
+  ],
+  "type": "reference",
+  "seconds": 37.1
+ },
+ "gateway.md": {
+  "title": "Gateway API: Design and Resource Model for Kubernetes Networking",
+  "summary": "Describes the Gateway API's role-oriented design principles, resource model (GatewayClass, Gateway, HTTPRoute, GRPCRoute), and its extensibility for dynamic infrastructure provisioning and advanced traffic routing in Kubernetes. Explains migration from Ingress and interdependencies between API kinds.",
+  "topics": [
+   "Gateway API",
+   "Kubernetes networking",
+   "Role-oriented architecture (Infrastructure Provider, Cluster",
+   "GatewayClass (gateway controller configuration)",
+   "Gateway (traffic handling infrastructure, e.g., load balance",
+   "HTTPRoute (HTTP traffic routing rules)"
+  ],
+  "type": "reference",
+  "seconds": 55.6
+ },
+ "glossary-api-eviction.md": {
+  "title": "API-initiated eviction: Kubernetes Pod Graceful Termination via Eviction API",
+  "summary": "Explains how to use the Kubernetes Eviction API to trigger graceful pod termination via an `Eviction` object, including compatibility with `PodDisruptionBudgets` and `terminationGracePeriodSeconds`.",
+  "topics": [
+   "Kubernetes API (Eviction API)",
+   "PodDisruptionBudgets (PDB)",
+   "terminationGracePeriodSeconds",
+   "Kubernetes scheduling and eviction mechanisms",
+   "kubectl drain command",
+   "graceful pod termination"
+  ],
+  "type": "how-to",
+  "seconds": 34.8
+ },
+ "glossary-configmap.md": {
+  "title": "ConfigMap: Kubernetes API Object for Configuration Storage",
+  "summary": "Explains Kubernetes ConfigMap as a key-value store for non-sensitive data. Describes how Pods use ConfigMaps for environment variables, CLI args, or config files in volumes, enabling portable app configurations.",
+  "topics": [
+   "Kubernetes API",
+   "ConfigMaps",
+   "Configuration Management",
+   "Pods and Containers",
+   "Environment Variables",
+   "Configuration Volumes"
+  ],
+  "type": "reference",
+  "seconds": 26.9
+ },
+ "glossary-container-lifecycle-hooks.md": {
+  "title": "Container Lifecycle Hooks: PostStart & PreStop Events",
+  "summary": "Explains how to implement lifecycle hooks in containers, detailing the `PostStart` (runs after container creation) and `PreStop` (runs before termination) events for custom execution logic.",
+  "topics": [
+   "container orchestration",
+   "Docker/Kubernetes events",
+   "custom container hooks",
+   "event-driven automation"
+  ],
+  "type": "how-to",
+  "seconds": 23.6
+ },
+ "glossary-controller.md": {
+  "title": "What Are Kubernetes Controllers? (Control Loop Mechanism)",
+  "summary": "Explains Kubernetes controllers as control loops that compare cluster state to desired state, adjusting it via the API server. Covers core controllers like Deployment, DaemonSet, and PersistentVolume, running in the kube-controller-manager.",
+  "topics": [
+   "Kubernetes control plane",
+   "kube-controller-manager",
+   "control loops",
+   "API server (kube-apiserver)",
+   "cluster state reconciliation",
+   "Deployment controller"
+  ],
+  "type": "concept",
+  "seconds": 31.8
+ },
+ "glossary-cri.md": {
+  "title": "Kubernetes Container Runtime Interface (CRI) Specification",
+  "summary": "Explains the CRI protocol, a gRPC-based interface for kubelet-container runtime communication in Kubernetes. Defines the communication standards between node components and container runtimes.",
+  "topics": [
+   "kubelet",
+   "Container Runtime",
+   "gRPC",
+   "Kubernetes architecture",
+   "Node components"
+  ],
+  "type": "reference",
+  "seconds": 21.4
+ },
+ "glossary-deployment.md": {
+  "title": "API Deployment for Replicated Applications (Pod-based Management)",
+  "summary": "Explains how the API manages replicated applications via Pods in a Kubernetes cluster. Focuses on stateless workloads and Pod distribution across nodes. Recommends StatefulSet for stateful applications.",
+  "topics": [
+   "Kubernetes API",
+   "Pods",
+   "Replicated applications",
+   "Stateless workloads",
+   "Cluster node distribution",
+   "StatefulSet (alternative for stateful apps)"
+  ],
+  "type": "reference",
+  "seconds": 27.7
+ },
+ "glossary-downward-api.md": {
+  "title": "Kubernetes Downward API: Exposing Pod/Container Metadata",
+  "summary": "Explains Kubernetes' Downward API, which lets containers access self/cluster metadata via environment variables or volumes without modifying app code. Covers two methods: env vars and downwardAPI volumes.",
+  "topics": [
+   "Kubernetes Downward API",
+   "environment variables",
+   "downwardAPI volume",
+   "Pod metadata exposure",
+   "Kubernetes metadata injection",
+   "container runtime context"
+  ],
+  "type": "reference",
+  "seconds": 27.1
+ },
+ "glossary-dra.md": {
+  "title": "Dynamic Resource Allocation (DRA) in Kubernetes",
+  "summary": "Explains Kubernetes' Dynamic Resource Allocation feature for requesting and sharing hardware/accelerator devices across Pods via device classes and claims. Details how Kubernetes assigns devices to workloads and nodes.",
+  "topics": [
+   "Kubernetes",
+   "device classes",
+   "device claims",
+   "Pod scheduling",
+   "hardware/accelerator allocation",
+   "cluster administration"
+  ],
+  "type": "concept",
+  "seconds": 26.5
+ },
+ "glossary-garbage-collection.md": {
+  "title": "Kubernetes Garbage Collection Mechanisms",
+  "summary": "Explains Kubernetes' garbage collection processes for cleaning up unused containers/images, failed Pods, owned objects, completed Jobs, and expired resources. Covers ownership/dependency relationships and TTL (time-to-live) for Jobs.",
+  "topics": [
+   "Kubernetes architecture",
+   "Pod lifecycle",
+   "Owners/Dependents relationships",
+   "Kubernetes controllers (e.g., Jobs)",
+   "Resource cleanup mechanisms",
+   "Time-to-live (TTL) for Jobs"
+  ],
+  "type": "reference",
+  "seconds": 31.4
+ },
+ "glossary-kube-scheduler.md": {
+  "title": "kube-scheduler: Pod scheduling decisions in Kubernetes",
+  "summary": "Explains the Kubernetes `kube-scheduler` component, its decision-making factors, and how it assigns Pods to nodes. Covers resource constraints, affinity rules, locality, and workload interference.",
+  "topics": [
+   "Kubernetes Control Plane",
+   "Pod scheduling",
+   "Resource allocation (CPU, memory)",
+   "Node affinity/anti-affinity rules",
+   "Data locality",
+   "Inter-workload interference"
+  ],
+  "type": "reference",
+  "seconds": 27.6
+ },
+ "glossary-kubectl.md": {
+  "title": "kubectl: Kubernetes CLI Command Line Tool",
+  "summary": "Explains `kubectl`, the official CLI tool for interacting with Kubernetes clusters via the API. Covers CRUD operations (create, read, update, delete) for Kubernetes objects.",
+  "topics": [
+   "Kubernetes API",
+   "Kubernetes control plane",
+   "CLI tools for Kubernetes",
+   "Kubernetes object management (Pods, Deployments, Services, e"
+  ],
+  "type": "how-to",
+  "seconds": 24.4
+ },
+ "glossary-kubernetes-api.md": {
+  "title": "Kubernetes API: Core HTTP Interface for Cluster Communication",
+  "summary": "Explains the Kubernetes HTTP API, enabling communication between users, components, and external systems to manage cluster state via RESTful calls. Focuses on declarative configuration and extensibility for custom resources.",
+  "topics": [
+   "Kubernetes API",
+   "RESTful communication",
+   "Kubernetes objects (resources)",
+   "Declarative configuration",
+   "kubectl tool integration",
+   "Custom resources extension"
+  ],
+  "type": "reference",
+  "seconds": 25.1
+ },
+ "glossary-logging.md": {
+  "title": "Logging: Cluster and Application Event Documentation",
+  "summary": "Explains the purpose of logs in a cluster/application, including their role in debugging and monitoring. Details how logs capture events for troubleshooting and operational insights.",
+  "topics": [
+   "cluster logging",
+   "application event logging",
+   "debugging tools",
+   "monitoring systems",
+   "event tracking",
+   "log analysis"
+  ],
+  "type": "reference",
+  "seconds": 22.2
+ },
+ "glossary-mixed-version-proxy.md": {
+  "title": "Mixed Version Proxy (MVP) - Kubernetes API Server Feature",
+  "summary": "Explains the Mixed Version Proxy (MVP) feature in Kubernetes, allowing a kube-apiserver to proxy requests to different API server versions in multi-version clusters. Enabled via the `UnknownVersionInteroperabilityProxy` feature gate.",
+  "topics": [
+   "kube-apiserver",
+   "Kubernetes API Server",
+   "feature gates",
+   "multi-version Kubernetes clusters",
+   "proxying resource requests"
+  ],
+  "type": "reference",
+  "seconds": 27.4
+ },
+ "glossary-node-pressure-eviction.md": {
+  "title": "Node-pressure eviction: Kubernetes kubelet proactive pod termination",
+  "summary": "Explains how Kubernetes' kubelet performs proactive pod evictions under resource pressure (CPU, memory, disk, inodes). Differentiates from API-initiated evictions and details monitoring thresholds for eviction decisions.",
+  "topics": [
+   "kubelet",
+   "Kubernetes scheduling",
+   "resource monitoring (CPU, memory, disk, inodes)",
+   "proactive eviction",
+   "pod lifecycle management",
+   "kubernetes eviction policies"
+  ],
+  "type": "troubleshooting",
+  "seconds": 31.8
+ },
+ "glossary-pod-lifecycle.md": {
+  "title": "Pod Lifecycle States and Phases",
+  "summary": "Explains Kubernetes Pod lifecycle with five phases: Pending, Running, Succeeded, Failed, and Unknown. Describes the `phase` field in PodStatus and its meaning in the Kubernetes API.",
+  "topics": [
+   "Kubernetes Pod",
+   "PodStatus API",
+   "Kubernetes Workloads",
+   "Pod lifecycle states",
+   "Kubernetes API v1-core"
+  ],
+  "type": "reference",
+  "seconds": 23.5
+ },
+ "glossary-pod-security-policy.md": {
+  "title": "Pod Security Policy Deprecation and Alternatives in Kubernetes",
+  "summary": "Explains the deprecation of PodSecurityPolicy in Kubernetes v1.21 (removed in v1.25) and recommends using Pod Security Admission or third-party admission plugins instead.",
+  "topics": [
+   "Kubernetes API",
+   "Pod Security Admission",
+   "PodSecurityPolicy",
+   "Kubernetes versioning (v1.21, v1.25)",
+   "Admission plugins"
+  ],
+  "type": "reference",
+  "seconds": 26.4
+ },
+ "glossary-secret.md": {
+  "title": "Kubernetes Secrets: Secure Storage for Sensitive Data",
+  "summary": "Explains Kubernetes Secrets\u2014storing encrypted/encoded sensitive data (passwords, tokens) securely, with access via Pods (volume mounts/env vars). Differentiates from ConfigMaps for non-confidential data.",
+  "topics": [
+   "Kubernetes Secrets",
+   "base64 encoding",
+   "Pod configuration (volume mounts, env vars)",
+   "data encryption at rest",
+   "ConfigMaps (alternative for non-sensitive data)",
+   "Kubernetes Pod architecture"
+  ],
+  "type": "reference",
+  "seconds": 28.4
+ },
+ "glossary-security-context.md": {
+  "title": "Understanding `securityContext` in Kubernetes Pods",
+  "summary": "Explains the `securityContext` field in Kubernetes, detailing privilege settings, user/group configurations, and security policies (SELinux/AppArmor/seccomp) for Pods and containers.",
+  "topics": [
+   "Kubernetes Pods",
+   "securityContext field",
+   "privilege settings",
+   "user/group permissions",
+   "SELinux/AppArmor/seccomp policies",
+   "container security configurations"
+  ],
+  "type": "reference",
+  "seconds": 22.5
+ }
+}

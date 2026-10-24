@@ -1,0 +1,45 @@
+{
+ "pages": 100,
+ "reference_descriptions": 228,
+ "models": {
+  "gemma-4-e2b-app3": {
+   "agreement": 0.8,
+   "identifies": 0.75,
+   "median_seconds": 18.15,
+   "words": 31.2,
+   "type": {
+    "pages": 67,
+    "exact": 0.179,
+    "compatible": 0.179
+   }
+  },
+  "gemma-4-e2b-think-app3": {
+   "agreement": 0.796,
+   "identifies": 0.76,
+   "median_seconds": 77.8,
+   "words": 33.6,
+   "type": {
+    "pages": 67,
+    "exact": 0.149,
+    "compatible": 0.164
+   }
+  },
+  "ministral-3-3b-app3": {
+   "agreement": 0.771,
+   "identifies": 0.65,
+   "median_seconds": 30.85,
+   "words": 26.6,
+   "type": {
+    "pages": 67,
+    "exact": 0.478,
+    "compatible": 0.478
+   }
+  },
+  "no model (first paragraph)": {
+   "agreement": 0.877,
+   "identifies": 0.85,
+   "median_seconds": null,
+   "words": 20.9
+  }
+ }
+}
