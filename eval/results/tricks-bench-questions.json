@@ -1,0 +1,167 @@
+{
+ "corpus": "k8s-sub-gemma",
+ "index": "k8s-sub-gemma-c900-o150",
+ "queries": 219,
+ "variants": {
+  "baseline | no reranker": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.364,
+    "success@5": 0.625,
+    "mrr@10": 0.482,
+    "answered": 0.693,
+    "precision": 0.352
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.14
+  },
+  "questions 0.5 | no reranker": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.324,
+    "success@5": 0.597,
+    "mrr@10": 0.451,
+    "answered": 0.648,
+    "precision": 0.368
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 0.889,
+    "success@5": 1.0,
+    "mrr@10": 0.92,
+    "answered": 0.778,
+    "precision": 0.952,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.15
+  },
+  "questions 1.0 | no reranker": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.278,
+    "success@5": 0.574,
+    "mrr@10": 0.418,
+    "answered": 0.642,
+    "precision": 0.354
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 0.889,
+    "success@5": 1.0,
+    "mrr@10": 0.92,
+    "answered": 0.778,
+    "precision": 0.952,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.15
+  },
+  "summary+questions 0.5 | no reranker": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.273,
+    "success@5": 0.58,
+    "mrr@10": 0.409,
+    "answered": 0.659,
+    "precision": 0.345
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 0.889,
+    "success@5": 1.0,
+    "mrr@10": 0.924,
+    "answered": 0.778,
+    "precision": 0.952,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.15
+  },
+  "baseline | jina-reranker-v1-turbo-en": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.369,
+    "success@5": 0.625,
+    "mrr@10": 0.475,
+    "answered": 0.693,
+    "precision": 0.344
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.66
+  },
+  "questions 0.5 | jina-reranker-v1-turbo-en": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.301,
+    "success@5": 0.619,
+    "mrr@10": 0.442,
+    "answered": 0.648,
+    "precision": 0.342
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.72
+  },
+  "questions 1.0 | jina-reranker-v1-turbo-en": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.301,
+    "success@5": 0.608,
+    "mrr@10": 0.436,
+    "answered": 0.642,
+    "precision": 0.345
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 1.11
+  },
+  "summary+questions 0.5 | jina-reranker-v1-turbo-en": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.318,
+    "success@5": 0.619,
+    "mrr@10": 0.442,
+    "answered": 0.659,
+    "precision": 0.345
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 0.963,
+    "success@5": 1.0,
+    "mrr@10": 0.972,
+    "answered": 0.778,
+    "precision": 0.952,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 1.0
+  }
+ }
+}
