@@ -1,0 +1,47 @@
+{
+ "corpus": "k8s-sub-gemma",
+ "index": "k8s-sub-gemma-c900-o150-ctx600",
+ "queries": 219,
+ "variants": {
+  "baseline | no reranker": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.33,
+    "success@5": 0.614,
+    "mrr@10": 0.462,
+    "answered": 0.653,
+    "precision": 0.357
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 0.963,
+    "success@5": 1.0,
+    "mrr@10": 0.981,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.27
+  },
+  "baseline | jina-reranker-v1-turbo-en": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.375,
+    "success@5": 0.619,
+    "mrr@10": 0.481,
+    "answered": 0.653,
+    "precision": 0.33
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 1.64
+  }
+ }
+}
