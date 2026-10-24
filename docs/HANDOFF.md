@@ -639,8 +639,8 @@ Still open, in the order to do them:
    on the computer running Ferret); a real intranet copy through the Crawler tab.
 5. **Owner's own documents** with 50–100 labelled questions (the tricks were measured on public docs only).
 6. "Neighbour summaries instead of overlap": not measured; discussed and rejected by the owner (2026-10-24).
-7. **Large documents** (`docs/plan-large-documents.md`) and **Summaries counts** (`docs/plan-summaries-status.md`):
-   plans; run `eval/bench_parallel.py` on an idle machine first.
+7. **Large documents** (`docs/plan-large-documents.md`; several embedding sessions measured: no gain on 4 cores,
+   evaluation §10) and **Summaries counts** (`docs/plan-summaries-status.md`): plans.
 8. Lint debt: ~20 older `ruff` findings (unused noqa, import order, two B023/B008) — harmless, clean up once.
 
 ## 8. Gotchas

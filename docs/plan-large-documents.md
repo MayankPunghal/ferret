@@ -3,7 +3,8 @@
 Owner request: "What can we do for super large docs with a high count of passages? Can we parallelize
 more?" Seen on a `db-tables.md` of 449 passages that sat at "embedding 192/449" while other documents waited.
 
-**Status: plan.** One preliminary number exists (step 1); everything else below is unmeasured.
+**Status: plan.** Step 1 measured on an idle 4-core CPU (2026-10-24): **no worthwhile gain there**; steps 2–3
+are the useful ones on a laptop. Everything else below is unmeasured.
 
 ## Where the time goes today
 
@@ -32,7 +33,14 @@ side by side can do more in total.
 - **Preliminary measurement** (`eval/bench_parallel.py`, 4 cores, 64 passages, **while another model was
   using the same CPU**, so it is only a signal): 1 session × all cores **6.7 passages/s**, 2 sessions × 2
   threads **11.2 passages/s**. The vectors were identical (max difference 0), so accuracy does not change.
-- **Measure on an idle machine first:** `uv run python eval/bench_parallel.py --passages 400 --layouts 1x0
+- **Idle measurement (2026-10-24, 4-core Intel Xeon 2.1 GHz VM, bge-base, 400 passages from 8 large Kubernetes
+  pages, median 774 characters, `--file`):** 1×all cores **6.9**, 2×all cores 5.4, **2×2 threads 7.3**, 4×1
+  thread 7.2 passages/s; vectors identical in every layout. +6% at best, within noise and far from the 1.5×
+  target: **the earlier 1.7× was an artefact of a busy CPU.** Do not build step 1 for 4-core machines; measure
+  again on the server (16–32 cores), where one session may not use every core well.
+- Note: the script's default input (the sample corpus) has very short passages (median 152 characters) and
+  gives ~43 passages/s, which says nothing about real documents. Always pass `--file` with a large document.
+- **Measure on other machines:** `uv run python eval/bench_parallel.py --passages 400 --layouts 1x0
   2x0 2x2 4x1`, on the laptop and on the server (for example 16 or 32 cores: try 4x4, 8x4). Keep the
   fastest layout whose vectors match.
 - **Build:** an `EmbedderPool` of S sessions (the same model loaded S times; about 250–400 MB of RAM each,

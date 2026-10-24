@@ -23,8 +23,7 @@ Then work through `docs/TODO.md` in its order, unless the owner picks something 
 
 - **Fix first:** the documents list stops at 1,000 rows (TODO item 1; the fix is in
   `docs/plan-summaries-status.md`, together with the Summaries-tab counts, item 9).
-- **Measure on the owner's laptop:** the parallel-embedding benchmark (item 3), then build
-  `docs/plan-large-documents.md` step 1 only if the gain holds and the vectors stay identical.
+- **Large documents:** steps 2–3 of `docs/plan-large-documents.md` (step 1 measured: no gain on 4 cores).
 - **Plans ready to build:** GPU switch (`plan-gpu.md`; the owner has an Intel iGPU), installer and release
   (`plan-installer.md`, `plan-release.md`), Docker (`plan-docker.md`), invite links (`plan-invites.md`),
   the Ask chat window (`plan-answers.md`, six phases),

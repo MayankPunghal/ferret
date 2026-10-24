@@ -1,8 +1,10 @@
 """Embedding throughput: one model session using every core, or several sessions with fewer threads each
 working on different batches of the same document (docs/plan-large-documents.md, step 1).
 
-    uv run python eval/bench_parallel.py --passages 400 --layouts 1x0 2x2 4x1
-    uv run python eval/bench_parallel.py --file some-large.pdf          # passages from a real document
+    uv run python eval/bench_parallel.py --file some-large.pdf --passages 400 --layouts 1x0 2x0 2x2 4x1
+
+Always pass --file with a large real document: the default sample corpus has very short passages (median
+~150 characters) and runs ~6x faster than real documents, so its numbers say nothing about indexing.
 
 A layout SxT is S sessions with T ONNX threads each (T=0: the runtime default, all cores). Every layout must
 give the same vectors as 1x0 (exactness is checked: same model, same inputs, so only float noise). Run on an

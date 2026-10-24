@@ -346,6 +346,13 @@ diagram's arrows wrong. So GLM is the one that reads diagrams correctly, but sev
 background indexing of pictures, where time matters less than accuracy, GLM is the stronger candidate;
 **to confirm:** run E2B on the same 20 pictures, and GLM on the scanned page.
 
+## 10. Several embedding sessions for one document (2026-10-24, `eval/bench_parallel.py`)
+
+Idle 4-core VM (Intel Xeon 2.1 GHz), bge-base, 400 passages from 8 large Kubernetes pages (median 774
+characters). Passages per second, by sessions × threads: **1 × all cores 6.9**, 2 × all cores 5.4,
+**2 × 2 threads 7.3**, 4 × 1 thread 7.2. Vectors identical in all layouts. No worthwhile gain on 4 cores; an
+earlier 1.7× reading was taken on a busy CPU. Not measured: machines with more cores, GPU.
+
 ## Not measured
 
 Real company corpus; corpora beyond ~8.5k chunks; large embedding models (bge-large); GPU; Windows performance; Docker
