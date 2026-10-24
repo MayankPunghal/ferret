@@ -33,11 +33,14 @@ DESCRIBE = ("Describe this image for a search index in 2-4 sentences: what it is
             "the relationships it states. Only state what is visible.")
 
 
+EXTRA: dict = {}  # extra request fields (--no-thinking)
+
+
 def ask(url: str, image: Path, prompt: str, max_tokens: int) -> tuple[str, float, dict]:
     data = base64.b64encode(image.read_bytes()).decode()
     body = {"messages": [{"role": "user", "content": [
         {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{data}"}},
-        {"type": "text", "text": prompt}]}], "temperature": 0, "max_tokens": max_tokens}
+        {"type": "text", "text": prompt}]}], "temperature": 0, "max_tokens": max_tokens, **EXTRA}
     req = urllib.request.Request(url + "/v1/chat/completions", json.dumps(body).encode(),
                                  {"Content-Type": "application/json"})
     t = time.perf_counter()
@@ -95,7 +98,10 @@ def main():
     ap.add_argument("--read-only", action="store_true", help="only transcription (OCR-only models)")
     ap.add_argument("--max-tokens", type=int, default=2048)
     ap.add_argument("--only", default="", help="comma-separated image names")
+    ap.add_argument("--no-thinking", action="store_true", help="models that think first (GLM-4.6V): answer directly")
     a = ap.parse_args()
+    if a.no_thinking:
+        EXTRA["chat_template_kwargs"] = {"enable_thinking": False}
     truth = json.loads((IMAGES / "truth.json").read_text(encoding="utf-8"))
     names = a.only.split(",") if a.only else list(truth)
     rows = []
