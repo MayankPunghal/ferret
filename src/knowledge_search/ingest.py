@@ -8,8 +8,6 @@ content (same SHA-256 as the latest version) is not reprocessed.
 
 import hashlib
 import logging
-
-import numpy as np
 import os
 import threading
 import time
@@ -17,12 +15,20 @@ from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID
 
+import numpy as np
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
-from . import db, runtime
+from . import db, runtime, trace
 from .embedder import EmbeddingError
-from .parsing import ParseError, chunk_document, doc_summary, embedding_text, media_type_for, parse_document
+from .parsing import (
+    ParseError,
+    chunk_document,
+    doc_summary,
+    embedding_text,
+    media_type_for,
+    parse_document,
+)
 
 log = logging.getLogger(__name__)
 
@@ -228,6 +234,7 @@ class Worker:
             job = self._claim(conn)
             if not job:
                 return False
+            t = trace.Timer()
             try:
                 rt = runtime.load(conn)
                 conn.commit()
@@ -236,8 +243,11 @@ class Worker:
                     self._progress(conn, job, "loading model (first use downloads it)")
                     embedder.warm()
                 self._progress(conn, job, "reading file")
+                t.step("loading the model")
                 parsed = parse_document(self.blobs.get(job["sha256"]), job["filename"], self.max_pages, self.max_chars)
+                t.step("reading the file")
                 chunks = chunk_document(parsed, rt.chunk_size, rt.chunk_overlap)
+                t.step("cutting into passages")
                 written = conn.execute("SELECT enrichment->>'summary' AS s FROM documents WHERE id = %s",
                                        (job["document_id"],)).fetchone()["s"] if rt.context_chars else None
                 conn.commit()
@@ -252,9 +262,11 @@ class Worker:
                 vectors = np.empty((len(texts), embedder.spec.dim), dtype=np.float32)
                 if texts:
                     vectors[order] = np.vstack(parts)
+                t.step(f"embedding {len(texts)} passages ({embedder.spec.name})")
                 self._progress(conn, job, "saving", len(texts), len(texts))
             except ParseError as e:  # deterministic: do not retry
                 self._fail(conn, job, e.code, e.detail, retry=False)
+                trace.record("index", f"Index {job['filename']}", ms=t.ms, status=e.code, steps=t.steps, detail=e.detail)
                 return True
             except EmbeddingError as e:
                 self._fail(conn, job, "embedding_failed", str(e)[:500], retry=True)
@@ -267,6 +279,11 @@ class Worker:
                 self._fail(conn, job, "internal_error", type(e).__name__, retry=True)
                 return True
             self._commit(conn, job, parsed, chunks, vectors, embedder.spec.version_key, rt.signature())
+            t.step("saving")
+            trace.record("index", f"Index {job['filename']}", ms=t.ms, steps=t.steps,
+                         detail=f"{len(chunks)} passages from {len(parsed.sections)} sections",
+                         response={"title": parsed.title, "passages": [
+                             {"heading": c.heading_path, "page": c.page, "text": c.text[:300]} for c in chunks[:50]]})
             return True
 
     @staticmethod

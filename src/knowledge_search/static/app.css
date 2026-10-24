@@ -420,3 +420,40 @@ td.actions-cell { width: 1%; text-align: right; }
 .busy { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
 .model-list .error-text { display: inline-block; max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; margin-right: 6px; }
 .error-text { color: var(--pill-negative-ink); }
+
+/* AI assistants: the new token, shortened, with Copy */
+.token-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.token-row code { font-size: 13px; padding: 6px 10px; background: var(--raised); border-radius: var(--radius-control); }
+
+/* Logs → Activity: list of calls + details (request, response, timing), like a browser's Network tab */
+.activity { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap); }
+.activity.with-detail { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.act-list { max-height: 70vh; overflow: auto; }
+.act-list thead th { position: sticky; top: 0; background: var(--surface); }
+.data.act td { padding-top: 8px; padding-bottom: 8px; }
+.act-row { cursor: pointer; }
+.act-row.selected { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.act-call { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+.act-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 46ch; }
+.act-kind { flex: none; font-size: 11px; padding: 0 6px; border-radius: 4px; background: var(--pill-neutral-bg); color: var(--pill-neutral-ink); }
+.act-kind.k-llm { background: var(--pill-warning-bg); color: var(--pill-warning-ink); }
+.act-kind.k-mcp { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.act-kind.k-index { background: var(--pill-positive-bg); color: var(--pill-positive-ink); }
+.act-detail { border-left: 1px solid var(--border); padding-left: var(--gap); min-width: 0; max-height: 75vh; overflow: auto; position: sticky; top: 0; }
+.act-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 12px; }
+.act-head h2 { overflow-wrap: anywhere; }
+.act-kv { margin-bottom: 12px; }
+.act-h, .act-kids h3 { font-size: 13px; font-weight: 600; margin: 16px 0 8px; }
+.act-copy { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.act-body { max-height: 60vh; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+.wf { display: grid; gap: 6px; }
+.wf-row { display: grid; grid-template-columns: minmax(90px, 34%) 1fr 64px; gap: 8px; align-items: center; font-size: 12.5px; }
+.wf-name { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-track { height: 10px; background: var(--raised); border-radius: 3px; overflow: hidden; }
+.wf-bar { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.wf-ms { text-align: right; }
+@media (max-width: 1000px) {
+  .activity.with-detail { grid-template-columns: minmax(0, 1fr); }
+  .act-detail { border-left: 0; padding-left: 0; border-top: 1px solid var(--border); padding-top: 16px; position: static; max-height: none; }
+  .act-name { max-width: 28ch; }
+}

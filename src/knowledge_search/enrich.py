@@ -38,7 +38,7 @@ from pathlib import Path
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
-from . import db, runtime
+from . import db, runtime, trace
 from .parsing import GENERIC
 
 log = logging.getLogger(__name__)
@@ -100,7 +100,8 @@ class LLMError(Exception):
     pass
 
 
-def chat(url: str, model: str, prompt: str, max_tokens: int = 300, timeout: float = 600, think: bool = False) -> str:
+def chat(url: str, model: str, prompt: str, max_tokens: int = 300, timeout: float = 600, think: bool = False,
+         label: str = "") -> str:
     body = {"messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens, "temperature": 0,
             "chat_template_kwargs": {"enable_thinking": think}}
     if not think:  # a JSON grammar would also constrain the reasoning
@@ -109,11 +110,21 @@ def chat(url: str, model: str, prompt: str, max_tokens: int = 300, timeout: floa
         body["model"] = model
     req = urllib.request.Request(url.rstrip("/") + "/chat/completions", json.dumps(body).encode(),
                                  {"Content-Type": "application/json"})
+    t = trace.Timer()
+    title = f"Local model: {label or model or 'chat'}"
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.load(r)["choices"][0]["message"]["content"] or ""
+            out = json.load(r)
+        content = out["choices"][0]["message"]["content"] or ""
     except (urllib.error.URLError, OSError, KeyError, IndexError, ValueError) as e:
+        trace.record("llm", title, ms=t.ms, status="error", request=body, response=f"{type(e).__name__}: {e}")
         raise LLMError(f"{type(e).__name__}: {e}"[:300]) from e
+    usage, tm = out.get("usage") or {}, out.get("timings") or {}  # timings: llama.cpp's own (others send usage)
+    steps = [("reading the prompt", tm["prompt_ms"]), ("writing", tm["predicted_ms"])] if "prompt_ms" in tm else None
+    trace.record("llm", title, ms=t.ms, request=body, response=out, steps=steps, tokens={
+        "prompt": usage.get("prompt_tokens"), "output": usage.get("completion_tokens"),
+        "per_second": round(tm["predicted_per_second"], 1) if tm.get("predicted_per_second") else None})
+    return content
 
 
 def parse_reply(raw: str) -> dict:
@@ -433,7 +444,8 @@ class Enricher:
                         + "; ".join(known) + "\n") if known else ""
                 out = parse_reply(chat(self.url, self.model, PROMPT.format(
                     title=title or doc["title"], title_note=note, outline=outline, text=text,
-                    types="; ".join(f"{k} ({v})" for k, v in DOC_TYPES.items()), known=hint)))
+                    types="; ".join(f"{k} ({v})" for k, v in DOC_TYPES.items()), known=hint),
+                    label=f"summary of {doc['title']}"[:120]))
             except LLMError as e:
                 if self.stopping:  # the app is closing: not the document's fault
                     conn.execute("UPDATE documents SET enrich_claimed_at = NULL WHERE id = %s", (doc["id"],))

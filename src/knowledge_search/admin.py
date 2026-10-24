@@ -201,6 +201,31 @@ def get_logs(p: Admin, conn: Conn, level: str = "WARNING", limit: int = 500):
     return {"diagnostics": logs.diagnostics(extra), "records": logs.records(level, max(1, min(limit, 2000)))}
 
 
+@router.get("/activity")
+def get_activity(p: Admin, kind: str = ""):
+    """Recent calls with timing (trace.py): the list, newest first, without request and response bodies."""
+    from . import trace
+
+    return {"calls": trace.calls(kind), "kept": trace.MAX_CALLS}
+
+
+@router.get("/activity/{call_id}")
+def get_call(call_id: int, p: Admin):
+    from . import trace
+
+    c = trace.get(call_id)
+    if c is None:
+        raise HTTPException(404, "no longer kept (only the most recent calls are)")
+    return c
+
+
+@router.delete("/activity", status_code=204)
+def clear_activity(p: Admin):
+    from . import trace
+
+    trace.clear()
+
+
 # --- collections and access -------------------------------------------------------------------
 
 class CollectionBody(BaseModel):

@@ -176,7 +176,8 @@
           </form>
           <div id="tok-new" hidden>
             <p><strong>Copy this token now</strong>; it will not be shown again. The setup below already contains it.</p>
-            <pre id="tok-value" class="copyable"></pre>
+            <div class="token-row"><code id="tok-value" class="mono" title="Shortened; Copy copies the whole token"></code>
+              <button type="button" id="tok-copy">Copy</button><span id="tok-copied" class="muted small" role="status"></span></div>
           </div>
           <p id="tok-msg" class="muted small" role="status"></p>
         </section>
@@ -333,21 +334,63 @@
       <section id="tab-logs" hidden>
         <div class="title-row">
           <h1>Logs</h1>
-          <div class="actions">
+          <div class="actions" id="act-actions">
+            <button type="button" id="act-refresh" class="button">Refresh</button>
+            <button type="button" id="act-clear" class="button">Clear</button>
+          </div>
+          <div class="actions" id="log-actions" hidden>
             <button type="button" id="log-refresh" class="button">Refresh</button>
             <button type="button" id="log-download" class="button">Download .txt</button>
             <button type="button" id="log-copy" class="primary">Copy for support</button>
           </div>
         </div>
-        <p class="muted lede">Recent warnings and errors with technical details. Logs never contain document or search text,
-          so they are safe to share with support. They are also written to the log file named below.</p>
-        <div class="toolbar">
-          <label class="inline">Show <select id="log-level">
-            <option value="ERROR">errors</option><option value="WARNING" selected>warnings and errors</option>
-            <option value="INFO">everything</option></select></label>
-          <span id="log-msg" class="muted small" role="status"></span>
+        <div class="seg" role="tablist" id="log-views">
+          <button type="button" role="tab" data-view="activity" aria-selected="true">Activity</button>
+          <button type="button" role="tab" data-view="logs" aria-selected="false">Warnings and errors</button>
         </div>
-        <pre id="log-text" class="log-text" tabindex="0"></pre>
+        <div id="view-activity">
+          <p class="muted lede">What the app did since it started: searches, changes, AI-assistant calls, the local model's
+            calls and each indexed document, with what was sent, what came back and where the time went. Only the last
+            300 calls are kept, in memory, for administrators. They contain search text and passages, so they are not part
+            of Copy for support.</p>
+          <div class="toolbar">
+            <label class="inline">Show <select id="act-kind">
+              <option value="">all calls</option><option value="http">searches and changes</option>
+              <option value="mcp">AI assistants (MCP)</option><option value="llm">local model</option>
+              <option value="index">indexing</option></select></label>
+            <input id="act-filter" type="search" placeholder="Filter by text" aria-label="Filter calls">
+            <label class="inline"><input type="checkbox" id="act-live" checked> Live</label>
+            <span id="act-msg" class="muted small" role="status"></span>
+          </div>
+          <div class="activity" id="activity">
+            <div class="act-list"><table class="data act">
+              <thead><tr><th>Time</th><th>Call</th><th>By</th><th>Status</th><th class="num">Took</th><th class="num">Tokens</th></tr></thead>
+              <tbody id="act-rows"></tbody></table>
+              <p id="act-empty" class="empty" hidden>No calls yet. Run a search, upload a file or let the local model work.</p>
+            </div>
+            <aside id="act-detail" class="act-detail" hidden aria-label="Call details">
+              <div class="act-head"><h2 id="act-title"></h2>
+                <button type="button" class="icon" id="act-close" title="Close" aria-label="Close details"><svg class="i"><use href="#i-close"/></svg></button></div>
+              <div class="seg" role="tablist" id="act-tabs">
+                <button type="button" role="tab" data-pane="summary" aria-selected="true">Summary</button>
+                <button type="button" role="tab" data-pane="request" aria-selected="false">Request</button>
+                <button type="button" role="tab" data-pane="response" aria-selected="false">Response</button>
+              </div>
+              <div id="act-pane"></div>
+            </aside>
+          </div>
+        </div>
+        <div id="view-logs" hidden>
+          <p class="muted lede">Recent warnings and errors with technical details. Logs never contain document or search text,
+            so they are safe to share with support. They are also written to the log file named below.</p>
+          <div class="toolbar">
+            <label class="inline">Show <select id="log-level">
+              <option value="ERROR">errors</option><option value="WARNING" selected>warnings and errors</option>
+              <option value="INFO">everything</option></select></label>
+            <span id="log-msg" class="muted small" role="status"></span>
+          </div>
+          <pre id="log-text" class="log-text" tabindex="0"></pre>
+        </div>
       </section>
 
       <section id="tab-admin" hidden>

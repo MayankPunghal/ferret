@@ -223,7 +223,12 @@ with sync_playwright() as p:
     pg.fill("#tok-form input[name=label]", "ui-check assistant")
     pg.click("#tok-form button")
     pg.wait_for_selector("#tok-new:not([hidden])")
-    tok = pg.inner_text("#tok-value").strip()
+    shown = pg.inner_text("#tok-value").strip()
+    assert "••••" in shown, "the token is shown shortened"
+    pg.context.grant_permissions(["clipboard-read", "clipboard-write"])
+    pg.click("#tok-copy")
+    tok = pg.evaluate("navigator.clipboard.readText()")
+    assert tok.startswith(shown[:6]) and tok.endswith(shown[-4:]) and len(tok) > len(shown) - 8, "Copy copies the whole token"
     assert tok in pg.inner_text("#mcp-config") and "/mcp" in pg.inner_text("#mcp-config"), "setup snippet"
     shot("20-assistants")
     for c in ("Claude Desktop", "Cursor", "VS Code"):
@@ -241,7 +246,32 @@ with sync_playwright() as p:
                            data={"jsonrpc": "2.0", "id": 1, "method": "initialize"}).status
     assert gone == 401, gone
     print("revoked token refused:", gone)
-    pg.click(".tab[data-tab=search]")
+    # Logs → Activity (administrators): the calls above with request, response and timing, like a browser's Network tab
+    def sign_in(user, pw):
+        pg.click("#logout")
+        pg.wait_for_selector("#login-view:not([hidden])")
+        pg.fill("input[name=username]", user)
+        pg.fill("input[name=password]", pw)
+        pg.click("#login-form button")
+        pg.wait_for_selector("#app-view:not([hidden])")
+
+    sign_in("admin", ADMIN_PW)
+    pg.click(".tab[data-tab=logs]")
+    pg.wait_for_selector("#act-rows tr")
+    kinds = set(pg.locator("#act-rows .act-kind").all_inner_texts())
+    assert {"API", "AI assistant", "Indexing"} <= kinds, kinds
+    pg.click("#act-rows tr:has-text('Search “ledger service schema changes”')")
+    pg.wait_for_selector("#act-detail:not([hidden]) .wf-row")
+    steps = pg.locator("#act-pane .wf-name").all_inner_texts()
+    shot("21-activity")
+    pg.click("#act-tabs button[data-pane=request]")
+    assert "ledger service schema changes" in pg.inner_text("#act-pane pre")
+    pg.click("#act-tabs button[data-pane=summary]")
+    print("activity: kinds", sorted(kinds), "| search steps", steps)
+    pg.click("#log-views button[data-view=logs]")
+    pg.wait_for_selector("#log-text:not(:empty)")
+    pg.click("#log-views button[data-view=activity]")
+    sign_in("alice", "demo-password-alice")
     run("per diem for domestic travel", "07-conflict")
     run("who won the company football tournament", "08-no-evidence")
     pg.set_viewport_size({"width": 390, "height": 844})

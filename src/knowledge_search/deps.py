@@ -50,6 +50,7 @@ def current_principal(request: Request, conn: Conn) -> Principal:
     p = auth.load_principal(conn, token)
     if not p:
         raise HTTPException(401, "invalid or expired session")
+    request.state.trace_user = p.username + ("" if via_cookie else " (access token)")  # trace.py
     return p
 
 

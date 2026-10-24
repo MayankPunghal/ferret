@@ -1,11 +1,13 @@
 """HTTP API (OpenAPI at /docs) and static UI. One process; optional in-process ingestion workers."""
 
+import json
 import logging
 import mimetypes
 import re
 import shutil
 import sys
 import threading
+import time
 from contextlib import asynccontextmanager
 from importlib import resources
 from pathlib import Path
@@ -18,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin, auth, db, enrich, graph, mcp, runtime, vectors
+from . import admin, auth, db, enrich, graph, mcp, runtime, trace, vectors
 from .auth import Principal
 from .config import Settings, get_settings, memory_vectors
 from .deps import COOKIE, Conn, User, state
@@ -120,6 +122,53 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
         )
         if request.url.path.startswith("/api/"):
             resp.headers.setdefault("Cache-Control", "no-store")
+        return resp
+
+    @app.middleware("http")
+    async def activity(request: Request, call_next):  # trace.py: the admin's Activity view
+        path = request.url.path
+        if not (path.startswith("/api/") or path == "/mcp") or path.startswith("/api/admin/activity"):
+            return await call_next(request)
+        t0, writes = time.perf_counter(), request.method not in ("GET", "HEAD")
+        ctype = request.headers.get("content-type", "")
+        body = None
+        if writes and ctype.startswith("application/json"):
+            raw = await request.body()
+            try:
+                body = json.loads(raw)
+            except ValueError:
+                body = raw[:2000].decode("utf-8", "replace")
+        elif writes and ctype.startswith("multipart/"):
+            body = f"(file upload, {request.headers.get('content-length', '?')} bytes; files are not kept here)"
+        cid = trace.reserve()
+        token = trace.current.set(cid)
+        try:
+            resp = await call_next(request)
+        finally:
+            trace.current.reset(token)
+        ms = (time.perf_counter() - t0) * 1000
+        if not (writes or resp.status_code >= 400 or ms > 1000):
+            return resp
+        out = None
+        if resp.headers.get("content-type", "").startswith("application/json") and (writes or resp.status_code >= 400):
+            raw = b"".join([part async for part in resp.body_iterator])
+            resp = Response(raw, status_code=resp.status_code, headers=dict(resp.headers))
+            try:
+                out = json.loads(raw)
+            except ValueError:
+                out = raw[:2000].decode("utf-8", "replace")
+        title, kind, steps = f"{request.method} {path}", "http", None
+        if path == "/mcp" and isinstance(body, dict):
+            kind = "mcp"
+            title = "MCP " + (f"{body['params'].get('name', '')}" if body.get("method") == "tools/call"
+                              and isinstance(body.get("params"), dict) else str(body.get("method", "")))
+        elif path == "/api/search" and isinstance(body, dict):
+            title = f"Search “{str(body.get('query', ''))[:80]}”"
+            if isinstance(out, dict):
+                steps = [(k, v) for k, v in (out.get("timings_ms") or {}).items() if k != "total"]
+        trace.record(kind, title, ms=ms, user=getattr(request.state, "trace_user", ""), cid=cid,
+                     status="ok" if resp.status_code < 400 else f"HTTP {resp.status_code}",
+                     request=body, response=out, steps=steps, detail=f"HTTP {resp.status_code}")
         return resp
 
     @app.exception_handler(psycopg.OperationalError)

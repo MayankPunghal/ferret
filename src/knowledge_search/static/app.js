@@ -115,7 +115,7 @@ function openTab(name) {
   if (name === "assistants") loadAssistants();
   if (name === "settings") { loadSettings(); pollTimer = setInterval(loadModels, 3000); }
   if (name === "admin") loadAdmin();
-  if (name === "logs") loadLogs();
+  if (name === "logs") showLogView(logView);
   menu(false);
 }
 $$(".tab").forEach((b) => b.addEventListener("click", () => { topicFilter = null; openTab(b.dataset.tab); }));
@@ -894,7 +894,116 @@ for (const [id, all] of [["#reindex-outdated", false], ["#reindex-all", true]])
     loadSettings();
   });
 
-// ---------------------------------------------------------------- logs (admin)
+// ---------------------------------------------------------------- logs (admin): activity + warnings
+// Activity (trace.py): recent calls like a browser's Network tab; click one for request, response and timing.
+let logView = "activity", actCalls = [], actOpen = null, actPane = "summary";
+function showLogView(view) {
+  logView = view;
+  for (const b of $$("#log-views button")) b.setAttribute("aria-selected", String(b.dataset.view === view));
+  $("#view-activity").hidden = $("#act-actions").hidden = view !== "activity";
+  $("#view-logs").hidden = $("#log-actions").hidden = view !== "logs";
+  clearInterval(pollTimer);
+  if (view === "logs") loadLogs();
+  else { loadActivity(); pollTimer = setInterval(() => { if ($("#act-live").checked) loadActivity(); }, 3000); }
+}
+$$("#log-views button").forEach((b) => b.addEventListener("click", () => showLogView(b.dataset.view)));
+const fmtMs = (ms) => ms >= 1000 ? `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)} s` : `${Math.round(ms)} ms`;
+const fmtTime = (iso) => new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const CALL_KIND = { http: "API", mcp: "AI assistant", llm: "Local model", index: "Indexing" };
+function tokensText(t) {
+  if (!t || t.prompt == null) return "";
+  return `${t.prompt} → ${t.output ?? "?"}`;
+}
+async function loadActivity() {
+  const r = await api(`/api/admin/activity?kind=${encodeURIComponent($("#act-kind").value)}`);
+  actCalls = r.calls;
+  renderActivity();
+}
+function renderActivity() {
+  const q = $("#act-filter").value.trim().toLowerCase();
+  const rows = actCalls.filter((c) => !q || `${c.title} ${c.user} ${c.status} ${c.detail}`.toLowerCase().includes(q));
+  $("#act-rows").replaceChildren(...rows.map((c) => {
+    const tr = el("tr", { className: "act-row" + (c.id === actOpen ? " selected" : "") },
+      el("td", { className: "figures", textContent: fmtTime(c.time) }),
+      el("td", {}, el("div", { className: "act-call" }, el("span", { className: "act-kind k-" + c.kind, textContent: CALL_KIND[c.kind] || c.kind }),
+        el("span", { className: "act-name", textContent: c.title })),
+        c.parent ? el("div", { className: "meta", textContent: `part of #${c.parent}` }) : ""),
+      el("td", { textContent: c.user || (c.kind === "llm" || c.kind === "index" ? "background" : "—") }),
+      el("td", {}, el("span", { className: "badge " + (c.status === "ok" ? "ok" : "st-failed"), textContent: c.status === "ok" ? "ok" : c.status })),
+      el("td", { className: "num figures", textContent: fmtMs(c.ms) }),
+      el("td", { className: "num figures", textContent: tokensText(c.tokens) }));
+    tr.tabIndex = 0;
+    tr.addEventListener("click", () => openCall(c.id));
+    tr.addEventListener("keydown", (e) => { if (e.key === "Enter") openCall(c.id); });
+    return tr;
+  }));
+  $("#act-empty").hidden = rows.length > 0;
+  $("#act-msg").textContent = `${rows.length} of ${actCalls.length} call(s)`;
+}
+let actCall = null;
+async function openCall(id) {
+  try { actCall = await api(`/api/admin/activity/${id}`); }
+  catch (err) { $("#act-msg").textContent = err.message; return; }
+  actOpen = id;
+  $("#act-detail").hidden = false; $("#activity").classList.add("with-detail");
+  $("#act-title").textContent = `#${actCall.id} ${actCall.title}`;
+  showPane(actPane); renderActivity();
+}
+function pretty(x) {
+  if (x == null) return "(nothing kept)";
+  return typeof x === "string" ? x : JSON.stringify(x, null, 2);
+}
+function showPane(pane) {
+  actPane = pane;
+  for (const b of $$("#act-tabs button")) b.setAttribute("aria-selected", String(b.dataset.pane === pane));
+  const c = actCall;
+  if (pane !== "summary") {
+    const text = pretty(c[pane]);
+    const copy = el("button", { type: "button", className: "small", textContent: "Copy" });
+    copy.addEventListener("click", () => navigator.clipboard.writeText(text).then(() => (copy.textContent = "Copied"), () => {}));
+    $("#act-pane").replaceChildren(el("div", { className: "act-copy" }, copy), el("pre", { className: "act-body", textContent: text }));
+    return;
+  }
+  const kv = [["Kind", CALL_KIND[c.kind] || c.kind], ["By", c.user || "background"], ["Status", c.status],
+    ["Started", new Date(c.time).toLocaleString()], ["Took", fmtMs(c.ms)]];
+  if (c.detail) kv.push(["Detail", c.detail]);
+  if (c.tokens && c.tokens.prompt != null) kv.push(["Tokens", `${c.tokens.prompt} read, ${c.tokens.output} written`
+    + (c.tokens.per_second ? ` (${c.tokens.per_second} tokens/s writing)` : "")]);
+  const list = el("dl", { className: "kv act-kv" }, ...kv.flatMap(([k, v]) => [el("dt", { textContent: k }), el("dd", { textContent: v })]));
+  const parts = [list];
+  if (c.parent) {
+    const a = el("button", { type: "button", className: "link", textContent: `#${c.parent}` });
+    a.addEventListener("click", () => openCall(c.parent));
+    parts.push(el("p", { className: "meta" }, "Made while serving ", a));
+  }
+  const kids = actCalls.filter((x) => x.parent === c.id);
+  if (kids.length) parts.push(el("div", { className: "act-kids" }, el("h3", { textContent: "Calls made during this one" }),
+    ...kids.map((k) => { const b = el("button", { type: "button", className: "link", textContent: `#${k.id} ${k.title} · ${fmtMs(k.ms)}` });
+      b.addEventListener("click", () => openCall(k.id)); return el("div", {}, b); })));
+  if (c.steps.length) {  // waterfall: each step as a bar, in the order the steps ran
+    const total = c.steps.reduce((a, [, ms]) => a + ms, 0) || 1;
+    let at = 0;
+    parts.push(el("h3", { className: "act-h", textContent: "Where the time went" }), el("div", { className: "wf" },
+      ...c.steps.map(([name, ms]) => {
+        const bar = el("span", { className: "wf-bar" });
+        bar.style.marginLeft = `${(at / total) * 100}%`; bar.style.width = `${Math.max(0.5, (ms / total) * 100)}%`;
+        at += ms;
+        return el("div", { className: "wf-row" }, el("span", { className: "wf-name", textContent: name.replaceAll("_", " ") }),
+          el("span", { className: "wf-track" }, bar), el("span", { className: "wf-ms figures", textContent: fmtMs(ms) }));
+      })));
+  }
+  $("#act-pane").replaceChildren(...parts);
+}
+$$("#act-tabs button").forEach((b) => b.addEventListener("click", () => showPane(b.dataset.pane)));
+$("#act-close").addEventListener("click", () => { actOpen = null; $("#act-detail").hidden = true; $("#activity").classList.remove("with-detail"); renderActivity(); });
+$("#act-kind").addEventListener("change", loadActivity);
+$("#act-filter").addEventListener("input", renderActivity);
+$("#act-refresh").addEventListener("click", loadActivity);
+$("#act-clear").addEventListener("click", async () => {
+  await api("/api/admin/activity", { method: "DELETE" });
+  actOpen = null; $("#act-detail").hidden = true; $("#activity").classList.remove("with-detail"); loadActivity();
+});
+
 let logText = "";
 async function loadLogs() {
   const r = await api(`/api/admin/logs?level=${$("#log-level").value}`);
@@ -970,9 +1079,14 @@ $("#tok-form").addEventListener("submit", async (e) => {
   const f = new FormData(e.target);
   try {
     newToken = (await api("/api/tokens", { method: "POST", json: { label: f.get("label"), days: Number(f.get("days")) } })).token;
-    $("#tok-value").textContent = newToken; $("#tok-new").hidden = false; $("#tok-msg").textContent = "";
+    $("#tok-value").textContent = `${newToken.slice(0, 6)}••••••••${newToken.slice(-4)}`;
+    $("#tok-copied").textContent = ""; $("#tok-new").hidden = false; $("#tok-msg").textContent = "";
     e.target.reset(); loadAssistants();
   } catch (err) { $("#tok-msg").textContent = err.message; }
+});
+$("#tok-copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(newToken); $("#tok-copied").textContent = "Copied."; }
+  catch { prompt("Copy the token (Ctrl+C):", newToken); }
 });
 $("#mcp-copy").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText($("#mcp-config").textContent); $("#mcp-msg").textContent = "Copied."; }
