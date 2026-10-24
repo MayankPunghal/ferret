@@ -152,8 +152,13 @@ Later runs drop `--login`. Browser mode also renders pages that build their cont
   - Access rights are not copied: put pages with different audiences into different collections and grant
     them as usual.
 - **Sharing the crawler:** zip the `site2md/` folder. People who are not technical double-click
-  `Crawl Website.bat` (Windows) or `Crawl Website.command` (macOS). It installs what it needs on first use,
-  asks for the address, opens a browser for the sign-in, and saves the pages in `site2md/output/<name>/`.
+  `Crawl Website.bat` (Windows) or `Crawl Website.command` (macOS). It installs what it needs on first use
+  and opens a page in their browser (127.0.0.1 only, one-time key in the address): copy a site, sign in in a
+  browser window (no console steps), watch progress per section, pause, stop, continue, update, retry what
+  failed, and send the copy to Knowledge Search with an access token that may make changes. On the computer
+  running Knowledge Search, as administrator, the copy becomes a synced folder; otherwise each file is
+  uploaded with its path, so sending an update again adds only what changed. Pages are saved in
+  `site2md/output/<name>/`; the optional original HTML goes to `<name>-html/` beside it and is never sent.
 
 ## Index status and jobs
 

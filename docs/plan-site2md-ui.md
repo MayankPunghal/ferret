@@ -10,7 +10,9 @@ Its launcher downloads a binary, which this session does not run.
 - Its *Operate* mode: a working tool uses familiar standard controls; the look only adds type, palette,
   density and **one** signature move.
 
-Assumptions are marked; the open questions are at the end. Nothing is built.
+**Built 2026-10-24** (`site2md/src/site2md/ui.py`, `static/`; tests `tests/test_site2md_ui.py`). Open questions
+were settled with the defaults: Update is manual (no schedule), and after sending, "Search it" is the
+prominent action. Assumptions are marked; the open questions are at the end.
 
 ## Today
 

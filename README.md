@@ -91,11 +91,14 @@ Start the app later with the **Knowledge Search** desktop shortcut or `start.bat
 ## Search a website or intranet
 
 1. **Copy the site** with **site2md** (in [`site2md/`](site2md/README.md); zip that folder to share it):
-   double-click `Crawl Website.bat` (Windows) or `Crawl Website.command` (macOS), paste the address, give the
-   copy a name and sign in in the browser window if the site asks. You get `site2md/output/<name>/`: one
+   double-click `Crawl Website.bat` (Windows) or `Crawl Website.command` (macOS). A page opens in your
+   browser: **Copy a website**, paste the address, sign in in the browser window if the site asks, and watch
+   the site's sections fill in. You get `site2md/output/<name>/`: one
    Markdown file per page, plus the PDF, Word and PowerPoint files the pages link to or embed (Google Drive
    files and folders included), as they are.
-2. **Index the copy:** sign in to Knowledge Search as the administrator → **Users & access** → create a
+2. **Index the copy:** on site2md's done page, **Send to Knowledge Search** (an access token created with
+   *May also make changes*; on the same computer, as administrator, the copy becomes a synced folder). Or by
+   hand: sign in to Knowledge Search as the administrator → **Users & access** → create a
    collection (e.g. `intranet`) and grant it to the people who should see it → **Documents** → choose
    that collection → **choose a folder** → select `output/<name>`. Every page and file is uploaded; the rest
    (`manifest.json`) is skipped.
