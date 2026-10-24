@@ -18,7 +18,7 @@ Status words: **bug** · **running** · **plan ready** (written, not built) · *
 
 | # | Item | Status | Source / where |
 |---|---|---|---|
-| 2 | Vision: GLM-4.6V-Flash 9B against Gemma 4 E2B on 20 images (text in images, diagram relations) | **running in the cloud session** when it ended (GLM's last 9 images, then Gemma). GLM's first 11: all recall 1.00, 90–960 s per image on 4 cores (`eval/results/images-glm-4.6v-flash-part1.txt`). If `images-glm-4.6v-flash-part2.json` and `images-gemma-4-e2b.json` are not in `eval/results/`, re-run locally: `uv run --group eval --with playwright --with pillow python eval/image_set.py`, start `llama-server -m <model>.gguf --mmproj <mmproj>.gguf -c 16384 --temp 0 --jinja --port 8082`, then `uv run --group eval python eval/image_ocr.py --name <model> [--no-thinking for GLM]` | 23 Oct 11:51, 24 Oct 03:27, 11:16 ("do they have vision? that's the only thing worth having them") |
+| 2 | Vision: GLM-4.6V-Flash 9B against Gemma 4 E2B on 20 images (text in images, diagram relations) | **not finished**: a second container restart stopped it again (GLM's last 9 images and all of Gemma's are left). GLM's first 11: all recall 1.00, 90–960 s per image on 4 cores (`eval/results/images-glm-4.6v-flash-part1.txt`). If `images-glm-4.6v-flash-part2.json` and `images-gemma-4-e2b.json` are not in `eval/results/`, re-run locally: `uv run --group eval --with playwright --with pillow python eval/image_set.py`, start `llama-server -m <model>.gguf --mmproj <mmproj>.gguf -c 16384 --temp 0 --jinja --port 8082`, then `uv run --group eval python eval/image_ocr.py --name <model> [--no-thinking for GLM]` | 23 Oct 11:51, 24 Oct 03:27, 11:16 ("do they have vision? that's the only thing worth having them") |
 | 3 | Parallel embedding benchmark on an idle CPU: `uv run python eval/bench_parallel.py --passages 400 --layouts 1x0 2x0 2x2 4x1` (on your laptop: it is the machine that matters) | **not measured** (one contended run: 6.7 → 11.2 passages/s, identical vectors) | 24 Oct 14:52; [plan-large-documents.md](plan-large-documents.md) step 1 |
 
 ## 3. Plans ready, not built (owner asked for the plan first)
@@ -32,6 +32,7 @@ Status words: **bug** · **running** · **plan ready** (written, not built) · *
 | 8 | Faster indexing of very large documents: several embedding sessions, small documents not stuck behind a large one, re-use vectors of unchanged passages | 24 Oct 14:52 · [plan-large-documents.md](plan-large-documents.md) |
 | 9 | Summaries tab with count tiles and a per-collection table like Index status, paged list | 24 Oct 14:53 · [plan-summaries-status.md](plan-summaries-status.md) |
 | 10 | Images: the crawler saves images, a local vision model writes their text, indexed through the same path as other files (crawler, folder sync and MCP all included) | 23 Oct 11:51, 12:21 (owner: hold), 24 Oct 11:55 · [plan-images-and-models.md](plan-images-and-models.md); waits for item 2 |
+| 16 | Answers written by the local model from the found and reranked passages, with checked citations; search's evidence check decides whether to answer | 23 Oct 07:37, 24 Oct (owner: plan it) · [plan-answers.md](plan-answers.md) |
 
 ## 4. Needs the owner
 
@@ -44,7 +45,7 @@ Status words: **bug** · **running** · **plan ready** (written, not built) · *
 
 | # | Item | Status | Source |
 |---|---|---|---|
-| 16 | Second brain: a local model answers from the found passages, with checked citations, and refuses when there is no evidence | not built (trialled in `eval/llm_answers.py`) | end goal; 23 Oct 07:37 |
+
 | 17 | Shared-identifier (entity) links plus PageRank-style spreading (HippoRAG idea) | not built | 23 Oct 04:23 (owner's list, item 5) |
 | 18 | Learned keyword search (SPLADE) | not built | 23 Oct 04:23 (item 4) |
 | 19 | Automatic clusters in the graph view | not built | 23 Oct 02:59, 04:23 (item 6) |

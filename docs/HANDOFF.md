@@ -598,7 +598,7 @@ embedding bake-offs → contextual passages → learned sparse → entity edges 
 3. **Graph navigation, next increments** (docs/research-graph.md): run `eval/graph_eval.py`-style questions on
    a real Graphify/codebase-documenter wiki; shared-identifier (entity) edges; REST/MCP tools (`search`,
    `get_passage`, `get_links`, `impact`) for agent navigation.
-4. **Second brain:** local LLM (Ollama/llama.cpp via an OpenAI-compatible endpoint, opt-in) answering only
+4. **Second brain** (plan: `docs/plan-answers.md`): local LLM (Ollama/llama.cpp via an OpenAI-compatible endpoint, opt-in) answering only
    from retrieved passages with checked citations; abstains on `no_adequate_evidence`; surfaces conflicts.
    Expose `search`/`get_passage`/`get_links` as REST/MCP tools for agent navigation.
 5. XLSX/Docling parsing, OCR for scanned PDFs and images (plan ready), OIDC, Docker build verification.
