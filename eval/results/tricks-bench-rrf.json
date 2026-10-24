@@ -1,0 +1,127 @@
+{
+ "corpus": "k8s-sub-gemma",
+ "index": "k8s-sub-gemma-c900-o150",
+ "queries": 219,
+ "variants": {
+  "baseline | no reranker": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.364,
+    "success@5": 0.625,
+    "mrr@10": 0.482,
+    "answered": 0.693,
+    "precision": 0.352
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.15
+  },
+  "rrf k 20 | no reranker": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.358,
+    "success@5": 0.614,
+    "mrr@10": 0.48,
+    "answered": 0.693,
+    "precision": 0.344
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.25
+  },
+  "rrf k 120 | no reranker": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.358,
+    "success@5": 0.636,
+    "mrr@10": 0.482,
+    "answered": 0.699,
+    "precision": 0.35
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.26
+  },
+  "baseline | jina-reranker-v1-turbo-en": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.369,
+    "success@5": 0.625,
+    "mrr@10": 0.475,
+    "answered": 0.693,
+    "precision": 0.344
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 1.17
+  },
+  "rrf k 20 | jina-reranker-v1-turbo-en": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.358,
+    "success@5": 0.608,
+    "mrr@10": 0.466,
+    "answered": 0.693,
+    "precision": 0.344
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.74
+  },
+  "rrf k 120 | jina-reranker-v1-turbo-en": {
+   "so": {
+    "n": 176,
+    "hit@1": 0.364,
+    "success@5": 0.631,
+    "mrr@10": 0.475,
+    "answered": 0.699,
+    "precision": 0.333
+   },
+   "sub": {
+    "n": 27,
+    "hit@1": 1.0,
+    "success@5": 1.0,
+    "mrr@10": 1.0,
+    "answered": 0.778,
+    "precision": 1.0,
+    "false_answers": "0/16"
+   },
+   "seconds_per_query": 0.65
+  }
+ }
+}
