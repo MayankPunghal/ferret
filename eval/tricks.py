@@ -152,6 +152,7 @@ VARIANTS = {  # name: module settings in knowledge_search.search
     "convex 0.5": {"FUSION": "convex", "CONVEX_ALPHA": 0.5}, "convex 0.7": {"FUSION": "convex", "CONVEX_ALPHA": 0.7},
     "convex 0.9": {"FUSION": "convex", "CONVEX_ALPHA": 0.9},
     "hyde rescue": {"HYDE_URL": "from --hyde-url"},
+    "rrf k 20": {"RRF_K": 20}, "rrf k 120": {"RRF_K": 120},
 }
 
 
@@ -165,6 +166,8 @@ def main():
     ap.add_argument("--chunk-size", type=int, default=900)
     ap.add_argument("--overlap", type=int, default=150)
     ap.add_argument("--keyword-context", action="store_true", help="summary in the keyword index (weight D)")
+    ap.add_argument("--context-chars", type=int, default=0, help="document summary added to every passage's "
+                    "embedding, cut to this many characters (the app's context_chars setting)")
     ap.add_argument("--neighbour-context", default="", help="JSON from eval/neighbour_context.py: embed passages "
                     "with the summary of their neighbours (use with --overlap 0)")
     ap.add_argument("--questions", default="", help="JSON from --make-questions: enables the questions variants")
@@ -174,7 +177,7 @@ def main():
     ap.add_argument("--name", default="")
     a = ap.parse_args()
     corpus = Path(a.corpus)
-    tag = f"{corpus.name}-c{a.chunk_size}-o{a.overlap}" + ("-kw" if a.keyword_context else "") + ("-nb" if a.neighbour_context else "")
+    tag = f"{corpus.name}-c{a.chunk_size}-o{a.overlap}" + ("-kw" if a.keyword_context else "") + ("-nb" if a.neighbour_context else "") + (f"-ctx{a.context_chars}" if a.context_chars else "")
     admin_url, _ = db.start_embedded(ROOT / "data" / f"tricks-pg-{tag}", database="postgres")
     with psycopg.connect(admin_url, autocommit=True) as c:
         fresh = not c.execute("SELECT 1 FROM pg_database WHERE datname = 'ks_tricks'").fetchone()
@@ -190,7 +193,7 @@ def main():
             auth.grant(c, "docs", "staff")
             auth.add_user_to_group(c, "tester", "staff")
             runtime.save(c, runtime.validate({"embed_model": a.model, "chunk_size": a.chunk_size,
-                                              "chunk_overlap": a.overlap}), None)
+                                              "chunk_overlap": a.overlap, "context_chars": a.context_chars}), None)
             col = auth.ensure_collection(c, "docs")
             for f in sorted(corpus.glob("*.md")):
                 submit(c, blobs, collection_id=col, filename=f.name, data=f.read_bytes(), user_id=None, max_bytes=20_000_000)
@@ -226,7 +229,7 @@ def main():
                                and ("hyde" not in v or a.hyde_url)]
         results = {"corpus": corpus.name, "index": tag, "queries": len(queries), "variants": {}}
         default = {k: getattr(S, k) for k in ("SUMMARY_WEIGHT", "QUESTION_WEIGHT", "RERANK_NEIGHBOURS", "FUSION",
-                                              "CONVEX_ALPHA", "HYDE_URL")}
+                                              "CONVEX_ALPHA", "HYDE_URL", "RRF_K")}
         for rr in a.rerankers:
             rt = runtime.load(conn)
             rt.rerank_enabled, rt.rerank_model = bool(rr), rr or rt.rerank_model
