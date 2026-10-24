@@ -1,0 +1,255 @@
+{
+ "llm": "phi-4-mini",
+ "pages": 14,
+ "exact": 0.429,
+ "compatible": 0.571,
+ "compatible_by_section": {
+  "tasks": 1.0,
+  "concepts": 0.0,
+  "reference": 0.75,
+  "tutorials": 0.5
+ },
+ "confusion": {
+  "how-to -> how-to": 3,
+  "reference -> reference": 3,
+  "how-to -> runbook": 2,
+  "concept -> reference": 2,
+  "concept -> how-to": 1,
+  "concept -> runbook": 1,
+  "reference -> concept": 1,
+  "how-to -> reference": 1
+ },
+ "rows": [
+  {
+   "file": "access-api-from-pod.md",
+   "site_path": "content/en/docs/tasks/run-application/access-api-from-pod.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes API",
+    "Pod",
+    "Official Client Libraries",
+    "Go client library",
+    "Python client library",
+    "Service Account"
+   ],
+   "summary": "Guide on how to access the Kubernetes API from within a pod using official client libraries or directly via REST API.",
+   "seconds": 108.0
+  },
+  {
+   "file": "configure-service-account.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/configure-service-account.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "runbook",
+   "topics": [
+    "Kubernetes",
+    "Service Accounts",
+    "Pods",
+    "API server",
+    "Authentication",
+    "Authorization"
+   ],
+   "summary": "Guide on setting up and managing Service Accounts for Pods in Kubernetes, including default usage, automount options, and multiple accounts.",
+   "seconds": 89.3
+  },
+  {
+   "file": "extend-service-ip-ranges.md",
+   "site_path": "content/en/docs/tasks/network/extend-service-ip-ranges.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "kubernetes",
+    "ServiceCIDR",
+    "kube-apiserver",
+    "IP addresses",
+    "kube-apiserver endpoint",
+    "Service CIDRs"
+   ],
+   "summary": "Instructions on how to extend the IP range for Kubernetes Services by adding a new ServiceCIDR.",
+   "seconds": 110.4
+  },
+  {
+   "file": "migrate-from-psp.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/migrate-from-psp.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "runbook",
+   "topics": [
+    "Kubernetes",
+    "PodSecurityPolicy",
+    "PodSecurity Admission",
+    "Mutating Admission Webhook",
+    "Validating Admission Webhook",
+    "Pod Security Standards"
+   ],
+   "summary": "Guidance on migrating from PodSecurityPolicy to PodSecurity Admission Controller in Kubernetes, including strategies to minimize risks and security gaps.",
+   "seconds": 98.6
+  },
+  {
+   "file": "admission-webhooks-good-practices.md",
+   "site_path": "content/en/docs/concepts/cluster-administration/admission-webhooks-good-practices.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "reference",
+   "topics": [
+    "Admission controllers",
+    "Admission webhooks",
+    "Kubernetes API",
+    "Mutating admission webhooks",
+    "Validating admission webhooks",
+    "Webhook design"
+   ],
+   "summary": "Guidelines for designing and implementing admission webhooks in Kubernetes to avoid disruptions and ensure compatibility with API changes.",
+   "seconds": 149.2
+  },
+  {
+   "file": "dynamic-provisioning.md",
+   "site_path": "content/en/docs/concepts/storage/dynamic-provisioning.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "reference",
+   "topics": [
+    "PersistentVolume",
+    "PersistentVolumeClaim",
+    "StorageClass",
+    "kubernetes.io/gce-pd"
+   ],
+   "summary": "Explains how Kubernetes dynamically provisions storage volumes on-demand using StorageClass objects, eliminating the need for manual provisioning by cluster administrators.",
+   "seconds": 107.7
+  },
+  {
+   "file": "object-management.md",
+   "site_path": "content/en/docs/concepts/overview/working-with-objects/object-management.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "how-to",
+   "topics": [
+    "kubectl",
+    "Kubernetes",
+    "Imperative commands",
+    "Declarative object configuration",
+    "Management techniques"
+   ],
+   "summary": "Explains different techniques for managing Kubernetes objects using kubectl, with a focus on imperative commands.",
+   "seconds": 65.2
+  },
+  {
+   "file": "scheduler.md",
+   "site_path": "content/en/docs/concepts/security/hardening-guide/scheduler.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "runbook",
+   "topics": [
+    "kube-scheduler",
+    "authentication",
+    "authorization",
+    "networking",
+    "TLS",
+    "security"
+   ],
+   "summary": "This document provides security best practices for configuring the Kubernetes scheduler to prevent misconfigurations that could lead to security vulnerabilities.",
+   "seconds": 76.5
+  },
+  {
+   "file": "access-authn-authz.md",
+   "site_path": "content/en/docs/reference/access-authn-authz/_index.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes",
+    "API Access Control",
+    "Authentication",
+    "Authorization",
+    "Admission Controllers",
+    "Service Accounts"
+   ],
+   "summary": "Explains Kubernetes API access control mechanisms including authentication, authorization, and admission controls.",
+   "seconds": 63.7
+  },
+  {
+   "file": "customresourcedefinition.md",
+   "site_path": "content/en/docs/reference/glossary/customresourcedefinition.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "Kubernetes",
+    "API server",
+    "Custom resources",
+    "Extension"
+   ],
+   "summary": "Explains CustomResourceDefinition (CRD) as a way to extend Kubernetes API with custom resources.",
+   "seconds": 49.8
+  },
+  {
+   "file": "kernel-version-requirements.md",
+   "site_path": "content/en/docs/reference/node/kernel-version-requirements.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Linux Kernel",
+    "Kubernetes",
+    "sysctls",
+    "nftables",
+    "cgroup v2",
+    "Pressure Stall Information (PSI)"
+   ],
+   "summary": "Details minimum kernel versions required for various Kubernetes features and tools.",
+   "seconds": 83.8
+  },
+  {
+   "file": "probe.md",
+   "site_path": "content/en/docs/reference/glossary/probe.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "kubelet",
+    "container",
+    "pod",
+    "health checks",
+    "lifecycle management"
+   ],
+   "summary": "Describes how kubelet uses probes to check container state and health within a pod.",
+   "seconds": 27.4
+  },
+  {
+   "file": "admission-policies.md",
+   "site_path": "content/en/docs/tutorials/cluster-management/admission-policies.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes",
+    "ValidatingAdmissionPolicy",
+    "MutatingAdmissionPolicy",
+    "Common Expression Language (CEL)",
+    "Admission Policies",
+    "Cluster Administration"
+   ],
+   "summary": "Learn how to define and test declarative admission policies in Kubernetes using ValidatingAdmissionPolicy and MutatingAdmissionPolicy with Common Expression Language (CEL).",
+   "seconds": 29.0
+  },
+  {
+   "file": "hello-minikube.md",
+   "site_path": "content/en/docs/tutorials/hello-minikube.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "minikube",
+    "kubernetes",
+    "deployment",
+    "pod",
+    "nginx"
+   ],
+   "summary": "This guide demonstrates deploying a sample NGINX app on Kubernetes using minikube, including setting up a cluster, creating a deployment, and viewing logs.",
+   "seconds": 27.8
+  }
+ ]
+}
