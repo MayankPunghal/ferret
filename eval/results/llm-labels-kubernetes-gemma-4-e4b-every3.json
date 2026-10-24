@@ -1,0 +1,240 @@
+{
+ "llm": "gemma-4-e4b",
+ "pages": 14,
+ "exact": 0.643,
+ "compatible": 0.714,
+ "compatible_by_section": {
+  "tasks": 0.75,
+  "concepts": 0.5,
+  "reference": 1.0,
+  "tutorials": 0.5
+ },
+ "confusion": {
+  "reference -> reference": 4,
+  "how-to -> how-to": 3,
+  "concept -> reference": 2,
+  "concept -> concept": 2,
+  "how-to -> reference": 1,
+  "how-to -> runbook": 1,
+  "how-to -> concept": 1
+ },
+ "rows": [
+  {
+   "file": "access-api-from-pod.md",
+   "site_path": "content/en/docs/tasks/run-application/access-api-from-pod.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes API",
+    "Pod",
+    "ServiceAccount",
+    "Client Libraries",
+    "REST API",
+    "kubectl proxy"
+   ],
+   "seconds": 42.7
+  },
+  {
+   "file": "configure-service-account.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/configure-service-account.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "ServiceAccount",
+    "Pod",
+    "Kubernetes API Server",
+    "API Token",
+    "ImagePullSecrets",
+    "Token Projection"
+   ],
+   "seconds": 44.3
+  },
+  {
+   "file": "extend-service-ip-ranges.md",
+   "site_path": "content/en/docs/tasks/network/extend-service-ip-ranges.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "reference",
+   "topics": [
+    "ServiceCIDR",
+    "Kubernetes",
+    "ClusterIP",
+    "kube-apiserver",
+    "Validating Admission Policy"
+   ],
+   "seconds": 44.7
+  },
+  {
+   "file": "migrate-from-psp.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/migrate-from-psp.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "runbook",
+   "topics": [
+    "PodSecurityPolicy",
+    "PodSecurity Admission",
+    "Kubernetes",
+    "Admission Controller",
+    "Namespace",
+    "Security Standards"
+   ],
+   "seconds": 49.6
+  },
+  {
+   "file": "admission-webhooks-good-practices.md",
+   "site_path": "content/en/docs/concepts/cluster-administration/admission-webhooks-good-practices.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "reference",
+   "topics": [
+    "Admission Webhooks",
+    "Kubernetes API",
+    "Mutating Webhooks",
+    "Validating Webhooks",
+    "Admission Controllers",
+    "CustomResourceDefinitions"
+   ],
+   "seconds": 49.4
+  },
+  {
+   "file": "dynamic-provisioning.md",
+   "site_path": "content/en/docs/concepts/storage/dynamic-provisioning.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "PersistentVolumeClaim",
+    "StorageClass",
+    "PersistentVolume",
+    "Kubernetes",
+    "Provisioner"
+   ],
+   "seconds": 39.0
+  },
+  {
+   "file": "object-management.md",
+   "site_path": "content/en/docs/concepts/overview/working-with-objects/object-management.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "Kubernetes",
+    "kubectl",
+    "Imperative commands",
+    "Declarative configuration",
+    "Object configuration",
+    "Deployment"
+   ],
+   "seconds": 38.7
+  },
+  {
+   "file": "scheduler.md",
+   "site_path": "content/en/docs/concepts/security/hardening-guide/scheduler.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "reference",
+   "topics": [
+    "kube-scheduler",
+    "Kubernetes",
+    "Security",
+    "Authentication",
+    "Networking",
+    "TLS"
+   ],
+   "seconds": 37.7
+  },
+  {
+   "file": "access-authn-authz.md",
+   "site_path": "content/en/docs/reference/access-authn-authz/_index.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes API",
+    "Authentication",
+    "Authorization",
+    "RBAC",
+    "Admission Controllers",
+    "Service accounts"
+   ],
+   "seconds": 35.5
+  },
+  {
+   "file": "customresourcedefinition.md",
+   "site_path": "content/en/docs/reference/glossary/customresourcedefinition.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes API",
+    "Custom API",
+    "CustomResourceDefinition"
+   ],
+   "seconds": 21.1
+  },
+  {
+   "file": "kernel-version-requirements.md",
+   "site_path": "content/en/docs/reference/node/kernel-version-requirements.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Linux Kernel",
+    "sysctls",
+    "kube-proxy",
+    "cgroups",
+    "nftables",
+    "PSI"
+   ],
+   "seconds": 42.4
+  },
+  {
+   "file": "probe.md",
+   "site_path": "content/en/docs/reference/glossary/probe.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "kubelet",
+    "container",
+    "pod",
+    "container probes"
+   ],
+   "seconds": 23.0
+  },
+  {
+   "file": "admission-policies.md",
+   "site_path": "content/en/docs/tutorials/cluster-management/admission-policies.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "concept",
+   "topics": [
+    "Kubernetes",
+    "ValidatingAdmissionPolicy",
+    "MutatingAdmissionPolicy",
+    "CEL",
+    "API Server",
+    "Admission Policies"
+   ],
+   "seconds": 46.2
+  },
+  {
+   "file": "hello-minikube.md",
+   "site_path": "content/en/docs/tutorials/hello-minikube.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Minikube",
+    "Kubernetes",
+    "kubectl",
+    "Deployment",
+    "Service",
+    "Dashboard"
+   ],
+   "seconds": 38.7
+  }
+ ]
+}

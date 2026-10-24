@@ -1,6 +1,6 @@
 """Document types written by a LOCAL language model, against the Kubernetes site's own filing of each page.
 
-    uv run python eval/llm_labels.py --url http://127.0.0.1:8090/v1 --name gemma-4-e2b [--per-section 12]
+    uv run python eval/llm_labels.py --url http://127.0.0.1:8090/v1 --name gemma-4-e2b [--per-section 12] [--every 3]
 
 Gold labels: eval/k8s_doc_types.jsonl, from where kubernetes/website files each page (content/en/docs/<section>/,
 when its content_type front matter agrees): tasks and tutorials -> how-to, concepts -> concept, reference ->
@@ -44,6 +44,7 @@ def main():
     ap.add_argument("--url", default="http://127.0.0.1:8090/v1")
     ap.add_argument("--name", default="gemma-4-e2b")
     ap.add_argument("--per-section", type=int, default=12)
+    ap.add_argument("--every", type=int, default=1, help="every k-th page of the standard sample (same pages as other runs)")
     a = ap.parse_args()
     gold = [json.loads(x) for x in (ROOT / "eval" / "k8s_doc_types.jsonl").read_text().splitlines() if x]
     sample = []
@@ -51,6 +52,7 @@ def main():
         rows = [g for g in gold if g["section"] == sec]
         n = min(a.per_section if sec != "tutorials" else a.per_section // 2, len(rows))
         sample += rows[:: max(1, len(rows) // n)][:n]
+    sample = sample[:: a.every]
     types = "; ".join(f"{k} ({v})" for k, v in enrich.DOC_TYPES.items())
     out, confusion = [], collections.Counter()
     for g in sample:
@@ -72,7 +74,7 @@ def main():
     res = {"llm": a.name, "pages": len(out), "exact": round(exact, 3), "compatible": round(close, 3),
            "compatible_by_section": per, "confusion": {f"{k[0]} -> {k[1]}": v for k, v in confusion.most_common()},
            "rows": out}
-    (ROOT / "eval" / "results" / f"llm-labels-kubernetes-{a.name}.json").write_text(json.dumps(res, indent=1))
+    (ROOT / "eval" / "results" / f"llm-labels-kubernetes-{a.name}{f'-every{a.every}' if a.every > 1 else ''}.json").write_text(json.dumps(res, indent=1))
     print(json.dumps({k: v for k, v in res.items() if k != "rows"}, indent=1))
 
 

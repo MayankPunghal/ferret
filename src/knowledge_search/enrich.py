@@ -495,6 +495,9 @@ LLAMA_CPP_TAG = "b11836"
 LLMS = {  # name: (Hugging Face repo, file, note); the notes are what the blind review and type check measured
     "gemma-4-e2b": ("unsloth/gemma-4-E2B-it-GGUF", "gemma-4-E2B-it-Q4_K_M.gguf",
                     "~3.1 GB, Apache-2.0; recommended: no wrong claims in the blind review, best document types"),
+    "gemma-4-e4b": ("unsloth/gemma-4-E4B-it-GGUF", "gemma-4-E4B-it-Q4_K_M.gguf",
+                    "~5 GB, needs ~9 GB of memory, Apache-2.0; for a server: summaries as good as E2B, document types a "
+                    "little better (10 vs 8 of 14 pages), 2.3x slower"),
     "qwen3.5-2b": ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf",
                    "~1.3 GB, Apache-2.0; as accurate in the blind review, about as fast; document types not measured"),
     "qwen3.5-0.8b": ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q4_K_M.gguf",
