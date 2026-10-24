@@ -75,6 +75,12 @@ def calls(kind: str = "", limit: int = MAX_CALLS) -> list[dict]:
     return [{k: v for k, v in c.items() if k not in ("request", "response")} for c in rows]
 
 
+def child_user(cid: int) -> str:
+    """Who made the calls inside call cid (an MCP call is signed in only through the calls it makes)."""
+    with _lock:
+        return next((c["user"] for c in reversed(_calls) if c["parent"] == cid and c["user"]), "")
+
+
 def get(cid: int) -> dict | None:
     with _lock:
         return next((dict(c) for c in _calls if c["id"] == cid), None)

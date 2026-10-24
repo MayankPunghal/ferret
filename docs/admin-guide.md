@@ -123,7 +123,29 @@ are permanent until the file is fixed and uploaded again.
 
 ## Logs
 
-**Logs** (admin only) shows recent warnings and errors with full technical details (tracebacks), newest
+**Logs** (admin only) has two views.
+
+**Activity** works like a browser's Network tab. It lists the app's recent calls, newest first:
+- searches and anything that changes something;
+- API calls that fail or take over a second;
+- calls from AI assistants (MCP), with the search each one made;
+- the local model's calls;
+- each document indexed.
+
+Click a call to see:
+- **Summary**: who made it, its status, how long it took, a timing bar for each step and, for the local
+  model, the tokens read and written and the speed;
+- **Request** and **Response**: the full payload, with a Copy button.
+
+Filter by kind or text. **Live** (on by default) refreshes the list every 3 seconds. Routine page refreshes (fast,
+successful reads) are not listed.
+
+Unlike the logs, Activity shows search text, passages and prompts, so it is only for administrators. It
+keeps the last 300 calls in memory only. They are gone on restart, never written to disk and never part of
+**Copy for support**. Passwords, tokens and cookies are masked. Bodies over 30,000 characters are cut.
+**Clear** empties it.
+
+**Warnings and errors** shows recent warnings and errors with full technical details (tracebacks), newest
 last; choose *everything* to include informational messages. **Copy for support** copies a diagnostics
 header (app/Python/OS/library versions, model, reranker, database mode, document and job counts) plus the
 log lines — paste it into a bug report. **Download .txt** saves the same text. Logs never contain document

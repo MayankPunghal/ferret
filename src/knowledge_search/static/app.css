@@ -431,6 +431,7 @@ td.actions-cell { width: 1%; text-align: right; }
 .act-list { max-height: 70vh; overflow: auto; }
 .act-list thead th { position: sticky; top: 0; background: var(--surface); }
 .data.act td { padding-top: 8px; padding-bottom: 8px; }
+.data.act td:first-child, .data.act th { white-space: nowrap; }
 .act-row { cursor: pointer; }
 .act-row.selected { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .act-call { display: flex; gap: 8px; align-items: baseline; min-width: 0; }

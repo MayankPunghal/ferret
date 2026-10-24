@@ -170,7 +170,8 @@ and nothing more: no uploads, changes or deletes.
 
 1. Open **AI assistants** in the sidebar.
 2. Name a token (one per assistant, e.g. "Claude Code on my laptop"), pick how long it is valid, and click
-   **Create token**. Copy it now: it is shown once.
+   **Create token**. The page shows it shortened; **Copy** copies the whole token. Copy it now: it is
+   shown once.
 3. Pick your assistant; the page shows the exact command or settings, with your token and this server's
    address filled in. Click **Copy**, paste it where the page says, restart the assistant.
 4. Ask ("how do we roll back the orders service?"). The assistant says when your documents do not cover it.

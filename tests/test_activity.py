@@ -26,7 +26,7 @@ def test_search_is_recorded_with_its_steps_and_secrets_are_masked(client, corpus
     full = client.get(f"/api/admin/activity/{s['id']}", headers=root).json()
     assert full["request"]["query"] == "ERR-PAY-4012" and full["response"]["results"]
     # the sign-in that made the token: the password and the session token are masked
-    login = next(c for c in calls(client, root) if c["title"] == "POST /api/auth/login")
+    login = next(c for c in calls(client, root) if c["title"] == "POST /api/auth/login" and c["user"] == "bob")
     full = client.get(f"/api/admin/activity/{login['id']}", headers=root).json()
     assert full["request"]["password"] == "•••" and PASSWORD not in json.dumps(full)
     assert full["response"]["token"] == "•••"
@@ -44,6 +44,7 @@ def test_mcp_call_links_the_search_it_made(client, corpus):
     call(client, h, "search", query="ledger service schema changes", limit=3)
     rows = calls(client, root)
     m = next(c for c in rows if c["kind"] == "mcp" and c["title"] == "MCP search")
+    assert m["user"] == "alice (access token)"  # taken from the calls it made
     inner = next(c for c in rows if c["parent"] == m["id"])
     assert inner["title"] == "Search “ledger service schema changes”" and inner["user"] == "alice (access token)"
     assert client.delete("/api/admin/activity", headers=root).status_code == 204

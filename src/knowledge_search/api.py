@@ -166,7 +166,10 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
             title = f"Search “{str(body.get('query', ''))[:80]}”"
             if isinstance(out, dict):
                 steps = [(k, v) for k, v in (out.get("timings_ms") or {}).items() if k != "total"]
-        trace.record(kind, title, ms=ms, user=getattr(request.state, "trace_user", ""), cid=cid,
+        user = getattr(request.state, "trace_user", "") or trace.child_user(cid)
+        if not user and path == "/api/auth/login" and isinstance(body, dict):
+            user = str(body.get("username", ""))[:80]
+        trace.record(kind, title, ms=ms, user=user, cid=cid,
                      status="ok" if resp.status_code < 400 else f"HTTP {resp.status_code}",
                      request=body, response=out, steps=steps, detail=f"HTTP {resp.status_code}")
         return resp
