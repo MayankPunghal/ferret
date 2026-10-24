@@ -39,7 +39,7 @@ registry + per-model thresholds), `runtime.py` (settings, model cache, reranker)
 | Item | Status | Evidence |
 |---|---|---|
 | Fresh install with shipped defaults (bge-base + MiniLM reranker, weighted fusion) | **verified** on Linux: `setup.sh --demo` into an empty data dir, `start.sh`, full UI walkthrough, screenshots regenerated | `docs/screenshots/` |
-| Test suite | **verified** | `uv run pytest -q` → 110 passed (summaries, types, topics and hours against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
+| Test suite | **verified** | `uv run pytest -q` → 130 passed (2026-10-24) (summaries, types, topics and hours against a fake local model server, search, HTML/DOCX/PPTX formats, crawler, link graph + link-aware search, permissions, lifecycle, admin/settings/reindex/reranker, in-memory vs pgvector parity, DB-failure 503, embedded-DB helpers) |
 | Linux setup | **verified** (`setup.ps1` logic run end-to-end under PowerShell 7 on Linux; CLI setup/demo/serve on Linux) | session logs |
 | Windows setup | **verified by the owner** on Windows 11: install, model download, DB init and indexing; searches crashed the embedded DB (pgvector distance functions on Windows) → fixed with in-memory vector search (commit 7ec7a93, 2026-10-22 18:01); owner after that: "setup worked now, search returns results on Windows" (2026-10-23 00:15). **Regression
 found by the owner 2026-10-23 22:36:** the upgrade to migration 0005 (document vectors, `avg(embedding)` in SQL)
@@ -52,7 +52,7 @@ or operator in SQL on the embedded-DB path**. Fix not yet re-run by the owner on
 | Install and release | **next step (owner, 2026-10-24)**: CI on 3 OSes → PyPI package with a browser setup wizard → Docker image on GHCR → Windows installer like holler's; found: the Docker image uses bge-small, not the default bge-base | docs/plan-release.md |
 | Activity view | Logs → Activity: recent calls (searches, writes, MCP, local model, indexing) with request, response, step timings and tokens; memory only, admin only, secrets masked; checked in `scripts/ui_check.py` | docs/admin-guide.md |
 | Database tab | Admin → Database: tables with row counts and sizes, rows (sort, filter, full values of one row), structure (columns, indexes, constraints), read-only SQL as the non-superuser role `ks_reader` (no password/token hashes; writes, second statements, server files, role switches refused — tested); external DB needs `KS_READONLY_DATABASE_URL` | docs/admin-guide.md, tests/test_dbview.py |
-| Plans written 2026-10-24 (not built) | invite/reset links without a mail server; Docker brought up to date (found: image uses bge-small, no local model, read-only models folder); Windows installer like holler's; site2md friendly screen (design brief via impeccable's method) | docs/plan-invites.md, plan-docker.md, plan-installer.md, plan-site2md-ui.md |
+| Plans written 2026-10-24 (not built) | invite/reset links without a mail server; Docker brought up to date (found: image uses bge-small, no local model, read-only models folder); Windows installer like holler's — **still not built**. The site2md screen was built 2026-10-24 (§4o) | docs/plan-invites.md, plan-docker.md, plan-installer.md, plan-site2md-ui.md |
 | Backup/restore | **verified** (`scripts/backup_restore_check.sh`): data-folder copy and pg_dump/pg_restore + blobs both restore identical search results and all original files open. Found and fixed on the way: the embedded database kept running after the app stopped (the web server re-raises Ctrl+C after shutdown, so exit hooks never ran) — the app now releases it on shutdown | docs/deployment.md |
 
 ## 4. Measured results (tables and caveats in docs/evaluation.md)
@@ -358,6 +358,46 @@ Verified: every command run against a fresh demo app on Linux, covering:
 - Startup already loaded the embedding model and reranker before accepting traffic; it now also loads the
   in-memory vector index (it loaded on the first search: slow on a large archive), and `knowledge-search
   worker` loads its embedding model at start. The summary model server already started with the job loop.
+
+## 4o. Folders, MCP that can change things, and the crawler's page (owner requests 2026-10-24)
+
+- **Synced folders** (`folders.py`, migration 0008, Documents → Synced folders, admin): add a folder by
+  its path on the server; it is walked recursively (skips names starting with `.` or `_`, keeps the chosen
+  types: markdown, text, html, word, powerpoint, pdf), and **Sync** takes in only what changed and removes
+  documents whose file is gone. Browser folder uploads now send each file's path, so documents are keyed by
+  path in the folder (`repo-kit/docs/modules/index.md`); a re-upload adds new files, versions changed ones,
+  skips unchanged ones, and never duplicates. Older documents keyed by bare file name are re-keyed on their
+  first path upload. A browser re-upload cannot see deletions; a synced folder can.
+- **Tokens:** access tokens are read-only unless created with *May also make changes* (migration 0009,
+  existing tokens became read-only). A read-only token also cannot write through the REST API.
+- **MCP can do the admin work** (`mcp.py`): status, list/add/retry/delete documents, add/list/sync folders,
+  `crawl_website` + `list_crawls` (`crawls.py`: site2md as a subprocess into `<data>/crawls/<name>.new`,
+  swapped in and synced as a folder when finished), create collections, read/change settings, download
+  models, reindex. Tools are listed per caller (reader / writer / admin); non-read tools are marked not
+  read-only so clients ask before calling. Tests: `tests/test_mcp_manage.py`, `tests/test_folders.py`.
+- **site2md page** (`site2md/src/site2md/ui.py`, `static/`; plan `docs/plan-site2md-ui.md`): the launchers
+  now open a page on 127.0.0.1 (one-time key, Host check, CSP without inline code): Your copies → Copy a
+  website (instant address check) → sign in in a browser window (the page notices by itself; no console)
+  → progress bars per site section, Pause/Stop/Continue → done page with what was not copied grouped by
+  reason and *Try these again* → *Send to Knowledge Search* (local admin: synced folder; otherwise uploads
+  keyed by path). Update copies into `<name>.new` and swaps when finished. Three sign-in pages in a row stop
+  the copy as "sign-in expired" instead of recording failures. Verified: Playwright walkthrough at 1280 and
+  390 px (`$scratchpad/s2m/`, not committed), a real send into a running app (6 files queued as a synced
+  folder, HTML and manifest left out), `tests/test_site2md_ui.py`. **Not verified:** a real sign-in on
+  Windows/macOS with installed Chrome/Edge (owner to try).
+- **Original HTML (owner asked 2026-10-24):** optional, saved to `<name>-html/` beside the copy, never
+  indexed. Reason: the Markdown already keeps what retrieval uses (headings → section paths, lists, tables,
+  code, links → graph), and indexing both would put every page in the results twice. If a page loses
+  structure in Markdown (e.g. merged table cells), fix the converter (`site2md/html.py`), measured on that page.
+- **Rule for future content types (owner, 2026-10-24):** there is one ingestion path — crawler → folder →
+  `folders.sync` → `ingest.submit`, and MCP → REST with the caller's token. A new type (images, for vision)
+  is added once in `ingest.MEDIA_TYPES` / `folders.TYPES` / `ks.py` / the upload type list, and site2md must
+  save it (today it saves pages and PDF/Word/PowerPoint/text attachments, **not images**). Planned vision
+  design: a local vision model writes text for each image (OCR + a description of diagrams and their
+  relations) in a background job; that text is embedded with the normal text embedder and cited back to the
+  image. Not a multimodal embedding model: those are weaker on text retrieval, which is most of the corpus.
+  The GLM-4.6V-Flash vs Gemma 4 E2B image comparison (`eval/image_ocr.py`) decides the model.
+- **Installer:** still TODO for both apps (plans: `docs/plan-installer.md`, `plan-release.md`, `plan-docker.md`).
 
 ## 4m. MCP server for AI assistants (owner request 2026-10-24)
 
