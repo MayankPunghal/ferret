@@ -1,5 +1,7 @@
 """Admin features: first-run setup, runtime settings (chunking/reranker), reindex, users and access."""
 
+import time
+
 import knowledge_search.api as api
 from knowledge_search import db
 
@@ -120,3 +122,28 @@ def test_collections_users_and_revocation(client, corpus):
         c.execute("DELETE FROM users WHERE username = 'tmpuser'")
         c.execute("DELETE FROM collections WHERE name = 'tmpcol'")
         c.commit()
+
+
+def test_model_list_and_download_requests(client, corpus, monkeypatch):
+    """Settings lists every model with whether it is on disk; Download fetches one without selecting it."""
+    from knowledge_search import admin, runtime
+
+    h = token(client, "root")
+    assert client.get("/api/admin/models", headers=token(client, "bob")).status_code == 404
+    m = client.get("/api/admin/models", headers=h).json()
+    embed = {x["name"]: x for x in m["embed"]}
+    assert embed["BAAI/bge-small-en-v1.5"]["downloaded"] and embed["BAAI/bge-small-en-v1.5"]["in_use"]
+    assert embed["BAAI/bge-small-en-v1.5"]["state"] == "ready"
+    assert set(m) == {"embed", "rerank", "llm"} and all(not x["in_use"] for x in m["llm"])
+    assert client.post("/api/admin/models/download", headers=h, json={"kind": "embed", "name": "nope"}).status_code == 404
+    assert client.post("/api/admin/models/download", headers=h, json={"kind": "other", "name": "x"}).status_code == 422
+    calls = []
+    monkeypatch.setattr(runtime, "download", lambda kind, name: calls.append((kind, name)))
+    r = client.post("/api/admin/models/download", headers=h, json={"kind": "rerank", "name": "BAAI/bge-reranker-base"})
+    assert r.json() == {"state": "downloading"}
+    for _ in range(50):
+        if calls and "rerank:BAAI/bge-reranker-base" not in admin._downloads:
+            break
+        time.sleep(0.05)
+    assert calls == [("rerank", "BAAI/bge-reranker-base")]
+    assert client.get("/api/admin/settings", headers=h).json()["values"]["rerank_model"] != "BAAI/bge-reranker-base"

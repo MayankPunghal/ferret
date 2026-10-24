@@ -415,3 +415,8 @@ td.actions-cell { width: 1%; text-align: right; }
 .copyable { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100ch; user-select: all; }
 .inline-label { display: inline-flex; align-items: center; gap: 8px; }
 .wide-input { flex: 1 1 280px; max-width: 360px; }
+.model-list table { margin-top: 8px; }
+.model-list td { padding-top: 6px; padding-bottom: 6px; }
+.busy { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.model-list .error-text { display: inline-block; max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; margin-right: 6px; }
+.error-text { color: var(--pill-negative-ink); }

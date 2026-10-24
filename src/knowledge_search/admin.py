@@ -35,6 +35,74 @@ def _warm(kind: str, name: str) -> None:
     threading.Thread(target=run, daemon=True, name=f"warm-{name}").start()
 
 
+_downloads: dict[str, str] = {}  # "kind:name" -> "downloading" | "error: ..." (Download buttons)
+
+
+def _model_rows(kind: str, current: str) -> list[dict]:
+    """Every model of a kind: on this computer or not, a download under way, the one in use and its load state."""
+    s = runtime.base()
+    if kind == "embed":
+        items = [(m.name, f"~{m.size_mb} MB", runtime.downloaded("embed", m.name)) for m in MODELS.values()]
+    elif kind == "rerank":
+        items = [(k, f"~{v[1]} MB", runtime.downloaded("rerank", k)) for k, v in runtime.RERANKERS.items()]
+    else:
+        items = [(k, v[2].split(",")[0], bool(enrich.installed(s, v[1]))) for k, v in enrich.LLMS.items()]
+    loaded = runtime.model_states()
+    out = []
+    for name, size, have in items:
+        st = _downloads.get(f"{kind}:{name}", "")
+        if not st and name == current:  # the model in use: loading / ready / error
+            if kind == "llm":
+                st = getattr(getattr(state, "enricher", None), "state", "")
+            else:
+                key = f"{'embedding' if kind == 'embed' else 'reranker'}: {name}"
+                st = "loading" if _loading.get(name) == "loading" else loaded.get(key) or _loading.get(name, "")
+        out.append({"name": name, "size": size, "downloaded": have, "in_use": name == current, "state": st})
+    return out
+
+
+@router.get("/models")
+def models(p: Admin, conn: Conn):
+    rt = runtime.load(conn)
+    e = getattr(state, "enricher", None)
+    llm = rt.enrich_model or next((k for k, v in enrich.LLMS.items() if e and v[1] == e.model), "")
+    return {"embed": _model_rows("embed", rt.embed_model),
+            "rerank": _model_rows("rerank", rt.rerank_model if rt.rerank_enabled else ""),
+            "llm": _model_rows("llm", llm if rt.enrich_enabled else "")}
+
+
+class DownloadBody(BaseModel):
+    kind: str = Field(pattern="^(embed|rerank|llm)$")
+    name: str
+
+
+@router.post("/models/download")
+def download_model(body: DownloadBody, p: Admin):
+    known = {"embed": MODELS, "rerank": runtime.RERANKERS, "llm": enrich.LLMS}[body.kind]
+    if body.name not in known:
+        raise HTTPException(404, "unknown model")
+    key = f"{body.kind}:{body.name}"
+    if _downloads.get(key) == "downloading":
+        return {"state": "downloading"}
+    if runtime.base().offline:
+        raise HTTPException(409, "downloads are off (KS_OFFLINE=true)")
+
+    def run():
+        try:
+            if body.kind == "llm":
+                enrich.download(runtime.base(), body.name, select=False)
+            else:
+                runtime.download(body.kind, body.name)
+            _downloads.pop(key, None)
+        except Exception as e:  # noqa: BLE001 - network/disk errors come in many types; shown next to the model
+            log.warning("download failed %s: %s", key, e)
+            _downloads[key] = f"error: {e}"[:300]
+
+    _downloads[key] = "downloading"
+    threading.Thread(target=run, daemon=True, name=f"download-{body.name}").start()
+    return {"state": "downloading"}
+
+
 def _settings_view(conn) -> dict:
     rt, s, enricher = runtime.load(conn), runtime.base(), getattr(state, "enricher", None)
     cov = coverage_for(conn, [r["id"] for r in conn.execute("SELECT id FROM collections")], rt.signature())

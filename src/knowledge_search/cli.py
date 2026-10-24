@@ -226,6 +226,10 @@ def _worker(s) -> None:
     from .ingest import BlobStore, Worker
 
     db.open_pool(db.resolve_url(s), max_size=3)
+    from . import runtime
+
+    with db.pool().connection() as c:  # load the embedding model now, not with the first document
+        runtime.embedder(runtime.load(c).embed_model).warm()
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     signal.signal(signal.SIGINT, lambda *_: stop.set())

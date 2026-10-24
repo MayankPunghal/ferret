@@ -67,6 +67,11 @@ class MemoryIndex:
         self._spaces[space] = s
         return s
 
+    def warm(self, conn: Connection, space: str) -> int:
+        """Load a vector space now (at startup), not on the first search. Returns the number of vectors."""
+        with self._lock:
+            return len(self._refresh(conn, space).ids)
+
     def top_k(self, conn: Connection, space: str, query: np.ndarray, scope: list[int], k: int) -> list[int]:
         with self._lock:
             s = self._refresh(conn, space)

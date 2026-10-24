@@ -100,9 +100,11 @@ class LLMError(Exception):
     pass
 
 
-def chat(url: str, model: str, prompt: str, max_tokens: int = 300, timeout: float = 600) -> str:
+def chat(url: str, model: str, prompt: str, max_tokens: int = 300, timeout: float = 600, think: bool = False) -> str:
     body = {"messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens, "temperature": 0,
-            "response_format": {"type": "json_object"}, "chat_template_kwargs": {"enable_thinking": False}}
+            "chat_template_kwargs": {"enable_thinking": think}}
+    if not think:  # a JSON grammar would also constrain the reasoning
+        body["response_format"] = {"type": "json_object"}
     if model:
         body["model"] = model
     req = urllib.request.Request(url.rstrip("/") + "/chat/completions", json.dumps(body).encode(),
@@ -496,8 +498,8 @@ LLMS = {  # name: (Hugging Face repo, file, note); the notes are what the blind 
     "gemma-4-e2b": ("unsloth/gemma-4-E2B-it-GGUF", "gemma-4-E2B-it-Q4_K_M.gguf",
                     "~3.1 GB, Apache-2.0; recommended: no wrong claims in the blind review, best document types"),
     "gemma-4-e4b": ("unsloth/gemma-4-E4B-it-GGUF", "gemma-4-E4B-it-Q4_K_M.gguf",
-                    "~5 GB, needs ~9 GB of memory, Apache-2.0; for a server: summaries as good as E2B, document types a "
-                    "little better (10 vs 8 of 14 pages), 2.3x slower"),
+                    ("~5 GB, needs ~9 GB of memory, Apache-2.0; for a server: summaries as good as E2B, document types "
+                     "a little better (10 vs 8 of 14 pages), 2.3x slower")),
     "qwen3.5-2b": ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf",
                    "~1.3 GB, Apache-2.0; as accurate in the blind review, about as fast; document types not measured"),
     "qwen3.5-0.8b": ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q4_K_M.gguf",
@@ -527,8 +529,9 @@ def unpack(archive: Path, dest: Path) -> None:
         p.chmod(p.stat().st_mode | 0o111)
 
 
-def download(settings, name: str = DEFAULT_LLM) -> Path:
-    """Fetch the llama.cpp server (once) and the model `name`; selects that model. Returns the model file."""
+def download(settings, name: str = DEFAULT_LLM, select: bool = True) -> Path:
+    """Fetch the llama.cpp server (once) and the model `name`; `select` makes it the one setup installed (used
+    when Settings names none). Returns the model file."""
     from huggingface_hub import hf_hub_download
 
     repo, file, _ = LLMS[name]
@@ -555,5 +558,6 @@ def download(settings, name: str = DEFAULT_LLM) -> Path:
             raise OSError(f"not enough disk space for {file}: it needs {size / 1e9:.1f} GB, {free / 1e9:.1f} GB free")
     print(f"downloading {repo}/{file}", flush=True)
     path = Path(hf_hub_download(repo, file, local_dir=d))
-    (d / "selected.txt").write_text(file)
+    if select:
+        (d / "selected.txt").write_text(file)
     return path

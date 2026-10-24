@@ -18,9 +18,9 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin, auth, db, enrich, graph, mcp, runtime
+from . import admin, auth, db, enrich, graph, mcp, runtime, vectors
 from .auth import Principal
-from .config import Settings, get_settings
+from .config import Settings, get_settings, memory_vectors
 from .deps import COOKIE, Conn, User, state
 from .embedder import Embedder
 from .ingest import BlobStore, Worker, delete_document, reindex, retry_document, submit
@@ -69,6 +69,10 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
         log.warning("Loading the embedding model %s (the first start may download it; this can take a minute)…",
                     rt.embed_model)
         state.embedder.warm()  # load the model before accepting traffic (avoids a slow first query)
+        if memory_vectors(settings):  # and the vectors: on a large archive the first search would wait for them
+            with db.pool().connection() as conn:
+                n = vectors.index.warm(conn, state.embedder.spec.version_key)
+            log.warning("search index loaded: %d passage vectors", n)
         if rt.rerank_enabled:
             try:
                 runtime.rerank_scores(rt.rerank_model, "warm up", ["warm up"])

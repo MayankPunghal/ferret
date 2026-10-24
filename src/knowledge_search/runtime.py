@@ -6,8 +6,10 @@ different signature are reported as outdated (coverage incomplete) until reindex
 """
 
 import re
+import shutil
 import threading
 from dataclasses import asdict, dataclass, fields
+from pathlib import Path
 
 from psycopg import Connection
 from psycopg.types.json import Jsonb
@@ -207,3 +209,40 @@ def rerank_scores(name: str, query: str, texts: list[str]) -> list[float]:
         raise
     except Exception as e:
         raise RerankError(f"reranking failed: {e}") from e
+
+
+def _onnx_class(kind: str):
+    if kind == "embed":
+        from fastembed import TextEmbedding
+
+        return TextEmbedding
+    from fastembed.rerank.cross_encoder import TextCrossEncoder
+
+    return TextCrossEncoder
+
+
+def downloaded(kind: str, name: str) -> bool:
+    """Whether an embedding model or reranker is in the model cache (checked on disk, nothing is loaded)."""
+    try:
+        d = _onnx_class(kind)._get_model_description(name)
+    except ValueError:
+        return False
+    cache = Path(base().model_cache)
+    if d.sources.hf:
+        snaps = cache / f"models--{d.sources.hf.replace('/', '--')}" / "snapshots"
+        return any((s / d.model_file).is_file() for s in snaps.glob("*"))
+    return any(cache.glob(f"*{name.split('/')[-1]}*/{d.model_file}"))
+
+
+def download(kind: str, name: str) -> None:
+    """Fetch an embedding model or reranker into the cache without loading it (Settings' Download button)."""
+    from .download import with_retries
+
+    size_mb = MODELS[name].size_mb if kind == "embed" else RERANKERS[name][1]
+    cache = Path(base().model_cache)
+    cache.mkdir(parents=True, exist_ok=True)
+    free = shutil.disk_usage(cache).free
+    if free < (size_mb + 200) * 1e6:
+        raise OSError(f"not enough disk space: {name} needs ~{size_mb} MB, {free / 1e6:.0f} MB free")
+    c = _onnx_class(kind)
+    with_retries(lambda: c.download_model(c._get_model_description(name), str(cache)), name)

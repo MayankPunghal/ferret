@@ -113,7 +113,7 @@ function openTab(name) {
   if (name === "summaries") { loadSummaries(); pollTimer = setInterval(loadSummaries, 5000); }
   if (name === "status") loadStatus();
   if (name === "assistants") loadAssistants();
-  if (name === "settings") loadSettings();
+  if (name === "settings") { loadSettings(); pollTimer = setInterval(loadModels, 3000); }
   if (name === "admin") loadAdmin();
   if (name === "logs") loadLogs();
   menu(false);
@@ -811,7 +811,7 @@ function llmNote() {
   const m = settings.options.llms.find((x) => x.name === $("#s-llm").value);
   $("#s-llm-note").textContent = settings.llm.external
     ? `Set by KS_LLM_URL (another local server): ${settings.llm.current || "its own model"}.`
-    : m ? m.note.split("; ").slice(1).join("; ") + "." + (m.installed ? "" : " Downloaded in the background when saved.")
+    : m ? m.note.split("; ").slice(1).join("; ") + "." + (m.installed ? "" : " Not on this computer yet: use Download below, or it downloads when saved.")
       + (m.name !== summaryModel(settings.values) ? " Every document is summarised and labelled again by the new model." : "") : "";
 }
 $("#s-llm").addEventListener("change", llmNote);
@@ -821,7 +821,7 @@ function showSettings(s) {
   $("#s-model").replaceChildren(...s.options.embed_models.map((m) => el("option", { value: m.name, textContent: `${m.name} — ${m.dim}d, ~${m.size_mb} MB, ${m.license}${rec(m.name, "embed_model")}` })));
   $("#s-rerank").replaceChildren(...s.options.rerankers.map((m) => el("option", { value: m.name, textContent: `${m.name} — ~${m.size_mb} MB, ${m.license}, ${m.note}${rec(m.name, "rerank_model")}` })));
   $("#s-llm").replaceChildren(...s.options.llms.map((m) => el("option", { value: m.name,
-    textContent: `${llmLabel(m)} — ${m.note.split(";")[0]}${m.name === s.llm.default ? " · recommended" : ""}${m.installed ? "" : " · not downloaded"}` })));
+    textContent: `${llmLabel(m)} — ${m.note.split(";")[0]}${m.name === s.llm.default ? " · recommended" : ""}` })));
   $("#s-llm").disabled = s.llm.external;
   fillSettings(s.values);
   const st = Object.entries(s.model_status).map(([k, v]) => `${k}: ${v}`).join(" · ");
@@ -833,7 +833,42 @@ function showSettings(s) {
   b.hidden = !ix.outdated; b.className = "outcome index_coverage_incomplete";
   b.textContent = ix.outdated ? `${ix.outdated} document(s) were indexed with different settings. Reindex them so search uses the new settings everywhere.` : "";
 }
-async function loadSettings() { showSettings(await api("/api/admin/settings")); }
+async function loadSettings() { showSettings(await api("/api/admin/settings")); loadModels(); }
+
+// Every model with a Download button, so a model is fetched before it is chosen, not when it is first needed.
+const BUSY = /^(downloading|loading|starting)/;
+async function loadModels() {
+  const all = await api("/api/admin/models");
+  for (const [kind, select] of [["embed", "#s-model"], ["rerank", "#s-rerank"], ["llm", "#s-llm"]]) {
+    const rows = all[kind];
+    $(`#ml-${kind}-sum`).textContent = `Models on this computer: ${rows.filter((m) => m.downloaded).length} of ${rows.length}`
+      + (rows.some((m) => BUSY.test(m.state)) ? " · working…" : "");
+    $(`#ml-${kind}`).replaceChildren(...rows.map((m) => {
+      let status;
+      if (BUSY.test(m.state)) status = el("span", { className: "busy" }, el("span", { className: "spinner" }), m.state.startsWith("downloading") ? "Downloading…" : "Loading…");
+      else if (m.state.startsWith("error")) status = el("span", { className: "error-text", textContent: m.state, title: m.state });
+      else if (m.in_use) status = el("span", { className: "badge st-indexed", textContent: "in use" });
+      else if (m.downloaded) status = el("span", { className: "muted", textContent: "downloaded" });
+      const cell = el("td", { className: "actions-cell" }, status || "");
+      if (!m.downloaded && !BUSY.test(m.state)) {
+        const b = el("button", { type: "button", className: "small", textContent: m.state.startsWith("error") ? "Retry" : "Download" });
+        b.addEventListener("click", async () => {
+          b.disabled = true;
+          try { await api("/api/admin/models/download", { method: "POST", json: { kind, name: m.name } }); }
+          catch (err) { $("#settings-msg").textContent = err.message; }
+          loadModels();
+        });
+        cell.append(b);
+      }
+      return el("tr", {}, el("td", {}, kind === "llm" ? m.name : m.name.split("/").pop()), el("td", { className: "num muted", textContent: m.size }), cell);
+    }));
+    for (const o of $(select).options) {  // mark the choices that would have to download first
+      o.dataset.base ??= o.textContent.replace(" · not downloaded", "");
+      const m = rows.find((r) => r.name === o.value);
+      o.textContent = o.dataset.base + (m && !m.downloaded ? " · not downloaded" : "");
+    }
+  }
+}
 $("#s-overlap-on").addEventListener("change", (e) => { $("#s-overlap").disabled = !e.target.checked; if (e.target.checked && +$("#s-overlap").value === 0) $("#s-overlap").value = 150; });
 $("#settings-form").addEventListener("submit", async (e) => {
   e.preventDefault();
