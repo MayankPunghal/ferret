@@ -1,0 +1,249 @@
+{
+ "llm": "granite-4.0-micro",
+ "pages": 14,
+ "exact": 0.5,
+ "compatible": 0.5,
+ "compatible_by_section": {
+  "tasks": 0.5,
+  "concepts": 0.5,
+  "reference": 0.5,
+  "tutorials": 0.5
+ },
+ "confusion": {
+  "how-to -> how-to": 3,
+  "how-to -> process": 3,
+  "concept -> policy": 2,
+  "concept -> concept": 2,
+  "reference -> reference": 2,
+  "reference -> policy": 1,
+  "reference -> concept": 1
+ },
+ "rows": [
+  {
+   "file": "access-api-from-pod.md",
+   "site_path": "content/en/docs/tasks/run-application/access-api-from-pod.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes",
+    "client libraries",
+    "REST API",
+    "kubectl proxy",
+    "service account",
+    "service accounts"
+   ],
+   "summary": "This guide demonstrates how to access the Kubernetes API from within a pod, including using official client libraries, directly accessing the REST API, and using kubectl proxy.",
+   "seconds": 29.5
+  },
+  {
+   "file": "configure-service-account.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/configure-service-account.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes",
+    "ServiceAccounts",
+    "Pods",
+    "API server",
+    "ServiceAccount object",
+    "authorization plugin and policy"
+   ],
+   "summary": "This document explains how to configure service accounts for pods in Kubernetes, including using the default service account, opting out of API credential automounting, and manually creating API tokens.",
+   "seconds": 25.6
+  },
+  {
+   "file": "extend-service-ip-ranges.md",
+   "site_path": "content/en/docs/tasks/network/extend-service-ip-ranges.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "process",
+   "topics": [
+    "Kubernetes",
+    "Service CIDR",
+    "Service",
+    "kube-apiserver",
+    "ServiceClusterIP",
+    "IPAddresses"
+   ],
+   "summary": "This document explains how to extend the existing Service IP range assigned to a Kubernetes cluster, including adding a new ServiceCIDR, deleting a ServiceCIDR, and Kubernetes Service CIDR policies.",
+   "seconds": 28.9
+  },
+  {
+   "file": "migrate-from-psp.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/migrate-from-psp.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "process",
+   "topics": [
+    "PodSecurityPolicy",
+    "PodSecurity Admission",
+    "Kubernetes",
+    "PodSecurity Standards",
+    "Admission Controllers",
+    "Namespace Permissions"
+   ],
+   "summary": "This document outlines the process of migrating from PodSecurityPolicy to the built-in PodSecurity Admission Controller in Kubernetes. It provides a step-by-step guide for deciding if Pod Security Admission is suitable, reviewing namespace permissions, simplifying and standardizing PodSecurityPolicies, updating namespaces, reviewing namespace creation processes, and disabling PodSecurityPolicy.",
+   "seconds": 36.4
+  },
+  {
+   "file": "admission-webhooks-good-practices.md",
+   "site_path": "content/en/docs/concepts/cluster-administration/admission-webhooks-good-practices.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "policy",
+   "topics": [
+    "Admission controllers",
+    "Admission webhooks",
+    "Kubernetes API"
+   ],
+   "summary": "This document provides guidelines for designing and implementing admission webhooks in Kubernetes to avoid common failure scenarios and ensure compatibility with Kubernetes API changes.",
+   "seconds": 29.7
+  },
+  {
+   "file": "dynamic-provisioning.md",
+   "site_path": "content/en/docs/concepts/storage/dynamic-provisioning.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "PersistentVolumeClaim",
+    "StorageClass",
+    "Kubernetes",
+    "PersistentVolume",
+    "storage.k8s.io/v1"
+   ],
+   "summary": "Dynamic volume provisioning allows storage volumes to be created on-demand, eliminating the need for cluster administrators to pre-provision storage. Users can request dynamically provisioned storage by including a storage class in their PersistentVolumeClaim.",
+   "seconds": 25.2
+  },
+  {
+   "file": "object-management.md",
+   "site_path": "content/en/docs/concepts/overview/working-with-objects/object-management.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "Kubernetes",
+    "kubectl",
+    "Kubernetes objects",
+    "Object management"
+   ],
+   "summary": "This document provides an overview of different approaches to manage Kubernetes objects using the `kubectl` command-line tool. It covers imperative commands, imperative object configuration, and declarative object configuration, along with their trade-offs and examples.",
+   "seconds": 22.3
+  },
+  {
+   "file": "scheduler.md",
+   "site_path": "content/en/docs/concepts/security/hardening-guide/scheduler.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "policy",
+   "topics": [
+    "kube-scheduler",
+    "scheduler authentication",
+    "scheduler authorization",
+    "scheduler networking",
+    "scheduler TLS",
+    "Kubernetes"
+   ],
+   "summary": "This document provides guidelines for improving the security posture of the Kubernetes scheduler, including configuration options for authentication, authorization, networking, and TLS.",
+   "seconds": 22.2
+  },
+  {
+   "file": "access-authn-authz.md",
+   "site_path": "content/en/docs/reference/access-authn-authz/_index.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes",
+    "API Access",
+    "Authentication",
+    "Admission Controllers",
+    "Authorization",
+    "Certificate Signing Requests"
+   ],
+   "summary": "This document provides an overview of how Kubernetes implements and controls API access, including authentication, admission controllers, authorization, certificate signing requests, service accounts, and kubelet authentication and authorization.",
+   "seconds": 19.9
+  },
+  {
+   "file": "customresourcedefinition.md",
+   "site_path": "content/en/docs/reference/glossary/customresourcedefinition.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes API server",
+    "API resources",
+    "custom resources"
+   ],
+   "summary": "CustomResourceDefinition is an API object that defines a new custom API to extend the Kubernetes API server, allowing for custom resources when built-in API resources are insufficient.",
+   "seconds": 11.4
+  },
+  {
+   "file": "kernel-version-requirements.md",
+   "site_path": "content/en/docs/reference/node/kernel-version-requirements.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "policy",
+   "topics": [
+    "Linux Kernel",
+    "Kubernetes",
+    "sysctls",
+    "kube proxy",
+    "nftables",
+    "cgroup v1"
+   ],
+   "summary": "This document outlines the minimum Linux kernel version requirements for various Kubernetes features and components.",
+   "seconds": 26.9
+  },
+  {
+   "file": "probe.md",
+   "site_path": "content/en/docs/reference/glossary/probe.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "kubelet",
+    "container",
+    "pod lifecycle",
+    "Kubernetes"
+   ],
+   "summary": "This document explains the concept of a probe in Kubernetes, which is a check performed by the kubelet against a running container to define its state and health, and inform the container's lifecycle.",
+   "seconds": 11.9
+  },
+  {
+   "file": "admission-policies.md",
+   "site_path": "content/en/docs/tutorials/cluster-management/admission-policies.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "process",
+   "topics": [
+    "ValidatingAdmissionPolicy",
+    "MutatingAdmissionPolicy",
+    "Common Expression Language (CEL)",
+    "Kubernetes",
+    "API server"
+   ],
+   "summary": "This document explains how to define and use declarative admission policies in Kubernetes, including validating and mutating admission policies, policy elements, and how to test and use these policies.",
+   "seconds": 26.3
+  },
+  {
+   "file": "hello-minikube.md",
+   "site_path": "content/en/docs/tutorials/hello-minikube.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "minikube",
+    "Kubernetes",
+    "NGINX",
+    "deployment",
+    "service",
+    "kubectl"
+   ],
+   "summary": "This tutorial shows how to run a sample NGINX application on Kubernetes using minikube, including setting up a cluster, checking status, opening the dashboard, and creating a deployment and service.",
+   "seconds": 26.1
+  }
+ ]
+}
