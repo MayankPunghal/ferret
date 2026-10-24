@@ -4,7 +4,7 @@
 
 ### Windows 10/11
 
-1. Get the code: `git clone https://github.com/MayankPunghal/knowledge-search` (or **Code → Download ZIP** on
+1. Get the code: `git clone https://github.com/MayankPunghal/ferret` (or **Code → Download ZIP** on
    GitHub and extract it).
 2. In that folder run **`setup.bat --demo`** from Command Prompt — or double-click `setup.bat` and answer
    **Y** when asked whether to load the fictional sample documents. It also asks whether to install the
@@ -30,7 +30,7 @@ Re-running `setup.bat` is safe (it skips what is already done).
 ### macOS / Linux
 
 ```bash
-git clone https://github.com/MayankPunghal/knowledge-search && cd knowledge-search
+git clone https://github.com/MayankPunghal/ferret && cd ferret
 ./setup.sh            # --demo: sample data without asking, --summaries: install the summary model, --no-start
 ```
 

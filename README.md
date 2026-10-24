@@ -35,16 +35,16 @@
 **Windows 10/11**: open *Command Prompt* and run
 
 ```bat
-git clone https://github.com/MayankPunghal/knowledge-search
-cd knowledge-search
+git clone https://github.com/MayankPunghal/ferret
+cd ferret
 setup.bat --demo
 ```
 
 **macOS / Linux**
 
 ```bash
-git clone https://github.com/MayankPunghal/knowledge-search
-cd knowledge-search
+git clone https://github.com/MayankPunghal/ferret
+cd ferret
 ./setup.sh --demo
 ```
 

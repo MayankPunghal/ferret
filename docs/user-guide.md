@@ -225,7 +225,7 @@ Set it up on the machine that runs the app (Claude Code reaches `http://127.0.0.
 claude.ai run in Anthropic's cloud and cannot reach your computer):
 
 1. Copy the folder into your personal skills folder: `~/.claude/skills/ferret/` (Windows:
-   `%USERPROFILE%\.claude\skills\knowledge-search\`).
+   `%USERPROFILE%\.claude\skills\ferret\`).
 2. Create an account for Claude in **Users & access**, read-only unless it should upload. Give it the
    groups of the collections it may read.
 3. Start Claude Code with the account in the environment:

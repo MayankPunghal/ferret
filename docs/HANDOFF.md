@@ -6,7 +6,7 @@ goal), `docs/requirements-brief.md` (every owner ask and its status), `README.md
 ## 1. Resume locally
 
 ```bash
-git clone https://github.com/MayankPunghal/knowledge-search && cd knowledge-search
+git clone https://github.com/MayankPunghal/ferret && cd ferret
 ./setup.sh --demo --no-start          # Windows: setup.bat -Demo -NoStart
 uv sync                               # adds dev tools
 uv run pytest -q                      # expect 131 passed (embedded PostgreSQL; no Docker)
@@ -609,8 +609,8 @@ embedding bake-offs → contextual passages → learned sparse → entity edges 
 **Latest (2026-10-24, last):** renamed to **Ferret** (crawler: **Ferret Crawler**, spider icon; logos in
 `docs/brand/`). The command is `ferret` (`knowledge-search` still works), the crawler also installs as
 `ferret-crawler`, MCP server name `ferret`, skill folder `skills/ferret`. Python packages, database, data
-folders and the log file name are unchanged on purpose (no migration). The repository is still
-`knowledge-search` on GitHub; renaming it is the owner's call (GitHub redirects the old URL). README
+folders and the log file name are unchanged on purpose (no migration). The repository was
+renamed to `ferret` on GitHub by the owner (GitHub redirects the old `knowledge-search` URL, so old clones keep working). README
 rewritten (logo, badges, quick start, light/dark screenshot). App text decluttered: short labels, detail
 behind ⓘ buttons (`info()` in app.js, `.info` in app.css). Graph: readable at 60 documents (only the lines
 that explain the layout; point at a document for all its links; labels along the radius; fitted to the
