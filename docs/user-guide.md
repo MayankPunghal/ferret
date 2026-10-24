@@ -82,7 +82,10 @@ this off (Settings → Linked documents).
   "what is affected if this changes?".
 
 **Show as graph** draws the same neighbourhood (1 or 2 hops; blue = depends on, grey =
-links to, dashed = related / part of, dotted = mentions, green dots = related by meaning); click a node to open that document. Click any entry to open it. Documents you cannot access never appear; links whose target is not found in
+links to, dashed = related / part of, dotted = mentions, green dots = related by meaning); click a node to open that document. Click any entry to open it.
+A large neighbourhood (more than 12 documents) shows only the lines that explain the layout (the document to
+its direct links, each second-hop document to the one that connects it); point at a document to see all its
+links. **← Back** at the top of the panel returns to the document you opened before. Documents you cannot access never appear; links whose target is not found in
 your accessible documents are listed by name only. Example front matter:
 
 ```yaml

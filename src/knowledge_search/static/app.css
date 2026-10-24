@@ -246,6 +246,13 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 .drawer-links ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .graph-box > summary { cursor: pointer; color: var(--muted); margin: 16px 0 8px; }
 .graph svg { width: 100%; height: auto; display: block; }
+.graph-view.dense { overflow: auto; max-height: 72vh; border: 1px solid var(--border); border-radius: var(--radius-card); }
+.g-extra { display: none; }
+.graph svg.focus .g-extra.on { display: inline; }
+.graph svg.focus .g-edge:not(.on) { opacity: .12; }
+.graph svg.focus .g-node:not(.on) { opacity: .35; }
+.graph svg.focus .g-edge.on { stroke-width: 2.4; }
+.d-back { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 6px; font-size: 13px; color: var(--muted); }
 .graph-hops { display: inline-flex; gap: 2px; padding: 2px; background: var(--raised); border-radius: var(--radius-card); margin: 4px 0 8px; }
 .graph-hops .chip { height: 28px; border: 0; background: none; color: var(--muted); font-weight: 400; }
 .graph-hops .chip[aria-pressed=true] { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--border); font-weight: 500; }

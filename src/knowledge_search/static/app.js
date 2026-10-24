@@ -363,7 +363,14 @@ $("#search-form").addEventListener("submit", async (e) => {
 // A passage on one line: list items (slides, org charts) separated by " · " instead of running together.
 const oneLine = (t) => t.replace(/^\s*[-*+]\s+/, "").replace(/\s*\n\s*[-*+]\s+/g, " · ").replace(/\s*\n\s*/g, " ");
 
-async function openPassage(id) {
+// Documents opened from inside the drawer (connections, graph) keep a trail, so Back returns to the
+// document the search result opened.
+let shown = null, trail = [];
+const openFromDrawer = (id) => { if (shown) trail.push(shown); openPassage(id, true); };
+$("#d-back").addEventListener("click", () => { const prev = trail.pop(); if (prev) { shown = null; openPassage(prev.id, true); } });
+
+async function openPassage(id, keepTrail = false) {
+  if (!keepTrail) trail = [];
   let p;
   try { p = await api(`/api/chunks/${id}`); }
   catch (err) {
@@ -387,6 +394,10 @@ async function openPassage(id) {
   $("#d-download").href = `/api/documents/${p.document_id}/source?download=1&version=indexed`;
   $("#d-uri").replaceChildren(...(/^https?:\/\//.test(p.source_uri || "")
     ? [el("a", { href: p.source_uri, target: "_blank", rel: "noopener noreferrer", textContent: "Original page ↗", title: p.source_uri })] : []));
+  shown = { id, title: p.clearer_title || p.doc_title };
+  const back = $("#d-back");
+  back.hidden = !trail.length;
+  if (trail.length) back.textContent = "← " + trail.at(-1).title;
   $("#drawer").hidden = $("#backdrop").hidden = false;
   $("#d-body .hit")?.scrollIntoView({ block: "center" });
   renderLinks(p.document_id);
@@ -403,7 +414,7 @@ async function renderLinks(docId) {
   if (!links) return;
   const item = (title, meta, chunkId) => {
     const b = el("button", { className: "link", textContent: title });
-    if (chunkId) b.addEventListener("click", () => openPassage(chunkId));
+    if (chunkId) b.addEventListener("click", () => openFromDrawer(chunkId));
     return el("li", {}, b, el("span", { className: "meta", textContent: " " + meta }));
   };
   const section = (heading, items) => items.length && box.append(el("h4", { textContent: heading }), el("ul", {}, ...items));
@@ -435,7 +446,10 @@ async function renderLinks(docId) {
 }
 
 // Neighbourhood graph (SVG, no library): the document in the centre, directly linked documents on the
-// inner ring, second-hop documents on the outer ring next to the document that connects them.
+// inner ring, second-hop documents on the outer ring next to the document that connects them. A small graph
+// shows every link; a larger one shows only the links that explain the layout (centre to inner ring, each
+// outer document to the one that connects it) with labels along the radius, and a document's other links
+// appear while it is hovered or focused, so 60 documents stay readable.
 const SVG = "http://www.w3.org/2000/svg";
 const sv = (tag, attrs = {}, ...kids) => {
   const n = document.createElementNS(SVG, tag);
@@ -443,75 +457,120 @@ const sv = (tag, attrs = {}, ...kids) => {
   for (const k of kids) n.append(k);
   return n;
 };
+// angles for items wanting `want` (sorted), at least `gap` apart around the circle
+function spread(want, gap) {
+  const n = want.length;
+  if (n * gap >= 2 * Math.PI * 0.95) return want.map((_, i) => want[0] + (2 * Math.PI * i) / n);
+  const a = [...want];
+  for (let i = 1; i < n; i++) a[i] = Math.max(a[i], a[i - 1] + gap);
+  const shift = (a.reduce((x, y) => x + y, 0) - want.reduce((x, y) => x + y, 0)) / n;
+  return a.map((x) => x - shift);
+}
 async function drawGraph(box, docId, depth, hops) {
   hops.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-pressed", String(i + 1 === depth)));
+  box.replaceChildren(el("p", { className: "meta", textContent: "Loading…" }));
+  const req = box.dataset.req = String(Date.now() + Math.random());  // a later click wins
   const g = await api(`/api/documents/${docId}/graph?depth=${depth}`).catch(() => null);
+  if (box.dataset.req !== req) return;
   if (!g || g.nodes.length < 2) { box.replaceChildren(); return; }
-  const cx = 0, cy = 0, r1 = 120, r2 = 250;
-  const pos = new Map();
+  const dense = g.nodes.length > 12;
   const ring1 = g.nodes.filter((n) => n.depth === 1), ring2 = g.nodes.filter((n) => n.depth === 2);
-  pos.set(g.nodes[0].id, [cx, cy]);
-  const angle = new Map();
-  ring1.forEach((n, i) => { const a = (2 * Math.PI * i) / ring1.length - Math.PI / 2; angle.set(n.id, a); pos.set(n.id, [cx + r1 * Math.cos(a), cy + r1 * Math.sin(a)]); });
-  const parent = (n) => { for (const e of g.edges) { if (e.source === n.id && angle.has(e.target)) return e.target; if (e.target === n.id && angle.has(e.source)) return e.source; } return null; };
-  const groups = new Map();
-  for (const n of ring2) { const k = parent(n); groups.set(k, [...(groups.get(k) || []), n]); }
-  const sector = (2 * Math.PI) / Math.max(ring1.length, 1);
-  for (const [k, ns] of groups) ns.forEach((n, i) => {
-    const base = k ? angle.get(k) : (2 * Math.PI * i) / ns.length;
-    const a = base + (ns.length > 1 ? (i / (ns.length - 1) - 0.5) * sector * 0.8 : 0);
-    angle.set(n.id, a);
-    pos.set(n.id, [cx + r2 * Math.cos(a), cy + r2 * 0.8 * Math.sin(a)]);
-  });
-  // labels: outer ring points outward (nothing beyond it); centre and inner ring below the node (above at the top)
-  const labelAt = (n) => {
+  const r1 = Math.max(dense ? 130 : 120, (ring1.length * 16) / (2 * Math.PI));
+  const r2 = Math.max(r1 + (dense ? 160 : 130), (ring2.length * 14) / (2 * Math.PI));
+  const pos = new Map([[g.nodes[0].id, [0, 0]]]), angle = new Map();
+  ring1.forEach((n, i) => angle.set(n.id, (2 * Math.PI * i) / ring1.length - Math.PI / 2));
+  // each outer document hangs off one inner document that links it: the one with the fewest so far, so
+  // they spread around the circle instead of crowding behind the first inner document
+  const parent = new Map(), load = new Map();
+  for (const n of ring2) {
+    let best = null;
+    for (const e of g.edges) {
+      const other = e.source === n.id ? e.target : e.target === n.id ? e.source : null;
+      if (other && angle.has(other) && (best === null || (load.get(other) || 0) < (load.get(best) || 0))) best = other;
+    }
+    if (best) { parent.set(n.id, best); load.set(best, (load.get(best) || 0) + 1); }
+  }
+  const outer = ring2.map((n) => [n, parent.has(n.id) ? angle.get(parent.get(n.id)) : 0]).sort((x, y) => x[1] - y[1]);
+  spread(outer.map((o) => o[1]), Math.max(14 / r2, (2 * Math.PI) / (ring2.length * 1.6))).forEach((a, i) => angle.set(outer[i][0].id, a));
+  for (const n of ring1) pos.set(n.id, [r1 * Math.cos(angle.get(n.id)), r1 * Math.sin(angle.get(n.id))]);
+  for (const n of ring2) pos.set(n.id, [r2 * Math.cos(angle.get(n.id)), r2 * Math.sin(angle.get(n.id))]);
+  const short = (t, max) => (t.length > max ? t.slice(0, max - 1) + "…" : t);
+  // [x, y, anchor, rotation, text]; a dense graph writes labels along the radius, outwards
+  const labelOf = (n) => {
     const [x, y] = pos.get(n.id);
-    if (n.depth === 0) return [x, y + 24, "middle"];
-    if (n.depth === 1) return [x, y + (Math.sin(angle.get(n.id)) < -0.5 ? -14 : 22), "middle"];
-    const c = Math.cos(angle.get(n.id)), sn = Math.sin(angle.get(n.id));
-    return c > 0.35 ? [x + 12, y + 4, "start"] : c < -0.35 ? [x - 12, y + 4, "end"] : [x, y + (sn < 0 ? -14 : 22), "middle"];
+    if (n.depth === 0) return [x, y + 26, "middle", 0, short(n.title, 28)];
+    const a = angle.get(n.id), text = short(n.title, n.depth === 1 && ring2.length ? 22 : 30);
+    if (dense) {
+      const right = Math.cos(a) >= 0, deg = (a * 180) / Math.PI + (right ? 0 : 180);
+      return [x + 11 * Math.cos(a), y + 11 * Math.sin(a) + 4, right ? "start" : "end", deg, text];
+    }
+    const c = Math.cos(a), sn = Math.sin(a);
+    if (n.depth === 1 && ring2.length) return [x, y + (sn < -0.5 ? -14 : 22), "middle", 0, short(n.title, 20)];
+    return c > 0.35 ? [x + 12, y + 4, "start", 0, text] : c < -0.35 ? [x - 12, y + 4, "end", 0, text] : [x, y + (sn < 0 ? -14 : 22), "middle", 0, text];
   };
   const xs = [], ys = [];
-  for (const n of g.nodes) {
-    const [x, y] = pos.get(n.id), [lx, ly, anchor] = labelAt(n), w = 125;
-    xs.push(x, anchor === "start" ? lx + w : anchor === "end" ? lx - w : lx - w / 2, anchor === "middle" ? lx + w / 2 : lx);
-    ys.push(y - 14, ly + 6);
+  for (const n of g.nodes) {  // extent of each node and its label (6.2 units per character, rotated)
+    const [x, y] = pos.get(n.id), [lx, ly, anchor, deg, text] = labelOf(n), w = text.length * 6.2;
+    const dir = anchor === "end" ? -1 : 1, rad = (deg * Math.PI) / 180;
+    const ex = anchor === "middle" ? [lx - w / 2, lx + w / 2] : [lx, lx + dir * w * Math.cos(rad)];
+    const ey = anchor === "middle" ? [ly - 12, ly + 6] : [ly - 12, ly + dir * w * Math.sin(rad) + 6];
+    xs.push(x - 12, x + 12, ...ex); ys.push(y - 12, y + 12, ...ey);
   }
   const x0 = Math.min(...xs) - 8, y0 = Math.min(...ys) - 8, W = Math.max(...xs) - x0 + 8, H = Math.max(...ys) - y0 + 8;
   const svg = sv("svg", { viewBox: `${x0} ${y0} ${W} ${H}`, role: "img", "aria-label": `Link graph of ${g.document.title}` },
     sv("defs", {}, sv("marker", { id: "arrow", viewBox: "0 0 10 10", refX: "16", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" },
       sv("path", { d: "M0,0 L10,5 L0,10 z", class: "g-arrow" }))));
+  if (dense) { svg.style.width = `${Math.round(W)}px`; svg.style.minWidth = "100%"; }
   const pairs = new Map();  // one line per source→target, styled by its strongest relation
   for (const e of g.edges) pairs.set(e.source + ">" + e.target, [...(pairs.get(e.source + ">" + e.target) || []), e]);
   const title = (id) => g.nodes.find((n) => n.id === id).title;
+  const root = g.nodes[0].id, lines = [];
   for (const es of pairs.values()) {
-    const a = pos.get(es[0].source), b = pos.get(es[0].target), kinds = es.map((e) => e.kind);
+    const s = es[0].source, t = es[0].target, a = pos.get(s), b = pos.get(t), kinds = es.map((e) => e.kind);
     if (!a || !b) continue;
     const cls = kinds.includes("depends_on") ? "dep" : kinds.every((k) => k === "links_to") ? "link"
       : kinds.every((k) => k === "mentions") ? "men" : kinds.every((k) => k === "similar") ? "sim" : "rel";
-    svg.append(sv("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: `g-edge g-${cls}`, ...(cls === "sim" ? {} : { "marker-end": "url(#arrow)" }) },
-      sv("title", {}, `${title(es[0].source)} ${kinds.map((k) => KIND[k] || k).join(", ")} ${title(es[0].target)}`)));
+    const visible = !dense || s === root || t === root || parent.get(s) === t || parent.get(t) === s;
+    const line = sv("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: `g-edge g-${cls}${visible ? "" : " g-extra"}`, ...(cls === "sim" ? {} : { "marker-end": "url(#arrow)" }) },
+      sv("title", {}, `${title(s)} ${kinds.map((k) => KIND[k] || k).join(", ")} ${title(t)}`));
+    line.ends = [s, t];
+    lines.push(line);
+    svg.append(line);
   }
+  const nodes = new Map();
+  const focus = (id) => {
+    svg.classList.toggle("focus", !!id);
+    const near = new Set([id]);
+    for (const l of lines) { const on = !!id && l.ends.includes(id); l.classList.toggle("on", on); if (on) l.ends.forEach((e) => near.add(e)); }
+    for (const [nid, node] of nodes) node.classList.toggle("on", !!id && near.has(nid));
+  };
   for (const n of g.nodes) {
-    const [x, y] = pos.get(n.id);
-    const label = n.title.length > 20 ? n.title.slice(0, 19) + "…" : n.title;
-    const [lx, ly, anchor] = labelAt(n);
+    const [x, y] = pos.get(n.id), [lx, ly, anchor, deg, text] = labelOf(n);
     const node = sv("g", { class: "g-node" + (n.depth === 0 ? " g-root" : ""), tabindex: "0", role: "button", "aria-label": `Open ${n.title}` },
       sv("title", {}, `${n.title} · ${n.collection}`), sv("circle", { cx: x, cy: y, r: n.depth === 0 ? 10 : 7 }),
-      sv("text", { x: lx, y: ly, "text-anchor": anchor }, label));
+      sv("text", { x: lx, y: ly, "text-anchor": anchor, ...(deg ? { transform: `rotate(${deg.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})` } : {}) }, text));
+    node.addEventListener("mouseenter", () => focus(n.id));
+    node.addEventListener("focus", () => focus(n.id));
+    node.addEventListener("mouseleave", () => focus(null));
+    node.addEventListener("blur", () => focus(null));
     if (n.depth && n.chunk_id) {
-      node.addEventListener("click", () => openPassage(n.chunk_id));
-      node.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); openPassage(n.chunk_id); } });
+      node.addEventListener("click", () => openFromDrawer(n.chunk_id));
+      node.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); openFromDrawer(n.chunk_id); } });
     }
+    nodes.set(n.id, node);
     svg.append(node);
   }
-  box.replaceChildren(svg, el("p", { className: "meta g-legend" },
+  const hidden = lines.filter((l) => l.classList.contains("g-extra")).length;
+  const view = el("div", { className: "graph-view" + (dense ? " dense" : "") }, svg);
+  box.replaceChildren(view, el("p", { className: "meta g-legend" },
     el("span", { className: "g-key g-dep" }), " depends on  ", el("span", { className: "g-key g-link" }), " links to  ",
     el("span", { className: "g-key g-rel" }), " related / part of / other  ", el("span", { className: "g-key g-men" }), " mentions  ",
     el("span", { className: "g-key g-sim" }), " related in meaning",
-    g.truncated ? " · showing the nearest 60 documents" : ""));
+    hidden ? ` · ${hidden} more links appear when you point at a document` : "",
+    g.truncated ? " · the nearest 60 documents" : ""));
+  if (dense) view.scrollLeft = (view.scrollWidth - view.clientWidth) / 2;
 }
-function closeDrawer() { $("#drawer").hidden = $("#backdrop").hidden = true; }
+function closeDrawer() { $("#drawer").hidden = $("#backdrop").hidden = true; trail = []; shown = null; }
 $("#d-close").addEventListener("click", closeDrawer);
 $("#backdrop").addEventListener("click", closeDrawer);
 document.addEventListener("keydown", (e) => {

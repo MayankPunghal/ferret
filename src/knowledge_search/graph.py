@@ -104,23 +104,41 @@ def similar(conn, scope: list[int], documents: list[UUID], floor: float) -> list
     return [(r["seed"], r["other"], float(r["sim"])) for r in rows]
 
 
-def _similar_in_memory(conn, scope: list[int], documents: list[UUID], floor: float) -> list[tuple[UUID, UUID, float]]:
-    """`similar` with numpy: same mutual-nearest rule, per embedding model."""
+_doc_vectors: dict = {"key": None, "groups": []}  # every document vector, normalised, per embedding model
+
+
+def _document_vectors(conn) -> list[tuple]:
+    """(ids, collection ids, unit vectors) per embedding model, cached until a document is indexed or removed:
+    reading every document vector took ~0.6 s per call on 3,461 documents, three times per 2-hop graph."""
     import numpy as np
 
-    rows = conn.execute("SELECT id, embedding, embedding_model FROM documents WHERE collection_id = ANY(%s) "
-                        "AND embedding IS NOT NULL", (scope,)).fetchall()
-    by_model: dict[str, list] = {}
-    for r in rows:
-        by_model.setdefault(r["embedding_model"], []).append(r)
+    key = tuple(conn.execute("SELECT count(*) AS n, max(updated_at) AS t FROM documents "
+                             "WHERE embedding IS NOT NULL").fetchone().values())
+    if _doc_vectors["key"] != key:
+        by_model: dict[str, list] = {}
+        for r in conn.execute("SELECT id, collection_id, embedding, embedding_model FROM documents "
+                              "WHERE embedding IS NOT NULL ORDER BY id").fetchall():
+            by_model.setdefault(r["embedding_model"], []).append(r)
+        groups = []
+        for rows in by_model.values():
+            m = np.stack([np.asarray(r["embedding"].to_numpy(), dtype=np.float32) for r in rows])
+            m /= np.maximum(np.linalg.norm(m, axis=1, keepdims=True), 1e-12)
+            groups.append(([r["id"] for r in rows], np.array([r["collection_id"] for r in rows]), m))
+        _doc_vectors.update(key=key, groups=groups)
+    return _doc_vectors["groups"]
+
+
+def _similar_in_memory(conn, scope: list[int], documents: list[UUID], floor: float) -> list[tuple[UUID, UUID, float]]:
+    """`similar` with numpy: same mutual-nearest rule, per embedding model, readable documents only."""
+    import numpy as np
+
     out = []
-    for group in by_model.values():
-        ids = [r["id"] for r in group]
-        m = np.stack([np.asarray(r["embedding"].to_numpy(), dtype=np.float32) for r in group])
-        m /= np.maximum(np.linalg.norm(m, axis=1, keepdims=True), 1e-12)
+    for all_ids, cols, all_m in _document_vectors(conn):
+        keep = np.isin(cols, scope)
+        ids, m = [d for d, k in zip(all_ids, keep) if k], all_m[keep]
         pos = {d: i for i, d in enumerate(ids)}
 
-        def nearest(i):
+        def nearest(i, m=m):
             s = m @ m[i]
             s[i] = -np.inf
             return list(np.argsort(-s, kind="stable")[:SIMILAR_K]), s
