@@ -2,7 +2,7 @@
 
 Compiled on 2026-10-23 from every owner message in the build session, including messages sent while work
 was running. Scope authority remains the brief's §11 gates; this page records what the owner asked on top,
-and whether the product does it. Status: **done** (verified by a test, an evaluation or the owner),
+and whether the product does it. **Snapshot of 2026-10-23; the current open list is [TODO.md](TODO.md).** Status: **done** (verified by a test, an evaluation or the owner),
 **partial**, **not built**, **decided against** (with the reason and the measurement).
 
 ## 1. Product principles

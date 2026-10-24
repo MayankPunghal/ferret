@@ -604,6 +604,8 @@ embedding bake-offs → contextual passages → learned sparse → entity edges 
 
 ### Open owner requests (audit of the owner's recent messages, 2026-10-24)
 
+**The full, current list of open work is [TODO.md](TODO.md)** (audit of every owner message, 2026-10-24).
+
 **Latest (2026-10-24, last):** renamed to **Ferret** (crawler: **Ferret Crawler**, spider icon; logos in
 `docs/brand/`). The command is `ferret` (`knowledge-search` still works), the crawler also installs as
 `ferret-crawler`, MCP server name `ferret`, skill folder `skills/ferret`. Python packages, database, data
