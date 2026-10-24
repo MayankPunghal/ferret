@@ -223,7 +223,7 @@ def _worker(s) -> None:
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     signal.signal(signal.SIGINT, lambda *_: stop.set())
-    enricher = Enricher(s)  # document summaries, while no files wait to be indexed (optional local model)
+    enricher = Enricher(s)  # document summaries as documents are indexed (optional local model)
     t = threading.Thread(target=enricher.loop, args=(stop,), name="enrich", daemon=True)
     t.start()
     w = Worker(BlobStore(s.data_dir), s.max_pdf_pages, s.max_extracted_chars)

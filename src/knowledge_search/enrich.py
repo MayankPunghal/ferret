@@ -5,8 +5,9 @@ vague ("Overview", "Home", a file name), a clearer title.
 - Optional. The model is the one installed by setup (`knowledge-search download-llm`: llama.cpp's
   llama-server + a small GGUF model, started by the app on 127.0.0.1) or any OpenAI-compatible local
   endpoint (`KS_LLM_URL`: Ollama, LM Studio). Without one, nothing changes and nothing is sent anywhere.
-- Never in the way: one document at a time, only while no indexing job is waiting, so new files become
-  searchable first; search never waits for it.
+- Never in the way: one document at a time, each as soon as it is indexed (while the others are still being
+  indexed); the model server runs at low CPU priority without busy-waiting, so indexing and search get the
+  processor first, and search never waits for it.
 - Trust: summaries and topics are labelled as written by the model and are never cited as evidence.
   With "add a line about the whole document to every passage" on (context_chars), a document without its
   own description is re-indexed once so that line is the summary — measured: Kubernetes pages without
@@ -238,10 +239,11 @@ class LocalServer:
             env[var] = os.pathsep.join(filter(None, [str(self.exe.parent), env.get(var)]))
         self._log = open(self.log_dir / "llm-server.log", "ab")  # noqa: SIM115 - the server writes to it until stop()
         # -t: llama.cpp threads busy-wait, so only the cores we leave it (measured: 4 threads on 2 free cores
-        # made one request 6x slower). One request at a time; 8k context fits the prompt.
+        # made one request 6x slower). One request at a time; 8k context fits the prompt. Low priority and no
+        # polling: it runs while documents are being indexed, which must keep the processor first.
         self.proc = subprocess.Popen(
             [str(self.exe), "-m", str(self.model), "--host", "127.0.0.1", "--port", str(port), "-c", "8192",
-             "-np", "1", "-t", str(self.threads), "--jinja"],
+             "-np", "1", "-t", str(self.threads), "--prio", "-1", "--poll", "0", "--jinja"],
             stdout=self._log, stderr=subprocess.STDOUT, cwd=str(self.exe.parent), env=env,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         self.url = f"http://127.0.0.1:{port}/v1"
@@ -314,7 +316,7 @@ class Enricher:
         self.server: LocalServer | None = None
         self.url = settings.llm_url
         self.model = settings.llm_model
-        self.state = "off"  # off | no model | starting | waiting for indexing | working | idle | error: ...
+        self.state = "off"  # off | no model | starting | working | idle | error: ...
         self.stopping = False
         self.broken = ""  # the installed model server could not start: reported, not retried until restart
         self.download_failed = False  # the automatic download failed: retried at the next app start
@@ -361,7 +363,7 @@ class Enricher:
         return True
 
     def run_once(self) -> bool:
-        """Summarise one document. False when there is nothing to do (or indexing comes first)."""
+        """Summarise one document. False when there is nothing to do."""
         if not self.available and not self.settings.llm_url and not self.download_failed and not self.settings.offline:
             with db.pool().connection() as conn:
                 enabled = runtime.load(conn).enrich_enabled
@@ -381,9 +383,6 @@ class Enricher:
                 self.state = "waiting for its hours ({}:00 to {}:00)".format(*rt.enrich_hours.split("-"))
                 self.stop_server()
                 return False
-            if conn.execute("SELECT 1 FROM jobs WHERE status IN ('queued', 'running') LIMIT 1").fetchone():
-                self.state = "waiting for indexing"
-                return False
             if not self._ensure_server():
                 self.state = self.broken
                 return False
@@ -391,7 +390,7 @@ class Enricher:
                 doc = conn.execute(
                     "SELECT d.id, d.title, d.metadata, d.collection_id, d.indexed_version_id, d.enrichment FROM documents d WHERE "
                     + PENDING + "AND (d.enrich_claimed_at IS NULL OR d.enrich_claimed_at < now() - "
-                    "make_interval(mins => %(claim)s)) ORDER BY d.updated_at LIMIT 1 FOR UPDATE SKIP LOCKED",
+                    "make_interval(mins => %(claim)s)) ORDER BY d.created_at, d.id LIMIT 1 FOR UPDATE SKIP LOCKED",
                     _args(self.model, claim=CLAIM_MINUTES)).fetchone()
                 if not doc:
                     self.state = "idle"

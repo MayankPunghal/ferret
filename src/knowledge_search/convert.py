@@ -49,8 +49,8 @@ def docx_to_markdown(data: bytes) -> tuple[str, str]:
         out = []
         for node in el:
             if node.tag == f"{W}r":
-                out.extend((t.text or "") if t.tag == f"{W}t" else "\t" if t.tag == f"{W}tab" else ""
-                           for t in node)
+                out.extend((t.text or "") if t.tag == f"{W}t" else "\t" if t.tag == f"{W}tab"
+                           else " " if t.tag in (f"{W}br", f"{W}cr") else "" for t in node)
             elif node.tag == f"{W}hyperlink":
                 label = text_of(node)
                 target = rels.get(node.get(f"{R}id")) or ""
@@ -107,7 +107,18 @@ def rels(z: zipfile.ZipFile, part: str) -> dict[str, tuple[str, str]]:
 
 
 def paragraphs(el) -> list[str]:
-    return [t for p in el.iter(f"{A}p") if (t := "".join(x.text or "" for x in p.iter(f"{A}t")).strip())]
+    """Text of each paragraph; a line break inside one (Shift+Enter, as in "COO" over a name in an org chart box)
+    starts a new item, so the two lines never run together."""
+    out = []
+    for p in el.iter(f"{A}p"):
+        lines = [""]
+        for node in p.iter():
+            if node.tag == f"{A}t":
+                lines[-1] += node.text or ""
+            elif node.tag == f"{A}br":
+                lines.append("")
+        out += [t for x in lines if (t := x.strip())]
+    return out
 
 
 def slide_parts(z: zipfile.ZipFile) -> list[str]:

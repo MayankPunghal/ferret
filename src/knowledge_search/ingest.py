@@ -148,7 +148,8 @@ def reindex(conn: Connection, signature: str, everything: bool = False) -> int:
     with conn.transaction():
         rows = conn.execute(
             "SELECT id, latest_version_id FROM documents WHERE latest_version_id IS NOT NULL "
-            "AND status IN ('indexed', 'failed') AND (%s OR index_signature IS DISTINCT FROM %s) FOR UPDATE",
+            "AND status IN ('indexed', 'failed') AND (%s OR index_signature IS DISTINCT FROM %s) "
+            "ORDER BY created_at, id FOR UPDATE",  # queued in the order they were added
             (everything, signature),
         ).fetchall()
         for r in rows:

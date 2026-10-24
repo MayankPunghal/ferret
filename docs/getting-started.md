@@ -72,7 +72,7 @@ Click **View passage** to see the passage in context and **Open document** to re
    - a question your documents cannot answer → expect *no adequate evidence*.
 5. Edit a file and drop it again: only that file is re-indexed; text you removed is no longer found.
 6. With the summary model installed: **Index status** shows "summaries by local model: N of M documents"
-   (about 5–15 s per document, after indexing has finished). Search again: results now show a summary and
+   (about 5–15 s per document, starting as soon as each one is indexed). Search again: results now show a summary and
    topics, and file-name titles are replaced by clearer ones.
 
 A whole folder: **choose a folder** next to *browse* uploads every supported file in it and its subfolders.

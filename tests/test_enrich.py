@@ -1,5 +1,5 @@
 """Background summaries by a local language model (enrich.py), against a fake OpenAI-compatible server on
-localhost: what is stored, when a clearer title is used, that indexing comes first, failures and switches."""
+localhost: what is stored, when a clearer title is used, that only indexed documents are summarised, failures and switches."""
 
 import json
 import threading
@@ -97,13 +97,13 @@ def test_summaries_topics_and_clearer_title_only_for_vague_titles(client, corpus
     assert p["summary"] == r["summary"] and "enrichment" not in p
 
 
-def test_indexing_comes_first_and_summary_goes_into_embeddings_when_enabled(client, corpus, drain, fake_llm):
+def test_indexed_documents_are_summarised_while_others_wait_and_summary_goes_into_embeddings(client, corpus, drain, fake_llm):
     url, calls, _ = fake_llm
     e = enricher(url)
     doc = one_doc()
     with db.pool().connection() as c:
         assert requeue(c, doc["id"])
-    assert not e.run_once() and e.state == "waiting for indexing" and not calls
+    assert e.run_once() and len(calls) == 1  # another, already indexed document; `doc` waits for its index
     drain()
     with db.pool().connection() as c:
         runtime.save(c, {"context_chars": 300}, None)

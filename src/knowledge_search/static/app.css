@@ -271,6 +271,9 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 .data td { padding: 12px 16px 12px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
 .data th:last-child, .data td:last-child { padding-right: 0; }
 .data .num { text-align: right; white-space: nowrap; }
+.data th .sort { height: auto; padding: 0; border: 0; background: none; font: inherit; color: inherit; gap: 4px; }
+.data th .sort:hover, .data th[aria-sort] .sort { color: var(--text); }
+.data th[aria-sort="ascending"] .sort svg { transform: rotate(180deg); }
 .data tbody tr:hover { background: color-mix(in srgb, var(--raised) 70%, transparent); }
 .data input { max-width: 100%; }
 .doc-name { font-weight: 500; text-decoration: none; }

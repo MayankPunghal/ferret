@@ -138,7 +138,7 @@
           </div>
         </div>
         <table class="data docs-table">
-          <thead><tr><th>Document</th><th class="wide">Type</th><th class="wide">Collection</th><th>Status</th><th class="num wide">Passages</th><th class="num wide">Updated</th><th><span class="sr">Actions</span></th></tr></thead>
+          <thead id="docs-head"><tr><th data-sort="name"><button type="button" class="sort">Document</button></th><th class="wide" data-sort="type"><button type="button" class="sort">Type</button></th><th class="wide" data-sort="collection"><button type="button" class="sort">Collection</button></th><th data-sort="status"><button type="button" class="sort">Status</button></th><th class="num wide" data-sort="chunks"><button type="button" class="sort">Passages</button></th><th class="num wide" data-sort="updated"><button type="button" class="sort">Updated</button></th><th><span class="sr">Actions</span></th></tr></thead>
           <tbody id="docs"></tbody>
         </table>
         <p id="docs-empty" class="empty" hidden></p>
@@ -146,7 +146,7 @@
 
       <section id="tab-summaries" hidden>
         <div class="title-row"><h1>Summaries</h1></div>
-        <p class="muted lede">Written in the background by the local language model, one document at a time after indexing.
+        <p class="muted lede">Written in the background by the local language model, one document at a time as each is indexed.
           Summaries help you find and judge documents; they are not evidence. Always check the passage.</p>
         <div id="summaries"></div>
       </section>
@@ -229,7 +229,7 @@
               <label><span>Only between these hours <span class="muted">local time, e.g. 22-6; empty = any time</span></span> <input name="enrich_hours" id="s-hours" placeholder="22-6"></label>
               <p class="muted small">A two-sentence summary, a document type (runbook, how-to, policy, design, …), up to six
                 topics that reuse the names already common in the collection and, only when a document's own title is vague,
-                a clearer title; one document at a time while no files are waiting to be indexed. Outside its hours the
+                a clearer title; one document at a time, each as soon as it is indexed, at low priority so indexing and search come first. Outside its hours the
                 model is stopped and its memory freed. With the line about the
                 whole document on, a document without its own description is re-indexed once to use the summary.</p>
             </div>

@@ -10,6 +10,8 @@ const el = (tag, props = {}, ...kids) => {
 let me = null;
 let pollTimer = null;
 let topicFilter = null;  // Summaries tab: only the documents the local model gave this topic
+let staleNote = false;  // the results were shown again because a document was re-indexed after the search
+let lastQuery = "";
 
 async function api(path, opts = {}) {
   const headers = { "x-ks-csrf": "1", ...(opts.json !== undefined ? { "content-type": "application/json" } : {}) };
@@ -234,7 +236,7 @@ function resultItem(r) {
         el("a", { className: "r-title", href: r.source_url, target: "_blank", rel: "noopener", title: "Open the document" }, docTitle(r.title, r.clearer_title)), badges),
       el("div", { className: "meta" }, r.doc_type ? el("span", { className: "kind", textContent: r.doc_type, title: "Type written by the local model" }) : "",
         r.doc_type && loc ? " · " : "", loc),
-      el("p", { className: "snippet" }, inline(r.snippet.replace(/\s*\n\s*/g, " "))),
+      el("p", { className: "snippet" }, inline(oneLine(r.snippet))),
       writtenSummary(r),
       related,
       el("div", { className: "r-actions" }, view, el("a", { href: r.source_url, target: "_blank", rel: "noopener", textContent: "Open document" }))),
@@ -318,6 +320,9 @@ $("#search-form").addEventListener("submit", async (e) => {
   clearTimeout(slow);
   out.className = "outcome " + res.outcome;
   out.replaceChildren(el("strong", { textContent: res.message }));
+  lastQuery = $("#q").value;
+  if (staleNote) out.append(el("div", { className: "meta", textContent: "A document was re-indexed after your search, so its passages changed; these are the results again." }));
+  staleNote = false;
   if (res.reason_codes?.length) out.append(el("div", { className: "meta", textContent: "Reason codes: " + res.reason_codes.join(", ") }));
   if (res.coverage && res.coverage.complete === false)
     out.append(el("div", { className: "meta", textContent: `Index coverage in this scope: ${res.coverage.indexed}/${res.coverage.documents} documents current (${res.coverage.pending} pending, ${res.coverage.failed} failed, ${res.coverage.outdated} outdated).` }));
@@ -333,8 +338,20 @@ $("#search-form").addEventListener("submit", async (e) => {
   if (res.timings_ms) $("#timing").textContent = `${Math.round(res.timings_ms.total)} ms · ${res.index.embedding_model}${res.index.reranker ? " · reranker " + res.index.reranker : ""}`;
 });
 
+// A passage on one line: list items (slides, org charts) separated by " · " instead of running together.
+const oneLine = (t) => t.replace(/^\s*[-*+]\s+/, "").replace(/\s*\n\s*[-*+]\s+/g, " · ").replace(/\s*\n\s*/g, " ");
+
 async function openPassage(id) {
-  const p = await api(`/api/chunks/${id}`);
+  let p;
+  try { p = await api(`/api/chunks/${id}`); }
+  catch (err) {
+    if (err.message === "signed out") return;
+    if (err.message !== "not found") { $("#outcome").append(el("div", { className: "meta error", textContent: "Could not open the passage: " + err.message })); return; }
+    // re-indexing replaces a document's passages; search again rather than show a dead result
+    closeDrawer();
+    if (lastQuery) { staleNote = true; $("#q").value = lastQuery; $("#search-form").requestSubmit(); }
+    return;
+  }
   $("#d-title").replaceChildren(docTitle(p.doc_title, p.clearer_title));
   $("#d-loc").textContent = location(p.collection, p.heading_path, p.doc_title, p.page, p.version_no);
   $("#d-body").replaceChildren(...p.context.map((c) => {
@@ -344,7 +361,7 @@ async function openPassage(id) {
       ...prose(c.text, p.media_type));
   }));
   $("#d-summary").replaceChildren(writtenSummary(p));
-  $("#d-open").href = `/api/documents/${p.document_id}/view` + (p.page ? `#page=${p.page}` : "");
+  $("#d-open").href = `/api/documents/${p.document_id}/view` + (p.page ? `#page=${p.page}` : p.anchor ? `#${p.anchor}` : "");
   $("#d-download").href = `/api/documents/${p.document_id}/source?download=1&version=indexed`;
   $("#d-uri").replaceChildren(...(/^https?:\/\//.test(p.source_uri || "")
     ? [el("a", { href: p.source_uri, target: "_blank", rel: "noopener noreferrer", textContent: "Original page ↗", title: p.source_uri })] : []));
@@ -512,7 +529,7 @@ async function droppedFiles(dt) {
   if (!entries.some((x) => x.isDirectory)) return [...dt.files];
   const out = [];
   const walk = async (entry) => {
-    if (entry.isFile) return out.push(await new Promise((ok, bad) => entry.file(ok, bad)));
+    if (entry.isFile) return out.push(Object.assign(await new Promise((ok, bad) => entry.file(ok, bad)), { relPath: entry.fullPath }));
     const reader = entry.createReader();
     for (let batch; (batch = await new Promise((ok, bad) => reader.readEntries(ok, bad))).length;)
       for (const x of batch) await walk(x);
@@ -526,7 +543,9 @@ const SUPPORTED = /\.(md|markdown|txt|html?|docx|pptx|pdf)$/i;
 async function uploadFiles(files) {
   const list = $("#upload-list");
   const other = files.filter((f) => !SUPPORTED.test(f.name));
-  files = files.filter((f) => SUPPORTED.test(f.name));
+  // in folder and name order (numbers in order: 2 before 10), so they are indexed in the order you see them
+  const path = (f) => f.relPath || f.webkitRelativePath || f.name;
+  files = files.filter((f) => SUPPORTED.test(f.name)).sort((a, b) => collator.compare(path(a), path(b)));
   const skipped = other.length ? ` · skipped ${other.length} of other types (${[...new Set(other.map((f) => (f.name.split(".").pop() || "").toLowerCase()))].join(", ")})` : "";
   const line = el("span", { className: "meta" }), errors = el("ul", { className: "upload-errors" });
   list.replaceChildren(el("li", {}, line, errors));
@@ -563,6 +582,35 @@ const DOC_FILTERS = [
   ["outdated", "Outdated settings", (d) => d.needs_reindex],
 ];
 $("#doc-filter").addEventListener("input", () => loadDocs());
+// Sorted by a column header (remembered in this browser); by name until one is chosen. Waiting documents in
+// queue order, so the list shows what is indexed next.
+let docSort = { key: "name", dir: 1 };
+try { docSort = JSON.parse(localStorage.getItem("ks-doc-sort")) || docSort; } catch { /* private window */ }
+const STATUS_ORDER = { processing: 0, pending: 1, failed: 2, indexed: 3 };
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+const SORT_BY = {
+  name: (a, b) => collator.compare(a.clearer_title || a.title, b.clearer_title || b.title),
+  type: (a, b) => collator.compare(a.doc_type || "~", b.doc_type || "~"),
+  collection: (a, b) => collator.compare(a.collection, b.collection),
+  status: (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || (a.queue_position ?? 0) - (b.queue_position ?? 0),
+  chunks: (a, b) => (a.chunks ?? -1) - (b.chunks ?? -1),
+  updated: (a, b) => new Date(a.updated_at) - new Date(b.updated_at),
+};
+for (const th of $$("#docs-head th[data-sort]")) th.querySelector("button").addEventListener("click", () => {
+  const key = th.dataset.sort;
+  docSort = { key, dir: docSort.key === key ? -docSort.dir : key === "updated" || key === "chunks" ? -1 : 1 };
+  try { localStorage.setItem("ks-doc-sort", JSON.stringify(docSort)); } catch { /* not kept */ }
+  loadDocs();
+});
+function sortHeaders() {
+  for (const th of $$("#docs-head th[data-sort]")) {
+    const on = th.dataset.sort === docSort.key;
+    if (on) th.setAttribute("aria-sort", docSort.dir > 0 ? "ascending" : "descending"); else th.removeAttribute("aria-sort");
+    const b = th.querySelector("button");
+    b.querySelector("svg")?.remove();
+    if (on) b.append(icon("down"));
+  }
+}
 $("#doc-type").addEventListener("change", () => loadDocs());
 async function loadDocs() {
   if ($("#docs details.menu[open]")) return;
@@ -589,6 +637,9 @@ async function loadDocs() {
     ...kinds.map((k) => el("option", { value: k, textContent: k[0].toUpperCase() + k.slice(1) })));
   typeBox.value = kind; typeBox.hidden = !kinds.length;
   const shown = docs.filter((d) => pass(d) && (!kind || d.doc_type === kind) && (!needle || `${d.clearer_title || ""} ${d.title} ${d.source_key}`.toLowerCase().includes(needle)));
+  const by = SORT_BY[docSort.key] || SORT_BY.name;
+  shown.sort((a, b) => docSort.dir * by(a, b) || SORT_BY.name(a, b));
+  sortHeaders();
   const empty = $("#docs-empty");
   empty.hidden = shown.length > 0;
   empty.textContent = !docs.length ? "No documents yet. Upload files, or drop them on this page." : "No documents match.";

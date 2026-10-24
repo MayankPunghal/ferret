@@ -219,7 +219,7 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
 
 ## 4f. Document summaries by a local language model (owner decision 2026-10-23)
 
-- **What:** `enrich.py`. For each indexed document, one at a time and only while no indexing job waits, the
+- **What:** `enrich.py`. For each indexed document, one at a time and as soon as it is indexed (low CPU priority; before 2026-10-24 only while no indexing job waited), the
   model gets the title, the headings and the first ~3,000 characters and returns JSON: a 2-sentence summary,
   up to 6 topics, and a title. The title is used only when the document's own is vague ("Overview", a file
   name, "Page 3"; `vague_title`) and the proposal is not (`clearer_title`). Stored in `documents.enrichment`

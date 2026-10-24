@@ -92,13 +92,14 @@ def test_link_targets_of_doc_sites():
 
 def test_docx_headings_lists_tables():
     data = _docx([("Title", "Orders Runbook"), ("Heading1", "Rollback"), ("", "Run hctl rollback orders-svc."),
-                  ("ListParagraph", "Check the error rate"), ("Heading2", "Ports")], title="")
+                  ("ListParagraph", "Check the error rate"), ("", "On call</w:t><w:br/><w:t>Asha Rao"),
+                  ("Heading2", "Ports")], title="")
     doc = parse_document(data, "runbook.docx")
     assert doc.title == "Orders Runbook"
     paths = [s.heading_path for s in doc.sections]
     assert paths == ["Rollback", "Rollback > Ports"]  # Title and Heading 1 are both level 1
     text = "\n".join(s.text for s in doc.sections)
-    assert "- Check the error rate" in text and "Port | 8412" in text
+    assert "- Check the error rate" in text and "Port | 8412" in text and "On call Asha Rao" in text
     assert parse_document(_docx([("", "x")], title="Core Title"), "a.docx").title == "Core Title"
 
 
@@ -150,7 +151,8 @@ def _org_chart_pptx() -> bytes:
                 f'y="600000"/><a:ext cx="3000000" cy="900000"/></a:xfrm><a:prstGeom prst="line"/></p:spPr></p:cxnSp>')
 
     title = '<p:sp><p:nvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:txBody><a:p><a:r><a:t>{}</a:t></a:r></a:p></p:txBody></p:sp>'
-    drawn = (box(10, 4000000, 0, "Asha Rao, CEO") + box(11, 1000000, 1500000, "Chander Mohan, CFO")
+    # the top box has a line break (Shift+Enter) between the name and the role, not a comma
+    drawn = (box(10, 4000000, 0, "Asha Rao</a:t></a:r><a:br/><a:r><a:t>CEO") + box(11, 1000000, 1500000, "Chander Mohan, CFO")
              + box(12, 7000000, 1500000, "Ravi Kumar, CTO") + box(13, 1000000, 3000000, "Neelu Singh, Accounts")
              + box(14, 0, 4500000, "Questions: hr@example.com") + line(10, 11) + line(10, 12) + line(11, 13))
     buf = io.BytesIO()
