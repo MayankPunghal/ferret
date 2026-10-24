@@ -84,8 +84,8 @@ images are not read yet (no OCR).
 
 <table>
   <tr>
-    <td width="44%"><img src="docs/screenshots/ferret-passage.png" alt="Passage panel with the cited passage, AI summary and connections"></td>
-    <td width="56%"><img src="docs/screenshots/ferret-graph.png" alt="Connection graph of a densely linked wiki, two hops"></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/ferret-passage.png" alt="Passage panel with the cited passage, AI summary and connections"></td>
+    <td width="50%" valign="top"><img src="docs/screenshots/ferret-graph.png" alt="Connection graph of a densely linked wiki, two hops"></td>
   </tr>
   <tr>
     <td align="center"><sub>The passage in context, with its document's summary and connections</sub></td>
