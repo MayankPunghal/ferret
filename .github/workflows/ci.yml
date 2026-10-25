@@ -16,27 +16,27 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    # windows-latest runs jobs as an administrator; the embedded PostgreSQL's initdb then drops to a restricted
-    # token that cannot read the runner's folders. Not a problem on a user's PC (tests pass on Windows 11 locally).
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.sha }}
       - uses: astral-sh/setup-uv@v6
+      # windows-latest runs jobs as an administrator, so the embedded PostgreSQL's initdb drops to a restricted
+      # token that cannot reach the runner's D: folders ("could not create directory ...: File exists"). The
+      # same database starts fine from the user profile (the installer job), so the venv and test data go there.
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "UV_PROJECT_ENVIRONMENT=$env:USERPROFILE\ks-venv" >> $env:GITHUB_ENV
+          "TEST_TMP=$env:USERPROFILE\pytest" >> $env:GITHUB_ENV
       - run: uv sync
       - uses: actions/cache@v4
         with:
           path: data/models
           key: test-models-v1
       - run: uv run ferret download-model --model BAAI/bge-small-en-v1.5 --reranker Xenova/ms-marco-MiniLM-L-6-v2
-      # On windows-latest the job runs as an administrator, so initdb drops to a restricted token that cannot
-      # read the runner's folders ("could not create directory ...: File exists"); let the Users group in.
-      - if: runner.os == 'Windows'
-        run: |
-          icacls "${{ runner.temp }}\.." /grant "Users:(RX)"
-          icacls "${{ runner.temp }}" /grant "Users:(OI)(CI)F"
-      - run: uv run pytest -q --basetemp="${{ runner.temp }}/pytest"
+      - shell: bash
+        run: uv run pytest -q --basetemp="${TEST_TMP:-${{ runner.temp }}/pytest}"
 
   docker:
     runs-on: ubuntu-latest
