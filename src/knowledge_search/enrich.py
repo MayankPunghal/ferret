@@ -300,7 +300,24 @@ PENDING = ("d.status = 'indexed' AND d.indexed_version_id IS NOT NULL "
 
 
 def _args(model: str, **kw) -> dict:
-    return {"model": model, "prompt": PROMPT_VERSION, "max": MAX_ATTEMPTS, **kw}
+    return {"model": model, "prompt": PROMPT_VERSION, "max": MAX_ATTEMPTS, "claim": CLAIM_MINUTES, **kw}
+
+
+# An indexed document's summary stage: writing (claimed by the worker), waiting, failed or done.
+STAGE = ("CASE WHEN (" + PENDING + ") AND d.enrich_claimed_at > now() - make_interval(mins => %(claim)s) "
+         "THEN 'writing' WHEN " + PENDING + " THEN 'waiting' WHEN d.enrichment ? 'error' THEN 'failed' ELSE 'done' END")
+
+
+def by_collection(conn: Connection, model: str, collections: list[int]) -> list[dict]:
+    """Indexed / summarised / waiting / writing / failed per readable collection, by the worker's own rules."""
+    return conn.execute(
+        "SELECT c.name, count(*) AS indexed, count(*) FILTER (WHERE s = 'done') AS summarised, "
+        "count(*) FILTER (WHERE s = 'waiting') AS waiting, count(*) FILTER (WHERE s = 'writing') AS writing, "
+        "count(*) FILTER (WHERE s = 'failed') AS failed "
+        "FROM (SELECT d.collection_id, " + STAGE + " AS s FROM documents d WHERE d.status = 'indexed' "
+        "  AND d.indexed_version_id IS NOT NULL AND d.collection_id = ANY(%(cols)s)) x "
+        "JOIN collections c ON c.id = x.collection_id GROUP BY c.name ORDER BY c.name",
+        _args(model, cols=collections)).fetchall()
 
 
 def status(conn: Connection, model: str, collections: list[int] | None = None) -> dict:

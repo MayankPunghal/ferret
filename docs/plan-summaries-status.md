@@ -2,7 +2,17 @@
 
 Owner request: the Summaries tab should have the same count tiles and per-collection table as Index status.
 
-**Status: plan, not built.**
+**Status: built 2026-10-25** (local session; HANDOFF §4p).
+
+Built as planned, with these differences:
+- `GET /api/documents` keeps its list response (external pipelines read it); the total is in the
+  `X-Total-Count` header, and the tab's counts come from `GET /api/documents/counts`. The server filters
+  (`status`, `q`, `doc_type`), sorts (`sort`, `desc`) and pages (`limit` up to 1,000, `offset`).
+- Name sorting is now done by PostgreSQL (`lower()`), so "Step 10" sorts before "Step 2"; the browser used
+  natural order before. An ICU collation with numeric ordering would fix it if anyone minds.
+- "Show more" adds 100 rows at a time up to 1,000; past that the tab asks to filter by name or type.
+- The pace is the median of every summary's `seconds` for the current model, not only the last 20
+  (there is no time stamp per summary to pick the last 20 by).
 
 ## What is there today, and two problems found while checking
 

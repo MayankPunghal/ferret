@@ -22,7 +22,8 @@ with sync_playwright() as p:
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
     pg.on("console", lambda m: errors.append(f"{m.text} ({m.location.get('url')})") if m.type == "error"
-          and "401" not in m.text and "422" not in m.text else None)
+          and "401" not in m.text and "422" not in m.text
+          and "/api/admin/db/query" not in m.location.get("url", "") else None)  # the refused DELETE below
 
     def shot(name):
         pg.screenshot(path=f"{OUT}/{name}.png", full_page=True)

@@ -154,3 +154,24 @@ def test_indexing_job_reports_progress(client, drain):
         n = c.execute("SELECT count(*) AS n FROM chunks WHERE document_id = %s", (doc,)).fetchone()["n"]
     assert job["stage"] == "saving" and job["progress_done"] == job["progress_total"] == n > 1
     client.delete(f"/api/documents/{doc}", headers=sam)
+
+
+def test_documents_are_filtered_sorted_and_paged_past_1000(client, corpus):
+    """The Documents tab pages through the server; API clients without `limit` still get the newest 1,000."""
+    root = token(client, "root")
+    with db.pool().connection() as c:
+        c.execute("INSERT INTO documents (collection_id, source_key, title, status) "
+                  "SELECT %s, 'bulk-' || i, 'Bulk ' || i, 'failed' FROM generate_series(1, 1050) i", (collection_id("scratch"),))
+    try:
+        r = client.get("/api/documents?limit=100&status=failed&q=bulk", headers=root)
+        assert len(r.json()) == 100 and r.headers["x-total-count"] == "1050"
+        n = client.get("/api/documents/counts?q=bulk", headers=root).json()
+        assert n["matching"] == 1050 and n["failed"] >= 1050 and n["all"] > 1050
+        assert len(client.get("/api/documents", headers=root).json()) == 1000
+        page = client.get("/api/documents?q=bulk&sort=name&desc=false&limit=3&offset=1", headers=root).json()
+        assert [d["title"] for d in page] == ["Bulk 10", "Bulk 100", "Bulk 1000"]
+        bob = token(client, "bob")  # cannot read scratch
+        assert client.get("/api/documents/counts?q=bulk", headers=bob).json()["matching"] == 0
+    finally:
+        with db.pool().connection() as c:
+            c.execute("DELETE FROM documents WHERE source_key LIKE 'bulk-%%'")

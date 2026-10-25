@@ -775,34 +775,21 @@ $("#folder-form").addEventListener("submit", async (e) => {
 });
 
 // Documents: state tabs (counts from the documents you can see), a name filter, one row per document with
-// its status and a row menu. Refreshed every 3 s while the tab is open, except while a row menu is open.
-let docFilter = "all";
-const DOC_FILTERS = [
-  ["all", "All", () => true],
-  ["indexing", "Indexing", (d) => d.status === "pending" || d.status === "processing"],
-  ["failed", "Failed", (d) => d.status === "failed"],
-  ["outdated", "Outdated settings", (d) => d.needs_reindex],
-];
-$("#doc-filter").addEventListener("input", () => loadDocs());
+// its status and a row menu. The server filters, sorts and pages (100 rows, then "Show more"). Refreshed every
+// 3 s while the tab is open, except while a row menu is open.
+let docFilter = "all", docLimit = 100, docSeq = 0;
+const DOC_FILTERS = [["all", "All"], ["indexing", "Indexing"], ["failed", "Failed"], ["outdated", "Outdated settings"]];
+$("#doc-filter").addEventListener("input", () => { docLimit = 100; loadDocs(); });
 // Sorted by a column header (remembered in this browser); by name until one is chosen. Waiting documents in
 // queue order, so the list shows what is indexed next.
 let docSort = { key: "name", dir: 1 };
 try { docSort = JSON.parse(localStorage.getItem("ks-doc-sort")) || docSort; } catch { /* private window */ }
-const STATUS_ORDER = { processing: 0, pending: 1, failed: 2, indexed: 3 };
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-const SORT_BY = {
-  name: (a, b) => collator.compare(a.clearer_title || a.title, b.clearer_title || b.title),
-  type: (a, b) => collator.compare(a.doc_type || "~", b.doc_type || "~"),
-  collection: (a, b) => collator.compare(a.collection, b.collection),
-  status: (a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || (a.queue_position ?? 0) - (b.queue_position ?? 0),
-  chunks: (a, b) => (a.chunks ?? -1) - (b.chunks ?? -1),
-  updated: (a, b) => new Date(a.updated_at) - new Date(b.updated_at),
-};
 for (const th of $$("#docs-head th[data-sort]")) th.querySelector("button").addEventListener("click", () => {
   const key = th.dataset.sort;
   docSort = { key, dir: docSort.key === key ? -docSort.dir : key === "updated" || key === "chunks" ? -1 : 1 };
   try { localStorage.setItem("ks-doc-sort", JSON.stringify(docSort)); } catch { /* not kept */ }
-  loadDocs();
+  docLimit = 100; loadDocs();
 });
 function sortHeaders() {
   for (const th of $$("#docs-head th[data-sort]")) {
@@ -813,39 +800,42 @@ function sortHeaders() {
     if (on) b.append(icon("down"));
   }
 }
-$("#doc-type").addEventListener("change", () => loadDocs());
+$("#doc-type").addEventListener("change", () => { docLimit = 100; loadDocs(); });
+$("#docs-more button").addEventListener("click", () => { docLimit += 100; loadDocs(); });
 async function loadDocs() {
   if ($("#docs details.menu[open]")) return;
-  const docs = await api("/api/documents");
-  if (me.is_admin && docs.some((d) => d.status === "pending" || d.status === "processing")) {
+  const seq = ++docSeq;
+  const qs = new URLSearchParams({ status: docFilter === "all" ? "" : docFilter, q: $("#doc-filter").value.trim(),
+    doc_type: $("#doc-type").value, sort: docSort.key, desc: docSort.dir < 0, limit: docLimit });
+  const [docs, n] = await Promise.all([api("/api/documents?" + qs), api("/api/documents/counts?" + qs)]);
+  if (seq !== docSeq) return;  // a newer request (typing in the filter) is on its way
+  if (me.is_admin && n.indexing) {
     const st = await api("/api/status").catch(() => ({}));
     const busy = Object.entries(st.models || {}).filter(([, v]) => !v.startsWith("ready") && v !== "not loaded");
     $("#model-banner").hidden = !busy.length;
     $("#model-banner").textContent = busy.map(([k, v]) => `${k}: ${v}. Indexing continues automatically when the model is ready; large models can take several minutes to download.`).join(" ");
   } else $("#model-banner").hidden = true;
-  const tabs = DOC_FILTERS.filter(([key, , f]) => key === "all" || key === docFilter || docs.some(f));
-  if (!tabs.some(([key]) => key === docFilter)) docFilter = "all";
-  $("#doc-filters").replaceChildren(...tabs.map(([key, label, f]) => {
-    const b = el("button", { className: "subtab", type: "button", role: "tab" }, label, el("span", { className: "count", textContent: docs.filter(f).length }));
+  const tabs = DOC_FILTERS.filter(([key]) => key === "all" || key === docFilter || n[key]);
+  $("#doc-filters").replaceChildren(...tabs.map(([key, label]) => {
+    const b = el("button", { className: "subtab", type: "button", role: "tab" }, label, el("span", { className: "count", textContent: n[key].toLocaleString() }));
     b.setAttribute("aria-selected", String(key === docFilter));
-    b.addEventListener("click", () => { docFilter = key; loadDocs(); });
+    b.addEventListener("click", () => { docFilter = key; docLimit = 100; loadDocs(); });
     return b;
   }));
-  const pass = DOC_FILTERS.find(([key]) => key === docFilter)[2];
-  const needle = $("#doc-filter").value.trim().toLowerCase();
-  const typeBox = $("#doc-type"), kinds = [...new Set(docs.map((d) => d.doc_type).filter(Boolean))].sort();
-  const kind = kinds.includes(typeBox.value) ? typeBox.value : "";
+  const typeBox = $("#doc-type"), kind = typeBox.value;
   typeBox.replaceChildren(el("option", { value: "", textContent: "All types" }),
-    ...kinds.map((k) => el("option", { value: k, textContent: k[0].toUpperCase() + k.slice(1) })));
-  typeBox.value = kind; typeBox.hidden = !kinds.length;
-  const shown = docs.filter((d) => pass(d) && (!kind || d.doc_type === kind) && (!needle || `${d.clearer_title || ""} ${d.title} ${d.source_key}`.toLowerCase().includes(needle)));
-  const by = SORT_BY[docSort.key] || SORT_BY.name;
-  shown.sort((a, b) => docSort.dir * by(a, b) || SORT_BY.name(a, b));
+    ...n.types.map((k) => el("option", { value: k, textContent: k[0].toUpperCase() + k.slice(1) })));
+  typeBox.value = n.types.includes(kind) ? kind : ""; typeBox.hidden = !n.types.length;
   sortHeaders();
   const empty = $("#docs-empty");
-  empty.hidden = shown.length > 0;
-  empty.textContent = !docs.length ? "No documents yet. Upload files, or drop them on this page." : "No documents match.";
-  $("#docs").replaceChildren(...shown.map((d) => {
+  empty.hidden = docs.length > 0;
+  empty.textContent = !n.all ? "No documents yet. Upload files, or drop them on this page." : "No documents match.";
+  const more = $("#docs-more");
+  more.hidden = docs.length >= n.matching;
+  more.querySelector("span").textContent = `Showing ${docs.length.toLocaleString()} of ${n.matching.toLocaleString()}.`
+    + (docs.length >= 1000 ? " Filter by name or type to find the others." : "");
+  more.querySelector("button").hidden = docs.length >= 1000;
+  $("#docs").replaceChildren(...docs.map((d) => {
     const status = el("td", {}, el("span", { className: "badge st-" + d.status, textContent: STATUS[d.status] || d.status }));
     const again = d.adding_summary ? "adding its summary to the passages · " : "";
     if (d.status === "processing" && d.stage) {
@@ -927,48 +917,82 @@ function topicKey(t) {
   if (w.length && w.at(-1).length > 3 && w.at(-1).endsWith("s") && !w.at(-1).endsWith("ss")) w[w.length - 1] = w.at(-1).slice(0, -1);
   return w.join(" ");
 }
-// What the local model wrote for each document: progress first, then the documents being written or waiting,
-// then the summaries. Same permissions as the Documents tab.
+// What the local model wrote: count tiles and a per-collection table like Index status, then the documents at
+// one stage (writing / could not / summarised), filtered by name or topic and paged by the server.
+const kpi = (label, value, note) => el("div", { className: "kpi" }, el("span", { className: "kpi-label", textContent: label }),
+  el("span", { className: "kpi-value" + (value ? "" : " zero"), textContent: value.toLocaleString() }), el("span", { className: "kpi-note", textContent: note }));
+const statusSection = (title, ...kids) => el("section", { className: "status-section" }, el("h2", { textContent: title }), ...kids);
+const numCell = (v) => el("td", { className: "num", textContent: v.toLocaleString() });
+const updatedNow = () => el("span", { className: "muted small", textContent: `Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` });
+function timeLeft(s) {
+  const m = Math.round(s / 60);
+  return m < 1 ? "under a minute" : m < 60 ? `about ${m} min` : `about ${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}`;
+}
+let sumStage = "done", sumLimit = 100, sumSeq = 0;
+$("#sum-filter").addEventListener("input", () => { sumLimit = 100; loadSummaries(); });
+$("#sum-more button").addEventListener("click", () => { sumLimit += 100; loadSummaries(); });
 async function loadSummaries() {
-  const [docs, st] = await Promise.all([api("/api/documents"), api("/api/status").catch(() => ({}))]);
-  const line = st.index?.summaries_by_local_model || "";
-  const indexed = docs.filter((d) => d.status === "indexed");
-  const done = indexed.filter((d) => d.summary_stage === "done").length;
-  const bar = indexed.length && indexed.some((d) => d.summary_stage)
-    ? el("div", { className: "progress" }, el("span", { style: `width:${Math.round((100 * done) / indexed.length)}%` })) : "";
-  const head = [el("div", { className: "summary-progress" }, bar, el("span", { className: "muted figures", textContent: line }))];
-  const order = { writing: 0, failed: 1, waiting: 2, done: 3 };
-  const topic = topicFilter && topicKey(topicFilter);
-  if (topic) {
+  const seq = ++sumSeq;
+  const qs = new URLSearchParams({ stage: topicFilter ? "done" : sumStage, q: $("#sum-filter").value.trim(), topic: topicFilter || "", limit: sumLimit });
+  const [st, page] = await Promise.all([api("/api/summaries/status"), api("/api/summaries?" + qs)]);
+  if (seq !== sumSeq) return;  // a newer request (typing in the filter) is on its way
+  const sum = (k) => st.collections.reduce((n, r) => n + r[k], 0);
+  const t = { indexed: sum("indexed"), done: sum("summarised"), waiting: sum("waiting"), writing: sum("writing"), failed: sum("failed") };
+  $("#tab-summaries .title-row").replaceChildren(el("h1", { textContent: "Summaries" }), updatedNow());
+  const left = t.waiting + t.writing;
+  const pace = !st.model ? st.line
+    : !st.in_hours ? `Paused until ${st.hours.split("-")[0]}:00 (Settings)`
+    : left && st.seconds_per_document ? `Writing summaries: ${timeLeft(left * st.seconds_per_document)} left at the current pace (estimate)`
+    : left ? "Writing summaries" : "Every indexed document has its summary";
+  const head = [el("p", { className: "outcome " + (st.model && !left ? "evidence_found" : "index_coverage_incomplete") }, el("span", { textContent: pace }))];
+  if (st.model) head.push(
+    el("div", { className: "kpis" },
+      kpi("Indexed documents", t.indexed, `in ${st.collections.length} collection${st.collections.length === 1 ? "" : "s"}`),
+      kpi("Summarised", t.done, "with topics"), kpi("Waiting", t.waiting, "queued"), kpi("Writing", t.writing, "now"),
+      kpi("Could not", t.failed, t.failed ? "see the list" : "none")),
+    statusSection("Collections", el("table", { className: "data" },
+      el("thead", {}, el("tr", {}, ...["Collection", "Indexed", "Summarised", "Waiting", "Could not"].map((h, i) => el("th", { className: i ? "num" : "", textContent: h })))),
+      el("tbody", {}, ...st.collections.map((r) => el("tr", {}, el("td", { textContent: r.name }), numCell(r.indexed), numCell(r.summarised), numCell(r.waiting + r.writing), numCell(r.failed)))))),
+    el("p", { className: "muted small figures", textContent: `Model: ${st.line}` }));
+  if (topicFilter) {
     const all = el("button", { className: "link", type: "button", textContent: "Show all" });
     all.addEventListener("click", () => { topicFilter = null; loadSummaries(); });
     const find = el("button", { className: "link", type: "button", textContent: `Search the text for “${topicFilter}”` });
     find.addEventListener("click", () => { const q = topicFilter; topicFilter = null; openTab("search"); $("#q").value = q; $("#search-form").requestSubmit(); });
-    const n = indexed.filter((d) => (d.topics || []).some((x) => topicKey(x) === topic)).length;
-    head.unshift(el("div", { className: "topic-filter" }, el("strong", { textContent: `Topic “${topicFilter}”: ${n} document${n === 1 ? "" : "s"}` }),
+    head.push(el("div", { className: "topic-filter" }, el("strong", { textContent: `Topic “${topicFilter}”: ${page.total} document${page.total === 1 ? "" : "s"}` }),
       el("span", { className: "muted", textContent: "Topics are written by the local model." }), all, find));
   }
-  const rows = indexed.filter((d) => (d.summary_stage || d.summary_text) && (!topic || (d.topics || []).some((x) => topicKey(x) === topic)))
-    .sort((a, b) => (order[a.summary_stage] ?? 3) - (order[b.summary_stage] ?? 3) || a.title.localeCompare(b.title));
-  $("#summaries").replaceChildren(...head, rows.length ? el("table", { className: "data summaries" },
+  $("#summaries-head").replaceChildren(...head);
+  $("#sum-controls").hidden = !st.model && !page.total && !$("#sum-filter").value;
+  const stages = st.model && !topicFilter ? [["writing", "Writing", t.writing], ["failed", "Could not", t.failed], ["done", "Summarised", t.done]] : [];
+  $("#sum-stages").replaceChildren(...stages.map(([key, label, n]) => {
+    const b = el("button", { className: "subtab", type: "button", role: "tab" }, label, el("span", { className: "count", textContent: n.toLocaleString() }));
+    b.setAttribute("aria-selected", String(key === sumStage));
+    b.addEventListener("click", () => { sumStage = key; sumLimit = 100; loadSummaries(); });
+    return b;
+  }));
+  const rows = page.rows;
+  const none = $("#sum-filter").value ? "No documents match." : topicFilter || sumStage === "done" ? "No summaries yet."
+    : sumStage === "writing" ? "Nothing is being written right now." : "No summary failed.";
+  $("#summaries").replaceChildren(rows.length ? el("table", { className: "data summaries" },
     el("thead", {}, el("tr", {}, ...["Document", "Type", "Summary and topics by the local model", ""].map((h, i) => el("th", { className: i === 1 ? "wide" : "", textContent: h })))),
     el("tbody", {}, ...rows.map((d) => el("tr", {},
       el("td", {}, sourceLink(d), el("div", { className: "sub", textContent: d.collection })),
       typeCell(d),
       el("td", {}, writtenSummary({ summary: d.summary_text, topics: d.topics }, false) || el("span", { className: "meta", textContent: "—" })),
-      el("td", {}, ...(d.summary_stage && d.summary_stage !== "done" ? summaryStage(d) : [])))))) : el("p", { className: "empty", textContent: "No summaries yet." }));
+      el("td", {}, ...(d.summary_stage !== "done" ? summaryStage(d) : [])))))) : el("p", { className: "empty", textContent: none }));
+  const more = $("#sum-more");
+  more.hidden = rows.length >= page.total;
+  more.querySelector("span").textContent = `Showing ${rows.length.toLocaleString()} of ${page.total.toLocaleString()}.`;
+  more.querySelector("button").hidden = rows.length >= 1000;
 }
 
 // ---------------------------------------------------------------- status
 async function loadStatus() {
   const s = await api("/api/status");
   const c = s.coverage;
-  const kpi = (label, value, note) => el("div", { className: "kpi" }, el("span", { className: "kpi-label", textContent: label }),
-    el("span", { className: "kpi-value" + (value ? "" : " zero"), textContent: value.toLocaleString() }), el("span", { className: "kpi-note", textContent: note }));
-  const section = (title, ...kids) => el("section", { className: "status-section" }, el("h2", { textContent: title }), ...kids);
-  const num = (v) => el("td", { className: "num", textContent: v.toLocaleString() });
-  $("#tab-status .title-row").replaceChildren(el("h1", { textContent: "Index status" }),
-    el("span", { className: "muted small", textContent: `Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` }));
+  const section = statusSection, num = numCell;
+  $("#tab-status .title-row").replaceChildren(el("h1", { textContent: "Index status" }), updatedNow());
   const box = $("#status");
   box.replaceChildren(
     el("p", { className: "outcome " + (c.complete ? "evidence_found" : "index_coverage_incomplete") },

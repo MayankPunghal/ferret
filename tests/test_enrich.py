@@ -326,3 +326,28 @@ def test_types_and_topic_spellings():
     assert enrich.topic_key("access") == "access"  # not a plural
     assert enrich.align_topics(["Payment Services", "payment-service", "Ledger"], ["payment services"]) == \
         ["payment services", "Ledger"]
+
+
+def test_summaries_tab_counts_match_the_worker_and_are_paged(client, corpus, drain, fake_llm, monkeypatch):
+    url, _, _ = fake_llm
+    drain()
+    e = enricher(url)
+    monkeypatch.setattr(state, "enricher", e, raising=False)
+    root, bob = token(client, "root"), token(client, "bob")
+    st = client.get("/api/summaries/status", headers=root).json()
+    assert st["seconds_per_document"] is None  # nothing summarised yet: no pace to estimate from
+    assert sum(r["waiting"] for r in st["collections"]) > 0
+    run_all(e)
+    st = client.get("/api/summaries/status", headers=root).json()
+    with db.pool().connection() as c:
+        n = enrich.status(c, e.model)
+    total = lambda k: sum(r[k] for r in st["collections"])  # noqa: E731
+    assert (total("summarised"), total("waiting") + total("writing"), total("failed")) == (
+        n["summarised"], n["pending"], n["failed"])
+    assert st["seconds_per_document"] is not None
+    page = client.get("/api/summaries?stage=done&limit=2", headers=root).json()
+    assert len(page["rows"]) == 2 and page["total"] == n["summarised"]
+    assert client.get("/api/summaries?topic=Payments", headers=root).json()["total"] == n["summarised"]
+    assert client.get("/api/summaries?q=no-such-name", headers=root).json()["total"] == 0
+    assert "hr" not in {r["name"] for r in client.get("/api/summaries/status", headers=bob).json()["collections"]}
+    assert all(r["collection"] != "hr" for r in client.get("/api/summaries?limit=1000", headers=bob).json()["rows"])

@@ -72,6 +72,8 @@ curl -s localhost:8000/api/search -H "Authorization: Bearer $TOKEN" -H 'content-
   -d '{"query":"ERR-PAY-4012","limit":5}'
 ```
 
+`GET /api/documents` takes `status` (`indexing`, `failed`, `outdated`), `q`, `doc_type`, `sort` (`name`, `type`, `collection`, `status`, `chunks`, `updated`), `desc`, `limit` (≤ 1,000, the default) and `offset`; the number of matching documents is in the `X-Total-Count` header.
+
 Each result carries `chunk_id`, `document_id`, `text` (full passage), `snippet`, `heading_path`, `page`,
 `source_url`, `passage_url`, `match_basis` and `signals`; the response carries `outcome`, `reason_codes`,
 `coverage` and `timings_ms`. External pipelines (e.g. your own LLM summariser) can consume this directly.

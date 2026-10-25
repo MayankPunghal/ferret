@@ -335,6 +335,7 @@ td.actions-cell { width: 1%; text-align: right; }
 .kpi-value.zero { color: var(--muted); }
 .kpi-note { font-size: 12px; color: var(--muted); }
 .status-section { margin-top: 32px; }
+.more-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 16px 0; }
 .status-section > h2 { margin-bottom: 12px; }
 .kv { display: grid; grid-template-columns: minmax(160px, max-content) 1fr; margin: 0; }
 .kv dt, .kv dd { padding: 8px 16px 8px 0; border-bottom: 1px solid var(--rule); }

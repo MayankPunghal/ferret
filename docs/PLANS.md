@@ -6,7 +6,6 @@ that have a plan file. Sizes marked *(est.)* are my estimate; the others are sta
 
 | Order | Plan | Goal in one line | Status | Size | Waits for | TODO # |
 |---|---|---|---|---|---|---|
-| 1 | [plan-summaries-status.md](plan-summaries-status.md) | Count tiles and a per-collection table on the Summaries tab; **fixes the 1,000-row cap on the documents list** | not built | small | — | 1, 9 |
 | 2 | [plan-tables.md](plan-tables.md) | Crawled pages, Word and PowerPoint tables kept as real tables (merged cells repeated, header row), and never cut mid-table in passages | not built | small–medium | — | 13 |
 | 3 | [plan-large-documents.md](plan-large-documents.md) | Small documents not stuck behind a large one (two workers); re-use vectors of unchanged passages on updates | step 1 measured (no gain on 4 cores); steps 2–3 not built | medium *(est.)* | — | 8 |
 | 4 | [plan-gpu.md](plan-gpu.md) | CPU/GPU switch in Settings for search models and the local language model; kept only where measured faster with identical results | not built | medium *(est.)* | the owner's laptop for the measurement | 4 |
@@ -17,7 +16,7 @@ that have a plan file. Sizes marked *(est.)* are my estimate; the others are sta
 | 9 | [plan-answers.md](plan-answers.md) | **Ask**: a chat window where a local model answers from search results with checked citations; saved conversations, pictures, Think first | not built | large, in 6 phases; phase 1 medium | — (pictures in phase 3 use the vision result) | 16 |
 | 10 | [plan-images-and-models.md](plan-images-and-models.md) | Images saved by the crawler and in folders, their text written by a local vision model and indexed | on hold (owner); step 5, summaries, **built** | medium–large *(est.)* | the Gemma E2B vision run (TODO 2) and the owner's go-ahead | 10 |
 
-**Built, kept for reference:** [plan-site2md-ui.md](plan-site2md-ui.md) (Ferret Crawler screen, built
+**Built, kept for reference:** [plan-summaries-status.md](plan-summaries-status.md) (Summaries counts and server paging of the documents list, built 2026-10-25), [plan-site2md-ui.md](plan-site2md-ui.md) (Ferret Crawler screen, built
 2026-10-24) and step 5 of plan-images-and-models (document summaries, built 2026-10-23).
 
 ## Why this order

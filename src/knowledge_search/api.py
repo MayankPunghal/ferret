@@ -31,6 +31,18 @@ from .search import MESSAGES, RETRIEVAL_FAILURE, coverage_for, search
 
 mimetypes.add_type("text/javascript", ".mjs")  # PDF.js modules; some systems map .mjs to nothing
 mimetypes.add_type("text/javascript", ".js")  # Windows takes .js types from the registry (often application/javascript)
+
+# The Documents tab's filters and sort columns (SQL over `documents d`, `collections c`, the job `j`).
+SHOWN = ("(CASE WHEN d.enrichment ? 'summary' AND d.enrichment->>'version_id' = d.indexed_version_id::text "
+         "THEN d.enrichment->>'{}' END)")  # what enrich.shown() shows: written for the indexed version
+DOC_STATUS = {"indexing": "AND d.status IN ('pending', 'processing') ", "failed": "AND d.status = 'failed' ",
+              "outdated": "AND d.status = 'indexed' AND d.index_signature IS DISTINCT FROM %(sig)s "}
+# ponytail: lower() sorts "Step 10" before "Step 2"; an ICU collation with numeric ordering if anyone minds.
+DOC_SORT = {"name": ("lower(coalesce(" + SHOWN.format("title") + ", d.title))",),
+            "type": ("coalesce(" + SHOWN.format("type") + ", '~')",), "collection": ("c.name",),
+            "status": ("CASE d.status WHEN 'processing' THEN 0 WHEN 'pending' THEN 1 WHEN 'failed' THEN 2 ELSE 3 END",
+                       "j.id"),  # waiting documents in queue order
+            "chunks": ("(SELECT count(*) FROM chunks ch WHERE ch.document_id = d.id)",), "updated": ("d.updated_at",)}
 # The PDF viewer page: our own scripts only (PDF.js with eval off; WebAssembly for JPEG 2000 images), the PDF
 # fetched from this server, fonts PDF.js builds from the file, no framing.
 PDF_VIEWER_CSP = ("default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; "
@@ -406,15 +418,47 @@ def _routes(app: FastAPI) -> None:
         conn.commit()
         return resp.to_dict()
 
+    def doc_filter(p, conn, collection_id, status, q, doc_type) -> tuple[str, dict]:
+        """WHERE clause and arguments for the Documents tab's filters, within the caller's readable collections."""
+        a = {"scope": [c for c in p.readable if collection_id is None or c == collection_id],
+             "sig": runtime.load(conn).signature(), "q": f"%{q.strip().lower()}%", "type": doc_type}
+        w = "d.collection_id = ANY(%(scope)s) " + DOC_STATUS.get(status, "")
+        if q.strip():
+            w += f"AND lower(coalesce({SHOWN.format('title')}, '') || ' ' || d.title || ' ' || d.source_key) LIKE %(q)s "
+        if doc_type:
+            w += f"AND {SHOWN.format('type')} = %(type)s "
+        return w, a
+
+    @app.get("/api/documents/counts")
+    def document_counts(p: User, conn: Conn, collection_id: int | None = None, status: str = "", q: str = "",
+                        doc_type: str = ""):
+        """Counts for the Documents tab's state tabs, the document types present, and how many rows match."""
+        w, a = doc_filter(p, conn, collection_id, "", "", "")
+        n = conn.execute(
+            'SELECT count(*) AS "all", ' + ", ".join(f"count(*) FILTER (WHERE {c[4:]}) AS {k}" for k, c in DOC_STATUS.items())
+            + f", array_remove(array_agg(DISTINCT {SHOWN.format('type')}), NULL) AS types FROM documents d WHERE " + w,
+            a).fetchone()
+        w, a = doc_filter(p, conn, collection_id, status, q, doc_type)
+        return {**n, "types": sorted(n["types"]), "matching": conn.execute(
+            "SELECT count(*) AS n FROM documents d WHERE " + w, a).fetchone()["n"]}
+
     @app.get("/api/documents")
-    def list_documents(p: User, conn: Conn, collection_id: int | None = None):
-        scope = [c for c in p.readable if collection_id is None or c == collection_id]
-        sig = runtime.load(conn).signature()
+    def list_documents(p: User, conn: Conn, response: Response, collection_id: int | None = None, status: str = "",
+                       q: str = "", doc_type: str = "", sort: str = "updated", desc: bool = True,
+                       limit: int = 1000, offset: int = 0):
+        """Documents the caller can read: filtered, sorted and paged by the server (the total is in
+        X-Total-Count; without `limit` at most 1,000 rows, newest first)."""
+        w, a = doc_filter(p, conn, collection_id, status, q, doc_type)
+        limit, offset = max(1, min(limit, 1000)), max(0, offset)
+        response.headers["X-Total-Count"] = str(conn.execute("SELECT count(*) AS n FROM documents d WHERE " + w,
+                                                             a).fetchone()["n"])
+        order = ", ".join(x + (" DESC" if desc else "") for x in DOC_SORT.get(sort, DOC_SORT["updated"]))
+        scope, sig = a["scope"], a["sig"]
         rows = conn.execute(
             "SELECT d.id, d.title, d.source_key, d.source_uri, d.status, d.error_code, d.error_detail, d.updated_at, "
             "c.name AS collection, d.collection_id, v.version_no AS latest_version, iv.version_no AS indexed_version, "
             "v.media_type, v.size_bytes, (SELECT count(*) FROM chunks ch WHERE ch.document_id = d.id) AS chunks, "
-            "(d.status = 'indexed' AND d.index_signature IS DISTINCT FROM %s) AS needs_reindex, "
+            "(d.status = 'indexed' AND d.index_signature IS DISTINCT FROM %(sig)s) AS needs_reindex, "
             "d.enrichment, d.indexed_version_id, "
             "j.stage, j.progress_done, j.progress_total, "
             "(SELECT count(*) FROM jobs q WHERE q.status = 'queued' AND q.id < coalesce(j.id, 0)) AS queue_position, "
@@ -426,18 +470,17 @@ def _routes(app: FastAPI) -> None:
             "  WHERE document_id = d.id AND status IN ('queued', 'running') ORDER BY id DESC LIMIT 1) j ON true "
             "LEFT JOIN document_versions v ON v.id = d.latest_version_id "
             "LEFT JOIN document_versions iv ON iv.id = d.indexed_version_id "
-            "WHERE d.collection_id = ANY(%s) ORDER BY d.updated_at DESC LIMIT 1000",
-            (sig, scope),
+            f"WHERE {w} ORDER BY {order}, lower(coalesce({SHOWN.format('title')}, d.title)), d.id "
+            "LIMIT %(limit)s OFFSET %(offset)s",
+            a | {"limit": limit, "offset": offset},
         ).fetchall()
         summary = {}  # indexed documents: waiting / writing / done / failed, while summaries are on
         e = getattr(state, "enricher", None)
         if e and e.available and runtime.load(conn).enrich_enabled:
             summary = {r["id"]: r["s"] for r in conn.execute(
-                "SELECT d.id, CASE WHEN (" + enrich.PENDING + ") AND d.enrich_claimed_at > now() - "
-                "make_interval(mins => %(claim)s) THEN 'writing' WHEN " + enrich.PENDING + " THEN 'waiting' "
-                "WHEN d.enrichment ? 'error' THEN 'failed' ELSE 'done' END AS s FROM documents d "
-                "WHERE d.collection_id = ANY(%(scope)s) AND d.status = 'indexed' AND d.indexed_version_id IS NOT NULL",
-                enrich._args(e.model, claim=enrich.CLAIM_MINUTES, scope=scope))}
+                "SELECT d.id, " + enrich.STAGE + " AS s FROM documents d WHERE d.id = ANY(%(ids)s) "
+                "AND d.status = 'indexed' AND d.indexed_version_id IS NOT NULL",
+                enrich._args(e.model, ids=[r["id"] for r in rows]))}
         out = []
         for r in rows:
             r = dict(r, id=str(r["id"]), can_write=r["collection_id"] in p.writable, summary_stage=summary.get(r["id"]))
@@ -445,6 +488,62 @@ def _routes(app: FastAPI) -> None:
             out.append(r | {"summary_text": shown["summary"], "topics": shown["topics"], "clearer_title": shown["clearer_title"],
                             "doc_type": shown["doc_type"]})
         return out
+
+    def summary_model(conn) -> str | None:
+        """The local model writing summaries now, or None when summaries are off or no model is available."""
+        e = getattr(state, "enricher", None)
+        return e.model if e and e.available and runtime.load(conn).enrich_enabled else None
+
+    @app.get("/api/summaries/status")
+    def summaries_status(p: User, conn: Conn):
+        """The Summaries tab's tiles and per-collection table, by the worker's own rules, readable collections only."""
+        rt, model, scope = runtime.load(conn), summary_model(conn), list(p.readable)
+        out = {"line": enrich.describe(getattr(state, "enricher", None), conn, rt.enrich_enabled, scope),
+               "model": model, "hours": rt.enrich_hours, "in_hours": enrich.in_hours(rt.enrich_hours, time.localtime().tm_hour),
+               "collections": [], "seconds_per_document": None}
+        if model is not None:
+            out["collections"] = enrich.by_collection(conn, model, scope)
+            out["seconds_per_document"] = conn.execute(  # the pace so far, for an estimate of the time left
+                "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY (enrichment->>'seconds')::float) AS s FROM documents "
+                "WHERE collection_id = ANY(%s) AND enrichment->>'model' = %s AND enrichment ? 'seconds'",
+                (scope, model)).fetchone()["s"]
+        return out
+
+    @app.get("/api/summaries")
+    def summaries(p: User, conn: Conn, stage: str = "done", q: str = "", topic: str = "", limit: int = 100,
+                  offset: int = 0):
+        """Indexed documents at one summary stage (writing / failed / done), filtered by name or topic, paged."""
+        model = summary_model(conn)
+        a = enrich._args(model or "", cols=list(p.readable), stage=stage, q=f"%{q.strip().lower()}%")
+        w = "d.status = 'indexed' AND d.indexed_version_id IS NOT NULL AND d.collection_id = ANY(%(cols)s) "
+        if model is not None:
+            w += f"AND ({enrich.STAGE}) = %(stage)s "
+        elif stage == "done":  # no model running: the summaries already written for the indexed version
+            w += f"AND {SHOWN.format('summary')} IS NOT NULL "
+        else:
+            return {"rows": [], "total": 0}
+        if q.strip():
+            w += (f"AND lower(coalesce({SHOWN.format('title')}, '') || ' ' || d.title || ' ' || d.source_key || ' ' "
+                  f"|| coalesce({SHOWN.format('topics')}, '')) LIKE %(q)s ")
+        if topic:  # the same spelling-insensitive key as the topics themselves
+            key = enrich.topic_key(topic)
+            a["ids"] = [r["id"] for r in conn.execute("SELECT d.id, d.enrichment->'topics' AS t FROM documents d WHERE " + w, a)
+                        if any(enrich.topic_key(x) == key for x in r["t"] or [])]
+            w += "AND d.id = ANY(%(ids)s) "
+        total = conn.execute("SELECT count(*) AS n FROM documents d WHERE " + w, a).fetchone()["n"]
+        rows = conn.execute(
+            "SELECT d.id, d.title, d.enrichment, d.indexed_version_id, c.name AS collection, v.media_type "
+            "FROM documents d JOIN collections c ON c.id = d.collection_id "
+            "LEFT JOIN document_versions v ON v.id = d.indexed_version_id WHERE " + w
+            + f"ORDER BY lower(coalesce({SHOWN.format('title')}, d.title)), d.id LIMIT %(limit)s OFFSET %(offset)s",
+            a | {"limit": max(1, min(limit, 1000)), "offset": max(0, offset)}).fetchall()
+        out = []
+        for r in rows:
+            shown = enrich.shown(r["enrichment"], r["indexed_version_id"])
+            out.append({"id": str(r["id"]), "title": r["title"], "collection": r["collection"], "media_type": r["media_type"],
+                        "summary_stage": stage, "summary_text": shown["summary"], "topics": shown["topics"],
+                        "clearer_title": shown["clearer_title"], "doc_type": shown["doc_type"]})
+        return {"rows": out, "total": total}
 
     @app.post("/api/documents", status_code=202)
     async def upload(

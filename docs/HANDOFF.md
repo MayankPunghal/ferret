@@ -584,6 +584,18 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   under Collections (group menu, read & write, **Give access**) and ticks it in the new user's group picker.
   Run end to end on Windows against a fresh demo server (Edge via `CHROMIUM_PATH`, summaries off): every
   step passed, no horizontal overflow on mobile. Console errors now print the failing URL.
+- **Summaries counts and the 1,000-row cap (plan-summaries-status, TODO 1 and 9): built.** The Documents tab
+  is filtered, sorted, counted and paged by the server (`/api/documents` with `status`, `q`, `doc_type`,
+  `sort`, `desc`, `limit`, `offset` and an `X-Total-Count` header; `/api/documents/counts`); API clients that
+  pass nothing still get the newest 1,000. The Summaries tab has the Index status tiles (indexed, summarised,
+  waiting, writing, could not), a per-collection table from `enrich.by_collection` (the worker's own
+  `PENDING` rule, shared as `enrich.STAGE`), the time left at the median pace marked as an estimate, "paused
+  until" outside the configured hours, and Writing / Could not / Summarised sub-tabs served 100 at a time by
+  `/api/summaries` (name, topic text or exact topic). Tests: 1,050 documents page and count correctly and
+  stay invisible to a user without access; the Summaries counts equal `enrich.status()`; no pace before the
+  first summary. Checked in the browser: the walkthrough with a stand-in local model (2 s per summary), and
+  150 extra rows: 100 shown, "Show more" shows all 168, Failed + "bulk 14" shows 11. Not measured: response
+  time on a 40k-document archive.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 

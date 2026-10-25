@@ -11,7 +11,7 @@ Status words: **bug** · **plan ready** (written, not built) · **not built** ·
 
 | # | Item | Status | Source / where |
 |---|---|---|---|
-| 1 | `GET /api/documents` stops at 1,000 rows (`LIMIT 1000` in `api.py`): past 1,000 documents the Documents tab says "All 1000" and the Summaries tab's bar and list are wrong (and render thousands of rows) | **bug** | Found 2026-10-24 while planning the Summaries counts; fix is step 4 of [plan-summaries-status.md](plan-summaries-status.md) |
+| — | Nothing open. | | |
 
 ## 2. Measurements to finish
 
@@ -29,7 +29,6 @@ Status words: **bug** · **plan ready** (written, not built) · **not built** ·
 | 6 | Docker image and compose file brought up to date with the current app | 24 Oct 10:20, 10:27 · [plan-docker.md](plan-docker.md) |
 | 7 | Invite links and password reset (Google sign-in and e-mail/SMTP were discussed, not chosen) | 24 Oct 10:05–10:27 · [plan-invites.md](plan-invites.md) |
 | 8 | Faster indexing of very large documents: small documents not stuck behind a large one (two workers), re-use vectors of unchanged passages | 24 Oct 14:52 · [plan-large-documents.md](plan-large-documents.md) |
-| 9 | Summaries tab with count tiles and a per-collection table like Index status, paged list | 24 Oct 14:53 · [plan-summaries-status.md](plan-summaries-status.md) |
 | 10 | Images: the crawler saves images, a local vision model writes their text, indexed through the same path as other files (crawler, folder sync and MCP all included) | 23 Oct 11:51, 12:21 (owner: hold), 24 Oct 11:55 · [plan-images-and-models.md](plan-images-and-models.md); waits for item 2 |
 | 13 | Tables from crawled pages, Word and PowerPoint kept as real tables (merged cells repeated, header row), never cut in the middle of a passage | 24 Oct (AWS Transform quotas page) · [plan-tables.md](plan-tables.md) |
 | 16 | **Ask**: a chat window like Claude Code / OpenCode / the DeepSeek harness. Saved conversations, follow-ups, step cards, pictures, Think first; a local model (Gemma 4 E2B or E4B) answers from what search finds, with checked citations; search's evidence check decides whether to answer; optional MCP `ask` tool. Six phases | 23 Oct 07:37, 24 Oct (owner: separate tab, then a full chat window) · [plan-answers.md](plan-answers.md) |

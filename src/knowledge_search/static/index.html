@@ -163,6 +163,7 @@
           <tbody id="docs"></tbody>
         </table>
         <p id="docs-empty" class="empty" hidden></p>
+        <p id="docs-more" class="more-row muted" hidden><span></span> <button type="button" class="button">Show more</button></p>
       </section>
 
       <section id="tab-folders" hidden>
@@ -194,7 +195,13 @@
       <section id="tab-summaries" hidden>
         <div class="title-row"><h1>Summaries</h1></div>
         <p class="muted lede">Written by the local model to help you judge documents, never used as evidence. <button type="button" class="info" data-tip="Written in the background, one document at a time as each is indexed. Always check the passage before relying on a detail." aria-label="More about this: Written in the background, one document at a time as each is indexed. Always check the passage before relying on a detail.">i</button></p>
+        <div id="summaries-head"></div>
+        <div class="tabs-row" id="sum-controls" hidden>
+          <div class="subtabs" role="tablist" id="sum-stages"></div>
+          <div class="actions"><input id="sum-filter" type="search" placeholder="Filter by name or topic" aria-label="Filter summaries by name or topic"></div>
+        </div>
         <div id="summaries"></div>
+        <p id="sum-more" class="more-row muted" hidden><span></span> <button type="button" class="button">Show more</button></p>
       </section>
 
       <section id="tab-status" hidden>
