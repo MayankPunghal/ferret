@@ -93,6 +93,9 @@ function renderMe() {
   $("#folder-collection").replaceChildren(...[...sel.options].map((o) => o.cloneNode(true)));
   $("#upload-form").hidden = $("#upload-actions").hidden = sel.options.length === 0;
   $("#no-writable").hidden = sel.options.length > 0;
+  $("#no-writable").textContent = me.is_admin
+    ? "There are no collections yet, so there is nowhere to upload. Create one under Users & access → Collections."
+    : "You can read documents but cannot upload to any collection. Ask an administrator for write access.";
 }
 
 // The collection menu's button says what is searched: all collections, one by name, or "2 of 5".

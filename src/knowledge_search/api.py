@@ -326,6 +326,8 @@ def _routes(app: FastAPI) -> None:
             raise HTTPException(409, "that username is taken; choose another")
         uid = auth.create_user(conn, body.username, body.password, is_admin=True)
         auth.audit(conn, uid, "first_run_admin_created", body.username)
+        if not conn.execute("SELECT 1 FROM collections").fetchone():  # somewhere to upload from the first minute
+            auth.ensure_collection(conn, "Documents", "Created at setup; rename it or add more under Users & access")
         out = _start_session(conn, response, uid)
         conn.commit()
         return out
