@@ -1,0 +1,56 @@
+# Builds the Windows installer (Ferret-Setup-<version>.exe), installs it silently, checks that the installed
+# app starts and answers a search, uninstalls it, and keeps it as a build artifact. On a v* tag it is also
+# attached to that version's GitHub release.
+name: windows-app
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Build the app folder
+        shell: pwsh
+        run: packaging\build_windows.ps1
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress }
+          $ver = (Select-String -Path pyproject.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          & $iscc /Q "/DAppVersion=$ver" packaging\installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "iscc failed" }
+          "VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Install, start, search, uninstall
+        shell: pwsh
+        run: |
+          Start-Process "dist\Ferret-Setup-$env:VERSION.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/MERGETASKS=!autostart' -Wait
+          $app = "$env:LOCALAPPDATA\Programs\Ferret"
+          if (-not (Test-Path "$app\python\pythonw.exe")) { throw "Ferret was not installed" }
+          $env:KS_ENRICH_ENABLED = "false"
+          Start-Process "$app\python\pythonw.exe" -ArgumentList '-m','knowledge_search.tray','--background' -WorkingDirectory $app
+          $ok = $false
+          foreach ($i in 1..120) { try { Invoke-RestMethod http://127.0.0.1:8000/healthz | Out-Null; $ok = $true; break } catch { Start-Sleep 2 } }
+          if (-not $ok) { Get-Content "$env:USERPROFILE\Ferret\logs\*" -Tail 50 -ErrorAction SilentlyContinue; throw "the installed app did not start" }
+          Write-Host "the installed app answers on http://127.0.0.1:8000"
+          Start-Process "$app\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES' -Wait
+          Start-Sleep -Seconds 5
+          if (Test-Path "$app\python\pythonw.exe") { throw "uninstall left the app behind" }
+          Get-ChildItem dist\*.exe | ForEach-Object { "{0}  {1:N0} MB" -f $_.Name, ($_.Length / 1MB) }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ferret-Setup-${{ env.VERSION }}
+          path: dist/Ferret-Setup-*.exe
+          retention-days: 30
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Ferret-Setup-*.exe

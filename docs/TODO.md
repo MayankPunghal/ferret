@@ -30,7 +30,7 @@ Status words: **bug** · **plan ready** (written, not built) · **not built** ·
 
 | # | Item | Source / plan |
 |---|---|---|
-| 5b | Windows `.exe` installer (PyInstaller + Inno Setup, tray icon) and the macOS app | [plan-installer.md](plan-installer.md), plan-release steps 4–5 |
+| 5b | The macOS app (the Windows installer was built 2026-10-25: `packaging/`, `windows-app.yml`). Not built for Windows: update check, Pause indexing in the tray, the browser wizard steps beyond the first-run page, code signing | [plan-installer.md](plan-installer.md), plan-release step 5 |
 | 7 | Invite links and password reset (Google sign-in and e-mail/SMTP were discussed, not chosen) | 24 Oct 10:05–10:27 · [plan-invites.md](plan-invites.md) |
 | 10 | Images: the crawler saves images, a local vision model writes their text, indexed through the same path as other files (crawler, folder sync and MCP all included) | 23 Oct 11:51, 12:21 (owner: hold), 24 Oct 11:55 · [plan-images-and-models.md](plan-images-and-models.md); waits for item 2 |
 | 16 | **Ask**: a chat window like Claude Code / OpenCode / the DeepSeek harness. Saved conversations, follow-ups, step cards, pictures, Think first; a local model (Gemma 4 E2B or E4B) answers from what search finds, with checked citations; search's evidence check decides whether to answer; optional MCP `ask` tool. Six phases | 23 Oct 07:37, 24 Oct (owner: separate tab, then a full chat window) · [plan-answers.md](plan-answers.md) |

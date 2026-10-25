@@ -32,7 +32,12 @@
 
 ## Quick start
 
-**Windows 10/11**: open *Command Prompt* and run
+**Windows 10/11, easiest:** download `Ferret-Setup-<version>.exe` from the
+[latest release](https://github.com/MayankPunghal/ferret/releases/latest) and run it. No admin rights, no Python.
+Ferret opens in your browser and stays in the system tray (Open · Start when I sign in · Quit). The installer
+is not code-signed yet, so Windows SmartScreen may warn: **More info → Run anyway**.
+
+**Windows 10/11 from the source**: open *Command Prompt* and run
 
 ```bat
 git clone https://github.com/MayankPunghal/ferret

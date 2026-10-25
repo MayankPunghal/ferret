@@ -1,6 +1,6 @@
 [project]
 name = "ferret-search"
-version = "1.0.0"
+version = "1.0.1"
 description = "Offline, permission-aware knowledge search for technical teams"
 readme = "README.md"
 authors = [
@@ -24,6 +24,9 @@ dependencies = [
     "ferret-crawler==1.1.0",  # site2md/, the crawler (import name site2md; "site2md" is taken on PyPI)
     "uvicorn[standard]==0.54.0",
 ]
+
+[project.optional-dependencies]
+tray = ["pystray==0.19.5", "pillow>=11"]  # the Windows app's tray icon (tray.py, packaging/)
 
 [project.scripts]
 ferret = "knowledge_search:main"

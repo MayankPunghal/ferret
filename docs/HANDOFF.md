@@ -649,7 +649,22 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   bge-base (was bge-small), `libgomp1`, `/models` writable, no `KS_OFFLINE` by default, one-container
   mode documented; CI builds the image, checks `ldd llama-server`, starts one container and searches.
   `release.yml` publishes both on a `v*` tag; PyPI needs the owner's one-time trusted-publisher setup.
-- **Held for a later phase (owner):** `.exe` installer, macOS app, invites, Ask, images.
+- **Held for a later phase (owner):** macOS app, invites, Ask, images.
+- **v1.0.0 released (2026-10-25):** `ferret-search` 1.0.0 and `ferret-crawler` 1.1.0 on PyPI (trusted
+  publishing; the crawler has its own environment `pypi-crawler` because PyPI allows one pending publisher
+  per workflow and environment), the image `ghcr.io/mayankpunghal/ferret-search` public (anonymous pull
+  checked).
+- **Windows installer (plan-installer, owner ask 2026-10-25): built.** Option A of the plan, not PyInstaller:
+  `packaging/build_windows.ps1` copies uv's standalone Python 3.13 into `dist\Ferret\python` and installs the
+  locked dependencies and both wheels into it (313 MB); `packaging/installer.iss` (Inno Setup, per-user, no
+  admin prompt, holler's shape) makes `Ferret-Setup-<version>.exe` (66 MB). Shortcuts start
+  `pythonw -m knowledge_search.tray`: the server runs in the tray process, the browser opens when it answers,
+  menu Open Ferret · Start when I sign in (the same HKCU Run value the installer's task writes) · Quit; a
+  second start only opens the browser; port 8000 taken is shown in the tray. Data in `%USERPROFILE%\Ferret`,
+  asked about on uninstall. Upgrades and uninstall stop every process started from the install folder.
+  `windows-app.yml` builds, installs silently, starts the app, checks `/healthz`, uninstalls, and attaches the
+  installer to the release on a `v*` tag. Not built: update check, Pause indexing, code signing (SmartScreen
+  warns; README says "More info → Run anyway").
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 
