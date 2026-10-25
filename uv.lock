@@ -448,7 +448,7 @@ provides-extras = ["browser"]
 
 [[package]]
 name = "ferret-search"
-version = "1.0.7"
+version = "1.0.71"
 source = { editable = "." }
 dependencies = [
     { name = "argon2-cffi" },
