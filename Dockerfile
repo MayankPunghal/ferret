@@ -14,6 +14,7 @@ COPY pyproject.toml uv.lock README.md ./
 COPY site2md ./site2md
 RUN uv sync --frozen --no-dev --no-install-project
 COPY src ./src
+COPY fixtures ./fixtures
 RUN uv sync --frozen --no-dev
 RUN /app/.venv/bin/ferret download-model
 # models writable by the app, so Settings can download others (a new named volume starts as a copy of these)
