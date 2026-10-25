@@ -202,3 +202,14 @@ def test_first_start_while_the_search_model_downloads(client, corpus, drain, mon
     drain()
     with db.pool().connection() as c:
         assert c.execute("SELECT status FROM documents WHERE id = %s", (doc,)).fetchone()["status"] == "indexed"
+
+
+def test_delete_collection_removes_its_documents(client, drain):
+    root = token(client, "root")
+    cid = client.post("/api/admin/collections", headers=root, json={"name": "to-delete"}).json()["id"]
+    doc = client.post("/api/documents", headers=root, data={"collection_id": cid},
+                      files={"file": ("gone.md", b"# Gone\n\nZebra-quartz-77 lives here.\n")}).json()["document_id"]
+    drain()
+    assert client.delete(f"/api/admin/collections/{cid}", headers=token(client, "alice")).status_code == 404
+    assert client.delete(f"/api/admin/collections/{cid}", headers=root).json() == {"deleted_documents": 1}
+    assert client.get(f"/api/documents/{doc}", headers=root).status_code == 404

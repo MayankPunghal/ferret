@@ -288,6 +288,29 @@ def create_collection(body: CollectionBody, p: Admin, conn: Conn):
     return {"id": cid}
 
 
+@router.delete("/collections/{collection_id}")
+def delete_collection(collection_id: int, p: Admin, conn: Conn):
+    """Delete a collection with its documents, their stored files and its synced folders (the folders on disk
+    are not touched). The last collection stays: there must always be one to upload into."""
+    with conn.transaction():
+        conn.execute("LOCK TABLE collections IN EXCLUSIVE MODE")
+        col = conn.execute("SELECT name FROM collections WHERE id = %s", (collection_id,)).fetchone()
+        if not col:
+            raise HTTPException(404, "not found")
+        if conn.execute("SELECT count(*) AS n FROM collections").fetchone()["n"] <= 1:
+            raise HTTPException(409, "this is the only collection; create another before deleting it")
+        shas = [r["sha256"] for r in conn.execute(
+            "SELECT v.sha256 FROM document_versions v JOIN documents d ON d.id = v.document_id "
+            "WHERE d.collection_id = %s", (collection_id,))]
+        docs = conn.execute("SELECT count(*) AS n FROM documents WHERE collection_id = %s",
+                            (collection_id,)).fetchone()["n"]
+        conn.execute("DELETE FROM collections WHERE id = %s", (collection_id,))
+        auth.audit(conn, p.user_id, "collection_deleted", col["name"], documents=docs)
+    state.blobs.gc(conn, shas)
+    conn.commit()
+    return {"deleted_documents": docs}
+
+
 @router.put("/collections/{collection_id}/grants")
 def put_grant(collection_id: int, body: GrantBody, p: Admin, conn: Conn):
     col = conn.execute("SELECT name FROM collections WHERE id = %s", (collection_id,)).fetchone()

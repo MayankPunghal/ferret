@@ -1526,6 +1526,22 @@ function groupPicker(chosen, onChange) {
   return { node: box, value };
 }
 document.addEventListener("click", (e) => { $$("details.picker[open]").forEach((d) => { if (!d.contains(e.target)) d.open = false; }); });
+// A collection's name, description and Delete: the last collection cannot go (uploads need one), and deleting
+// asks for the name typed back, since its documents and their stored files are removed for good.
+function nameCell(c, count) {
+  const del = el("button", { className: "link danger small", type: "button", textContent: "Delete", disabled: count <= 1,
+    title: count <= 1 ? "The only collection cannot be deleted: create another first" : `Delete ${c.name} and its documents` });
+  del.addEventListener("click", async () => {
+    const typed = prompt(`Permanently delete the collection “${c.name}”?\n\nIts ${c.documents} document(s), their stored files, `
+      + "search index, summaries and synced folders are removed from Ferret for good. This cannot be undone. "
+      + "(Files in synced folders on disk are not touched.)\n\nType the collection name to confirm:");
+    if (typed === null) return;
+    if (typed.trim() !== c.name) { $("#admin-msg").textContent = "Not deleted: the name did not match."; return; }
+    try { await api(`/api/admin/collections/${c.id}`, { method: "DELETE" }); $("#admin-msg").textContent = `Deleted ${c.name}.`; loadAdmin(); refreshMe(); }
+    catch (err) { $("#admin-msg").textContent = err.message; }
+  });
+  return el("td", {}, el("strong", { textContent: c.name }), " ", del, el("div", { className: "muted small", textContent: c.description }));
+}
 let newUserGroups = null;
 async function loadAdmin() {
   const [cols, users, groups] = await Promise.all([api("/api/admin/collections"), api("/api/admin/users"), api("/api/admin/groups")]);
@@ -1542,7 +1558,7 @@ async function loadAdmin() {
     }
     if (!c.grants.length) grants.append(el("span", { className: "muted", textContent: "administrators only" }));
     const free = groups.filter((g) => !c.grants.some((x) => x.group === g));
-    if (!free.length) return el("tr", {}, el("td", {}, el("strong", { textContent: c.name }), el("div", { className: "muted small", textContent: c.description })),
+    if (!free.length) return el("tr", {}, nameCell(c, cols.length),
       el("td", { className: "num", textContent: c.documents }), grants,
       el("td", { className: "muted small", textContent: groups.length ? "Every group has access" : "Create a group first (Groups)" }));
     const grp = el("select", { ariaLabel: `Group to give access to ${c.name}` }, ...free.map((g) => el("option", { value: g, textContent: g })));
@@ -1552,7 +1568,7 @@ async function loadAdmin() {
       try { await api(`/api/admin/collections/${c.id}/grants`, { method: "PUT", json: { group: grp.value, can_write: mode.value === "write" } }); loadAdmin(); refreshMe(); }
       catch (err) { $("#admin-msg").textContent = err.message; }
     });
-    return el("tr", {}, el("td", {}, el("strong", { textContent: c.name }), el("div", { className: "muted small", textContent: c.description })),
+    return el("tr", {}, nameCell(c, cols.length),
       el("td", { className: "num", textContent: c.documents }), grants, el("td", {}, el("div", { className: "grant-form" }, grp, mode, add)));
   }));
   $("#user-rows").replaceChildren(...users.map((u) => {
