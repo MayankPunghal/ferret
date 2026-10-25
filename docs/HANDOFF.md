@@ -568,6 +568,28 @@ settings with index signatures (outdated documents are reported, never silently 
 thresholds; reranker optional and off unless it measurably helps; first-run admin in the browser;
 auto-migrations on start; GraphRAG deferred in favour of a deterministic link-graph research track.
 
+**Answered or decided with the owner (moved from TODO.md, so they are not asked again without new data):**
+
+- **Dedicated summarisation models (BART, PEGASUS, T5):** not used. Instruction-tuned models write summaries
+  rated on par with professional writers (Zhang et al., TACL 2024), while the dedicated ones were mostly
+  trained on news, read about 1,000 tokens, and cannot return the document type, topics or a clearer title.
+  Answered 23 Oct 13:28 and 24 Oct 03:39; recorded here because it was only in chat.
+- **DeepSeek-R1-0528-Qwen3-8B:** not run. It has no vision, which was the owner's condition for the larger
+  models (24 Oct 11:16).
+- **The search tricks** (no overlap, passage size, summary in the keyword index, summary as a context line
+  at three lengths, summary vectors, index-time question vectors, neighbour passages at rerank, convex
+  fusion, RRF constant, HyDE): measured on 219 queries, none beat the shipped setup by more than noise
+  (evaluation.md §8).
+- **Relations written by the local model, and topic links:** measured, worse than the shipped "related"
+  rows (HANDOFF §4j).
+- **A separate vector or graph database:** not now. PostgreSQL holds vectors, links and text in one store
+  with exact scoring; revisit with item 21.
+- **Neighbour summaries instead of the 150-character overlap:** discussed and rejected by the owner
+  (2026-10-24). Not measured; the closest measured variants (no overlap, neighbour passages at rerank,
+  summary context) gave nothing.
+- **Repository name and licence:** settled by the owner (2026-10-24).
+- **Spreadsheets and videos** are skipped by the crawler (owner, 23 Oct 11:27).
+
 ## 6. Explored vs unexplored
 
 | Explored (outcome) | Unexplored / open |
