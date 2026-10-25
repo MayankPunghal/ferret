@@ -32,7 +32,8 @@ and pushed. Before changing anything:
    Download, and the search models download by themselves on first start. Keep it that way: no feature may
    need a terminal.)
 
-Then work through `docs/PLANS.md` in its order (it matches `docs/TODO.md`), unless the owner picks something
+First fix TODO §1 (the out-of-date UI walkthrough, item 25, so UI changes can be checked again). Then work
+through `docs/PLANS.md` in its order (it matches `docs/TODO.md`), unless the owner picks something
 else:
 
 1. `plan-summaries-status.md`: fixes the documents list stopping at 1,000 rows (TODO 1) and adds the
