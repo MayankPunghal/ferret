@@ -30,6 +30,12 @@ with sync_playwright() as p:
           and "401" not in m.text and "422" not in m.text
           and "/api/admin/db/query" not in m.location.get("url", "") else None)  # the refused DELETE below
 
+    def menu(selector):
+        """Click a sidebar item, or one in the account menu (Settings, About, Sign out), opening the menu first."""
+        if not pg.locator(selector).is_visible():
+            pg.click("#account-button")
+        pg.click(selector)
+
     def shot(name):
         pg.screenshot(path=f"{OUT}/{name}.png", full_page=True)
 
@@ -59,7 +65,7 @@ with sync_playwright() as p:
     print("admin tabs:", pg.locator(".tab:not([hidden])").all_inner_texts())
 
     # settings
-    pg.click(".tab[data-tab=settings]")
+    menu(".tab[data-tab=settings]")
     pg.wait_for_selector("#s-model option", state="attached")
     print("settings: model", pg.input_value("#s-model"), "| chunk", pg.input_value("#s-chunk"),
           "| overlap on", pg.is_checked("#s-overlap-on"), "|", pg.inner_text("#reindex-info"))
@@ -76,7 +82,7 @@ with sync_playwright() as p:
     print("reindex:", pg.inner_text("#reindex-msg"))
     pg.wait_for_function("1", timeout=1000) if False else None
     for _ in range(60):
-        pg.click(".tab[data-tab=settings]")
+        menu(".tab[data-tab=settings]")
         pg.wait_for_selector("#reindex-info:has-text('documents indexed')")
         if " 0 outdated · 0 pending" in pg.inner_text("#reindex-info"):
             break
@@ -84,7 +90,7 @@ with sync_playwright() as p:
     print("after reindex:", pg.inner_text("#reindex-info"))
 
     # users & access: a group (Groups), access for it to a new collection (Collections), a user in it (Users)
-    pg.click(".tab[data-tab=admin]")
+    menu(".tab[data-tab=admin]")
     pg.wait_for_selector("#col-rows tr")
     import random
     col = f"trial-{random.randint(1000, 9999)}"
@@ -115,7 +121,7 @@ with sync_playwright() as p:
     shot("02-users-access")
 
     # documents: multi-file upload into the new collection
-    pg.click(".tab[data-tab=documents]")
+    menu(".tab[data-tab=documents]")
     pg.wait_for_selector("#upload-collection option", state="attached")
     pg.select_option("#upload-collection", label=col)
     pg.set_input_files("#file-input", files=[
@@ -134,14 +140,14 @@ with sync_playwright() as p:
     pg.wait_for_selector("#docs tr:has-text('quotas.html') .st-indexed", timeout=60000)
     print("both uploads indexed; stages:", sorted(set(pg.locator("#docs td:nth-child(4) .meta").all_inner_texts())))
     shot("03-documents")
-    pg.click(".tab[data-tab=search]")
+    menu(".tab[data-tab=search]")
     pg.fill("#q", "heliotrope switch")
     pg.click("#search-form button")
     pg.wait_for_selector("#outcome strong")
 
     # index status: document summaries by the optional local language model (waits for them when installed)
     def summaries_line():
-        pg.click(".tab[data-tab=status]")
+        menu(".tab[data-tab=status]")
         pg.wait_for_selector("#status dl")
         return pg.locator("#status dt:has-text('summaries') + dd").inner_text()
     import re
@@ -154,14 +160,14 @@ with sync_playwright() as p:
         line = summaries_line()
     print("summaries:", line)
     shot("16-status")
-    pg.click(".tab[data-tab=summaries]")
+    menu(".tab[data-tab=summaries]")
     pg.wait_for_selector("#summaries table, #summaries .empty")
     print("summaries tab:", pg.locator("#summaries tbody tr").count(), "rows | first:",
           pg.locator("#summaries tbody tr").first.inner_text().replace("\n", " | ")[:160]
           if pg.locator("#summaries tbody tr").count() else "-")
     shot("17-summaries")
     # readable view of a Markdown document (rendered, not raw text)
-    pg.click(".tab[data-tab=documents]")
+    menu(".tab[data-tab=documents]")
     pg.wait_for_selector("#docs tr")
     with pg.context.expect_page() as viewer:
         pg.locator("#docs tr:has-text('ledger-service.md') td:first-child a").click()
@@ -183,7 +189,7 @@ with sync_playwright() as p:
     shot("25-table")
     pg.keyboard.press("Escape")
     pg.wait_for_selector("#drawer", state="hidden")
-    pg.click("#logout")
+    menu("#logout")
     pg.wait_for_selector("#login-view:not([hidden])")
 
     # regular user flows
@@ -227,7 +233,7 @@ with sync_playwright() as p:
         assert rows.count() >= 1 and all(name.lower() in r.lower() for r in rows.all_inner_texts()), "topic filter"
         print("topic:", pg.inner_text(".topic-filter").replace("\n", " "), "| rows", rows.count())
         shot("19-topic")
-        pg.click(".tab[data-tab=search]")
+        menu(".tab[data-tab=search]")
     ledger.locator("text=View passage").click()
     pg.wait_for_selector("#d-links h3")
     print("connections:", [x.replace("\n", " ") for x in pg.locator("#d-links h4, #d-links li").all_inner_texts()])
@@ -249,7 +255,7 @@ with sync_playwright() as p:
     assert linked, "no result reached through a link"
     print("linked results:", sorted(set(linked)))
     # AI assistants: create a token, the setup snippet carries it, an MCP call with it works, revoke it
-    pg.click(".tab[data-tab=assistants]")
+    menu(".tab[data-tab=assistants]")
     pg.fill("#tok-form input[name=label]", "ui-check assistant")
     pg.click("#tok-form button")
     pg.wait_for_selector("#tok-new:not([hidden])")
@@ -278,7 +284,7 @@ with sync_playwright() as p:
     print("revoked token refused:", gone)
     # Logs → Activity (administrators): the calls above with request, response and timing, like a browser's Network tab
     def sign_in(user, pw):
-        pg.click("#logout")
+        menu("#logout")
         pg.wait_for_selector("#login-view:not([hidden])")
         pg.fill("input[name=username]", user)
         pg.fill("input[name=password]", pw)
@@ -286,7 +292,7 @@ with sync_playwright() as p:
         pg.wait_for_selector("#app-view:not([hidden])")
 
     sign_in("admin", ADMIN_PW)
-    pg.click(".tab[data-tab=logs]")
+    menu(".tab[data-tab=logs]")
     pg.wait_for_selector("#act-rows tr")
     kinds = set(pg.locator("#act-rows .act-kind").all_inner_texts())
     assert {"API", "AI assistant", "Indexing"} <= kinds, kinds
@@ -302,7 +308,7 @@ with sync_playwright() as p:
     pg.wait_for_selector("#log-text:not(:empty)")
     pg.click("#log-views button[data-view=activity]")
     # Database (administrators): tables, rows with secrets hidden, structure, read-only SQL
-    pg.click(".tab[data-tab=database]")
+    menu(".tab[data-tab=database]")
     pg.wait_for_selector("#db-rows tr")
     tables = pg.locator(".db-tname").all_inner_texts()
     assert {"documents", "chunks", "users"} <= set(tables), tables
@@ -337,7 +343,7 @@ with sync_playwright() as p:
     pg.wait_for_selector("#app-view.nav-collapsed:not([hidden])")
     pg.click("#nav-toggle")
     assert pg.locator("#sidebar").bounding_box()["width"] > 200
-    pg.click(".tab[data-tab=database]")
+    menu(".tab[data-tab=database]")
     print("database: tables", len(tables), "| password hashes shown as", hashes, "| SQL:", msg, "| DELETE:", pg.inner_text("#db-sql-msg"))
     sign_in("alice", "demo-password-alice")
     run("per diem for domestic travel", "07-conflict")
