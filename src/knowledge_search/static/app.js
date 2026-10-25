@@ -188,6 +188,8 @@ $("#upd-install").addEventListener("click", async () => {
 
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
+  // the search bar sits in the page on the Search tab and in the top bar elsewhere
+  if (name === "search") $("#tab-search .title-row").after($("#search-form")); else $("#menu-button").after($("#search-form"));
   for (const t of ["search", "documents", "summaries", "status", "assistants", "about", "settings", "admin", "folders", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
   if (name === "folders") loadFolders();

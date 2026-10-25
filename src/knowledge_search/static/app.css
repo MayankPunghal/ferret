@@ -657,3 +657,4 @@ input:not([type=checkbox]):not([type=radio]), select, textarea { border-radius: 
   .topbar { grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; padding: 0 8px; }
   .menu-button { grid-column: 1; }
 }
+.sheet .searchbar { width: 100%; height: 46px; margin: 4px 0 16px; border-radius: 12px; font-size: 15px; }
