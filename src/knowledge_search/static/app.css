@@ -658,3 +658,8 @@ input:not([type=checkbox]):not([type=radio]), select, textarea { border-radius: 
   .menu-button { grid-column: 1; }
 }
 .sheet .searchbar { width: 100%; height: 46px; margin: 4px 0 16px; border-radius: 12px; font-size: 15px; }
+.row-actions { width: 1%; text-align: right; white-space: nowrap; }
+button.icon.danger { color: var(--muted); }
+button.icon.danger:hover:not(:disabled) { color: var(--negative); background: color-mix(in srgb, var(--negative) 12%, transparent); }
+button.icon:disabled { opacity: .35; cursor: not-allowed; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
