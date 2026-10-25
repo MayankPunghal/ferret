@@ -353,6 +353,8 @@ characters). Passages per second, by sessions × threads: **1 × all cores 6.9**
 **2 × 2 threads 7.3**, 4 × 1 thread 7.2. Vectors identical in all layouts. No worthwhile gain on 4 cores; an
 earlier 1.7× reading was taken on a busy CPU. Not measured: machines with more cores, GPU.
 
+Owner's laptop (2026-10-25): Intel Core i5-12500H, 12 cores / 16 threads, Windows 11, bge-base, 400 passages from the docs folder: **1 × all threads 6.5**, 2 × all 4.0, 2 × 4 threads 5.9, **4 × 4 threads 6.9**, 4 × 2 5.9, 8 × 2 6.5 passages/s; vectors identical. Again no worthwhile gain (+6% at best), so step 1 stays unbuilt; a 16–32-core server is still unmeasured (TODO 3).
+
 ## Not measured
 
 Real company corpus; corpora beyond ~8.5k chunks; large embedding models (bge-large); GPU; Windows performance; Docker

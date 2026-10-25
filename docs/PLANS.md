@@ -36,6 +36,4 @@ TODO §5 (items 17–23): entity links and PageRank-style spreading, SPLADE, gra
 PDFs (including PDF tables), the archive-size scale test, a real Graphify wiki evaluation, a larger summary
 model. Each gets a plan only when someone is about to measure it.
 
-Note: plans written before the rename still say `knowledge-search` for package and image names
-(`ghcr.io/mayankpunghal/knowledge-search`, `uv tool install knowledge-search`). Decide the published names
-(`ferret` is already taken on PyPI; `ferret-search` was free on 2026-10-24) in step 2 of plan-release.
+Published names (owner, 2026-10-25): PyPI package **`ferret-search`**, image **`ghcr.io/mayankpunghal/ferret-search`**; the plans use them.

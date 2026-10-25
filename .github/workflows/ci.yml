@@ -1,0 +1,53 @@
+# Tests on Linux, Windows and macOS (each starts its own embedded PostgreSQL), and the UI walkthrough on Linux.
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - uses: actions/cache@v4
+        with:
+          path: data/models
+          key: test-models-v1
+      - run: uv run ferret download-model --model BAAI/bge-small-en-v1.5 --reranker Xenova/ms-marco-MiniLM-L-6-v2
+      - run: uv run pytest -q
+
+  ui:
+    runs-on: ubuntu-latest
+    env:
+      KS_DATA_DIR: ./data/ui-check
+      KS_ENRICH_ENABLED: "false"  # no 3 GB summary model download in CI
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - uses: actions/cache@v4
+        with:
+          path: data/models
+          key: default-models-v1
+      - run: uv run ferret download-model
+      - name: Start a demo server
+        shell: bash
+        run: |
+          uv run ferret serve --port 8000 > serve.log 2>&1 &
+          for i in $(seq 1 120); do curl -sf http://127.0.0.1:8000/ > /dev/null && break; sleep 2; done
+          uv run ferret demo
+      - run: uv run --with playwright playwright install --with-deps chromium
+      - run: mkdir -p ui-shots && uv run --with playwright python scripts/ui_check.py ui-shots http://127.0.0.1:8000
+      - if: failure()
+        run: tail -100 serve.log
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-shots
+          path: ui-shots

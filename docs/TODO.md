@@ -38,7 +38,6 @@ Status words: **bug** · **plan ready** (written, not built) · **not built** ·
 |---|---|---|
 | 11 | Windows check of the current version: `git pull`, `setup.bat --summaries`, summary model download on Windows (not verified here), Crawler tab sign-in with installed Chrome/Edge, a real intranet copy sent to a collection | 23 Oct 17:02, 24 Oct 12:38 |
 | 12 | Your own documents (runbooks, the codebase-documenter `repo-kit` folder) with 50–100 labelled questions, including ones that must be refused. Every search setting so far was tuned on public docs | 23 Oct 04:01, 24 Oct 11:27 |
-| 24 | Published package and image names: `ferret` is taken on PyPI (`ferret-search` was free on 24 Oct); older plans still say `knowledge-search`. Decide before step 2 of [plan-release.md](plan-release.md) | 24 Oct (repo renamed to ferret) |
 
 ## 5. Search and graph ideas not built (each only with a measured gain)
 

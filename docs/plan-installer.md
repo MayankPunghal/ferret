@@ -1,6 +1,6 @@
 # Plan: one-click installer for a non-technical user (handoff, 2026-10-24)
 
-Goal (owner): install like holler. Download `KnowledgeSearch-Setup-<version>.exe`, click through, and the app
+Goal (owner): install like holler. Download `Ferret-Setup-<version>.exe`, click through, and the app
 opens in the browser with a short setup wizard. No Python, no Docker, no command line. Nothing below is built
 yet. Sizes and times are **unmeasured**.
 
@@ -9,7 +9,7 @@ yet. Sizes and times are **unmeasured**.
 | Holler | Carries over? |
 |---|---|
 | PyInstaller folder build + Inno Setup installer, per-user install (`PrivilegesRequired=lowest`, no admin prompt) into `%LOCALAPPDATA%\Programs` | yes, per-user, no admin prompt |
-| Settings and models in `%APPDATA%\Holler`, kept on uninstall unless the user says otherwise | yes: data folder (database, files, models) in `%LOCALAPPDATA%\KnowledgeSearch`, asked on uninstall |
+| Settings and models in `%APPDATA%\Holler`, kept on uninstall unless the user says otherwise | yes: data folder (database, files, models) in `%LOCALAPPDATA%\Ferret`, asked on uninstall |
 | CI (`windows-app.yml`): build, self-test the app, silent install, self-test the installed app, silent uninstall, attach to the release on a `v*` tag | yes, same workflow shape |
 | Tray icon (`pystray`) and a Tk setup wizard | tray icon yes; the wizard lives **in the browser** (this is a web app; the first-run page exists already) |
 | Not code-signed: SmartScreen warns, README explains "More info → Run anyway" | same at first; signing needs a certificate (owner's decision and cost) |
@@ -67,7 +67,7 @@ Intel Macs are not supported as pinned.
 
 - **macOS (Apple silicon):** the same portable folder in a `.app` and a `.dmg`. Without an Apple Developer ID
   (signing and notarisation) users must right-click → Open. The owner decides when to pay for it.
-- **Linux:** `uv tool install knowledge-search`, with `ferret service install` to start it on login
+- **Linux:** `uv tool install ferret-search`, with `ferret service install` to start it on login
   (a systemd user unit). Docker for servers (docs/plan-docker.md). An AppImage only if users ask.
 
 ## CI checks (copy holler's windows-app workflow)

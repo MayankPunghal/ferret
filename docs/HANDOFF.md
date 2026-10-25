@@ -614,6 +614,13 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   update, or a reindex that leaves passage text alone is nearly free. Test: one edited section re-embeds one
   of four passages and the kept vectors equal a full re-embed within 1e-4. Measured on the owner's laptop:
   12th Gen Intel Core i5-12500H laptop (12 cores, 16 threads; Windows 11), bge-base, a generated 400-passage Markdown file, two-worker default: a 1-passage file uploaded right after it was indexed after **1.2 s** (one worker: **71.8 s**, behind the large one); the large file took 72.3 s (one worker: 71.8 s). Uploading the 400-passage file again with one section edited: **1.0 s** (first upload 58.4 s), because 399 passages kept their vectors. A changed document summary (context line) still re-embeds every passage, as it should.
+- **Step 1 (several embedding sessions) measured on the laptop:** best 4 × 4 threads 6.9 against 6.5
+  passages/s for one session (evaluation.md §10): no worthwhile gain, not built.
+- **Published names decided by the owner (2026-10-25):** PyPI `ferret-search`, image
+  `ghcr.io/mayankpunghal/ferret-search` (TODO 24 closed).
+- **CI (plan-release step 1) written:** `.github/workflows/ci.yml` (tests on three systems, UI walkthrough
+  on Linux). Its runs on GitHub were not checked from here. `scripts/gpu_probe.py` (plan-gpu step 1) added,
+  not yet run.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 

@@ -8,7 +8,11 @@ setup like I did for holler". Holler (github.com/MayankPunghal/holler) ships thr
   release.
 - **Release automation:** CI publishes to PyPI with trusted publishing (no stored token).
 
-Nothing below is built yet. Sizes and times are **unmeasured**.
+**Step 1 (CI) written 2026-10-25:** `.github/workflows/ci.yml` runs the tests on Linux, Windows and macOS and the
+UI walkthrough on Linux (summaries off, models cached). Its first runs were not checked from the local session;
+`ruff` is not in CI until the old findings are cleaned up (TODO §6). Everything after step 1 is not built. Sizes
+and times are **unmeasured**. Published names (owner, 2026-10-25): `ferret-search` on PyPI,
+`ghcr.io/mayankpunghal/ferret-search` for the image.
 
 ## What exists today
 
@@ -23,7 +27,7 @@ Problems found while checking:
   **bge-base**. A Docker install would search less accurately than a laptop install. Fix: build with the same
   default.
 - `site2md` is a local workspace package. It must be published too, or moved inside the main package,
-  before `pip install knowledge-search` can work.
+  before `pip install ferret-search` can work.
 - Not checked yet: whether `pixeltable-pgserver==0.6.0` has wheels for every target (Windows x64, macOS
   arm64/x64, Linux x64/arm64). It is the piece that makes "no Docker, no admin rights" possible.
 
@@ -34,19 +38,19 @@ Problems found while checking:
    server on Linux. Without this, the packages below cannot be trusted.
 2. **PyPI package and a browser setup wizard** (like holler's wizard, but in the browser because this app is
    a web app):
-   - `uv tool install knowledge-search` (or `pipx install`), then `ferret` opens the browser.
+   - `uv tool install ferret-search` (or `pipx install`), then `ferret` opens the browser.
    - The first-run page already creates the administrator. Extend it into steps: data folder; the search
      model download with progress (reuse the Settings download button); optional summaries model; sample
      data yes/no; start on login yes/no.
    - Publish from CI on a `v*` tag with trusted publishing, as holler does.
    - `setup.sh`/`setup.ps1` stay for people who clone the repository.
-3. **Docker image on GitHub's registry** (details and the gaps found: docs/plan-docker.md) (`ghcr.io/mayankpunghal/knowledge-search`), built and tested in CI on
+3. **Docker image on GitHub's registry** (details and the gaps found: docs/plan-docker.md) (`ghcr.io/mayankpunghal/ferret-search`), built and tested in CI on
    each tag:
    - **One-container mode** for a small team: `docker run -p 8000:8000 -v ks-data:/data ghcr.io/…`, using the
      embedded PostgreSQL inside the container.
    - **Compose** stays for a real server: separate PostgreSQL, worker and HTTPS.
    - Models are baked in, so it runs offline. Fix the model mismatch above.
-4. **Windows installer** (details: docs/plan-installer.md) (`KnowledgeSearch-Setup-<version>.exe`), copying holler's PyInstaller + Inno Setup +
+4. **Windows installer** (details: docs/plan-installer.md) (`Ferret-Setup-<version>.exe`), copying holler's PyInstaller + Inno Setup +
    CI install test:
    - A tray icon: "Ferret is running · Open · Stop · Start on login".
    - Hard parts: bundling the embedded PostgreSQL binaries and onnxruntime; downloading `llama-server` on

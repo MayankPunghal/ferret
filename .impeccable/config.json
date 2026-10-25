@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "src/knowledge_search/static/app.css"
+        ],
+        "createdAt": "2026-10-25T06:14:20.981Z",
+        "reason": "Claude: .progress span animates width because the width is the progress value (one 4px bar), not layout chrome"
+      }
+    ]
+  }
+}
