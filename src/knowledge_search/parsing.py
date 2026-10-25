@@ -15,9 +15,9 @@ from pathlib import Path
 import yaml
 from markdown_it import MarkdownIt
 
-PARSER_VERSION = "parse-v8"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium; v6: PDF titles without "Microsoft Word - ", .docx, generic metadata; v7: PowerPoint SmartArt and connector org charts as nested lists; v8: line breaks inside a PowerPoint/Word paragraph no longer join words
+PARSER_VERSION = "parse-v9"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium; v6: PDF titles without "Microsoft Word - ", .docx, generic metadata; v7: PowerPoint SmartArt and connector org charts as nested lists; v8: line breaks inside a PowerPoint/Word paragraph no longer join words; v9: tables as Markdown tables (merged cells repeated, header row) from HTML, Word and PowerPoint
 _PDFIUM = threading.Lock()  # PDFium is not thread-safe; API requests and ingest workers parse concurrently
-CHUNKER_VERSION = "chunk-v2"  # size/overlap are runtime settings, recorded in the index signature
+CHUNKER_VERSION = "chunk-v3"  # v3: tables never cut mid-row; long tables split with the header repeated; size/overlap are runtime settings, recorded in the index signature
 
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 PPTX = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -341,6 +341,9 @@ def extract_idents(text: str) -> list[str]:
     return sorted(out)
 
 
+_TABLE = re.compile(r"(?:\*\*[^\n]+\*\*\n\n)?\|[^\n]*\|\n\|[-:| ]+\|(?:\n|$)")  # a Markdown table (header, |---|)
+
+
 def _windows(text: str, target: int, overlap: int) -> list[str]:
     """Split a section into ~target-sized windows on paragraph/sentence boundaries, carrying ``overlap``
     characters (rounded to a word boundary) from the end of one window into the next."""
@@ -350,19 +353,34 @@ def _windows(text: str, target: int, overlap: int) -> list[str]:
     paras = re.split(r"(\n\s*\n)", text)
     pieces: list[str] = []
     for p in paras:
-        if len(p) > max_len:  # very long paragraph: split on sentences
+        if _TABLE.match(p) and len(p) > max_len:  # a long table: split between rows, each part with the header
+            lines = p.strip("\n").split("\n")
+            head = "\n".join(lines[:2])
+            if len(pieces) >= 2 and re.fullmatch(r"\*\*[^\n]+\*\*", pieces[-2].strip()):  # its caption
+                head = pieces[-2].strip() + "\n\n" + head
+                del pieces[-2:]
+            part = head
+            for row in lines[2:]:
+                if part != head and len(part) + len(row) > target:
+                    pieces += [part, "\n\n"]
+                    part = head
+                part += "\n" + row
+            pieces.append(part)
+        elif len(p) > max_len:  # very long paragraph: split on sentences
             pieces.extend(re.split(r"(?<=[.!?])\s+", p))
         else:
             pieces.append(p)
     out: list[str] = []
     cur = ""
+    table = False  # the window ends with a table: nothing of it is carried over (the header repeats instead)
     for p in pieces:
         if cur and len(cur) + len(p) > target:
             out.append(cur.strip())
-            cur = cur[-overlap:] if overlap else ""
+            cur = cur[-overlap:] if overlap and not table and not _TABLE.match(p) else ""
             cut = cur.find(" ")
             cur = cur[cut + 1 :] if cut != -1 else cur
         cur += p
+        table = bool(_TABLE.match(p)) or (table and not p.strip())
         while len(cur) > max_len:  # pathological text without breaks
             out.append(cur[:max_len])
             cur = cur[max_len - overlap :] if overlap else cur[max_len:]

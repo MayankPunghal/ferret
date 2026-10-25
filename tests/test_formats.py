@@ -99,7 +99,8 @@ def test_docx_headings_lists_tables():
     paths = [s.heading_path for s in doc.sections]
     assert paths == ["Rollback", "Rollback > Ports"]  # Title and Heading 1 are both level 1
     text = "\n".join(s.text for s in doc.sections)
-    assert "- Check the error rate" in text and "Port | 8412" in text and "On call Asha Rao" in text
+    assert "- Check the error rate" in text and "On call Asha Rao" in text
+    assert "Port\n\n8412" in text  # a one-row table is layout, kept as text (tables: tests/test_tables.py)
     assert parse_document(_docx([("", "x")], title="Core Title"), "a.docx").title == "Core Title"
 
 

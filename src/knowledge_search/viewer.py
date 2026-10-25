@@ -94,7 +94,9 @@ def _links(*pairs) -> str:
 def page(filename: str, text: str, plain: bool = False, download: str = "", links: dict | None = None,
          other_view: tuple[str, str] | None = None) -> str:
     body = re.sub(r"(?s)^---\r?\n.*?\r?\n---\r?\n", "", text, count=1)  # front matter
-    content = f"<pre>{html.escape(body)}</pre>" if plain else _heading_ids(_relink(_MD.render(body), links or {}))
+    # line breaks inside table cells are written as <br> (the only tag let through; raw HTML stays escaped)
+    content = f"<pre>{html.escape(body)}</pre>" if plain else _heading_ids(_relink(
+        _MD.render(body).replace("&lt;br&gt;", "<br>"), links or {}))
     return _page(filename, "readable view", content, _links(other_view or ("", ""), ("Download original", download)))
 
 

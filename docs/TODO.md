@@ -19,6 +19,7 @@ Status words: **bug** · **plan ready** (written, not built) · **not built** ·
 |---|---|---|---|
 | 2 | Vision: run **Gemma 4 E2B** on the same 20 pictures as GLM-4.6V-Flash (GLM's results are in evaluation.md §9), and GLM on the scanned page. Re-run locally: `uv run --group eval --with playwright --with pillow python eval/image_set.py`, start `llama-server -m <model>.gguf --mmproj <mmproj>.gguf -c 16384 --temp 0 --jinja --port 8082`, then `uv run --group eval python eval/image_ocr.py --name gemma-4-e2b` (GLM: `--name glm-4.6v-flash-scan --no-thinking --only scan-postmortem`). Then decide the images plan (item 10) | **not measured** | 23 Oct 11:51, 24 Oct 03:27, 11:16 |
 | 3 | Optional: the parallel-embedding benchmark on a 16–32-core server (`eval/bench_parallel.py --file` with a large document); on 4 cores it gave no gain | **not measured** | 24 Oct 14:52 |
+| 26 | Tables, step 5 of [plan-tables.md](plan-tables.md): are table rows found better when indexed as "column: value" lines (shown as a table)? Needs about 20 labelled questions on table pages (AWS quotas pages, Kubernetes reference tables, a Word file with merged cells) and `eval/tricks.py`; keep only if clearly better | **not measured** | 24 Oct; tables built 2026-10-25 |
 
 ## 3. Plans ready, not built (owner asked for the plan first)
 
@@ -30,7 +31,6 @@ Status words: **bug** · **plan ready** (written, not built) · **not built** ·
 | 7 | Invite links and password reset (Google sign-in and e-mail/SMTP were discussed, not chosen) | 24 Oct 10:05–10:27 · [plan-invites.md](plan-invites.md) |
 | 8 | Faster indexing of very large documents: small documents not stuck behind a large one (two workers), re-use vectors of unchanged passages | 24 Oct 14:52 · [plan-large-documents.md](plan-large-documents.md) |
 | 10 | Images: the crawler saves images, a local vision model writes their text, indexed through the same path as other files (crawler, folder sync and MCP all included) | 23 Oct 11:51, 12:21 (owner: hold), 24 Oct 11:55 · [plan-images-and-models.md](plan-images-and-models.md); waits for item 2 |
-| 13 | Tables from crawled pages, Word and PowerPoint kept as real tables (merged cells repeated, header row), never cut in the middle of a passage | 24 Oct (AWS Transform quotas page) · [plan-tables.md](plan-tables.md) |
 | 16 | **Ask**: a chat window like Claude Code / OpenCode / the DeepSeek harness. Saved conversations, follow-ups, step cards, pictures, Think first; a local model (Gemma 4 E2B or E4B) answers from what search finds, with checked citations; search's evidence check decides whether to answer; optional MCP `ask` tool. Six phases | 23 Oct 07:37, 24 Oct (owner: separate tab, then a full chat window) · [plan-answers.md](plan-answers.md) |
 
 ## 4. Needs the owner

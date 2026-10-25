@@ -206,9 +206,15 @@ function prose(text, mediaType) {
     if (/^\s*(```|~~~)/.test(line)) { flush(); list = table = null; code = []; continue; }
     if (/^\s*\|.*\|\s*$/.test(line)) {
       flush(); list = null;
-      if (/^[\s|:-]+$/.test(line)) continue;  // the |---|---| separator
+      if (/^[\s|:-]+$/.test(line)) {  // the |---|---| separator: the row above is the header
+        table?.querySelectorAll("tr:only-child > td").forEach((td) => { const th = el("th"); th.append(...td.childNodes); td.replaceWith(th); });
+        continue;
+      }
       if (!table) { table = el("table"); out.push(el("div", { className: "table-wrap" }, table)); }
-      table.append(el("tr", {}, ...line.trim().slice(1, -1).split("|").map((c) => el("td", {}, inline(c.trim())))));
+      // cells split on | but not on \|; <br> inside a cell is a line break
+      const cells = line.trim().slice(1, -1).split(/(?<!\\)\|/).map((c) => el("td", {}, ...c.trim().replaceAll("\\|", "|")
+        .split(/<br\s*\/?>/i).flatMap((part, i) => i ? [el("br"), inline(part)] : [inline(part)])));
+      table.append(el("tr", {}, ...cells));
       continue;
     }
     table = null;

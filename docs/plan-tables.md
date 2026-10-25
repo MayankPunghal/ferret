@@ -4,7 +4,12 @@ Owner request: "The crawler sucks at maintaining the structure of tabular data."
 quotas page: the copied Markdown shows each table row as a paragraph, and the rows under a merged
 "Mainframe" cell start with an empty cell.
 
-**Status: plan, not built.**
+**Status: steps 1–4 built 2026-10-25** (HANDOFF §4p); step 5 not measured (TODO 26).
+
+As built: the grid writer is `site2md.html.table_markdown`, used by `html_to_markdown`, `convert._word_table`
+and the PowerPoint converter. Differences from the plan: the crawler's manifest does not record a converter
+version (the crawler's own version went to 1.1.0); one-row Word tables (a key and a value) are now text, as
+the layout rule says; search snippets still show the raw `|` of a table row.
 
 ## Cause (checked in the code)
 

@@ -15,6 +15,11 @@ from playwright.sync_api import sync_playwright
 OUT = sys.argv[1]
 URL = sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:8000"
 ADMIN_PW = "ui-check-admin-password"
+QUOTAS = b"""<html><head><title>Transform quotas</title></head><body><main><h1>Transform quotas</h1>
+<table><thead><tr><th>Workload</th><th>Dimension</th><th>Quota</th><th>Adjustable</th></tr></thead><tbody>
+<tr><td rowspan="2">Mainframe</td><td>Lines of code for each job</td><td>30,000,000</td><td>No</td></tr>
+<tr><td>Jobs for each account</td><td>10</td><td>Yes</td></tr>
+<tr><td>Windows</td><td>Servers for each job</td><td>500</td><td>Yes</td></tr></tbody></table></main></body></html>"""
 
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=os.environ.get("CHROMIUM_PATH") or None)
@@ -113,15 +118,17 @@ with sync_playwright() as p:
     pg.set_input_files("#file-input", files=[
         {"name": "alpha.md", "mimeType": "text/markdown", "buffer": b"# Alpha\n\nThe heliotrope switch resets the sorter."},
         {"name": "beta.txt", "mimeType": "text/plain", "buffer": b"Beta notes: the cobalt gate opens at dawn."},
+        {"name": "quotas.html", "mimeType": "text/html", "buffer": QUOTAS},
         {"name": "empty.md", "mimeType": "text/markdown", "buffer": b""},  # rejected at upload
         {"name": "bad.exe", "mimeType": "application/octet-stream", "buffer": b"MZ"},
     ])
     # one line for the whole upload; only the rejected file is named; other types are not uploaded
-    pg.wait_for_selector("#upload-list li:has-text('Uploaded 3 file(s): 2 queued for indexing, 1 rejected')")
+    pg.wait_for_selector("#upload-list li:has-text('Uploaded 4 file(s): 3 queued for indexing, 1 rejected')")
     assert "skipped 1 of other types (exe)" in pg.inner_text("#upload-list") and pg.locator(".upload-errors li").count() == 1
     print("uploads:", pg.inner_text("#upload-list").replace("\n", " | "))
     pg.wait_for_selector("#docs tr:has-text('Alpha') .st-indexed", timeout=60000)
     pg.wait_for_selector("#docs tr:has-text('beta.txt') .st-indexed", timeout=60000)
+    pg.wait_for_selector("#docs tr:has-text('quotas.html') .st-indexed", timeout=60000)
     print("both uploads indexed; stages:", sorted(set(pg.locator("#docs td:nth-child(4) .meta").all_inner_texts())))
     shot("03-documents")
     pg.click(".tab[data-tab=search]")
@@ -162,6 +169,17 @@ with sync_playwright() as p:
           v.locator("header a").inner_text())
     v.screenshot(path=f"{OUT}/18-viewer.png")
     v.close()
+    # a web page's table with a merged cell: a table with a header row in the passage, the merged cell repeated
+    run("lines of code for each mainframe job", "25-table-search")
+    pg.locator("#results li.result, #weak-results li.result").filter(has_text="Mainframe").first.locator("text=View passage").click()
+    pg.wait_for_selector("#drawer:not([hidden]) #d-body table th")
+    heads = pg.locator("#d-body th").all_inner_texts()
+    assert heads == ["Workload", "Dimension", "Quota", "Adjustable"], heads
+    assert pg.locator("#d-body td", has_text="Mainframe").count() == 2, "merged cell not repeated"
+    print("table passage: header", heads, "| rows", pg.locator("#d-body tr").count() - 1)
+    shot("25-table")
+    pg.keyboard.press("Escape")
+    pg.wait_for_selector("#drawer", state="hidden")
     pg.click("#logout")
     pg.wait_for_selector("#login-view:not([hidden])")
 

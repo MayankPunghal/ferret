@@ -1803,7 +1803,7 @@ wheels = [
 
 [[package]]
 name = "site2md"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "site2md" }
 
 [package.optional-dependencies]

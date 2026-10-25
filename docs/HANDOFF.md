@@ -596,6 +596,18 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   first summary. Checked in the browser: the walkthrough with a stand-in local model (2 s per summary), and
   150 extra rows: 100 shown, "Show more" shows all 168, Failed + "bulk 14" shows 11. Not measured: response
   time on a 40k-document archive.
+- **Tables kept as tables (plan-tables steps 1–4, TODO 13): built.** One grid writer
+  (`site2md.html.table_markdown`) for web pages, Word and PowerPoint: GFM with a header row, merged cells
+  (`rowspan`/`colspan`, `w:vMerge`/`w:gridSpan`, `rowSpan`/`gridSpan`) repeated into every row and column they
+  cover, `|` escaped, paragraphs in a cell joined with `<br>`, the caption bold above. Tables with one row or
+  one column, a nested table, or headings/lists/code in a cell stay text. Passages: a table that fits stays in
+  one passage; a longer one is split between rows with the caption and header repeated; no overlap is carried
+  into or out of a table. Reading view and passage drawer show the header row and the `<br>` line breaks (no
+  other HTML). Parser `parse-v9`, chunker `chunk-v3`: existing documents show as outdated until Reindex.
+  Crawler 1.1.0 (re-crawl, or Update for copies that kept their HTML). Tests: `tests/test_tables.py` (AWS
+  shape, header rules, layout tables, Word and PowerPoint merges, a 200-row table in passages, the reading
+  view); the walkthrough uploads an AWS-shaped page and checks the passage shows a header row and the merged
+  cell twice. **Step 5 (index rows as "column: value") not measured** (TODO 26).
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 

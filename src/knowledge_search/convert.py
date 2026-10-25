@@ -6,7 +6,7 @@ HTML: doc-site and wiki exports (MkDocs, Sphinx, Confluence, generated wikis). W
 <style>, <nav>, navigation roles and sidebars are always dropped. <a href> becomes a Markdown link
 (→ graph edges).
 DOCX: paragraphs with Heading 1–6 / Title styles become headings, list paragraphs become items, tables
-become rows of cells; hyperlinks keep their target.
+become Markdown tables (merged cells repeated); hyperlinks keep their target.
 PPTX: a section per slide (its title as the heading), the slide's text and tables, then its speaker notes.
 """
 
@@ -16,6 +16,7 @@ from xml.etree import ElementTree
 
 from site2md.html import (
     html_to_markdown,  # noqa: F401  (re-exported: HTML lives in the crawler package)
+    table_markdown,
 )
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -59,6 +60,9 @@ def docx_to_markdown(data: bytes) -> tuple[str, str]:
                 out.append(text_of(node))
         return "".join(out)
 
+    def table(el) -> str:
+        return _word_table(el, text_of)
+
     lines: list[str] = []
     body = doc.find(f"{W}body")
     for el in body if body is not None else []:
@@ -79,12 +83,35 @@ def docx_to_markdown(data: bytes) -> tuple[str, str]:
             else:
                 lines.append(txt)
         elif el.tag == f"{W}tbl":
-            for tr in el.iter(f"{W}tr"):
-                cells = [" ".join(text_of(p).strip() for p in tc.iter(f"{W}p")).strip() for tc in tr.iter(f"{W}tc")]
-                if any(cells):
-                    lines.append(" | ".join(cells))
+            lines.append(table(el))
         lines.append("")
     return title, re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+
+
+def _word_table(tbl, text_of) -> str:
+    """A Word table as a Markdown table: gridSpan is a merged cell across columns, vMerge one down rows. A
+    table holding another table is layout: its cells become paragraphs (the inner table stays a table)."""
+    def val(pr, name):
+        x = pr.find(f"{W}{name}") if pr is not None else None
+        return None if x is None else x.get(f"{W}val", "")
+
+    rows, cells, layout = [], [], False
+    for tr in tbl.findall(f"{W}tr"):
+        row = []
+        for tc in tr.findall(f"{W}tc"):
+            blocks = [_word_table(x, text_of) if x.tag == f"{W}tbl" else text_of(x).strip()
+                      for x in tc if x.tag in (f"{W}p", f"{W}tbl")]
+            layout |= tc.find(f"{W}tbl") is not None
+            text = "\n".join(b for b in blocks if b)
+            pr = tc.find(f"{W}tcPr")
+            span = val(pr, "gridSpan")
+            merged = val(pr, "vMerge") in ("", "continue")  # continues the cell above
+            row.append((None if merged else text, 1, int(span) if span and span.isdigit() else 1))
+            cells += [] if merged else [b for b in blocks if b]
+        if any(t is None or t for t, _, _ in row):
+            rows.append(row)
+    md = None if layout else table_markdown(rows)
+    return md if md is not None else "\n\n".join(cells)
 
 
 A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
@@ -236,8 +263,12 @@ def pptx_to_markdown(data: bytes) -> tuple[str, str]:
             for frame in slide.iter(f"{P}graphicFrame"):
                 dm = smartart_parts(z, part, frame)[0]
                 body += smartart_lines(_xml(z, dm)) if dm else []
-            body += ["- " + " | ".join(" ".join(paragraphs(tc)) for tc in tr.iter(f"{A}tc"))
-                     for tr in slide.iter(f"{A}tr")]  # tables, a row per line
+            for tbl in slide.iter(f"{A}tbl"):  # tables; a covered cell of a merge is marked hMerge / vMerge
+                rows = [[("\n".join(paragraphs(tc)), int(tc.get("rowSpan", 1)), int(tc.get("gridSpan", 1)))
+                         for tc in tr.findall(f"{A}tc") if not (tc.get("hMerge") or tc.get("vMerge"))]
+                        for tr in tbl.findall(f"{A}tr")]
+                md = table_markdown(rows)
+                body += ["", md, ""] if md else [f"- {t}" for row in rows for t, _, _ in row if t]
             notes = [rel[1] for rel in rels(z, part).values() if rel[0] == "notesSlide"]
             note_text = [t for t in paragraphs(_xml(z, notes[0])) if not t.isdigit()] if notes else []  # no slide numbers
             lines.append(f"## Slide {n}" + (f": {heading}" if heading else ""))
