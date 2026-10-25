@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     chunk_size: int = 900
     chunk_overlap: int = 150
     context_chars: int = 0  # document summary in passage embeddings; helped ranking on Kubernetes docs, not on fixtures
+    context_source: str = "description"  # that line: description (the author's, else summary, else first paragraph) | summary | paragraph
     rerank_enabled: bool = True  # measured: +1.4 nDCG@10 on SciFact for ~0.4 s (docs/evaluation.md)
     # measured >= MiniLM on all three corpora where both ran (Kubernetes x2, CQADupStack); docs/evaluation.md
     rerank_model: str = "jinaai/jina-reranker-v1-turbo-en"
@@ -44,6 +45,8 @@ class Settings(BaseSettings):
     graph_expansion: bool = True  # follow links of the documents a query names (multi-hop questions); see evaluation
     enrich_enabled: bool = True  # summaries/topics/titles by the local language model, when one is available
     enrich_hours: str = ""  # "22-6": the local model only works between these hours (local time); "" = any time
+    summary_length: str = "short"  # short | medium | long (enrich.LENGTHS)
+    llm_device: str = "cpu"  # cpu | gpu: llama.cpp's Vulkan build (enrich.gpu_exe), falls back to the CPU
 
     # Local language model for document summaries (enrich.py), OpenAI-compatible. Empty llm_url = the model
     # installed by setup (`ferret download-llm`, run by the app itself) if present, else off.

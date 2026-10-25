@@ -288,9 +288,9 @@ class Worker:
                 chunks = chunk_document(parsed, rt.chunk_size, rt.chunk_overlap)
                 t.step("cutting into passages")
                 written = conn.execute("SELECT enrichment->>'summary' AS s FROM documents WHERE id = %s",
-                                       (job["document_id"],)).fetchone()["s"] if rt.context_chars else None
+                                       (job["document_id"],)).fetchone()["s"] if rt.context_chars and rt.context_source != "paragraph" else None
                 conn.commit()
-                summary = doc_summary(parsed, rt.context_chars, written or "")
+                summary = doc_summary(parsed, rt.context_chars, written or "", rt.context_source)
                 texts = [embedding_text(parsed.title, c, summary) for c in chunks]
                 hashes = [hashlib.sha256(x.encode()).hexdigest() for x in texts]
                 # passages whose embedding text and model are unchanged keep their vector (same text, same model)

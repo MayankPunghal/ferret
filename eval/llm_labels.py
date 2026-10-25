@@ -60,7 +60,7 @@ def main():
         title, outline, text = page(Path(a.corpus) / g["file"])
         t = time.time()
         try:  # the app retries a reply it cannot read; here it counts as wrong
-            reply = enrich.parse_reply(enrich.chat(a.url, "", enrich.PROMPT.format(
+            reply = enrich.parse_reply(enrich.chat(a.url, "", enrich.PROMPT.format(length=enrich.LENGTHS["short"], 
                 title=title, title_note="", outline=outline, text=text, types=types, known=""),
                 max_tokens=4000 if a.think else 300, think=a.think))
         except enrich.LLMError:

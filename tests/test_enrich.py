@@ -181,6 +181,25 @@ def test_a_model_server_that_cannot_start_is_reported_not_retried(client, corpus
         assert not c.execute("SELECT 1 FROM documents WHERE enrich_claimed_at IS NOT NULL OR enrichment IS NOT NULL").fetchone()
 
 
+def test_a_gpu_that_fails_falls_back_to_the_cpu_build(client, corpus, drain, fake_llm, tmp_path):
+    drain()
+    for d in ("bin", "gpu"):
+        (tmp_path / "llm" / d / enrich.LLAMA_CPP_TAG).mkdir(parents=True)
+        (tmp_path / "llm" / d / enrich.LLAMA_CPP_TAG / SERVER).write_text("not a program")
+    (tmp_path / "llm" / "tiny.gguf").write_bytes(b"GGUF")
+    e = enrich.Enricher(state.settings.model_copy(update={"llm_url": "", "model_cache": tmp_path, "offline": True}))
+    with db.pool().connection() as c:
+        runtime.save(c, runtime.validate({"llm_device": "gpu"}), None)
+    try:
+        assert not e.run_once()
+    finally:
+        with db.pool().connection() as c:
+            runtime.save(c, {"llm_device": "cpu"}, None)
+    assert e.gpu_error.startswith("GPU failed, using CPU") and e.server.gpu_exe is None
+    assert e.state.startswith("error: the local language model could not start")  # then the CPU build was tried
+    assert "vulkan" in enrich.asset_name(gpu=True)
+
+
 def test_without_a_model_the_default_one_is_downloaded_in_the_background(client, corpus, drain, monkeypatch, tmp_path):
     drain()
     calls = []
@@ -285,6 +304,18 @@ def test_type_and_topics_reuse_the_collections_names(client, corpus, drain, fake
         runtime.save(c, {"context_chars": 0}, None)
     assert en["summary"] == "How payments are retried. Covers backoff." and en["prompt"] == enrich.PROMPT_VERSION
     assert en["type"] == "how-to" and en["topics"] == ["payments", "retries", "ledger"]  # known spellings
+
+    # a new summary length: every summary is written again, asked for the new length
+    with db.pool().connection() as c:
+        runtime.save(c, runtime.validate({"summary_length": "long"}), None)
+        indexed = c.execute("SELECT count(*) AS n FROM documents WHERE status = 'indexed'").fetchone()["n"]
+    n = len(calls)
+    run_all(e)
+    assert len(calls) - n == indexed and "5 to 7 sentences" in calls[-1]["messages"][0]["content"]
+    with db.pool().connection() as c:
+        en = c.execute("SELECT enrichment FROM documents WHERE id = %s", (doc["id"],)).fetchone()["enrichment"]
+        runtime.save(c, {"summary_length": "short"}, None)
+    assert en["summary"] == "A different summary." and en["length"] == "long"
 
 
 def test_only_within_its_hours(client, corpus, drain, fake_llm):

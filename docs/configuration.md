@@ -53,6 +53,9 @@ Progress is shown on the Index status tab; the server's log is `KS_DATA_DIR/logs
 | `KS_EMBED_MODEL` | see `config.py` | Embedding model |
 | `KS_CHUNK_SIZE` / `KS_CHUNK_OVERLAP` | `900` / `150` | Chunk size / overlap (0 disables) |
 | `KS_CONTEXT_CHARS` | `0` | Document summary added to each passage's embedding (0 = off; Settings page) |
+| `KS_CONTEXT_SOURCE` | `description` | Where that line comes from: `description` (the document's own, else the model's summary, else the first paragraph), `summary` (only the model's), `paragraph` (only the first paragraph). Changing it re-indexes |
+| `KS_SUMMARY_LENGTH` | `short` | Summary length: `short` (2 sentences), `medium` (3–4), `long` (a paragraph). Changing it rewrites every summary |
+| `KS_LLM_DEVICE` | `cpu` | Run the summary model on the `cpu` or the `gpu` (llama.cpp's Vulkan build, Windows and Linux x64, downloaded on first use; falls back to the CPU if it fails) |
 | `KS_RERANK_ENABLED` / `KS_RERANK_MODEL` / `KS_RERANK_CANDIDATES` | see `config.py` | Reranker |
 | `KS_GRAPH_EXPANSION` | `true` | Linked documents: follow links of pages named in the question |
 | `KS_GATE_MODE`, `KS_GATE_LEXICAL`, `KS_GATE_DENSE_HIGH`, `KS_GATE_DENSE_MIN`, `KS_GATE_LEX_COVERAGE`, `KS_GATE_RERANK_MIN` | see `config.py` | Evidence thresholds |

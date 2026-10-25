@@ -1,0 +1,704 @@
+{
+ "llm": "gemma-4-e2b-laptop-vulkan",
+ "pages": 42,
+ "exact": 0.619,
+ "compatible": 0.619,
+ "compatible_by_section": {
+  "tasks": 0.833,
+  "concepts": 0.667,
+  "reference": 0.333,
+  "tutorials": 0.667
+ },
+ "confusion": {
+  "how-to -> how-to": 14,
+  "concept -> concept": 8,
+  "reference -> concept": 8,
+  "reference -> reference": 4,
+  "how-to -> reference": 3,
+  "concept -> how-to": 3,
+  "how-to -> concept": 1,
+  "concept -> reference": 1
+ },
+ "rows": [
+  {
+   "file": "access-api-from-pod.md",
+   "site_path": "content/en/docs/tasks/run-application/access-api-from-pod.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes API",
+    "Client Libraries",
+    "Service Account",
+    "REST API",
+    "kubectl proxy",
+    "certificate authority"
+   ],
+   "summary": "This document explains methods for accessing the Kubernetes API from within a Pod, focusing on using official client libraries and directly accessing the REST API with service account credentials.",
+   "seconds": 19.8
+  },
+  {
+   "file": "automated-tasks-with-cron-jobs.md",
+   "site_path": "content/en/docs/tasks/job/automated-tasks-with-cron-jobs.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes",
+    "CronJob",
+    "kubectl"
+   ],
+   "summary": "This document explains how to run automated tasks using Kubernetes CronJob objects. It details the steps for creating, monitoring, and deleting a CronJob.",
+   "seconds": 12.1
+  },
+  {
+   "file": "configure-access-multiple-clusters.md",
+   "site_path": "content/en/docs/tasks/access-application-cluster/configure-access-multiple-clusters.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "kubectl",
+    "kubeconfig file",
+    "clusters",
+    "users",
+    "contexts",
+    "KUBECONFIG environment variable"
+   ],
+   "summary": "This document explains how to configure access to multiple Kubernetes clusters by defining clusters, users, and contexts in configuration files. It details the steps to create and populate these configuration files for switching between clusters.",
+   "seconds": 14.4
+  },
+  {
+   "file": "configure-service-account.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/configure-service-account.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "ServiceAccount",
+    "API server",
+    "Pod",
+    "API credentials",
+    "ImagePullSecrets",
+    "ServiceAccount token volume projection"
+   ],
+   "summary": "This document explains the different ways to configure Service Accounts for Pods in Kubernetes, including using the default account, opting out of automatic credential mounting, and manually creating API tokens.",
+   "seconds": 14.2
+  },
+  {
+   "file": "custom-resource-definitions.md",
+   "site_path": "content/en/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "reference",
+   "topics": [
+    "CustomResourceDefinition",
+    "Custom objects",
+    "Structural schema",
+    "Field pruning",
+    "Validation",
+    "OpenAPI V2"
+   ],
+   "summary": "This document explains how to create and manage CustomResourceDefinitions (CRDs) to extend the Kubernetes API. It details the structure of CRDs, custom objects, and validation mechanisms.",
+   "seconds": 15.2
+  },
+  {
+   "file": "define-interdependent-environment-variables.md",
+   "site_path": "content/en/docs/tasks/inject-data-application/define-interdependent-environment-variables.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes Pods",
+    "Environment Variables",
+    "kubectl",
+    "Pod configuration"
+   ],
+   "summary": "This document explains how to define dependent environment variables for containers within a Kubernetes Pod using the $(VAR_NAME) syntax. It details how references are resolved and the importance of the order of environment variables.",
+   "seconds": 13.2
+  },
+  {
+   "file": "extend-service-ip-ranges.md",
+   "site_path": "content/en/docs/tasks/network/extend-service-ip-ranges.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "ServiceCIDR",
+    "kube-apiserver",
+    "ClusterIP",
+    "ipaddress",
+    "Kubernetes Service CIDR Policies",
+    "Validating Admission Policy"
+   ],
+   "summary": "This document explains how to extend the existing Service IP range in a cluster by adding new ServiceCIDRs. It details the process of creating a new ServiceCIDR to increase the number of available service IP addresses.",
+   "seconds": 16.5
+  },
+  {
+   "file": "indexed-parallel-processing-static.md",
+   "site_path": "content/en/docs/tasks/job/indexed-parallel-processing-static.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes Job",
+    "Pod index",
+    "Downward API",
+    "JOB_COMPLETION_INDEX environment variable",
+    "rev utility"
+   ],
+   "summary": "This document explains how to define and run a Kubernetes Job that utilizes multiple parallel worker processes. It details methods for workers to access their specific work item index.",
+   "seconds": 14.4
+  },
+  {
+   "file": "kubelet-in-userns.md",
+   "site_path": "content/en/docs/tasks/administer-cluster/kubelet-in-userns.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "concept",
+   "topics": [
+    "kubelet",
+    "CRI",
+    "user namespace",
+    "kind",
+    "minikube",
+    "Usernetes"
+   ],
+   "summary": "This document explains how to run Kubernetes node components like kubelet and CRI without root privileges by utilizing a user namespace, also known as rootless mode. It details various tools and techniques for achieving this setup.",
+   "seconds": 18.8
+  },
+  {
+   "file": "migrate-from-psp.md",
+   "site_path": "content/en/docs/tasks/configure-pod-container/migrate-from-psp.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "PodSecurityPolicy",
+    "Pod Security Admission",
+    "namespace permissions",
+    "Pod Security levels",
+    "mutating admission webhooks",
+    "validating admission webhooks"
+   ],
+   "summary": "This document outlines the process for migrating from using PodSecurityPolicies to the built-in Pod Security Admission controller. It details a multi-step approach to minimize risks and security gaps during the transition.",
+   "seconds": 16.3
+  },
+  {
+   "file": "quota-pod-namespace.md",
+   "site_path": "content/en/docs/tasks/administer-cluster/manage-resources/quota-pod-namespace.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "ResourceQuota",
+    "Namespace",
+    "Pod",
+    "Deployment",
+    "kubectl"
+   ],
+   "summary": "This document explains how to set a quota for the total number of Pods allowed in a Kubernetes Namespace using a ResourceQuota object. It provides steps for creating namespaces, applying the quota, and observing how it limits Pod creation.",
+   "seconds": 14.1
+  },
+  {
+   "file": "setup-konnectivity.md",
+   "site_path": "content/en/docs/tasks/extend-kubernetes/setup-konnectivity.md",
+   "section": "tasks",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Kubernetes cluster",
+    "kubectl",
+    "API Server",
+    "Service Account Token Volume Projection",
+    "egress configuration",
+    "X.509 certificate"
+   ],
+   "summary": "This document explains how to set up the Konnectivity service, which acts as a TCP level proxy for control plane cluster communication. It details the steps required to configure the API Server to use this service and manage necessary certificates.",
+   "seconds": 15.4
+  },
+  {
+   "file": "admission-webhooks-good-practices.md",
+   "site_path": "content/en/docs/concepts/cluster-administration/admission-webhooks-good-practices.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "how-to",
+   "topics": [
+    "Admission controllers",
+    "Admission webhooks",
+    "CustomResourceDefinitions (CRDs)",
+    "Performance and latency",
+    "Load balancer",
+    "High-availability deployment"
+   ],
+   "summary": "This document outlines best practices for designing and implementing admission webhooks in Kubernetes. It covers considerations for performance, preventing loops, managing scope, and ensuring idempotence.",
+   "seconds": 17.6
+  },
+  {
+   "file": "cluster-administration.md",
+   "site_path": "content/en/docs/concepts/cluster-administration/_index.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "Kubernetes concepts",
+    "Distros",
+    "Google Kubernetes Engine",
+    "Networking model",
+    "Node autoscaling",
+    "Resource quota"
+   ],
+   "summary": "This document provides an overview for creating and administering Kubernetes clusters. It guides users through planning, managing, securing the cluster, and understanding necessary components.",
+   "seconds": 14.0
+  },
+  {
+   "file": "cron-jobs.md",
+   "site_path": "content/en/docs/concepts/workloads/controllers/cron-jobs.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "how-to",
+   "topics": [
+    "CronJob",
+    "Cron syntax",
+    "Job template",
+    "Concurrency policy",
+    "Time zones"
+   ],
+   "summary": "This document explains how to use CronJobs to create Jobs that run on a repeating schedule. It details the Cron syntax for defining schedules and discusses limitations.",
+   "seconds": 16.5
+  },
+  {
+   "file": "dynamic-provisioning.md",
+   "site_path": "content/en/docs/concepts/storage/dynamic-provisioning.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "StorageClass",
+    "PersistentVolume",
+    "PersistentVolumeClaim",
+    "volume plugin (provisioner)",
+    "API group storage.k8s.io"
+   ],
+   "summary": "Dynamic volume provisioning allows storage volumes to be created on-demand, eliminating the need for manual storage pre-provisioning. It explains how StorageClasses and PersistentVolumeClaims work together to automate storage allocation.",
+   "seconds": 13.9
+  },
+  {
+   "file": "images.md",
+   "site_path": "content/en/docs/concepts/containers/images.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "Container Images",
+    "Image Names",
+    "Tags",
+    "Digests",
+    "OCI Image Manifest Specification",
+    "imagePullSecrets"
+   ],
+   "summary": "This document explains the concept of container images, how they are named (using tags and digests), and how Kubernetes interacts with them. It covers image pulling policies, authentication, and related configuration details.",
+   "seconds": 15.3
+  },
+  {
+   "file": "manage-resources-containers.md",
+   "site_path": "content/en/docs/concepts/configuration/manage-resources-containers.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "CPU resource units",
+    "Memory resource units",
+    "Pod-level resource specification",
+    "How Pods with resource requests are scheduled",
+    "How Kubernetes applies resource requests and limits",
+    "Resizing container resources"
+   ],
+   "summary": "This document explains how to specify resource requests and limits for containers within Kubernetes Pods. It details how these specifications affect scheduling, enforcement mechanisms like CPU throttling and OOM kills, and various resource types.",
+   "seconds": 17.3
+  },
+  {
+   "file": "object-management.md",
+   "site_path": "content/en/docs/concepts/overview/working-with-objects/object-management.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "reference",
+   "topics": [
+    "kubectl",
+    "Deployment object",
+    "YAML",
+    "JSON",
+    "API reference"
+   ],
+   "summary": "This document overviews the different techniques for creating and managing Kubernetes objects using the kubectl command-line tool. It details imperative commands, imperative object configuration, and declarative object configuration.",
+   "seconds": 12.4
+  },
+  {
+   "file": "pod-overhead.md",
+   "site_path": "content/en/docs/concepts/scheduling-eviction/pod-overhead.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "Pod Overhead",
+    "RuntimeClass",
+    "kubelet",
+    "Pod cgroup",
+    "admission controller"
+   ],
+   "summary": "This document explains Pod Overhead, which accounts for the system resources consumed by the Pod infrastructure beyond the container resources. It details how this overhead is configured using a RuntimeClass and affects scheduling and cgroup sizing.",
+   "seconds": 13.9
+  },
+  {
+   "file": "proxies.md",
+   "site_path": "content/en/docs/concepts/cluster-administration/proxies.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "kubectl proxy",
+    "apiserver proxy",
+    "kube proxy",
+    "Proxy/Load-balancer in front of apiserver(s)",
+    "Cloud Load Balancers"
+   ],
+   "summary": "This document explains the various types of proxies used within a Kubernetes environment, detailing their function and how they interact with the API server and services. It also notes that redirects have been deprecated.",
+   "seconds": 13.5
+  },
+  {
+   "file": "scheduler.md",
+   "site_path": "content/en/docs/concepts/security/hardening-guide/scheduler.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "how-to",
+   "topics": [
+    "kube-scheduler",
+    "authentication",
+    "networking",
+    "TLS",
+    "scheduling configurations",
+    "node labeling"
+   ],
+   "summary": "This document provides guidance on improving the security posture of the Kubernetes scheduler. It details command-line options for configuring authentication, networking, and TLS settings for the scheduler component.",
+   "seconds": 13.1
+  },
+  {
+   "file": "static-pods.md",
+   "site_path": "content/en/docs/concepts/workloads/pods/static-pods.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "kubelet",
+    "control plane components",
+    "kubeadm",
+    "mirror Pods",
+    "DaemonSets"
+   ],
+   "summary": "This document explains Static Pods, which are managed directly by the kubelet on a specific node. It details their use for running self-hosted control plane components and contrasts them with DaemonSets.",
+   "seconds": 16.4
+  },
+  {
+   "file": "topology-aware-routing.md",
+   "site_path": "content/en/docs/concepts/services-networking/topology-aware-routing.md",
+   "section": "concepts",
+   "type": "concept",
+   "model_type": "concept",
+   "topics": [
+    "EndpointSlice controller",
+    "kube-proxy",
+    "topology",
+    "Service",
+    "zone"
+   ],
+   "summary": "This document explains Topology Aware Routing, a mechanism that adjusts routing to keep traffic in the originating zone for performance or cost benefits. It details how the EndpointSlice controller and kube-proxy work together to influence traffic routing.",
+   "seconds": 13.5
+  },
+  {
+   "file": "access-authn-authz.md",
+   "site_path": "content/en/docs/reference/access-authn-authz/_index.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes API",
+    "Authentication",
+    "Admission Controllers",
+    "Authorization",
+    "Service accounts",
+    "Kubelet Authentication & Authorization"
+   ],
+   "summary": "This document provides an introduction to how Kubernetes implements and controls access to its API. It references various documentation sections covering authentication, authorization methods, and service accounts.",
+   "seconds": 12.3
+  },
+  {
+   "file": "cadvisor.md",
+   "site_path": "content/en/docs/reference/glossary/cadvisor.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "cAdvisor",
+    "containers",
+    "resource usage",
+    "performance characteristics",
+    "network statistics"
+   ],
+   "summary": "cAdvisor is a daemon that collects, aggregates, and exports information about running containers. It provides users with insights into resource usage, performance characteristics, and network statistics for containers.",
+   "seconds": 8.5
+  },
+  {
+   "file": "cncf.md",
+   "site_path": "content/en/docs/reference/glossary/cncf.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "Cloud Native Computing Foundation (CNCF)",
+    "projects",
+    "containers",
+    "microservices architecture",
+    "Kubernetes",
+    "Linux Foundation"
+   ],
+   "summary": "The CNCF builds sustainable ecosystems and a community around projects that orchestrate containers in microservices architectures. Kubernetes is a key project within the CNCF, aiming to make cloud native computing ubiquitous.",
+   "seconds": 10.1
+  },
+  {
+   "file": "customresourcedefinition.md",
+   "site_path": "content/en/docs/reference/glossary/customresourcedefinition.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "Kubernetes API server",
+    "API objects",
+    "Custom API"
+   ],
+   "summary": "A CustomResourceDefinition (CRD) is an API object used to define a new custom API to extend the Kubernetes API server. It allows users to extend the built-in API resources when standard resources are insufficient.",
+   "seconds": 8.6
+  },
+  {
+   "file": "duration.md",
+   "site_path": "content/en/docs/reference/glossary/duration.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Kubernetes APIs",
+    "time.Duration",
+    "ns",
+    "us",
+    "ms",
+    "s"
+   ],
+   "summary": "This document explains how duration values are represented in Kubernetes APIs. It details the format using Go's time.Duration type, including valid time units like 'ns', 'ms', 's', 'm', and 'h'.",
+   "seconds": 11.3
+  },
+  {
+   "file": "flexvolume.md",
+   "site_path": "content/en/docs/reference/glossary/flexvolume.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "FlexVolume",
+    "Container Storage Interface (CSI)",
+    "Kubernetes",
+    "Volume Plugins"
+   ],
+   "summary": "This document explains FlexVolume, a deprecated interface for creating out-of-tree volume plugins in Kubernetes. It suggests using a CSI driver as a preferred alternative to address the limitations of FlexVolume.",
+   "seconds": 11.0
+  },
+  {
+   "file": "kernel-version-requirements.md",
+   "site_path": "content/en/docs/reference/node/kernel-version-requirements.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "Linux Kernel",
+    "sysctls",
+    "kube-proxy",
+    "nftables",
+    "control groups",
+    "Pressure Stall Information (PSI)"
+   ],
+   "summary": "This document outlines minimum Linux kernel version requirements for various Kubernetes features, such as specific sysctls, kube-proxy modes, and control group support. It details which kernel versions are needed for specific functionalities.",
+   "seconds": 16.0
+  },
+  {
+   "file": "master.md",
+   "site_path": "content/en/docs/reference/glossary/master.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "nodes",
+    "control plane",
+    "kubeadm",
+    "managed services"
+   ],
+   "summary": "This document defines the legacy term 'Master' as a synonym for nodes hosting the control plane. It explains that this term is still used by tools like kubeadm and managed services to label nodes for control plane pod placement.",
+   "seconds": 9.3
+  },
+  {
+   "file": "persistent-volume.md",
+   "site_path": "content/en/docs/reference/glossary/persistent-volume.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "reference",
+   "topics": [
+    "PersistentVolume",
+    "API",
+    "storage",
+    "Pod",
+    "PersistentVolumeClaims (PVCs)"
+   ],
+   "summary": "This document describes the Persistent Volume (PV) API object, which represents a piece of storage in the cluster. It explains how PVs abstract storage details and are used for static provisioning.",
+   "seconds": 9.3
+  },
+  {
+   "file": "probe.md",
+   "site_path": "content/en/docs/reference/glossary/probe.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "kubelet",
+    "container",
+    "pod",
+    "container lifecycle"
+   ],
+   "summary": "This document explains what a probe is, which is a check performed by the kubelet against a running container in a pod. It defines the container's state and health to inform its lifecycle management.",
+   "seconds": 8.8
+  },
+  {
+   "file": "reviewer.md",
+   "site_path": "content/en/docs/reference/glossary/reviewer.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "codebase",
+    "software engineering principles"
+   ],
+   "summary": "This document defines what a Reviewer is within the project. It explains that a Reviewer is a person responsible for reviewing code quality and correctness based on their knowledge of the codebase and engineering principles.",
+   "seconds": 8.3
+  },
+  {
+   "file": "sysctl.md",
+   "site_path": "content/en/docs/reference/glossary/sysctl.md",
+   "section": "reference",
+   "type": "reference",
+   "model_type": "concept",
+   "topics": [
+    "Unix kernel",
+    "sysctl tool",
+    "sysctl system call",
+    "container runtimes",
+    "network plugins"
+   ],
+   "summary": "This document explains `sysctl` as a semi-standardized interface used to read or change attributes of the running Unix kernel. It clarifies that `sysctl` is both a tool and a system call.",
+   "seconds": 10.5
+  },
+  {
+   "file": "admission-policies.md",
+   "site_path": "content/en/docs/tutorials/cluster-management/admission-policies.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "reference",
+   "topics": [
+    "ValidatingAdmissionPolicy",
+    "MutatingAdmissionPolicy",
+    "Common Expression Language (CEL)",
+    "Policy elements",
+    "API types for admission policies",
+    "Parameter resources"
+   ],
+   "summary": "This document explains declarative admission policies in Kubernetes, detailing Validating and Mutating policies, their structure, and how they use Common Expression Language (CEL). It covers the differences between validation and mutation policies.",
+   "seconds": 15.0
+  },
+  {
+   "file": "cassandra.md",
+   "site_path": "content/en/docs/tutorials/stateful-application/cassandra.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Apache Cassandra",
+    "StatefulSet",
+    "Pods",
+    "Services",
+    "Minikube"
+   ],
+   "summary": "This document provides a tutorial on how to deploy Apache Cassandra on Kubernetes using a StatefulSet. It explains the steps to create a headless Service, use a StatefulSet to form a Cassandra ring, and validate the deployment.",
+   "seconds": 12.9
+  },
+  {
+   "file": "configure-redis-using-configmap.md",
+   "site_path": "content/en/docs/tutorials/configuration/configure-redis-using-configmap.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Redis",
+    "ConfigMap",
+    "kubectl",
+    "Pod",
+    "volumeMounts",
+    "redis-cli"
+   ],
+   "summary": "This document provides a real-world example of configuring Redis by using a Kubernetes ConfigMap. It details the steps to create the ConfigMap, deploy a Redis Pod, and verify that the configuration is correctly applied within the container.",
+   "seconds": 13.5
+  },
+  {
+   "file": "hello-minikube.md",
+   "site_path": "content/en/docs/tutorials/hello-minikube.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "minikube",
+    "kubectl",
+    "Deployment",
+    "Service",
+    "Pod"
+   ],
+   "summary": "This document provides a tutorial on how to run a sample application on Kubernetes using minikube. It guides the user through creating a cluster, checking its status, opening the dashboard, and deploying resources.",
+   "seconds": 12.1
+  },
+  {
+   "file": "ns-level-pss.md",
+   "site_path": "content/en/docs/tutorials/security/ns-level-pss.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "how-to",
+   "topics": [
+    "Pod Security Admission",
+    "Pod Security Standards",
+    "kind",
+    "kubectl"
+   ],
+   "summary": "This document provides a tutorial on how to apply Pod Security Standards, specifically the `baseline` standard, to a single Kubernetes namespace using Pod Security Admission.",
+   "seconds": 11.6
+  },
+  {
+   "file": "source-ip.md",
+   "site_path": "content/en/docs/tutorials/services/source-ip.md",
+   "section": "tutorials",
+   "type": "how-to",
+   "model_type": "reference",
+   "topics": [
+    "NAT",
+    "Source NAT",
+    "Destination NAT",
+    "VIP",
+    "kube-proxy",
+    "Service"
+   ],
+   "summary": "This document explains how the source IP of packets is handled for different Kubernetes Service types like ClusterIP, NodePort, and LoadBalancer, and how to control this behavior.",
+   "seconds": 12.8
+  }
+ ]
+}

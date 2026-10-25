@@ -612,16 +612,26 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   default (`KS_INPROCESS_WORKERS=2`), sharing the model session; a re-index embeds only passages whose
   embedding text or model changed (`chunks.embed_hash`, migration 0010), so an edit, a folder or website
   update, or a reindex that leaves passage text alone is nearly free. Test: one edited section re-embeds one
-  of four passages and the kept vectors equal a full re-embed within 1e-4. Measured on the owner's laptop:
+  of four passages and the kept vectors equal a full re-embed (cosine above 0.999; batch padding changes the last digits, most on macOS). Measured on the owner's laptop:
   12th Gen Intel Core i5-12500H laptop (12 cores, 16 threads; Windows 11), bge-base, a generated 400-passage Markdown file, two-worker default: a 1-passage file uploaded right after it was indexed after **1.2 s** (one worker: **71.8 s**, behind the large one); the large file took 72.3 s (one worker: 71.8 s). Uploading the 400-passage file again with one section edited: **1.0 s** (first upload 58.4 s), because 399 passages kept their vectors. A changed document summary (context line) still re-embeds every passage, as it should.
 - **GPU probe (plan-gpu step 1) on the laptop:** Intel Iris Xe (driver 31.0.101.4575), i5-12500H, Windows 11; bge-base, 400 passages cut by the app (`data/app-passages.json`, median 740 characters), sorted by length as the app batches them; same passages in both runs. CPU: the app's own environment (onnxruntime 1.31). GPU: `onnxruntime-directml` 1.24.4 in its own environment (`scripts/gpu_probe.py`). Passages/s at batch 8 / 32 / 64 / 128: **CPU 5.2 / 4.5 / 4.0 / 3.6, GPU (DirectML) 1.0 / 2.2 / 2.7 / out of GPU memory** (DirectML "Not enough memory resources" at batch 128). Larger batches help the GPU, but its best (2.7) is about half the CPU's best (5.2, at the app's batch 8). Parity, from an earlier run on paragraph input: cosine between CPU and GPU vectors min 0.999987, mean 0.999992, which passes the bar. So the embedding switch is not worth building for this laptop. (An earlier version of this note said CPU 3.4 vs GPU 1.2; that run used unsorted paragraphs from the docs folder, so padding slowed both sides.) Not measured: OpenVINO and the reranker.
 - **Step 1 (several embedding sessions) measured on the laptop:** best 4 × 4 threads 6.9 against 6.5
   passages/s for one session (evaluation.md §10): no worthwhile gain, not built.
 - **Published names decided by the owner (2026-10-25):** PyPI `ferret-search`, image
   `ghcr.io/mayankpunghal/ferret-search` (TODO 24 closed).
-- **CI (plan-release step 1) written:** `.github/workflows/ci.yml` (tests on three systems, UI walkthrough
-  on Linux). Its runs on GitHub were not checked from here. `scripts/gpu_probe.py` (plan-gpu step 1) added,
-  not yet run.
+- **CI (plan-release step 1):** `.github/workflows/ci.yml` (tests on three systems, UI walkthrough on Linux).
+  First runs: Linux and the walkthrough passed; Windows failed at setup because the embedded PostgreSQL's
+  `initdb` cannot create its folder under the runner's Temp ("File exists"), so pytest now uses
+  `--basetemp` under `runner.temp`; macOS failed the new embed-reuse test on a 1e-4 tolerance (batch
+  padding), now a cosine check.
+- **Settings added (owner asks, 2026-10-25):** **Summary length** (`summary_length`: short = 2 sentences,
+  medium = 3–4, long = a paragraph; the prompt asks for it, the enrichment stores `length`, and a change
+  makes every summary pending again, in the worker and in the Summaries counts); **Take that line from**
+  (`context_source`: description = the old order, summary only, first paragraph only; part of the index
+  signature, so a change re-indexes); **Run it on CPU / GPU** for the local language model (`llm_device`,
+  see plan-gpu status and evaluation.md §11). Smoke test on the laptop: the Vulkan build downloaded,
+  `--list-devices` shows the Iris Xe, the server started with `-ngl 99` and answered. Tests: length rewrite,
+  the three line sources, GPU-to-CPU fallback.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 

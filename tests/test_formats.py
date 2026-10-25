@@ -304,6 +304,9 @@ def test_document_summary_in_passage_embeddings_is_a_setting():
     assert doc_summary(doc, 0) == "" and doc_summary(doc, 300) == "The asset service tracks equipment."
     described = parse_document(b"---\ndescription: Tracks equipment.\n---\n# Assets\n\nText.\n", "b.md")
     assert doc_summary(described, 300) == "Tracks equipment."
+    # Settings "Take that line from": only the model's summary, or only the first paragraph
+    assert doc_summary(described, 300, "Model text.", "summary") == "Model text." and doc_summary(doc, 300, "", "summary") == ""
+    assert doc_summary(described, 300, "Model text.", "paragraph") == "Text."
     api = chunk_document(doc, 900, 0)[-1]
     assert "tracks equipment" in embedding_text(doc.title, api, doc_summary(doc, 300))
     rt = runtime.defaults()

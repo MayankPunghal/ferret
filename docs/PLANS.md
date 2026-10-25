@@ -6,7 +6,7 @@ that have a plan file. Sizes marked *(est.)* are my estimate; the others are sta
 
 | Order | Plan | Goal in one line | Status | Size | Waits for | TODO # |
 |---|---|---|---|---|---|---|
-| 4 | [plan-gpu.md](plan-gpu.md) | CPU/GPU switch in Settings for search models and the local language model; kept only where measured faster with identical results | not built | medium *(est.)* | the owner's laptop for the measurement | 4 |
+| 4 | [plan-gpu.md](plan-gpu.md) | CPU/GPU switch in Settings for search models and the local language model; kept only where measured faster with identical results | **summaries switch built 2026-10-25**; embeddings and reranker stay on the CPU (owner decision: CPU faster on this laptop) | — | a dedicated high-memory GPU, someday | 4 |
 | 5 | [plan-release.md](plan-release.md) | CI on Linux, Windows, macOS → PyPI package with a browser setup wizard → Docker image on GHCR → Windows installer → macOS | not built | large, in 5 steps *(est.)*; step 1 (CI) small | — | 5 |
 | 6 | [plan-docker.md](plan-docker.md) | Docker image and compose file brought up to date (search model, summaries model, writable model folder, self-test) | not built | small–medium *(est.)* | step 1 of plan-release (CI) for publishing | 6 |
 | 7 | [plan-installer.md](plan-installer.md) | One-click Windows installer like *holler* (PyInstaller + Inno Setup, tray icon, updates, uninstall keeps data) | not built | medium–large *(est.)* | plan-release steps 1–2 | 5 |

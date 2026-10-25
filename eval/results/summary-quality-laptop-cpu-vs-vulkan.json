@@ -1,0 +1,34 @@
+{
+ "pages": 60,
+ "reference_descriptions": 228,
+ "models": {
+  "gemma-4-e2b-laptop-cpu": {
+   "agreement": 0.786,
+   "identifies": 0.733,
+   "median_seconds": 11.9,
+   "words": 31.4,
+   "type": {
+    "pages": 49,
+    "exact": 0.224,
+    "compatible": 0.224
+   }
+  },
+  "gemma-4-e2b-laptop-vulkan": {
+   "agreement": 0.786,
+   "identifies": 0.75,
+   "median_seconds": 10.8,
+   "words": 31.3,
+   "type": {
+    "pages": 49,
+    "exact": 0.184,
+    "compatible": 0.184
+   }
+  },
+  "no model (first paragraph)": {
+   "agreement": 0.855,
+   "identifies": 0.817,
+   "median_seconds": null,
+   "words": 21.6
+  }
+ }
+}

@@ -33,6 +33,7 @@ class Runtime:
     chunk_size: int
     chunk_overlap: int  # 0 disables overlap
     context_chars: int  # document summary added to each passage's embedding (parsing.doc_summary); 0 = off
+    context_source: str  # where that line comes from: description | summary | paragraph (parsing.doc_summary)
     rerank_enabled: bool
     rerank_model: str
     rerank_candidates: int
@@ -49,9 +50,12 @@ class Runtime:
     enrich_enabled: bool  # background summaries/topics/titles by the local language model (enrich.py)
     enrich_hours: str  # "22-6" = only between 22:00 and 06:00 local time; "" = any time
     enrich_model: str  # enrich.LLMS name chosen in Settings; "" = the one setup installed
+    summary_length: str  # short | medium | long (enrich.LENGTHS)
+    llm_device: str  # cpu | gpu (enrich.Enricher._device)
 
     def signature(self) -> str:
-        ctx = f"|ctx={self.context_chars}" if self.context_chars else ""
+        src = "" if self.context_source == "description" else f"/{self.context_source}"
+        ctx = f"|ctx={self.context_chars}{src}" if self.context_chars else ""
         return f"{MODELS[self.embed_model].version_key}|{PARSER_VERSION}|chunk={self.chunk_size}/{self.chunk_overlap}{ctx}"
 
 
@@ -83,12 +87,13 @@ def defaults(model: str | None = None) -> Runtime:
     full = spec.gate_all if spec and spec.gate_all is not None else s.gate_all_terms_min
     return Runtime(
         embed_model=model, chunk_size=s.chunk_size, chunk_overlap=s.chunk_overlap, context_chars=s.context_chars,
+        context_source=s.context_source,
         rerank_enabled=s.rerank_enabled, rerank_model=s.rerank_model, rerank_candidates=s.rerank_candidates,
         gate_dense_high=high, gate_dense_min=low,
         gate_lex_coverage=lex, gate_rerank_min=s.gate_rerank_min,
         gate_mode=s.gate_mode, gate_lexical=s.gate_lexical, gate_all_terms_min=full, fusion_lexical_weight=s.fusion_lexical_weight,
         graph_expansion=s.graph_expansion, enrich_enabled=s.enrich_enabled, enrich_hours=s.enrich_hours,
-        enrich_model="",
+        enrich_model="", summary_length=s.summary_length, llm_device=s.llm_device,
     )
 
 
@@ -118,6 +123,12 @@ def validate(changes: dict) -> dict:
             raise ValueError(f"unsupported reranker {v}")
         if k == "gate_mode" and v not in ("similarity", "rerank", "rerank_and_similarity"):
             raise ValueError("gate_mode must be similarity, rerank or rerank_and_similarity")
+        if k == "context_source" and v not in ("description", "summary", "paragraph"):
+            raise ValueError("context_source must be description, summary or paragraph")
+        if k == "llm_device" and v not in ("cpu", "gpu"):
+            raise ValueError("llm_device must be cpu or gpu")
+        if k == "summary_length" and v not in ("short", "medium", "long"):
+            raise ValueError("summary_length must be short, medium or long")
         if k == "gate_lexical" and v not in ("coverage", "idf"):
             raise ValueError("gate_lexical must be coverage or idf")
         if k == "enrich_model":

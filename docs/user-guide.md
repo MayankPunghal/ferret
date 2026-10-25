@@ -35,7 +35,7 @@ evidence**. The right passage is often among them (especially for paraphrased qu
 - document title (click it to open the document), collection, section or PDF page, and the version when
   there is more than one;
 - a snippet with the matching words highlighted;
-- when the optional local language model is installed: **Summary (local model)** — two sentences on what the
+- when the optional local language model is installed: **Summary (local model)** — two sentences (or longer, if the administrator chose so) on what the
   document is about — and **Topics**. Click a topic to list every document the model gave that topic, on the Summaries tab, with a link to search the text for it instead. A vague title ("Overview", a file name)
   is replaced by a clearer one written by the model; hover over it to see the document's own title. These
   are written by the model, so they can be wrong: the snippet and passage are the evidence, never the summary;

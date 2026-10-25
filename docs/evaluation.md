@@ -359,6 +359,25 @@ Owner's laptop (2026-10-25): Intel Core i5-12500H, 12 cores / 16 threads, Window
 
 Owner's laptop, 2026-10-25: Intel Iris Xe (driver 31.0.101.4575), i5-12500H, Windows 11; bge-base, 400 passages cut by the app (`data/app-passages.json`, median 740 characters), sorted by length as the app batches them; same passages in both runs. CPU: the app's own environment (onnxruntime 1.31). GPU: `onnxruntime-directml` 1.24.4 in its own environment (`scripts/gpu_probe.py`). Passages/s at batch 8 / 32 / 64 / 128: **CPU 5.2 / 4.5 / 4.0 / 3.6, GPU (DirectML) 1.0 / 2.2 / 2.7 / out of GPU memory** (DirectML "Not enough memory resources" at batch 128). Larger batches help the GPU, but its best (2.7) is about half the CPU's best (5.2, at the app's batch 8). Parity, from an earlier run on paragraph input: cosine between CPU and GPU vectors min 0.999987, mean 0.999992, which passes the bar. So the embedding switch is not worth building for this laptop. (An earlier version of this note said CPU 3.4 vs GPU 1.2; that run used unsorted paragraphs from the docs folder, so padding slowed both sides.) Not measured: OpenVINO and the reranker.
 
+**Summaries on the GPU (plan-gpu step 3), same laptop, 2026-10-25.** llama.cpp b11836, Gemma 4 E2B Q4_K_M,
+the app's server flags (`-c 8192 -np 1 -t 8 --poll 0 --jinja`), CPU build against the Vulkan build with
+`-ngl 99`, one after the other on the same pages (each: `eval/llm_labels.py`, then `eval/llm_summaries.py --app-prompt --parallel 1 --limit 60`; results in
+`eval/results/*-gemma-4-e2b-laptop-{cpu,vulkan}.json`, `summary-quality-laptop-cpu-vs-vulkan.json`):
+
+| | CPU build | Vulkan build (Iris Xe) |
+|---|---|---|
+| Document types, 42 Kubernetes pages (`eval/llm_labels.py`): exact | 0.643 | 0.619 (same type on 40 of 42 pages) |
+| Same run, seconds per page, median | 21.0 | 13.5 |
+| Summaries, 60 pages without descriptions (`eval/llm_summaries.py --app-prompt`): median per request / wall per page | 11.9 s / 14.1 s | 10.8 s / 11.5 s |
+| Summary quality (`eval/summary_quality.py`): agreement / identifies the page | 0.786 / 0.733 | 0.786 / 0.750 |
+
+The GPU is 10–20% faster on the summaries run, and quality is the same within noise (one page apart on types
+and on "identifies"). The 21.0 s CPU figure on types was slower than the CPU's summaries run, so other work
+on the laptop may have slowed it; the summaries run is the cleaner comparison. Part of the Vulkan summaries
+run overlapped a test run on the CPU, which can only have slowed the GPU side. Built as the Settings switch
+**Run it on: CPU / GPU** (default CPU). Embeddings and the reranker stay on the CPU (owner decision,
+2026-10-25: the CPU is faster for them on this laptop; revisit with a dedicated high-memory GPU).
+
 ## Not measured
 
 Real company corpus; corpora beyond ~8.5k chunks; large embedding models (bge-large); GPU; Windows performance; Docker

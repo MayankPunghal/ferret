@@ -273,15 +273,19 @@
               <label class="check"><input type="checkbox" id="s-overlap-on"> Overlap neighbouring passages</label>
               <label><span>Overlap <span class="muted">characters</span></span> <input type="number" name="chunk_overlap" id="s-overlap" min="0" max="1000" step="10"></label>
               <label><span>Line about the whole document on every passage <span class="muted">characters, 0 = off</span></span> <input type="number" name="context_chars" id="s-ctx" min="0" max="1000" step="50"></label>
+              <label>Take that line from <select name="context_source" id="s-ctx-src">
+                <option value="description">its own description, else the summary, else the first paragraph</option>
+                <option value="summary">only the local model's summary</option>
+                <option value="paragraph">only the document's first paragraph</option></select></label>
               <details class="more">
                 <summary>What this line does</summary>
                 <p class="muted small">Every passage is embedded under a header with the document title and section heading.
                   This adds one more line describing the whole document, so a passage that never names its subject
                   (“set the revision with --to-revision=2”) is still found for “roll back a Deployment”. The line is the
                   document's own description if it has one, else the local model's summary (when installed), else its
-                  first paragraph. Measured on 623 Kubernetes pages at 300 characters (right page first, 56 questions):
+                  first paragraph; “Take that line from” can limit it to one of these. Measured on 623 Kubernetes pages at 300 characters (right page first, 56 questions):
                   with the authors' descriptions 94.6% → 98.2% (100% with the MiniLM reranker); without descriptions the
-                  first paragraph did not help (96.4% → 96.4%), a Gemma 4 E2B summary did (98.2%). Changing it re-indexes.</p>
+                  first paragraph did not help (96.4% → 96.4%), a Gemma 4 E2B summary did (98.2%). Changing it, or where the line comes from, re-indexes. A new summary length rewrites every summary.</p>
               </details>
             </div>
           </section>
@@ -310,12 +314,20 @@
           <section class="setting">
             <div class="setting-label">
               <h2>Local language model</h2>
-              <p>Optional. Runs on this computer; never used as evidence. <button type="button" class="info" data-tip="Writes a two-sentence summary, a document type (runbook, how-to, policy, …), up to six topics and, only for vague titles, a clearer title. One document at a time, at low priority, so indexing and search come first. Outside its hours the model is stopped and its memory freed. With “line about the whole document” on, a document without its own description is re-indexed once to use the summary. Progress: Summaries tab." aria-label="More about this: Writes a two-sentence summary, a document type (runbook, how-to, policy, …), up to six topics and, only for vague titles, a clearer title. One document at a time, at low priority, so indexing and search come first. Outside its hours the model is stopped and its memory freed. With “line about the whole document” on, a document without its own description is re-indexed once to use the summary. Progress: Summaries tab.">i</button></p>
+              <p>Optional. Runs on this computer; never used as evidence. <button type="button" class="info" data-tip="Writes a summary (2 sentences by default; longer ones take longer to write), a document type (runbook, how-to, policy, …), up to six topics and, only for vague titles, a clearer title. One document at a time, at low priority, so indexing and search come first. Outside its hours the model is stopped and its memory freed. With “line about the whole document” on, a document without its own description is re-indexed once to use the summary. Progress: Summaries tab." aria-label="More about this: Writes a summary (2 sentences by default; longer ones take longer to write), a document type (runbook, how-to, policy, …), up to six topics and, only for vague titles, a clearer title. One document at a time, at low priority, so indexing and search come first. Outside its hours the model is stopped and its memory freed. With “line about the whole document” on, a document without its own description is re-indexed once to use the summary. Progress: Summaries tab.">i</button></p>
             </div>
             <div class="setting-panel">
               <label class="check"><input type="checkbox" name="enrich_enabled" id="s-enrich-on"> Summarise and label each document in the background</label>
               <label>Model <select name="enrich_model" id="s-llm"></select></label>
               <p class="muted small" id="s-llm-note"></p>
+              <label>Summary length <select name="summary_length" id="s-sumlen">
+                <option value="short">short: 2 sentences</option>
+                <option value="medium">medium: 3 to 4 sentences</option>
+                <option value="long">long: a paragraph, 5 to 7 sentences</option></select></label>
+              <label>Run it on <select name="llm_device" id="s-llm-dev">
+                <option value="cpu">the processor (CPU)</option>
+                <option value="gpu">the graphics card (GPU)</option></select></label>
+              <p class="muted small" id="s-llm-dev-note"></p>
               <details class="more model-list"><summary id="ml-llm-sum">Models on this computer</summary>
                 <table class="data"><tbody id="ml-llm"></tbody></table></details>
               <label><span>Only between these hours <span class="muted">local time, e.g. 22-6; empty = any time</span></span> <input name="enrich_hours" id="s-hours" placeholder="22-6"></label>

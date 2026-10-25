@@ -127,7 +127,9 @@ def _settings_view(conn) -> dict:
         },
         # the model now writing summaries; fixed when KS_LLM_URL names another local server
         "llm": {"current": getattr(enricher, "model", "") or "", "external": bool(s.llm_url),
-                "default": enrich.DEFAULT_LLM},
+                "default": enrich.DEFAULT_LLM, "gpu": enrich.gpu_supported(),
+                "device": "gpu" if getattr(getattr(enricher, "server", None), "gpu_exe", None) else "cpu",
+                "gpu_error": getattr(enricher, "gpu_error", "")},
         "recommended": {"embed_model": s.embed_model, "rerank_model": s.rerank_model},
         "model_status": {**runtime.model_states(), **{f"download: {k}": v for k, v in _loading.items()}},
         "index": {"signature": rt.signature(), **cov},

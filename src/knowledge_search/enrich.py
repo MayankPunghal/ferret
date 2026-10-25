@@ -68,13 +68,15 @@ DOC_TYPES = {  # type: what it means (shown to the model)
 PROMPT = """You index internal technical documentation for search. Read the document below and reply with JSON:
 {{"title": "<a short, specific title for the document>",
  "type": "<the type below that fits best>",
- "summary": "<2 sentences, at most 50 words: what the document is about and what it explains>",
+ "summary": "<{length}: what the document is about and what it explains>",
  "topics": ["<up to 6 systems, services, components or concepts the document relies on or relates to>"]}}
 Types: {types}
 {known}
 Document title: {title}{title_note}
 {outline}
 {text}"""
+LENGTHS = {"short": "2 sentences, at most 50 words", "medium": "3 to 4 sentences, at most 100 words",
+           "long": "one paragraph of 5 to 7 sentences, at most 180 words"}  # Settings: summary_length
 KNOWN_TOPICS = 40  # most used topics of the collection, shown to the model so it reuses their names
 
 
@@ -223,12 +225,14 @@ def llm_dir(settings) -> Path:
     return Path(settings.model_cache) / "llm"
 
 
+SERVER = "llama-server.exe" if sys.platform == "win32" else "llama-server"
+
+
 def installed(settings, file: str = "") -> tuple[Path, Path] | None:
     """(llama-server executable, .gguf model) installed by `ferret download-llm`, if present: the
     model `file`, else KS_LLM_MODEL, else the one selected by the last download."""
     d = llm_dir(settings)
-    exe = next((p for p in (d / "bin").rglob("llama-server.exe" if sys.platform == "win32" else "llama-server")
-                if p.is_file()), None) if (d / "bin").is_dir() else None
+    exe = next((p for p in (d / "bin").rglob(SERVER) if p.is_file()), None) if (d / "bin").is_dir() else None
     chosen = file or settings.llm_model or ((d / "selected.txt").read_text().strip() if (d / "selected.txt").is_file() else "")
     model = d / chosen if chosen else next(iter(sorted(d.glob("*.gguf"))), None)
     return (exe, model) if exe and model and model.is_file() else None
@@ -240,6 +244,7 @@ class LocalServer:
     def __init__(self, exe: Path, model: Path, threads: int, log_dir: Path):
         # absolute: the server runs in its own folder (KS_MODEL_CACHE is relative by default)
         self.exe, self.model, self.threads, self.log_dir = exe.resolve(), model.resolve(), threads, log_dir
+        self.gpu_exe: Path | None = None  # llama.cpp's Vulkan build: all layers on the GPU (Settings: llm_device)
         self.proc: subprocess.Popen | None = None
         self.url = ""
 
@@ -248,9 +253,10 @@ class LocalServer:
             s.bind(("127.0.0.1", 0))
             port = s.getsockname()[1]
         self.log_dir.mkdir(parents=True, exist_ok=True)
+        exe = (self.gpu_exe or self.exe).resolve()
         env = dict(os.environ)  # the release's shared libraries sit next to the executable
         for var in ("LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"):
-            env[var] = os.pathsep.join(filter(None, [str(self.exe.parent), env.get(var)]))
+            env[var] = os.pathsep.join(filter(None, [str(exe.parent), env.get(var)]))
         self._log = open(self.log_dir / "llm-server.log", "ab")  # noqa: SIM115 - the server writes to it until stop()
         # -t: llama.cpp threads busy-wait, so only the cores we leave it (measured: 4 threads on 2 free cores
         # made one request 6x slower). One request at a time; 8k context fits the prompt.
@@ -259,9 +265,9 @@ class LocalServer:
         # normal priority, 17.6 s at nice 19; a summary alone takes as long as before (16 s).
         nice = [] if sys.platform == "win32" or not shutil.which("nice") else ["nice", "-n", "19"]
         self.proc = subprocess.Popen(
-            [*nice, str(self.exe), "-m", str(self.model), "--host", "127.0.0.1", "--port", str(port), "-c", "8192",
-             "-np", "1", "-t", str(self.threads), "--poll", "0", "--jinja"],
-            stdout=self._log, stderr=subprocess.STDOUT, cwd=str(self.exe.parent), env=env,
+            [*nice, str(exe), "-m", str(self.model), "--host", "127.0.0.1", "--port", str(port), "-c", "8192",
+             "-np", "1", "-t", str(self.threads), "--poll", "0", "--jinja", *(["-ngl", "99"] if self.gpu_exe else [])],
+            stdout=self._log, stderr=subprocess.STDOUT, cwd=str(exe.parent), env=env,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "IDLE_PRIORITY_CLASS", 0))
         self.url = f"http://127.0.0.1:{port}/v1"
         end = time.monotonic() + wait
@@ -296,11 +302,14 @@ PENDING = ("d.status = 'indexed' AND d.indexed_version_id IS NOT NULL "
            "AND (d.enrichment IS NULL OR d.enrichment->>'version_id' IS DISTINCT FROM d.indexed_version_id::text "
            "  OR d.enrichment->>'model' IS DISTINCT FROM %(model)s "
            "  OR (d.enrichment->>'prompt')::int IS DISTINCT FROM %(prompt)s "
+           "  OR coalesce(d.enrichment->>'length', 'short') IS DISTINCT FROM coalesce("
+           "    (SELECT s.value #>> '{}' FROM app_settings s WHERE s.key = 'summary_length'), %(length)s) "
            "  OR (d.enrichment ? 'error' AND (d.enrichment->>'attempts')::int < %(max)s)) ")
 
 
 def _args(model: str, **kw) -> dict:
-    return {"model": model, "prompt": PROMPT_VERSION, "max": MAX_ATTEMPTS, "claim": CLAIM_MINUTES, **kw}
+    return {"model": model, "prompt": PROMPT_VERSION, "max": MAX_ATTEMPTS, "claim": CLAIM_MINUTES,
+            "length": runtime.base().summary_length, **kw}
 
 
 # An indexed document's summary stage: writing (claimed by the worker), waiting, failed or done.
@@ -356,6 +365,7 @@ class Enricher:
         self.stopping = False
         self.broken = ""  # the installed model server could not start: reported, not retried until restart
         self.download_failed = False  # the automatic download failed: retried at the next app start
+        self.gpu_error = ""  # the GPU build could not be fetched or started: the CPU build runs until restart
         if not self.url:
             self._find_installed()
 
@@ -397,6 +407,21 @@ class Enricher:
             self.stop_server()
             self._download(name)
 
+    def _device(self, want: str) -> None:
+        """Run the installed model on the CPU, or on the GPU with llama.cpp's Vulkan build (fetched once).
+        Measured on an Intel Iris Xe laptop: summaries 10-20% faster, same quality (docs/evaluation.md §11)."""
+        exe = None
+        if want == "gpu" and not self.gpu_error:
+            try:
+                self.state = "preparing the GPU build of the model server (one-time download)"
+                exe = gpu_exe(self.settings)
+            except Exception as e:  # noqa: BLE001 - network and file errors come in many types; the CPU carries on
+                self.gpu_error = f"GPU failed, using CPU: {e}"[:300]
+                log.error("document summaries: %s", self.gpu_error)
+        if exe != self.server.gpu_exe:
+            self.stop_server()
+            self.server.gpu_exe = exe
+
     @property
     def available(self) -> bool:
         return bool(self.url or self.server)
@@ -407,6 +432,11 @@ class Enricher:
             try:
                 self.url = self.server.start()
             except (OSError, LLMError) as e:
+                if self.server.gpu_exe:  # driver or memory trouble on the GPU: the CPU build instead, loudly
+                    self.gpu_error = f"GPU failed, using CPU: {e}"[:300]
+                    log.error("document summaries: %s", self.gpu_error)
+                    self.server.gpu_exe = None
+                    return self._ensure_server()
                 self.broken = f"error: the local language model could not start ({e})"[:300]
                 log.error("%s; see logs/llm-server.log. Summaries are paused until the app restarts.", self.broken)
                 return False
@@ -422,6 +452,8 @@ class Enricher:
             elif rt.enrich_enabled and not self.available and not self.download_failed and not self.settings.offline:
                 self._download()
                 return self.available
+            if self.server:
+                self._device(rt.llm_device)
         with db.pool().connection() as conn:
             rt = runtime.load(conn)
             conn.commit()
@@ -451,7 +483,8 @@ class Enricher:
             title, outline, text = source_text(conn, doc["id"])
             known = known_topics(conn, doc["collection_id"])
             conn.commit()
-            base = {"version_id": str(doc["indexed_version_id"]), "model": self.model, "prompt": PROMPT_VERSION}
+            base = {"version_id": str(doc["indexed_version_id"]), "model": self.model, "prompt": PROMPT_VERSION,
+                    "length": rt.summary_length}
             t = time.perf_counter()
             try:
                 self.state = "working"
@@ -461,8 +494,8 @@ class Enricher:
                         + "; ".join(known) + "\n") if known else ""
                 out = parse_reply(chat(self.url, self.model, PROMPT.format(
                     title=title or doc["title"], title_note=note, outline=outline, text=text,
-                    types="; ".join(f"{k} ({v})" for k, v in DOC_TYPES.items()), known=hint),
-                    label=f"summary of {doc['title']}"[:120]))
+                    types="; ".join(f"{k} ({v})" for k, v in DOC_TYPES.items()), known=hint,
+                    length=LENGTHS[rt.summary_length]), max_tokens=600, label=f"summary of {doc['title']}"[:120]))
             except LLMError as e:
                 if self.stopping:  # the app is closing: not the document's fault
                     conn.execute("UPDATE documents SET enrich_claimed_at = NULL WHERE id = %s", (doc["id"],))
@@ -479,13 +512,15 @@ class Enricher:
             better = clearer_title(doc["title"], out["title"])
             prev = doc["enrichment"] or {}
             # Only the prompt changed (a new label, say): keep the summary already in this version's passage
-            # embeddings, so the whole archive is not re-indexed for it.
-            keep = prev.get("summary") and prev.get("version_id") == base["version_id"] and prev.get("model") == self.model
+            # embeddings, so the whole archive is not re-indexed for it. A new summary length writes it again.
+            keep = (prev.get("summary") and prev.get("version_id") == base["version_id"] and prev.get("model") == self.model
+                    and prev.get("length", "short") == rt.summary_length)
             self._store(conn, doc["id"], {**base, "summary": prev["summary"] if keep else out["summary"],
                                           "title": prev.get("title") if keep else better, "type": out["type"],
                                           "topics": align_topics(out["topics"], known),
                                           "seconds": round(time.perf_counter() - t, 1)})
-            if rt.context_chars and not own and not keep:  # put the summary into this document's passage embeddings
+            uses = rt.context_source == "summary" or (rt.context_source == "description" and not own)
+            if rt.context_chars and uses and not keep:  # put the summary into this document's passage embeddings
                 from .ingest import requeue
 
                 requeue(conn, doc["id"])
@@ -538,10 +573,19 @@ LLMS = {  # name: (Hugging Face repo, file, note); the notes are what the blind 
 DEFAULT_LLM = "gemma-4-e2b"  # blind review: no wrong claims in 9 pages; Qwen3.5-0.8B made 3 (eval/results/blind-review.json)
 
 
-def asset_name(tag: str = LLAMA_CPP_TAG) -> str:
-    """File name of llama.cpp's CPU build for this platform in release `tag`."""
+def gpu_supported() -> bool:
+    """llama.cpp publishes a Vulkan build for Windows and Linux on x64 (macOS builds use the GPU already)."""
     import platform
 
+    return sys.platform in ("win32", "linux") and platform.machine().lower() in ("amd64", "x86_64")
+
+
+def asset_name(tag: str = LLAMA_CPP_TAG, gpu: bool = False) -> str:
+    """File name of llama.cpp's CPU build (or Vulkan build, `gpu`) for this platform in release `tag`."""
+    import platform
+
+    if gpu:
+        return f"llama-{tag}-bin-win-vulkan-x64.zip" if sys.platform == "win32" else f"llama-{tag}-bin-ubuntu-vulkan-x64.tar.gz"
     arch = "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x64"
     if sys.platform == "win32":
         return f"llama-{tag}-bin-win-cpu-{arch}.zip"
@@ -559,6 +603,36 @@ def unpack(archive: Path, dest: Path) -> None:
         p.chmod(p.stat().st_mode | 0o111)
 
 
+def fetch_build(d: Path, gpu: bool = False) -> None:
+    """llama.cpp's server for this platform (the CPU build, or the Vulkan build) into d/<tag>, once."""
+    if (d / LLAMA_CPP_TAG).is_dir():
+        return
+    d.mkdir(parents=True, exist_ok=True)
+    url = f"https://github.com/ggml-org/llama.cpp/releases/download/{LLAMA_CPP_TAG}/{asset_name(gpu=gpu)}"
+    archive = d / asset_name(gpu=gpu)
+    print("downloading", url, flush=True)
+    req = urllib.request.Request(url, headers={"User-Agent": "Ferret"})
+    with urllib.request.urlopen(req, timeout=120) as r, open(archive, "wb") as f:
+        shutil.copyfileobj(r, f, 1 << 20)
+    unpack(archive, d / "partial")
+    (d / "partial").rename(d / LLAMA_CPP_TAG)  # complete only once fully unpacked
+    archive.unlink()
+    for old in d.iterdir():  # earlier builds
+        if old.name != LLAMA_CPP_TAG:
+            shutil.rmtree(old, ignore_errors=True)
+
+
+def gpu_exe(settings) -> Path:
+    """The Vulkan build's llama-server, fetched on first use (not offline)."""
+    d = llm_dir(settings) / "gpu"
+    if not gpu_supported():
+        raise LLMError("llama.cpp has no GPU build for this system")
+    if not (d / LLAMA_CPP_TAG).is_dir() and settings.offline:
+        raise LLMError("the GPU build is not on this computer and KS_OFFLINE is set")
+    fetch_build(d, gpu=True)
+    return next(p for p in (d / LLAMA_CPP_TAG).rglob(SERVER) if p.is_file())
+
+
 def download(settings, name: str = DEFAULT_LLM, select: bool = True) -> Path:
     """Fetch the llama.cpp server (once) and the model `name`; `select` makes it the one setup installed (used
     when Settings names none). Returns the model file."""
@@ -567,19 +641,7 @@ def download(settings, name: str = DEFAULT_LLM, select: bool = True) -> Path:
     repo, file, _ = LLMS[name]
     d = llm_dir(settings)
     d.mkdir(parents=True, exist_ok=True)
-    if not (d / "bin" / LLAMA_CPP_TAG).is_dir():
-        url = f"https://github.com/ggml-org/llama.cpp/releases/download/{LLAMA_CPP_TAG}/{asset_name()}"
-        archive = d / asset_name()
-        print("downloading", url, flush=True)
-        req = urllib.request.Request(url, headers={"User-Agent": "Ferret"})
-        with urllib.request.urlopen(req, timeout=120) as r, open(archive, "wb") as f:
-            shutil.copyfileobj(r, f, 1 << 20)
-        unpack(archive, d / "bin" / "partial")
-        (d / "bin" / "partial").rename(d / "bin" / LLAMA_CPP_TAG)  # complete only once fully unpacked
-        archive.unlink()
-        for old in (d / "bin").iterdir():  # earlier builds
-            if old.name != LLAMA_CPP_TAG:
-                shutil.rmtree(old, ignore_errors=True)
+    fetch_build(d / "bin")
     if not (d / file).is_file():  # huggingface_hub only warns when the disk is too small
         from huggingface_hub import get_hf_file_metadata, hf_hub_url
 

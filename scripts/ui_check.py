@@ -62,6 +62,8 @@ with sync_playwright() as p:
     pg.wait_for_selector("#s-model option", state="attached")
     print("settings: model", pg.input_value("#s-model"), "| chunk", pg.input_value("#s-chunk"),
           "| overlap on", pg.is_checked("#s-overlap-on"), "|", pg.inner_text("#reindex-info"))
+    print("summaries: length", pg.input_value("#s-sumlen"), "| line from", pg.input_value("#s-ctx-src"),
+          "| device", pg.input_value("#s-llm-dev"), "|", pg.inner_text("#s-llm-dev-note")[:60])
     shot("01-settings")
     pg.fill("#s-chunk", "700" if pg.input_value("#s-chunk") != "700" else "900")
     pg.click("#settings-form button[type=submit]")

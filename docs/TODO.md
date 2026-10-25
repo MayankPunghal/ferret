@@ -25,7 +25,6 @@ Status words: **bug** · **plan ready** (written, not built) · **not built** ·
 
 | # | Item | Source / plan |
 |---|---|---|
-| 4 | CPU/GPU switch in Settings for embedding, reranking, summaries and enrichment (owner's laptop has an Intel iGPU) | 24 Oct 05:08 · [plan-gpu.md](plan-gpu.md) |
 | 5 | Installer for Ferret and Ferret Crawler (setup wizard, PyPI listing, like the owner's *holler* app) | 24 Oct 10:20, 10:27, 11:27 · [plan-installer.md](plan-installer.md), [plan-release.md](plan-release.md) |
 | 6 | Docker image and compose file brought up to date with the current app | 24 Oct 10:20, 10:27 · [plan-docker.md](plan-docker.md) |
 | 7 | Invite links and password reset (Google sign-in and e-mail/SMTP were discussed, not chosen) | 24 Oct 10:05–10:27 · [plan-invites.md](plan-invites.md) |
