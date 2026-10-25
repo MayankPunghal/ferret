@@ -536,7 +536,8 @@ td.actions-cell { width: 1%; text-align: right; }
 .db-grid td.num, .db-grid th.num { text-align: right; }
 
 /* Wide screens: the sidebar folds to a rail of icons */
-.nav-toggle { margin-top: 8px; }
+.nav-toggle { margin-left: 4px; color: var(--muted); }
+.nav-toggle:hover { color: inherit; }
 @media (min-width: 1001px) {
   .shell.nav-collapsed { grid-template-columns: 60px minmax(0, 1fr); }
   .nav-collapsed .sidebar { padding: 13px 8px 10px; }
@@ -545,7 +546,8 @@ td.actions-cell { width: 1%; text-align: right; }
   .nav-collapsed .nav-group { font-size: 0; padding: 0; margin: 12px 8px; border-top: 1px solid var(--border); }
   .nav-collapsed .account { flex-direction: column; gap: 6px; padding: 8px 0 2px; }
   .nav-collapsed .who { display: none; }
-  .nav-collapsed .nav-toggle svg { transform: scaleX(-1); }
+  .nav-collapsed .brand .mark, .nav-collapsed .conn { display: none; }  /* the rail starts with the open button */
+  .nav-collapsed .nav-toggle { margin: 0; }
 }
 @media (max-width: 1000px) { .nav-toggle { display: none !important; } }
 

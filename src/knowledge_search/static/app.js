@@ -213,8 +213,8 @@ function setNav(collapsed) {
   $("#app-view").classList.toggle("nav-collapsed", collapsed);
   const b = $("#nav-toggle");
   b.setAttribute("aria-expanded", String(!collapsed));
-  b.title = collapsed ? "Expand the sidebar ( [ )" : "Collapse the sidebar ( [ )";
-  b.querySelector("span").textContent = collapsed ? "Expand" : "Collapse";
+  b.title = collapsed ? "Open sidebar ( [ )" : "Close sidebar ( [ )";
+  b.setAttribute("aria-label", collapsed ? "Open sidebar" : "Close sidebar");
   $$("#sidebar nav .tab").forEach((t) => { t.title = collapsed ? t.textContent.trim() : ""; });
   try { localStorage.setItem("ks-nav-collapsed", collapsed ? "1" : ""); } catch { /* not kept */ }
 }

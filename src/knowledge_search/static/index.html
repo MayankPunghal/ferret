@@ -60,7 +60,8 @@
   <div id="app-view" class="shell" hidden>
     <aside id="sidebar" class="sidebar" aria-label="Navigation">
       <div class="brand"><img class="mark" src="/favicon.svg" alt=""> Ferret
-        <span id="conn" class="conn" role="status" title="Connected to Ferret"></span></div>
+        <span id="conn" class="conn" role="status" title="Connected to Ferret"></span>
+        <button type="button" id="nav-toggle" class="icon nav-toggle" aria-controls="sidebar" aria-expanded="true" title="Close sidebar ( [ )" aria-label="Close sidebar"><svg class="i"><use href="#i-sidebar"/></svg></button></div>
       <nav>
         <button class="tab" data-tab="search" aria-current="page"><svg class="i"><use href="#i-search"/></svg>Search</button>
         <button class="tab" data-tab="documents"><svg class="i"><use href="#i-docs"/></svg>Documents</button>
@@ -74,7 +75,6 @@
         <button class="tab admin-only" data-tab="database" hidden><svg class="i"><use href="#i-db"/></svg>Database</button>
         <button class="tab admin-only" data-tab="logs" hidden><svg class="i"><use href="#i-logs"/></svg>Logs</button>
       </nav>
-      <button type="button" id="nav-toggle" class="tab nav-toggle" aria-controls="sidebar" aria-expanded="true" title="Collapse the sidebar ( [ )"><svg class="i"><use href="#i-sidebar"/></svg><span>Collapse</span></button>
       <div class="account">
         <div id="account-menu" class="account-menu" role="menu" hidden>
           <button class="tab admin-only" data-tab="settings" role="menuitem" hidden><svg class="i"><use href="#i-settings"/></svg>Settings</button>
