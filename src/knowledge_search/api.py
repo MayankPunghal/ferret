@@ -222,6 +222,9 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
     app.include_router(folders.router)
     app.include_router(crawls.router)
     app.include_router(graph.router)
+    from . import ask
+
+    app.include_router(ask.router)
     app.include_router(mcp.router)
     static = resources.files("knowledge_search") / "static"
     app.mount("/", StaticFiles(directory=str(static), html=True), name="ui")

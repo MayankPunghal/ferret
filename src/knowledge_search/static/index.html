@@ -63,6 +63,7 @@
         <span id="conn" class="conn" role="status" title="Connected to Ferret"></span></div>
       <nav>
         <button class="tab" data-tab="search" aria-current="page"><svg class="i"><use href="#i-search"/></svg>Search</button>
+        <button class="tab" data-tab="ask"><svg class="i"><use href="#i-summaries"/></svg>Ask</button>
         <button class="tab" data-tab="documents"><svg class="i"><use href="#i-docs"/></svg>Documents</button>
         <button class="tab" data-tab="summaries"><svg class="i"><use href="#i-summaries"/></svg>Summaries</button>
         <button class="tab" data-tab="status"><svg class="i"><use href="#i-status"/></svg>Index status</button>
@@ -466,6 +467,16 @@
         </div>
       </section>
 
+      <section id="tab-ask" class="ask" hidden>
+        <div class="title-row"><h1>Ask</h1></div>
+        <p class="muted lede">Answers written by the local model from your documents only, with the passages they
+          rest on. When nothing supports an answer, Ferret says so. Each question is answered on its own.</p>
+        <div id="ask-log" class="ask-log" aria-live="polite"></div>
+        <form id="ask-form" class="ask-form">
+          <textarea id="ask-q" rows="2" maxlength="1000" placeholder="Ask a question… (Enter to send, Shift+Enter for a new line)" aria-label="Question" required></textarea>
+          <button type="submit" class="primary" id="ask-send">Ask</button>
+        </form>
+      </section>
       <section id="tab-about" hidden>
         <div class="title-row"><h1>About Ferret</h1></div>
         <p class="muted lede">Private search for your documents: every result cites the passage it came from, and when

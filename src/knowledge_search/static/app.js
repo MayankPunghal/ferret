@@ -188,7 +188,7 @@ $("#upd-install").addEventListener("click", async () => {
 
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
-  for (const t of ["search", "documents", "summaries", "status", "assistants", "about", "settings", "admin", "folders", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
+  for (const t of ["search", "ask", "documents", "summaries", "status", "assistants", "about", "settings", "admin", "folders", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
   if (name === "folders") loadFolders();
   if (name === "documents") { loadDocs(); pollTimer = setInterval(loadDocs, 3000); }
@@ -1674,3 +1674,53 @@ boot();
   window.addEventListener("focus", check);
 })();
 $("#setup-form [name=terms]").addEventListener("change", (e) => { $("#setup-submit").disabled = !e.target.checked; });
+
+// Ask (ask.py): a chat log; each question is searched, the supported passages go to the local model, and the
+// answer comes back with its numbered sources. [n] in the answer links to that passage.
+function askBubble(who, ...kids) {
+  const b = el("div", { className: "ask-msg " + who }, ...kids);
+  $("#ask-log").append(b);
+  b.scrollIntoView({ block: "end", behavior: "smooth" });
+  return b;
+}
+$("#ask-q").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#ask-form").requestSubmit(); }
+});
+$("#ask-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = $("#ask-q").value.trim();
+  if (!q) return;
+  $("#ask-q").value = ""; $("#ask-send").disabled = true;
+  askBubble("user", el("p", { textContent: q }));
+  const t0 = Date.now();
+  const wait = askBubble("bot pending", el("p", { className: "muted", textContent: "Searching your documents and writing an answer… (on a CPU this takes up to a minute)" }),
+    el("div", { className: "typing" }, el("span"), el("span"), el("span")));
+  try {
+    const r = await api("/api/ask", { method: "POST", json: { question: q } });
+    wait.remove();
+    if (!r.answered) {
+      askBubble("bot", el("p", { textContent: r.answer || r.message || "No supporting passage was found, so there is no answer." }),
+        ...(r.citations.length ? [sources(r.citations)] : []));
+    } else {
+      const p = el("p");
+      for (const part of r.answer.split(/(\[\d+\])/)) {
+        const m = part.match(/^\[(\d+)\]$/), c = m && r.citations[Number(m[1]) - 1];
+        if (c) {
+          const a = el("a", { href: "#", className: "cite", textContent: part, title: c.title });
+          a.addEventListener("click", (ev) => { ev.preventDefault(); openPassage(Number(c.passage_url.split("/").pop())); });
+          p.append(a);
+        } else p.append(part);
+      }
+      askBubble("bot", p, sources(r.citations),
+        el("p", { className: "muted small", textContent: `Written by the local model in ${((Date.now() - t0) / 1000).toFixed(0)} s. Check the sources.` }));
+    }
+  } catch (err) {
+    wait.remove();
+    askBubble("bot error", el("p", { textContent: err.message }));
+  } finally { $("#ask-send").disabled = false; $("#ask-q").focus(); }
+});
+function sources(cites) {
+  return el("ol", { className: "ask-sources" }, ...cites.map((c) => el("li", {},
+    el("a", { href: c.source_url, target: "_blank", rel: "noopener", textContent: c.title }),
+    c.heading_path ? el("span", { className: "muted", textContent: " › " + c.heading_path }) : "")));
+}
