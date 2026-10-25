@@ -1,6 +1,6 @@
 [project]
 name = "ferret-crawler"
-version = "1.1.0"
+version = "1.1.1"
 description = "Save a website or intranet as Markdown files, one per page (for search indexes and LLM tools)"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
