@@ -75,6 +75,10 @@ def main() -> None:
     from .config import get_settings
 
     settings = get_settings()
+    updating = Path(settings.data_dir) / "updating"  # written by updates.install: the browser tab reloads itself
+    if updating.exists():
+        background = True
+        updating.unlink(missing_ok=True)
     port_file = Path(settings.data_dir) / "port"
     try:
         known = int(port_file.read_text())

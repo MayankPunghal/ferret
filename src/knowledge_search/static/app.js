@@ -135,8 +135,12 @@ async function loadUpdates(check) {
   if (check) { btn.disabled = true; btn.textContent = "Checking…"; $("#upd-line").textContent = "Checking GitHub for a new version…"; }
   const u = await api("/api/admin/updates" + (check ? "?check=true" : "")).catch((e) => ({ error: e.message }));
   btn.disabled = false; btn.textContent = "Check for updates";
+  if (u.installing) return followUpdate(u.latest);
+  $("#upd-bar").hidden = true;
   const when = u.checked_at ? ` Checked ${new Date(u.checked_at * 1000).toLocaleTimeString()}.` : "";
-  $("#upd-line").textContent = u.installing ? `Updating to ${u.latest}: ${u.installing}…`
+  let updated = null;
+  try { updated = sessionStorage.getItem("ferret-updated"); sessionStorage.removeItem("ferret-updated"); } catch { /* storage off */ }
+  $("#upd-line").textContent = updated && updated === u.current ? `Updated: Ferret ${u.current} is installed and running.`
     : u.error ? `Ferret ${u.current || ""}. ${u.error}`
     : !u.latest ? `Ferret ${u.current}. Not checked yet.`
     : u.newer ? `Ferret ${u.current}. Version ${u.latest} is available.${when}`
@@ -146,7 +150,32 @@ async function loadUpdates(check) {
   $("#upd-install").textContent = `Install update ${u.latest || ""}`;
   $("#upd-how").textContent = u.windows_app ? "Ferret also checks once a day and shows a notice in the tray."
     : "This install updates with: uv tool upgrade ferret-search, docker pull ghcr.io/mayankpunghal/ferret-search, or git pull and setup again.";
-  if (u.installing) setTimeout(() => loadUpdates(false).catch(() => { $("#upd-line").textContent = "Restarting… reload this page in a minute."; }), 2000);
+}
+// An update under way: download % → installing → Ferret restarts → this page reloads itself on the new version.
+async function followUpdate(version) {
+  const bar = $("#upd-bar"), line = $("#upd-line");
+  bar.hidden = false; $("#upd-install").hidden = true; $("#upd-check").disabled = true;
+  const wait = () => new Promise((r) => setTimeout(r, 1500));
+  for (;;) {
+    let u = null;
+    try { u = await api("/api/admin/updates"); } catch { /* Ferret is restarting */ }
+    if (u && u.installing === "downloading") {
+      bar.value = u.progress || 0;
+      line.textContent = `Downloading Ferret ${version}… ${u.progress ?? 0}%`;
+    } else if (u && !u.installing) {  // the download failed: say why, offer it again
+      $("#upd-check").disabled = false; return loadUpdates(false);
+    } else {
+      bar.removeAttribute("value");  // no value: the browser animates it (still working, no %)
+      line.textContent = u ? `Installing Ferret ${version}… Ferret closes and restarts by itself.`
+        : `Restarting Ferret ${version}… this page reloads by itself when it is back (usually under a minute).`;
+      if (!u) {
+        try { await fetch("/healthz", { cache: "no-store" }).then((r) => { if (!r.ok) throw 0; }); } catch { await wait(); continue; }
+        try { sessionStorage.setItem("ferret-updated", version); } catch { /* storage off */ }
+        location.hash = "#updates"; location.reload(); return;
+      }
+    }
+    await wait();
+  }
 }
 $("#upd-check").addEventListener("click", () => loadUpdates(true));
 $("#upd-install").addEventListener("click", async () => {

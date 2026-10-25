@@ -14,7 +14,7 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 RELEASES = "https://api.github.com/repos/MayankPunghal/ferret/releases/latest"
-state = {"latest": None, "url": None, "checked_at": None, "error": None, "installing": None}
+state = {"latest": None, "url": None, "checked_at": None, "error": None, "installing": None, "progress": None}
 
 
 def current() -> str:
@@ -50,7 +50,8 @@ def status() -> dict:
     latest = state["latest"]
     return {"current": current(), "latest": latest, "newer": bool(latest and newer(latest, current())),
             "windows_app": windows_app(), "can_install": windows_app() and bool(state["url"]),
-            "checked_at": state["checked_at"], "error": state["error"], "installing": state["installing"]}
+            "checked_at": state["checked_at"], "error": state["error"], "installing": state["installing"],
+            "progress": state["progress"]}
 
 
 def install(on_started=None) -> None:
@@ -58,14 +59,22 @@ def install(on_started=None) -> None:
     def run():
         target = Path(tempfile.gettempdir()) / f"Ferret-Setup-{state['latest']}.exe"
         try:
-            state["installing"] = "downloading"
+            state.update(installing="downloading", progress=0)
             req = urllib.request.Request(state["url"], headers={"User-Agent": "Ferret"})
             with urllib.request.urlopen(req, timeout=600) as r, open(target, "wb") as f:
-                f.write(r.read())
+                total, done = int(r.headers.get("Content-Length") or 0), 0
+                while chunk := r.read(1 << 16):
+                    f.write(chunk)
+                    done += len(chunk)
+                    state["progress"] = done * 100 // total if total else None
         except OSError as e:
             state.update(installing=None, error=f"the update could not be downloaded: {e}")
             return
-        state["installing"] = "installing (Ferret restarts by itself)"
+        state["installing"] = "installing"
+        # the restarted app opens no new browser tab: the page that started the update reloads itself (tray.py)
+        from .config import get_settings
+
+        (Path(get_settings().data_dir) / "updating").write_text(state["latest"])
         log.warning("installing Ferret %s from %s", state["latest"], target)
         subprocess.Popen([str(target), "/SILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/UPDATE=1"])
         if on_started:
