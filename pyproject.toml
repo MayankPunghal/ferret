@@ -1,6 +1,6 @@
 [project]
 name = "ferret-search"
-version = "1.0.6"
+version = "1.0.7"
 description = "Offline, permission-aware knowledge search for technical teams"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
