@@ -1,7 +1,8 @@
 # On a version tag (git tag v1.0.0 && git push --tags): publish the Docker image to GitHub's registry and
 # both packages to PyPI. PyPI uses trusted publishing: once, on pypi.org, add a "pending publisher" for each
-# project (ferret-search and ferret-crawler) with owner MayankPunghal, repository ferret, workflow
-# release.yml, environment pypi. No token is stored here.
+# project with owner MayankPunghal, repository ferret, workflow release.yml: ferret-search with environment
+# pypi, ferret-crawler with environment pypi-crawler (PyPI allows one pending publisher per environment).
+# Registered 2026-10-25. No token is stored here.
 name: Release
 on:
   push:
@@ -39,7 +40,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - run: uv build --all-packages -o dist
+      - run: uv build --package ferret-search -o dist
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          skip-existing: true  # ferret-crawler keeps its version until the crawler changes
+          skip-existing: true
+
+  pypi-crawler:
+    runs-on: ubuntu-latest
+    environment: pypi-crawler
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build --package ferret-crawler -o dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true  # the crawler keeps its version until it changes

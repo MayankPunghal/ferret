@@ -24,7 +24,7 @@ Status words: **bug** · **plan ready** (written, not built) · **not built** ·
 
 | # | Item | Source / plan |
 |---|---|---|
-| 5 | Release: the first publish. Built 2026-10-25: packages `ferret-search` and `ferret-crawler`, `release.yml` (Docker image to GHCR and PyPI on a `v*` tag), the image fixed (bge-base, writable models, libgomp1, one-container mode) and built and searched in CI. **Owner, once:** on pypi.org add a pending trusted publisher for both projects (see the header of `release.yml`), then tag `v1.0.0`; after the first image push, make the GHCR package public. Not built: the browser setup wizard beyond the existing first-run page (hardware defaults cover model choice), the backup check in CI (plan-docker 9) | 24 Oct 10:20 · [plan-release.md](plan-release.md), [plan-docker.md](plan-docker.md) |
+| 5 | Release: the first publish. Built 2026-10-25: packages `ferret-search` and `ferret-crawler`, `release.yml` (Docker image to GHCR and PyPI on a `v*` tag), the image fixed (bge-base, writable models, libgomp1, one-container mode) and built and searched in CI. PyPI pending publishers registered 2026-10-25; `v1.0.0` tagged the same day. Left: make the GHCR package public after the first image push. Not built: the browser setup wizard beyond the existing first-run page (hardware defaults cover model choice), the backup check in CI (plan-docker 9) | 24 Oct 10:20 · [plan-release.md](plan-release.md), [plan-docker.md](plan-docker.md) |
 
 ### Later phase (owner, 2026-10-25: hold until after the first release)
 
