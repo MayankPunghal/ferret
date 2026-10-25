@@ -23,9 +23,7 @@ jobs:
       # On windows-latest the job runs as an administrator, so initdb drops to a restricted token that cannot
       # read the runner's folders ("could not create directory ...: File exists"); let the Users group in.
       - if: runner.os == 'Windows'
-        run: |
-          New-Item -ItemType Directory -Force "${{ runner.temp }}\pytest" | Out-Null
-          icacls "${{ runner.temp }}\pytest" /grant "Users:(OI)(CI)F" | Out-Null
+        run: icacls "${{ runner.temp }}" /grant "Users:(OI)(CI)F"  # pytest recreates --basetemp, so its parent
       - run: uv run pytest -q --basetemp="${{ runner.temp }}/pytest"
 
   ui:
