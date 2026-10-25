@@ -1667,7 +1667,6 @@ boot();
     const dot = $("#conn");
     dot.classList.toggle("down", down);
     dot.title = down ? "Not connected: Ferret is not running or cannot be reached. Retrying…" : "Connected to Ferret";
-    $("#conn-banner").hidden = !down;
   };
   setInterval(check, 10000);
   window.addEventListener("online", check);
@@ -1681,3 +1680,22 @@ $("#account-button").addEventListener("click", () => accountMenu($("#account-men
 $("#account-menu").addEventListener("click", () => accountMenu(false));
 document.addEventListener("click", (e) => { if (!e.target.closest(".account")) accountMenu(false); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") accountMenu(false); });
+
+// Theme: the sun/moon button switches light and dark and remembers it here; until then the system setting applies.
+(function theme() {
+  const dark = () => document.documentElement.dataset.theme === "dark"
+    || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  const show = () => {
+    $("#theme-toggle use").setAttribute("href", dark() ? "#i-sun" : "#i-moon");
+    $("#theme-toggle").title = $("#theme-toggle").ariaLabel = dark() ? "Switch to light theme" : "Switch to dark theme";
+  };
+  try { const t = localStorage.getItem("ks-theme"); if (t) document.documentElement.dataset.theme = t; } catch { /* default */ }
+  $("#theme-toggle").addEventListener("click", () => {
+    const t = dark() ? "light" : "dark";
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem("ks-theme", t); } catch { /* not kept */ }
+    show();
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", show);
+  show();
+})();

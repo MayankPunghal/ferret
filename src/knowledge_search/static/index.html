@@ -26,6 +26,8 @@
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
     <symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></g></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
     <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></symbol>
@@ -60,7 +62,6 @@
   <div id="app-view" class="shell" hidden>
     <aside id="sidebar" class="sidebar" aria-label="Navigation">
       <div class="brand"><img class="mark" src="/favicon.svg" alt=""> Ferret
-        <span id="conn" class="conn" role="status" title="Connected to Ferret"></span>
         <button type="button" id="nav-toggle" class="icon nav-toggle" aria-controls="sidebar" aria-expanded="true" title="Close sidebar ( [ )" aria-label="Close sidebar"><svg class="i"><use href="#i-sidebar"/></svg></button></div>
       <nav>
         <button class="tab" data-tab="search" aria-current="page"><svg class="i"><use href="#i-search"/></svg>Search</button>
@@ -88,8 +89,6 @@
       </div>
     </aside>
 
-    <p id="conn-banner" class="notice conn-banner" role="alert" hidden>Not connected to Ferret. Start it from the Start menu
-      or the tray icon; this page reconnects by itself.</p>
     <header class="topbar">
       <button id="menu-button" class="icon menu-button" aria-label="Menu" aria-controls="sidebar" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
       <form id="search-form" class="searchbar" role="search">
@@ -98,6 +97,10 @@
         <kbd title="Press / to search from anywhere">/</kbd>
         <button type="submit" class="primary">Search</button>
       </form>
+      <div class="top-actions">
+        <span id="conn" class="conn" role="status" title="Connected to Ferret"><span class="conn-dot"></span><span class="conn-label">Disconnected</span></span>
+        <button type="button" id="theme-toggle" class="icon" title="Switch theme" aria-label="Switch theme"><svg class="i"><use href="#i-moon"/></svg></button>
+      </div>
     </header>
 
     <main class="sheet">
