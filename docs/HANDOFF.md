@@ -648,7 +648,7 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   browser. Checked: both wheels install in a clean venv outside the repository and the app starts. Docker:
   bge-base (was bge-small), `libgomp1`, `/models` writable, no `KS_OFFLINE` by default, one-container
   mode documented; CI builds the image, checks `ldd llama-server`, starts one container and searches.
-  `release.yml` publishes both on a `v*` tag; PyPI needs the owner's one-time trusted-publisher setup.
+  `release.yml` publishes both (see "How to release" below).
 - **Held for a later phase (owner):** macOS app, invites, Ask, images.
 - **v1.0.0 released (2026-10-25):** `ferret-search` 1.0.0 and `ferret-crawler` 1.1.0 on PyPI (trusted
   publishing; the crawler has its own environment `pypi-crawler` because PyPI allows one pending publisher
@@ -663,7 +663,7 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   second start only opens the browser; port 8000 taken is shown in the tray. Data in `%USERPROFILE%\Ferret`,
   asked about on uninstall. Upgrades and uninstall stop every process started from the install folder.
   `windows-app.yml` builds, installs silently, starts the app, checks `/healthz`, uninstalls, and attaches the
-  installer to the release on a `v*` tag. Not built: code signing (SmartScreen warns; README says "More info
+  installer to the release (called by `release.yml`). Not built: code signing (SmartScreen warns; README says "More info
   → Run anyway").
 - **1.0.2 (2026-10-25):** port fallback 8000–8019 (the chosen port is written to `%USERPROFILE%\Ferret\port`);
   "Pause indexing and summaries" (tray item + Settings checkbox, `indexing_paused` in runtime settings; the
@@ -673,6 +673,13 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   installs see the upgrade commands instead. Gotcha: a process Inno Setup starts inherits a "redirection
   guard" that cannot traverse the HF cache's symlinks (WinError 448), so `[Run]` starts Ferret through
   `explorer.exe` with the Start-menu shortcut.
+
+- **How to release (2026-10-25):** the version in `pyproject.toml` decides. Either GitHub → Actions →
+  Release → Run workflow, typing the new version (plus a crawler version if `site2md/` changed), or push a
+  commit to main that changes the version. `scripts/release_check.py` refuses a version that is not newer, a
+  wrong `ferret-crawler==` pin, or a changed crawler with an unchanged version; then the whole CI must pass on
+  that commit; only then the tag `v<version>`, the GitHub release, Docker (GHCR), both PyPI packages and the
+  Windows installer. Pushing a tag by hand no longer releases anything.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 

@@ -1,21 +1,88 @@
-# On a version tag (git tag v1.0.0 && git push --tags): publish the Docker image to GitHub's registry and
-# both packages to PyPI. PyPI uses trusted publishing: once, on pypi.org, add a "pending publisher" for each
-# project with owner MayankPunghal, repository ferret, workflow release.yml: ferret-search with environment
-# pypi, ferret-crawler with environment pypi-crawler (PyPI allows one pending publisher per environment).
-# Registered 2026-10-25. No token is stored here.
+# Releases are driven by the version in pyproject.toml (scripts/release_check.py):
+#   - a push to main that changes the version (pyproject.toml or site2md/pyproject.toml) releases it, or
+#   - Actions → Release → Run workflow, typing the new version (and a new crawler version when the crawler
+#     changed): it writes the version into the files, commits that to main and releases it.
+# Nothing is published unless the checks and the tests pass on that commit. Then: tag v<version>, the GitHub
+# release, the Docker image on GHCR, both PyPI packages, and the Windows installer attached to the release.
+# PyPI uses trusted publishing (registered 2026-10-25: ferret-search with environment pypi, ferret-crawler with
+# environment pypi-crawler, workflow release.yml). No token is stored here.
 name: Release
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: [pyproject.toml, site2md/pyproject.toml]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New Ferret version, e.g. 1.0.3 (empty: release the version already in pyproject.toml)"
+        required: false
+      crawler:
+        description: "New crawler version, only when the crawler changed, e.g. 1.2.0"
+        required: false
+
+concurrency: release
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+      release: ${{ steps.check.outputs.release }}
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # tags, to compare with the last release
+      - uses: astral-sh/setup-uv@v6
+      - id: check
+        run: uv run --no-project python scripts/release_check.py --version "${{ inputs.version }}" --crawler "${{ inputs.crawler }}"
+      - id: commit
+        run: |
+          if ! git diff --quiet; then
+            uv lock
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -am "Release v${{ steps.check.outputs.version }}"
+            git push origin HEAD:main
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  tests:
+    needs: prepare
+    if: needs.prepare.outputs.release == 'true'
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.prepare.outputs.sha }}
+
+  tag:
+    needs: [prepare, tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - run: |
+          git tag "v${{ needs.prepare.outputs.version }}"
+          git push origin "v${{ needs.prepare.outputs.version }}"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.prepare.outputs.version }}
+          generate_release_notes: true
+
   docker:
+    needs: [prepare, tag]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -29,31 +96,44 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/mayankpunghal/ferret-search:${{ github.ref_name }}
+            ghcr.io/mayankpunghal/ferret-search:v${{ needs.prepare.outputs.version }}
             ghcr.io/mayankpunghal/ferret-search:latest
 
   pypi:
+    needs: [prepare, tag]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
       - uses: astral-sh/setup-uv@v6
       - run: uv build --package ferret-search -o dist
       - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          skip-existing: true
 
   pypi-crawler:
+    needs: [prepare, tag]
     runs-on: ubuntu-latest
     environment: pypi-crawler
     permissions:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
       - uses: astral-sh/setup-uv@v6
       - run: uv build --package ferret-crawler -o dist
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          skip-existing: true  # the crawler keeps its version until it changes
+          skip-existing: true  # unchanged crawler: same version, already on PyPI (release_check refuses a changed one)
+
+  windows:
+    needs: [prepare, tag]
+    permissions:
+      contents: write
+    uses: ./.github/workflows/windows-app.yml
+    with:
+      ref: ${{ needs.prepare.outputs.sha }}
+      tag: v${{ needs.prepare.outputs.version }}

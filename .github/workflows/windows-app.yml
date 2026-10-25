@@ -1,12 +1,19 @@
 # Builds the Windows installer (Ferret-Setup-<version>.exe), installs it silently, checks that the installed
 # app starts and answers a search, uninstalls it, and keeps it as a build artifact. On a v* tag it is also
-# attached to that version's GitHub release.
+# attached to that version's GitHub release (called by release.yml with the tag).
 name: windows-app
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
+      tag:
+        type: string
+        required: true
 
 jobs:
   build:
@@ -15,6 +22,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
       - uses: astral-sh/setup-uv@v6
       - name: Build the app folder
         shell: pwsh
@@ -50,7 +59,8 @@ jobs:
           path: dist/Ferret-Setup-*.exe
           retention-days: 30
       - name: Attach to the release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: inputs.tag
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag }}
           files: dist/Ferret-Setup-*.exe

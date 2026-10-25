@@ -3,6 +3,11 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_call:  # release.yml: the commit being released must pass
+    inputs:
+      ref:
+        type: string
+        required: true
 
 jobs:
   test:
@@ -16,6 +21,8 @@ jobs:
     continue-on-error: ${{ matrix.os == 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
       - uses: astral-sh/setup-uv@v6
       - run: uv sync
       - uses: actions/cache@v4
@@ -35,6 +42,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
       - run: docker build -t ferret-search:ci .
       - name: llama.cpp's Linux build finds its libraries in the image
         run: |
@@ -57,6 +66,8 @@ jobs:
       KS_ENRICH_ENABLED: "false"  # no 3 GB summary model download in CI
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
       - uses: astral-sh/setup-uv@v6
       - run: uv sync
       - uses: actions/cache@v4
