@@ -67,9 +67,7 @@
         <button class="tab" data-tab="summaries"><svg class="i"><use href="#i-summaries"/></svg>Summaries</button>
         <button class="tab" data-tab="status"><svg class="i"><use href="#i-status"/></svg>Index status</button>
         <button class="tab" data-tab="assistants"><svg class="i"><use href="#i-plug"/></svg>AI assistants</button>
-        <button class="tab" data-tab="about"><svg class="i"><use href="#i-info"/></svg>About</button>
         <p class="nav-group admin-only" hidden>Administration</p>
-        <button class="tab admin-only" data-tab="settings" hidden><svg class="i"><use href="#i-settings"/></svg>Settings</button>
         <button class="tab admin-only" data-tab="admin" hidden><svg class="i"><use href="#i-users"/></svg>Users &amp; access</button>
         <button class="tab admin-only" data-tab="folders" hidden><svg class="i"><use href="#i-folder"/></svg>Synced folders</button>
         <button class="tab admin-only" data-tab="crawler" hidden><svg class="i"><use href="#i-spider"/></svg>Crawler</button>
@@ -78,9 +76,15 @@
       </nav>
       <button type="button" id="nav-toggle" class="tab nav-toggle" aria-controls="sidebar" aria-expanded="true" title="Collapse the sidebar ( [ )"><svg class="i"><use href="#i-sidebar"/></svg><span>Collapse</span></button>
       <div class="account">
-        <span class="avatar" id="avatar" aria-hidden="true"></span>
-        <span class="who"><span id="who"></span><span id="role" class="muted"></span></span>
-        <button id="logout" class="icon" title="Sign out" aria-label="Sign out"><svg class="i"><use href="#i-signout"/></svg></button>
+        <div id="account-menu" class="account-menu" role="menu" hidden>
+          <button class="tab admin-only" data-tab="settings" role="menuitem" hidden><svg class="i"><use href="#i-settings"/></svg>Settings</button>
+          <button class="tab" data-tab="about" role="menuitem"><svg class="i"><use href="#i-info"/></svg>About</button>
+          <button id="logout" class="tab" role="menuitem"><svg class="i"><use href="#i-signout"/></svg>Sign out</button>
+        </div>
+        <button type="button" id="account-button" class="account-button" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu">
+          <span class="avatar" id="avatar" aria-hidden="true"></span>
+          <span class="who"><span id="who"></span><span id="role" class="muted"></span></span>
+        </button>
       </div>
     </aside>
 

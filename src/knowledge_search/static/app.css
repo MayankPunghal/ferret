@@ -589,3 +589,11 @@ dl.about dd { margin: 0; }
 @media (max-width: 640px) { dl.about { grid-template-columns: 1fr; } dl.about dd { margin-bottom: 8px; } }
 .terms-agree { font-size: 13px; }
 #setup-submit:disabled { opacity: .5; cursor: not-allowed; }
+.account { position: relative; }
+.account-button { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 4px; border: 0; border-radius: 8px;
+  background: none; color: inherit; text-align: left; cursor: pointer; height: auto; font-weight: 400; }
+.account-button:hover, .account-button[aria-expanded="true"] { background: var(--surface); }
+.account-menu { position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); z-index: 30; display: grid; gap: 2px; padding: 6px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / .35); }
+.account-menu .tab { width: 100%; }
+.nav-collapsed .account-menu { right: auto; width: 180px; }

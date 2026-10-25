@@ -1674,3 +1674,10 @@ boot();
   window.addEventListener("focus", check);
 })();
 $("#setup-form [name=terms]").addEventListener("change", (e) => { $("#setup-submit").disabled = !e.target.checked; });
+
+// The account button (bottom left) opens Settings, About and Sign out, like a desktop app's profile menu.
+const accountMenu = (open) => { $("#account-menu").hidden = !open; $("#account-button").setAttribute("aria-expanded", open); };
+$("#account-button").addEventListener("click", () => accountMenu($("#account-menu").hidden));
+$("#account-menu").addEventListener("click", () => accountMenu(false));
+document.addEventListener("click", (e) => { if (!e.target.closest(".account")) accountMenu(false); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") accountMenu(false); });

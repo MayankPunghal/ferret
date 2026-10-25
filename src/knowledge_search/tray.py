@@ -34,13 +34,15 @@ def answers(port: int) -> bool:
 
 
 def open_window(address: str) -> None:
-    """Ferret in a window of its own (Edge's app mode: no address bar or tabs, its own taskbar entry), like a
-    desktop app; the default browser when Edge is missing."""
-    for base in (os.environ.get("ProgramFiles(x86)"), os.environ.get("ProgramFiles"), os.environ.get("LOCALAPPDATA")):
-        edge = Path(base or "") / "Microsoft" / "Edge" / "Application" / "msedge.exe"
-        if base and edge.is_file():
-            subprocess.Popen([str(edge), f"--app={address}"])
-            return
+    """Ferret in a window of its own (Chrome or Edge app mode: no address bar or tabs, its own taskbar entry), like a
+    desktop app; the default browser when neither is installed."""
+    bases = [os.environ.get(v) for v in ("ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA")]
+    for app in (("Google", "Chrome", "chrome.exe"), ("Microsoft", "Edge", "msedge.exe")):  # Chrome first
+        for base in filter(None, bases):
+            exe = Path(base, app[0], app[1], "Application", app[2])
+            if exe.is_file():
+                subprocess.Popen([str(exe), f"--app={address}"])
+                return
     webbrowser.open(address)
 
 
