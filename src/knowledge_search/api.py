@@ -639,7 +639,7 @@ def _routes(app: FastAPI) -> None:
         v, path = _original(conn, p, document_id, version, audit=False)
         source = f"/api/documents/{document_id}/source?version={version}"
         download = f"/api/documents/{document_id}/source?download=1&version={version}"
-        if v["media_type"] == "text/html":  # the browser shows it itself (sandboxed by /source)
+        if v["media_type"] == "text/html" or v["media_type"].startswith("image/"):  # the browser shows these itself
             return RedirectResponse(source, status_code=303)
         if v["media_type"] == "application/pdf":  # PDF.js page; it fetches /source, which audits the opening
             from .viewer import pdf_page
@@ -689,6 +689,8 @@ def _routes(app: FastAPI) -> None:
             mt, csp = "text/html", "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:"
         elif v["media_type"] in (DOCX, PPTX):
             mt, disposition = v["media_type"], "attachment"
+        elif v["media_type"].startswith("image/"):  # PNG, JPEG, GIF, WebP only (no SVG: it can carry scripts)
+            mt = v["media_type"]
         if download:
             mt, disposition = v["media_type"], "attachment"
         safe = re.sub(r"[^\w.\-]", "_", v["filename"])

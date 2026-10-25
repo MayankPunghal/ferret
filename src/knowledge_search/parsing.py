@@ -15,14 +15,16 @@ from pathlib import Path
 import yaml
 from markdown_it import MarkdownIt
 
-PARSER_VERSION = "parse-v9"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium; v6: PDF titles without "Microsoft Word - ", .docx, generic metadata; v7: PowerPoint SmartArt and connector org charts as nested lists; v8: line breaks inside a PowerPoint/Word paragraph no longer join words; v9: tables as Markdown tables (merged cells repeated, header row) from HTML, Word and PowerPoint
+PARSER_VERSION = "parse-v10"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium; v6: PDF titles without "Microsoft Word - ", .docx, generic metadata; v7: PowerPoint SmartArt and connector org charts as nested lists; v8: line breaks inside a PowerPoint/Word paragraph no longer join words; v9: tables as Markdown tables (merged cells repeated, header row) from HTML, Word and PowerPoint; v10: images (links of kind image, pictures as documents)
 _PDFIUM = threading.Lock()  # PDFium is not thread-safe; API requests and ingest workers parse concurrently
 CHUNKER_VERSION = "chunk-v3"  # v3: tables never cut mid-row; long tables split with the header repeated; size/overlap are runtime settings, recorded in the index signature
 
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 PPTX = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 MEDIA_TYPES = {".md": "text/markdown", ".markdown": "text/markdown", ".txt": "text/plain",
-               ".html": "text/html", ".htm": "text/html", ".docx": DOCX, ".pptx": PPTX, ".pdf": "application/pdf"}
+               ".html": "text/html", ".htm": "text/html", ".docx": DOCX, ".pptx": PPTX, ".pdf": "application/pdf",
+               ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
+               ".webp": "image/webp"}
 
 
 class ParseError(Exception):
@@ -94,6 +96,7 @@ def _decode_text(data: bytes) -> str:
 
 
 RELATION_KEYS = ("depends_on", "related", "calls", "owned_by", "part_of", "see_also")
+_MD_IMAGE = re.compile(r"!\[([^\]\n]{0,300})\]\(([^)\s]{1,500})(?:\s+\"[^\"]*\")?\)")
 _MD_LINK = re.compile(r"(?<!!)\[([^\]\n]{1,200})\]\(([^)\s]{1,500})(?:\s+\"[^\"]*\")?\)")
 _WIKI_LINK = re.compile(r"\[\[([^\]|#\n]{1,200})(?:#([^\]|\n]{1,200}))?(?:\|([^\]\n]{1,200}))?\]\]")
 
@@ -109,8 +112,10 @@ def normalize_target(target: str) -> str:
 
 
 def extract_links(text: str) -> list[Link]:
-    """Internal Markdown links and [[wiki links]]; external URLs and images are ignored."""
-    out = []
+    """Internal Markdown links, [[wiki links]] and local images (kind "image": the passage shows that picture,
+    a document of its own); external URLs are ignored."""
+    out = [Link("image", normalize_target(src), None, alt.strip()) for alt, src in _MD_IMAGE.findall(text)
+           if not re.match(r"^[a-z][a-z0-9+.-]*:", src, re.IGNORECASE) and normalize_target(src)]
     for label, href in _MD_LINK.findall(text):
         if re.match(r"^[a-z][a-z0-9+.-]*:", href, re.IGNORECASE):  # http:, mailto:, ...
             continue
@@ -294,11 +299,21 @@ def parse_office(data: bytes, filename: str, kind: str) -> ParsedDocument:
     return _parse_markdown_text(md, filename, title)
 
 
+def parse_image(filename: str) -> ParsedDocument:
+    """A picture is a document of its own, found by its name here and by the words around it on the pages
+    that show it (their passages link to it, kind "image"; search returns both)."""
+    stem = filename.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+    name = re.sub(r"[-_]+", " ", stem).strip() or stem
+    return ParsedDocument(title=name, metadata={}, sections=[Section(heading_path="", text=f"Image: {name}")])
+
+
 def parse_document(data: bytes, filename: str, max_pages: int = 2000, max_chars: int = 5_000_000) -> ParsedDocument:
     if not data:
         raise ParseError("empty_file", "file is empty")
     mt = media_type_for(filename)
-    if mt == "application/pdf":
+    if mt.startswith("image/"):
+        doc = parse_image(filename)
+    elif mt == "application/pdf":
         doc = parse_pdf(data, filename, max_pages)
     elif mt == "text/markdown":
         doc = parse_markdown(data, filename)

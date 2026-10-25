@@ -175,8 +175,14 @@ class _Html(HTMLParser):
             self.href.append(href if href and not href.startswith(("#", "javascript:", "mailto:")) else None)
             if self.href[-1]:
                 self.out.append("[")
-        elif tag == "img" and a.get("alt"):
-            self.out.append(a["alt"])
+        elif tag == "img":  # a picture: ![alt](src), so a crawl can save it; icons (under 48 px) only their alt
+            alt = " ".join(re.sub(r"[\[\]]+", " ", a.get("alt", "")).split())
+            src = a.get("src", "").strip()
+            small = any(a.get(k, "").isdigit() and int(a[k]) < 48 for k in ("width", "height"))
+            if src and not small and not src.startswith("data:"):
+                self.out.append(f"\n\n![{alt}]({src.replace(' ', '%20').replace(')', '%29')})\n\n")
+            elif alt:
+                self.out.append(f" {alt} ")
         if tag in BLOCK:
             self.out.append("\n\n")
 

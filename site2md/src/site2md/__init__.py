@@ -32,6 +32,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--delay", type=float, default=0.2, help="seconds each worker waits between requests")
     ap.add_argument("--ignore-robots", action="store_true", help="ignore robots.txt (only for your own sites)")
     ap.add_argument("--no-files", action="store_true", help="do not save linked PDF/Word/text files")
+    ap.add_argument("--no-images", action="store_true", help="do not save the pictures in pages (images/)")
     ap.add_argument("--resume", action="store_true", help="continue an interrupted crawl in --out")
     ap.add_argument("--follow", choices=("site", "linked", "everything"), default="linked",
                     help="links leaving the start folder: site = never; linked (default) = a link in a page's content "
@@ -61,7 +62,7 @@ def main(argv: list[str] | None = None) -> None:
     try:
         Crawler(a.url, Path(a.out), prefixes=a.prefix, allow_hosts=a.allow_host, max_pages=a.max_pages,
                 workers=a.workers, delay=a.delay, headers={k.strip(): v.strip() for k, v in headers.items()},
-                robots=not a.ignore_robots, files=not a.no_files, browser=fetcher,
+                robots=not a.ignore_robots, files=not a.no_files, images=not a.no_images, browser=fetcher,
                 save_html=Path(str(Path(a.out)) + "-html") if a.save_html else None, follow=a.follow).run(resume=a.resume)
     finally:
         if fetcher:

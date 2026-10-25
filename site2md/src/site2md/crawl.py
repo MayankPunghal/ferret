@@ -403,7 +403,7 @@ class Crawler:
     def __init__(self, start: str, out: Path, *, prefixes: list[str] | None = None, allow_hosts: list[str] | None = None,
                  max_pages: int = 10_000, workers: int = 4, delay: float = 0.2, headers: dict | None = None,
                  robots: bool = True, files: bool = True, timeout: float = 30, log=print, browser=None,
-                 save_html: Path | None = None, on_page=None, follow: str = "linked"):
+                 save_html: Path | None = None, on_page=None, follow: str = "linked", images: bool = True):
         self.start, self.out = normalize(start), Path(out)
         host = urlsplit(self.start).netloc
         self.prefixes = [normalize(p) for p in prefixes] if prefixes else [start_folder(self.start)]
@@ -418,6 +418,7 @@ class Crawler:
         self.max_pages, self.workers, self.delay, self.timeout = max_pages, workers, delay, timeout
         self.headers = {"User-Agent": USER_AGENT, **(headers or {})}
         self.robots, self.files, self.log = robots, files, log
+        self.images = images  # save the pictures in pages' content to images/ (linked where they appear)
         self.save_html = Path(save_html) if save_html else None  # the HTML each page was converted from
         self.browser = browser  # BrowserFetcher: pages are rendered in a signed-in browser (one at a time)
         if browser:
@@ -674,8 +675,37 @@ class Crawler:
         (self.out / name).write_bytes(data)
         return name
 
+    def _save_image(self, page_url: str, alt: str, src: str) -> str:
+        """Save a picture shown in a page's content to images/ and return its markdown (alt text only when it
+        is not saved: not an image, an icon or spacer under 2 KB, or it failed). Saved once per content."""
+        if not self.images:
+            return alt
+        url = urljoin(page_url, src)
+        try:
+            data, ctype, _, _ = self._get(url)
+        except Exception as e:  # noqa: BLE001 - a missing picture never fails the page
+            self.log(f"  image not saved ({e}): {url}")
+            return alt
+        ext = {"image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp"}.get(
+            ctype.split(";")[0].strip().lower())
+        if not ext or len(data) < 2048:
+            return alt
+        digest = "image:" + hashlib.sha256(data).hexdigest()
+        with self.lock:
+            name = self.hashes.get(digest)
+            if not name:
+                stem = alt[:60] or unquote(urlsplit(url).path.rsplit("/", 1)[-1]).rsplit(".", 1)[0]
+                stem = re.sub(r"\W+", "-", stem.lower()).strip("-") or "image"
+                name = "images/" + file_name_for(stem, self.used) + "." + ext
+                self.hashes[digest] = name
+                self.manifest.setdefault("images", {})[url] = name
+                (self.out / "images").mkdir(parents=True, exist_ok=True)
+                (self.out / name).write_bytes(data)
+        return f"![{alt}]({quote(name)})"
+
     def _save_page(self, url: str, html: str, attached: list[tuple] = ()) -> None:
         title, md = html_to_markdown(html)
+        md = re.sub(r"!\[([^\]\n]*)\]\(([^)\s]+)\)", lambda m: self._save_image(url, m.group(1), unquote(m.group(2))), md)
         docs = []  # (label, url, local file)
         for doc_url, data, kind, filename in attached:
             if data is None:  # saved from an earlier page: filename is the local file

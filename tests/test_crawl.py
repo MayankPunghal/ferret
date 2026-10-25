@@ -26,7 +26,8 @@ PAGES = {
                     "the service as described in <a href='../docs/b/#restart'>Service B</a>.</p></main>"
                     f"{FOOT}</body></html>",
     "/docs/b/": f"<html><head><title>Service B | Acme Wiki</title></head><body>{NAV}<main><h1>Service B</h1>"
-                "<h2 id='restart'>Restart</h2><p>Run the restart job.</p>"
+                "<h2 id='restart'>Restart</h2><p>Run the restart job.</p><img src='/img/flow.png' alt='Restart [flow] diagram'>"
+                "<img src='/img/dot.png' width='16' alt='status dot'><img src='/img/tiny.png' alt='spacer'>"
                 "<a href='/docs/a.html?utm_source=mail'>back to A</a></main></body></html>",
     "/about": f"<html><head><title>About</title></head><body>{NAV}<main><h1>About</h1><p>Team page.</p></main></body></html>",
     "/about/": "<html><body><main><h1>About</h1><p>Team page.</p></main></body></html>",
@@ -50,6 +51,8 @@ def serve():
                 body, ctype = b"User-agent: *\nDisallow: /private/\n", "text/plain"
             elif path == "/sitemap.xml":
                 body, ctype = f"<urlset><url><loc>{host}/orphan</loc></url></urlset>".encode(), "application/xml"
+            elif path.startswith("/img/"):  # flow.png a real picture, tiny.png under 2 KB (a spacer)
+                body, ctype = b"PNG" + b"0" * (4000 if "flow" in path else 100), "image/png"
             elif path == "/files/manual.pdf":
                 body, ctype = b"%PDF-1.4 fake", "application/pdf"
             elif path in PAGES:
@@ -101,6 +104,12 @@ def test_crawl_follows_every_link_and_writes_one_markdown_per_page(tmp_path):
     chunks = chunk_document(parse_document(a.encode(), "docs-a.md"), 900, 0)
     assert [(ln.target, ln.anchor) for c in chunks for ln in c.links] == [("docs-b.md", "restart")]
     assert json.loads((tmp_path / "manifest.json").read_text())["queue"] == []
+    # pictures in the content are saved once under images/ and linked where they appear; icons and spacers not
+    b = (tmp_path / pages["/docs/b/"]).read_text()
+    assert "![Restart flow diagram](images/restart-flow-diagram.png)" in b and "status dot" in b and "spacer" in b
+    assert m["images"] == {base + "/img/flow.png": "images/restart-flow-diagram.png"} and "/img/dot.png" not in hits
+    links = [ln for c in chunk_document(parse_document(b.encode(), "docs-b.md"), 900, 0) for ln in c.links]
+    assert [(ln.kind, ln.target) for ln in links if ln.kind == "image"] == [("image", "restart-flow-diagram.png")]
 
 
 def test_crawl_resume_and_page_limit(tmp_path):

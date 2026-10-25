@@ -12,6 +12,7 @@ import json
 import math
 import time
 from dataclasses import asdict, dataclass, field
+from uuid import UUID
 
 from psycopg import Connection
 
@@ -113,6 +114,9 @@ class Result:
     topics: list[str] = field(default_factory=list)
     clearer_title: str | None = None  # only when the document's own title is vague
     doc_type: str | None = None  # runbook, how-to, policy, ... (enrich.DOC_TYPES)
+    # pictures this passage (first) or its document shows, and for a picture the pages that show it
+    images: list[dict] = field(default_factory=list)
+    shown_on: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -141,6 +145,37 @@ def _quote(lx: str) -> str:
 
 def _or_tsquery(lexemes: list[str]) -> str:
     return " | ".join(_quote(lx) for lx in lexemes)
+
+
+def _attach_images(conn: Connection, scope: list[int], results: list[Result], per_result: int = 6) -> None:
+    """Images saved with a page are documents linked from the passage that shows them (doc_links, kind
+    "image"). A page result brings its pictures, the matched passage's first; a picture result brings the
+    pages that show it, so the words around a picture find it, and a picture's name finds its page."""
+    if not results:
+        return
+    ids = list({r.document_id for r in results})
+    rows = conn.execute(
+        "SELECT DISTINCT ON (l.document_id, t.id) l.document_id::text AS page, l.chunk_id, t.id::text AS id, "
+        "t.title, l.label FROM doc_links l JOIN documents t ON " + graph._resolves("t", "l") + " "
+        "AND t.collection_id = ANY(%s) AND t.id <> l.document_id "
+        "WHERE l.kind = 'image' AND l.document_id = ANY(%s::uuid[]) ORDER BY l.document_id, t.id, l.chunk_id",
+        (scope, ids)).fetchall()
+    def image(doc_id, title, alt=""):
+        return {"document_id": doc_id, "title": title, "alt": alt, "url": f"/api/documents/{doc_id}/source"}
+
+    for r in results:
+        if r.media_type.startswith("image/"):
+            r.images = [image(r.document_id, r.title)]
+            continue
+        own = sorted((x for x in rows if x["page"] == r.document_id), key=lambda x: x["chunk_id"] != r.chunk_id)
+        r.images = [image(x["id"], x["title"], x["label"]) for x in own[:per_result]]
+    pictures = {r.document_id: r for r in results if r.media_type.startswith("image/")}
+    for x in graph.incoming(conn, scope, [UUID(d) for d in pictures]) if pictures else []:
+        if x["kind"] == "image":
+            r = pictures[str(x["target_id"])]
+            r.shown_on.append({"document_id": str(x["document_id"]), "title": x["title"],
+                               "url": f"/api/documents/{x['document_id']}/view"})
+            r.images[0]["alt"] = r.images[0]["alt"] or x["label"]
 
 
 def _idf(conn: Connection, scope: list[int], lexemes: list[str]) -> dict[str, float]:
@@ -400,6 +435,7 @@ def search(
             )
         )
 
+    _attach_images(conn, scope, results)
     supported = [r for r in results if r.supported]
     if failed and not supported and "lexical" not in ranked and "exact" not in ranked:
         outcome = RETRIEVAL_FAILURE

@@ -194,6 +194,8 @@ label.check { font-weight: 400; }
 .snippet { line-height: 1.6; overflow-wrap: anywhere; }
 mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
 .r-summary { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+.r-images { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0; }
+.r-images img { height: 96px; max-width: 220px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; background: var(--surface, transparent); }
 .r-related { display: grid; gap: 4px; font-size: 13px; }
 .rel-row { display: flex; gap: 4px 12px; align-items: baseline; flex-wrap: wrap; margin: 0; }
 .rel-label { color: var(--muted); font-size: 12px; flex: 0 0 120px; }

@@ -61,6 +61,11 @@ def _relink(content: str, links: dict[str, str]) -> str:
         if not doc:
             return "<a>"
         return f'<a href="/api/documents/{doc}/view' + (f"#{html.escape(slugify(anchor))}" if anchor else "") + '">'
+
+    def img(m):  # a picture saved with the page (an image document) shows from there; others only their alt text
+        doc = links.get(normalize_target(html.unescape(m.group(1))))
+        return f'<img src="/api/documents/{doc}/source"' if doc else "<img"
+    content = re.sub(r'<img src="(?![a-zA-Z][a-zA-Z0-9+.-]*:)([^"]*)"', img, content)
     return re.sub(r'<a( [^>]*?)?href="([^"]*)"[^>]*>', one, content)
 
 

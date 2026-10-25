@@ -1,6 +1,6 @@
 # Plan: images and local language models (deferred)
 
-**Status (2026-10-23): images on hold, by decision of the owner; document summaries since built (step 5).** Ingestion stays fast and uses one model only,
+**Status (2026-10-25): step 1 built on branch `feature/images` (owner's request); step 2 (a model describing pictures) not built. Document summaries built earlier (step 5).** Ingestion stays fast and uses one model only,
 the embedding model. Text from PDF, Word, PowerPoint, HTML, Markdown and plain text is the focus. This page
 records what was measured, so the work can resume without repeating it.
 
@@ -40,6 +40,23 @@ searchable, never something that delays search.
 - **The site that prompted this:** in the owner's intranet copy, about 14 pages have no text of their own
   (holiday calendars, landing pages). The HRIS, Leave and Attendance manuals are mostly screenshots,
   so only their captions are searchable today.
+
+## Built (2026-10-25, branch feature/images): step 1
+
+- **Crawl:** site2md keeps `<img>` in page content as `![alt](src)` and saves each picture once (by content)
+  to `images/<alt-slug>.<png|jpg|gif|webp>`, linked where it appears; manifest `images` maps URL to file.
+  Skipped: icons (width or height under 48 px), files under 2 KB, `data:` URLs, non-images. `--no-images`
+  turns it off. Pictures are fetched with the same session as pages (signed-in sites work).
+- **Ingest:** a picture is a document of its own (`parse_image`: its name is its text). A passage containing
+  `![alt](images/x.png)` stores a `doc_links` row of kind `image` (label = alt text), resolved to the picture
+  by file name like any link. Folder sources have an "Images" type (on by default).
+- **Search:** each result carries `images` (pictures the document shows, the matched passage's first) and a
+  picture result carries `shown_on` (the pages showing it). The words around a picture (alt text, caption,
+  the passage) find its page, and the page brings the picture; a picture's name finds the picture and its pages.
+  The readable view shows saved pictures in place; `/source` serves PNG/JPEG/GIF/WebP inline (no SVG).
+- **Not built:** a local vision model writing descriptions (step 2): today a picture without alt text or
+  caption is found only through its page's text and its file name. Every thumbnail load is audited as an
+  opening of the source (noisy audit log; skip audits for images if that matters).
 
 ## The plan, when this resumes
 

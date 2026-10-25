@@ -25,7 +25,7 @@ from .parsing import ParseError
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin/folders", tags=["admin"])
 TYPES = {"markdown": (".md", ".markdown"), "text": (".txt",), "html": (".html", ".htm"), "word": (".docx",),
-         "powerpoint": (".pptx",), "pdf": (".pdf",)}
+         "powerpoint": (".pptx",), "pdf": (".pdf",), "images": (".png", ".jpg", ".jpeg", ".gif", ".webp")}
 _running: dict[int, dict] = {}  # folder id -> progress {"done", "total"} while it syncs
 _stop: set[int] = set()  # folders asked to stop syncing
 _lock = threading.Lock()

@@ -196,6 +196,8 @@ def document_links(document_id: UUID, p: User, conn: Conn):
     outgoing, unresolved, seen = [], [], set()
     for r in rows:
         if r["document_id"] is None:
+            if r["kind"] == "image":  # a picture that was not saved: its alt text is in the passage already
+                continue
             # Target text comes from this (readable) document; it may be missing or simply not readable.
             unresolved.append({"kind": r["kind"], "label": r["label"], "target": r["target"]})
             continue

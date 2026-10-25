@@ -22,7 +22,8 @@ def test_link_extraction():
     assert ("links_to", "service-b.md", "api") in links
     assert ("links_to", "platform overview", None) in links
     assert ("links_to", "nowhere.md", None) in links
-    assert not any("example.com" in t or t == "a.png" for _, t, _ in links)  # external URLs and images ignored
+    assert not any("example.com" in t for _, t, _ in links)  # external URLs ignored
+    assert ("image", "a.png", None) in links  # a picture: a document of its own when it is saved
 
 
 def _upload_wiki(client, drain, headers):

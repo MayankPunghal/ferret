@@ -311,10 +311,23 @@ function resultItem(r) {
       el("div", { className: "meta" }, r.doc_type ? el("span", { className: "kind", textContent: r.doc_type, title: "Type written by the local model" }) : "",
         r.doc_type && loc ? " · " : "", loc),
       el("p", { className: "snippet" }, inline(oneLine(r.snippet))),
+      resultImages(r),
       writtenSummary(r),
       related,
       el("div", { className: "r-actions" }, view, el("a", { href: r.source_url, target: "_blank", rel: "noopener", textContent: "Open document" }))),
   );
+}
+
+// Pictures saved with the page (the matched passage's first), and for a picture the pages that show it.
+function resultImages(r) {
+  if (!r.images?.length) return "";
+  const box = el("div", { className: "r-images" }, ...r.images.map((i) =>
+    el("a", { href: i.url, target: "_blank", rel: "noopener", title: i.alt || i.title },
+      el("img", { src: i.url, alt: i.alt || i.title, loading: "lazy" }))));
+  if (!r.shown_on?.length) return box;
+  return el("div", {}, box, el("p", { className: "rel-row" }, el("span", { className: "rel-label", textContent: "Shown on" }),
+    el("span", {}, ...r.shown_on.flatMap((p, n) => [n ? " · " : "",
+      el("a", { href: p.url, target: "_blank", rel: "noopener", textContent: p.title })]))));
 }
 
 // Title, summary and topics written by the local language model (enrich.py): labelled as such and never
@@ -422,7 +435,7 @@ $("#search-form").addEventListener("submit", async (e) => {
 });
 
 // A passage on one line: list items (slides, org charts) separated by " · " instead of running together.
-const oneLine = (t) => t.replace(/^\s*[-*+]\s+/, "").replace(/\s*\n\s*[-*+]\s+/g, " · ").replace(/\s*\n\s*/g, " ");
+const oneLine = (t) => t.replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^\s*[-*+]\s+/, "").replace(/\s*\n\s*[-*+]\s+/g, " · ").replace(/\s*\n\s*/g, " ");
 
 // Documents opened from inside the drawer (connections, graph) keep a trail, so Back returns to the
 // document the search result opened.

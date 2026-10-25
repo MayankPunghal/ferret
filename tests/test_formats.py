@@ -403,3 +403,35 @@ def test_pdfs_open_in_the_built_in_viewer(client, corpus):
         r = client.get(path)
         assert r.status_code == 200 and r.headers["content-type"].startswith("text/javascript"), path
     assert client.get(f"/api/documents/{pdf}/source", headers=root).headers["content-type"] == "application/pdf"
+
+
+PNG = bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+                    "1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082")
+
+
+def test_images_found_with_their_page_and_page_with_its_images(client, drain):
+    sam = token(client, "sam")
+    page = (b"# Leave approvals\n\nManagers approve leave in the HRIS portal.\n\n"
+            b"![Leave approval screen in the HRIS portal](images/leave-approval-screen.png)\n\n"
+            b"## Holidays\n\nThe office holiday calendar lists Diwali and Holi.\n")
+    ids = {}
+    for name, data in [("leave-approvals.md", page), ("leave-approval-screen.png", PNG)]:
+        r = client.post("/api/documents", headers=sam, data={"collection_id": collection_id("scratch")},
+                        files={"file": (name, data)})
+        assert r.status_code == 202, r.text
+        ids[name] = r.json()["document_id"]
+    drain()
+    try:
+        hits = search(client, sam, "leave approval screen")["results"]
+        by_doc = {h["document_id"]: h for h in hits}
+        page_hit, picture = by_doc[ids["leave-approvals.md"]], by_doc[ids["leave-approval-screen.png"]]
+        assert [i["document_id"] for i in page_hit["images"]] == [ids["leave-approval-screen.png"]]
+        assert page_hit["images"][0]["alt"] == "Leave approval screen in the HRIS portal"
+        assert [p["document_id"] for p in picture["shown_on"]] == [ids["leave-approvals.md"]]
+        src = client.get(picture["images"][0]["url"], headers=sam)
+        assert src.headers["content-type"] == "image/png" and src.content == PNG
+        view = client.get(f"/api/documents/{ids['leave-approvals.md']}/view", headers=sam).text
+        assert f'<img src="/api/documents/{ids["leave-approval-screen.png"]}/source"' in view
+    finally:
+        for d in ids.values():
+            client.delete(f"/api/documents/{d}", headers=sam)
