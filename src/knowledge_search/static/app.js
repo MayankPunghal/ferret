@@ -77,6 +77,7 @@ async function refreshMe() { me = await api("/api/me"); renderMe(); }
 function renderMe() {
   $("#who").textContent = me.username;
   $("#role").textContent = me.is_admin ? "Administrator" : "Member";
+  $("#about-version").textContent = `Ferret ${me.version}`;
   $("#avatar").textContent = me.username.slice(0, 1);
   $$(".admin-only").forEach((b) => { b.hidden = !me.is_admin; });
   const scope = $("#scope");
@@ -120,9 +121,10 @@ $("#login-form").addEventListener("submit", async (e) => {
 $("#setup-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = new FormData(e.target);
+  if (f.get("terms") !== "on") { $("#setup-error").textContent = "Tick “I agree” to continue."; return; }
   if (f.get("password") !== f.get("password2")) { $("#setup-error").textContent = "Passwords do not match."; return; }
   try {
-    await api("/api/setup/admin", { method: "POST", json: { username: f.get("username"), password: f.get("password") } });
+    await api("/api/setup/admin", { method: "POST", json: { username: f.get("username"), password: f.get("password"), accept_terms: true } });
     e.target.reset(); boot();
   } catch (err) { $("#setup-error").textContent = err.message; }
 });
@@ -186,7 +188,7 @@ $("#upd-install").addEventListener("click", async () => {
 
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
-  for (const t of ["search", "documents", "summaries", "status", "assistants", "settings", "admin", "folders", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
+  for (const t of ["search", "documents", "summaries", "status", "assistants", "about", "settings", "admin", "folders", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
   if (name === "folders") loadFolders();
   if (name === "documents") { loadDocs(); pollTimer = setInterval(loadDocs, 3000); }
@@ -1652,3 +1654,23 @@ $("#user-form").addEventListener("submit", async (e) => {
 });
 
 boot();
+
+// The dot next to the name: green while Ferret answers, red with a notice when it cannot be reached (stopped,
+// restarting, the computer asleep). Checked every 10 s; an update's own page (followUpdate) says more.
+(function watchConnection() {
+  let down = false;
+  const check = async () => {
+    let ok = false;
+    try { ok = (await fetch("/healthz", { cache: "no-store" })).ok; } catch { /* unreachable */ }
+    if (ok === !down) return;
+    down = !ok;
+    const dot = $("#conn");
+    dot.classList.toggle("down", down);
+    dot.title = down ? "Not connected: Ferret is not running or cannot be reached. Retrying…" : "Connected to Ferret";
+    $("#conn-banner").hidden = !down;
+  };
+  setInterval(check, 10000);
+  window.addEventListener("online", check);
+  window.addEventListener("focus", check);
+})();
+$("#setup-form [name=terms]").addEventListener("change", (e) => { $("#setup-submit").disabled = !e.target.checked; });

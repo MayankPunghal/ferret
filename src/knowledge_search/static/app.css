@@ -578,3 +578,14 @@ td.actions-cell { width: 1%; text-align: right; }
   background: var(--text); color: var(--surface); font: 400 12.5px/1.45 var(--sans); text-align: left; white-space: normal;
   box-shadow: 0 6px 20px rgba(0, 0, 0, .18); pointer-events: none; }
 #upd-bar { width: 100%; height: 8px; accent-color: var(--accent, currentColor); }
+.conn { width: 8px; height: 8px; border-radius: 50%; background: var(--positive, #3fb950); margin-left: auto; }
+.conn.down { background: var(--negative); animation: conn-pulse 1.2s ease-in-out infinite; }
+@keyframes conn-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .conn.down { animation: none; } }
+.conn-banner { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 50; max-width: min(640px, 92vw); margin: 0; text-align: center; box-shadow: 0 4px 16px rgb(0 0 0 / .25); }
+dl.about { display: grid; grid-template-columns: max-content 1fr; gap: 10px 24px; margin: 0; }
+dl.about dt { color: var(--muted); }
+dl.about dd { margin: 0; }
+@media (max-width: 640px) { dl.about { grid-template-columns: 1fr; } dl.about dd { margin-bottom: 8px; } }
+.terms-agree { font-size: 13px; }
+#setup-submit:disabled { opacity: .5; cursor: not-allowed; }

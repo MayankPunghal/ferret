@@ -1,0 +1,28 @@
+FERRET: TERMS OF USE
+Version of 25 October 2026
+
+Ferret is free software by Mayank Punghal, licensed under the Apache License, Version 2.0 (the full text is
+in the LICENSE file that comes with Ferret, and at https://www.apache.org/licenses/LICENSE-2.0). By installing
+or using Ferret you agree to that license and to these terms.
+
+1. No warranty. Ferret is provided "AS IS", without warranties or conditions of any kind. Search results and
+   summaries can be incomplete or wrong: check the cited passage before relying on it. The authors are not
+   liable for any damage or loss arising from its use, as set out in sections 7 and 8 of the license.
+
+2. Your data stays with you. Ferret runs on your computer or your own server. Your documents, the search index,
+   accounts and settings are stored there and are not sent to the authors or to any AI service. Ferret
+   connects to the internet only to download its models (from Hugging Face), the local language model server
+   (from GitHub), and to check GitHub for new versions; documents are never uploaded.
+
+3. Your documents. You are responsible for having the right to store and search the documents and websites
+   you add, and for who you give access to them. Deleting a collection or document removes it from Ferret
+   for good.
+
+4. Third-party components. Ferret uses open-source software and models that come with their own licenses,
+   including PostgreSQL (PostgreSQL License), llama.cpp (MIT), the BGE embedding models (MIT), the MiniLM
+   reranker (Apache-2.0) and the Gemma language model (Gemma terms of use, shown on its model page). Using
+   Ferret means using them under those licenses too.
+
+5. Changes. New versions may come with updated terms; the version you install shows the terms that apply.
+
+Source code, issues and contact: https://github.com/MayankPunghal/ferret

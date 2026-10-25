@@ -25,6 +25,7 @@
     <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
     <symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></g></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
     <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></symbol>
@@ -50,20 +51,23 @@
       <label>Username <input name="username" value="admin" pattern="[a-z0-9_.\-]{2,64}" autocomplete="username" required></label>
       <label><span>Password <span class="muted">at least 10 characters</span></span> <input name="password" type="password" minlength="10" autocomplete="new-password" required></label>
       <label>Repeat password <input name="password2" type="password" minlength="10" autocomplete="new-password" required></label>
-      <button type="submit" class="primary">Create account and start</button>
+      <label class="check terms-agree"><input name="terms" type="checkbox" required> <span>I have read and agree to the <a href="/terms.txt" target="_blank" rel="noopener">terms of use</a></span></label>
+      <button type="submit" class="primary" id="setup-submit" disabled>Create account and start</button>
       <p id="setup-error" class="error" role="alert"></p>
     </form>
   </div>
 
   <div id="app-view" class="shell" hidden>
     <aside id="sidebar" class="sidebar" aria-label="Navigation">
-      <div class="brand"><img class="mark" src="/favicon.svg" alt=""> Ferret</div>
+      <div class="brand"><img class="mark" src="/favicon.svg" alt=""> Ferret
+        <span id="conn" class="conn" role="status" title="Connected to Ferret"></span></div>
       <nav>
         <button class="tab" data-tab="search" aria-current="page"><svg class="i"><use href="#i-search"/></svg>Search</button>
         <button class="tab" data-tab="documents"><svg class="i"><use href="#i-docs"/></svg>Documents</button>
         <button class="tab" data-tab="summaries"><svg class="i"><use href="#i-summaries"/></svg>Summaries</button>
         <button class="tab" data-tab="status"><svg class="i"><use href="#i-status"/></svg>Index status</button>
         <button class="tab" data-tab="assistants"><svg class="i"><use href="#i-plug"/></svg>AI assistants</button>
+        <button class="tab" data-tab="about"><svg class="i"><use href="#i-info"/></svg>About</button>
         <p class="nav-group admin-only" hidden>Administration</p>
         <button class="tab admin-only" data-tab="settings" hidden><svg class="i"><use href="#i-settings"/></svg>Settings</button>
         <button class="tab admin-only" data-tab="admin" hidden><svg class="i"><use href="#i-users"/></svg>Users &amp; access</button>
@@ -80,6 +84,8 @@
       </div>
     </aside>
 
+    <p id="conn-banner" class="notice conn-banner" role="alert" hidden>Not connected to Ferret. Start it from the Start menu
+      or the tray icon; this page reconnects by itself.</p>
     <header class="topbar">
       <button id="menu-button" class="icon menu-button" aria-label="Menu" aria-controls="sidebar" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
       <form id="search-form" class="searchbar" role="search">
@@ -460,6 +466,26 @@
         </div>
       </section>
 
+      <section id="tab-about" hidden>
+        <div class="title-row"><h1>About Ferret</h1></div>
+        <p class="muted lede">Private search for your documents: every result cites the passage it came from, and when
+          nothing supports an answer, Ferret says so. Everything runs on this computer.</p>
+        <section class="block">
+          <dl class="about">
+            <dt>Version</dt><dd id="about-version"></dd>
+            <dt>Author</dt><dd>Mayank Punghal</dd>
+            <dt>Contributors</dt><dd>Mayank Punghal, with Claude (Anthropic) as coding assistant ·
+              <a href="https://github.com/MayankPunghal/ferret/graphs/contributors" target="_blank" rel="noopener">all contributors</a></dd>
+            <dt>License</dt><dd>Apache License 2.0 · <a href="/terms.txt" target="_blank" rel="noopener">Terms of use</a> ·
+              <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">License text</a></dd>
+            <dt>Source</dt><dd><a href="https://github.com/MayankPunghal/ferret" target="_blank" rel="noopener">github.com/MayankPunghal/ferret</a> ·
+              <a href="https://github.com/MayankPunghal/ferret/issues" target="_blank" rel="noopener">Report a problem</a> ·
+              <a href="https://github.com/MayankPunghal/ferret/releases" target="_blank" rel="noopener">Release notes</a></dd>
+            <dt>Built with</dt><dd>PostgreSQL · pgvector · FastAPI · ONNX Runtime (fastembed) · llama.cpp · PDFium ·
+              BGE embedding models (BAAI) · MiniLM reranker · Gemma language model (Google), each under its own license</dd>
+          </dl>
+        </section>
+      </section>
       <section id="tab-database" hidden>
         <div class="title-row">
           <h1>Database</h1>

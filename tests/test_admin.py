@@ -10,7 +10,7 @@ from .conftest import PASSWORD, search, token
 
 def test_first_run_setup_only_without_admin_and_only_locally(client, corpus, monkeypatch):
     assert client.get("/api/setup").json() == {"needs_admin": False}
-    body = {"username": "firstadmin", "password": "first-admin-password"}
+    body = {"username": "firstadmin", "password": "first-admin-password", "accept_terms": True}
     assert client.post("/api/setup/admin", json=body).status_code == 409
     with db.pool().connection() as c:
         c.execute("UPDATE users SET is_admin = false WHERE username = 'root'")
@@ -20,6 +20,7 @@ def test_first_run_setup_only_without_admin_and_only_locally(client, corpus, mon
         monkeypatch.setattr(api, "LOOPBACK", set())
         assert client.post("/api/setup/admin", json=body).status_code == 403  # remote clients refused
         monkeypatch.undo()
+        assert client.post("/api/setup/admin", json={**body, "accept_terms": False}).status_code == 400
         r = client.post("/api/setup/admin", json=body)
         assert r.status_code == 200 and r.json()["token"]
         assert client.get("/api/me", headers={"Authorization": f"Bearer {r.json()['token']}"}).json()["is_admin"]
@@ -213,3 +214,10 @@ def test_delete_collection_removes_its_documents(client, drain):
     assert client.delete(f"/api/admin/collections/{cid}", headers=token(client, "alice")).status_code == 404
     assert client.delete(f"/api/admin/collections/{cid}", headers=root).json() == {"deleted_documents": 1}
     assert client.get(f"/api/documents/{doc}", headers=root).status_code == 404
+
+
+def test_first_collection_name_is_valid(client):
+    with db.pool().connection() as c, c.transaction(force_rollback=True):  # the setup's collection fits the schema
+        from knowledge_search import auth
+
+        assert auth.ensure_collection(c, *api.FIRST_COLLECTION)

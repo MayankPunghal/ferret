@@ -1,7 +1,7 @@
 """The Windows app: Ferret in the system tray (`pythonw -m knowledge_search.tray`, no console window).
 
 Runs the server in this process on port 8000, or the next free one when another program has it, and opens
-the browser once it answers (not with --background, used when Windows starts it at sign-in). Menu: Open
+it in a window of its own (Edge app mode, no address bar) once it answers (not with --background, used when Windows starts it at sign-in). Menu: Open
 Ferret · Pause indexing · Start when I sign in · Updates… (Settings → Updates; Install update X shows when
 GitHub has a newer release, checked at start and daily) · Quit Ferret. A second start while Ferret runs only opens the
 browser.
@@ -9,6 +9,7 @@ browser.
 
 import os
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -30,6 +31,17 @@ def answers(port: int) -> bool:
         return True
     except OSError:
         return False
+
+
+def open_window(address: str) -> None:
+    """Ferret in a window of its own (Edge's app mode: no address bar or tabs, its own taskbar entry), like a
+    desktop app; the default browser when Edge is missing."""
+    for base in (os.environ.get("ProgramFiles(x86)"), os.environ.get("ProgramFiles"), os.environ.get("LOCALAPPDATA")):
+        edge = Path(base or "") / "Microsoft" / "Edge" / "Application" / "msedge.exe"
+        if base and edge.is_file():
+            subprocess.Popen([str(edge), f"--app={address}"])
+            return
+    webbrowser.open(address)
 
 
 def free_port() -> int | None:
@@ -86,7 +98,7 @@ def main() -> None:
         known = None
     if known and answers(known):  # Ferret already runs
         if not background:
-            webbrowser.open(url(known))
+            open_window(url(known))
         return
 
     import pystray
@@ -130,7 +142,7 @@ def main() -> None:
 
     state.quit_app = lambda: quit_app(icon, None)
     icon = pystray.Icon("Ferret", Image.open(Path(__file__).with_name("static") / "ferret.png"), "Ferret", pystray.Menu(
-        pystray.MenuItem("Open Ferret", lambda: webbrowser.open(url(port)), default=True),
+        pystray.MenuItem("Open Ferret", lambda: open_window(url(port)), default=True),
         pystray.MenuItem("Pause indexing and summaries", toggle_pause, checked=lambda _item: paused()),
         pystray.MenuItem("Start when I sign in", lambda: autostart(not autostart()), checked=lambda _item: autostart(),
                          visible=sys.platform == "win32"),
@@ -138,7 +150,7 @@ def main() -> None:
         pystray.MenuItem(lambda _item: f"Install update {updates.state['latest']}",
                          lambda: updates.install(on_started=lambda: quit_app(icon, None)),
                          visible=lambda _item: updates.status()["can_install"] and updates.status()["newer"]),
-        pystray.MenuItem("Updates…", lambda: webbrowser.open(url(port) + "/#updates")),
+        pystray.MenuItem("Updates…", lambda: open_window(url(port) + "/#updates")),
         pystray.MenuItem("Quit Ferret", quit_app)))
 
     def watch():
@@ -153,7 +165,7 @@ def main() -> None:
         port_file.write_text(str(port))
         icon.title = "Ferret (indexing paused)" if paused() else f"Ferret: {url(port)}"
         if not background:
-            webbrowser.open(url(port))
+            open_window(url(port))
         while not settings.offline and thread.is_alive():
             check()
             time.sleep(24 * 3600)

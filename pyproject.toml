@@ -2,6 +2,8 @@
 name = "ferret-search"
 version = "1.0.3"
 description = "Offline, permission-aware knowledge search for technical teams"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 readme = "README.md"
 authors = [
     { name = "Mayank Punghal" }

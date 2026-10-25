@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import admin, auth, crawls, db, dbview, enrich, folders, graph, mcp, runtime, trace, vectors
+from . import admin, auth, crawls, db, dbview, enrich, folders, graph, mcp, runtime, trace, updates, vectors
 from .auth import Principal
 from .config import Settings, get_settings, memory_vectors
 from .deps import COOKIE, Conn, User, state
@@ -50,6 +50,8 @@ PDF_VIEWER_CSP = ("default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; wor
                   "frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
 log = logging.getLogger(__name__)
 LOOPBACK = {"127.0.0.1", "::1", "localhost", "testclient"}
+TERMS_VERSION = "2026-10-25"  # static/terms.txt; recorded when the first administrator accepts it
+FIRST_COLLECTION = ("documents", "Created at setup; add more under Users & access")  # names: [a-z0-9_-]
 
 
 def create_app(settings: Settings | None = None, embedder: Embedder | None = None, start_workers: bool = True):
@@ -259,6 +261,7 @@ class LoginBody(BaseModel):
 class SetupBody(BaseModel):
     username: str = Field(pattern=r"^[a-z0-9_.-]{2,64}$")
     password: str = Field(min_length=10, max_length=256)
+    accept_terms: bool = False  # static/terms.txt; the first administrator accepts them for this installation
 
 
 class SearchBody(BaseModel):
@@ -319,6 +322,8 @@ def _routes(app: FastAPI) -> None:
         """First-run: create the administrator. Only while no admin exists, and only from this machine."""
         if (request.client.host if request.client else "") not in LOOPBACK:
             raise HTTPException(403, "first-run setup is only allowed from the machine running the server")
+        if not body.accept_terms:
+            raise HTTPException(400, "accept the terms of use to continue")
         conn.execute("LOCK TABLE users IN EXCLUSIVE MODE")
         if conn.execute("SELECT 1 FROM users WHERE is_admin AND NOT disabled").fetchone():
             raise HTTPException(409, "setup already completed")
@@ -326,8 +331,9 @@ def _routes(app: FastAPI) -> None:
             raise HTTPException(409, "that username is taken; choose another")
         uid = auth.create_user(conn, body.username, body.password, is_admin=True)
         auth.audit(conn, uid, "first_run_admin_created", body.username)
+        auth.audit(conn, uid, "terms_accepted", "terms.txt", version=TERMS_VERSION)
         if not conn.execute("SELECT 1 FROM collections").fetchone():  # somewhere to upload from the first minute
-            auth.ensure_collection(conn, "Documents", "Created at setup; rename it or add more under Users & access")
+            auth.ensure_collection(conn, *FIRST_COLLECTION)
         out = _start_session(conn, response, uid)
         conn.commit()
         return out
@@ -403,6 +409,7 @@ def _routes(app: FastAPI) -> None:
             "username": p.username,
             "is_admin": p.is_admin,
             "collections": [dict(c, can_write=c["id"] in p.writable) for c in cols],
+            "version": updates.current(),
         }
 
     @app.post("/api/search")

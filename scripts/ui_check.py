@@ -48,6 +48,7 @@ with sync_playwright() as p:
         shot("00-first-run")
         pg.fill("#setup-form [name=password]", ADMIN_PW)
         pg.fill("#setup-form [name=password2]", ADMIN_PW)
+        pg.check("#setup-form [name=terms]")
         pg.click("#setup-form button")
         print("first-run admin created")
     else:  # re-run against an existing install

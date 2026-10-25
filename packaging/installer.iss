@@ -32,6 +32,8 @@ UsePreviousTasks=yes
 OutputDir=..\dist
 OutputBaseFilename=Ferret-Setup-{#AppVersion}
 SetupIconFile=ferret.ico
+; the terms are accepted on the installer's license page (also at /terms.txt in the app)
+LicenseFile=..\src\knowledge_search\static\terms.txt
 UninstallDisplayIcon={app}\ferret.ico
 UninstallDisplayName={#AppName}
 WizardStyle=modern
