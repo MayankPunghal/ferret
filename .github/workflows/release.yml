@@ -14,10 +14,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "New Ferret version, e.g. 1.0.3 (empty: release the version already in pyproject.toml)"
+        description: "New Ferret version, e.g. 2.0.0 (leave empty for the next patch version: 1.0.4 becomes 1.0.5)"
         required: false
       crawler:
-        description: "New crawler version, only when the crawler changed, e.g. 1.2.0"
+        description: "New crawler version, e.g. 2.0.0 (leave empty: the next patch version when the crawler changed)"
         required: false
 
 concurrency: release
@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0  # tags, to compare with the last release
       - uses: astral-sh/setup-uv@v7
       - id: check
-        run: uv run --no-project python scripts/release_check.py --version "${{ inputs.version }}" --crawler "${{ inputs.crawler }}"
+        run: uv run --no-project python scripts/release_check.py --version "${{ inputs.version }}" --crawler "${{ inputs.crawler }}" ${{ github.event_name == 'workflow_dispatch' && '--next' || '' }}
       - id: commit
         run: |
           if ! git diff --quiet; then
