@@ -355,6 +355,10 @@ earlier 1.7× reading was taken on a busy CPU. Not measured: machines with more 
 
 Owner's laptop (2026-10-25): Intel Core i5-12500H, 12 cores / 16 threads, Windows 11, bge-base, 400 passages from the docs folder: **1 × all threads 6.5**, 2 × all 4.0, 2 × 4 threads 5.9, **4 × 4 threads 6.9**, 4 × 2 5.9, 8 × 2 6.5 passages/s; vectors identical. Again no worthwhile gain (+6% at best), so step 1 stays unbuilt; a 16–32-core server is still unmeasured (TODO 3).
 
+## 11. Embeddings on the integrated GPU (2026-10-25, `scripts/gpu_probe.py`)
+
+Owner's laptop, 2026-10-25: Intel Iris Xe (driver 31.0.101.4575), i5-12500H, Windows 11; `onnxruntime-directml` 1.24.4 in its own environment (`scripts/gpu_probe.py`), bge-base, 335 passages from the docs folder (median 520 characters), batch 8: **CPU 3.4 passages/s, GPU (DirectML) 1.2 passages/s**; cosine between CPU and GPU vectors min 0.999987, mean 0.999992. The vectors pass the parity bar, but the integrated GPU is about 3× slower than the CPU for embeddings. (The CPU figure is lower than the 6.5 measured with the app's own onnxruntime 1.31 in §10; the comparison here is within one environment.) Not measured: larger batches on the GPU, OpenVINO, the reranker, and llama.cpp's Vulkan build for summaries, which the plan names as the most likely gain.
+
 ## Not measured
 
 Real company corpus; corpora beyond ~8.5k chunks; large embedding models (bge-large); GPU; Windows performance; Docker

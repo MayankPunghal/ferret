@@ -5,6 +5,8 @@ GPU and CPU toggleable from settings". The owner's laptop has an **Intel integra
 container that built this app has no GPU, so **nothing below has been run on a GPU: every speed or accuracy
 effect is unmeasured**. This file is the plan for a local session on that laptop.
 
+**Status (2026-10-25): step 1 run for embeddings.** Owner's laptop, 2026-10-25: Intel Iris Xe (driver 31.0.101.4575), i5-12500H, Windows 11; `onnxruntime-directml` 1.24.4 in its own environment (`scripts/gpu_probe.py`), bge-base, 335 passages from the docs folder (median 520 characters), batch 8: **CPU 3.4 passages/s, GPU (DirectML) 1.2 passages/s**; cosine between CPU and GPU vectors min 0.999987, mean 0.999992. The vectors pass the parity bar, but the integrated GPU is about 3× slower than the CPU for embeddings. (The CPU figure is lower than the 6.5 measured with the app's own onnxruntime 1.31 in §10; the comparison here is within one environment.) Not measured: larger batches on the GPU, OpenVINO, the reranker, and llama.cpp's Vulkan build for summaries, which the plan names as the most likely gain. So the embedding switch is not worth building for this laptop; next is the llama.cpp Vulkan build for summaries (step 3), measured the same way.
+
 ## What runs where today (all CPU)
 
 | Work | Engine | Code | Thread setting |
