@@ -1,10 +1,10 @@
 [project]
-name = "knowledge-search"
+name = "ferret-search"
 version = "1.0.0"
 description = "Offline, permission-aware knowledge search for technical teams"
 readme = "README.md"
 authors = [
-    { name = "Claude", email = "noreply@anthropic.com" }
+    { name = "Mayank Punghal" }
 ]
 requires-python = ">=3.13"
 dependencies = [
@@ -21,7 +21,7 @@ dependencies = [
     "pypdfium2==5.14.0",
     "python-multipart==0.0.32",
     "pyyaml==6.0.3",
-    "site2md",
+    "ferret-crawler==1.1.0",  # site2md/, the crawler (import name site2md; "site2md" is taken on PyPI)
     "uvicorn[standard]==0.54.0",
 ]
 
@@ -29,9 +29,15 @@ dependencies = [
 ferret = "knowledge_search:main"
 knowledge-search = "knowledge_search:main"  # the earlier name, kept so existing setups keep working
 
+[project.urls]
+Homepage = "https://github.com/MayankPunghal/ferret"
+
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "knowledge_search"
 
 [dependency-groups]
 dev = [
@@ -47,7 +53,7 @@ eval = [
 members = ["site2md"]
 
 [tool.uv.sources]
-site2md = { workspace = true }
+ferret-crawler = { workspace = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -382,3 +382,23 @@ def test_summaries_tab_counts_match_the_worker_and_are_paged(client, corpus, dra
     assert client.get("/api/summaries?q=no-such-name", headers=root).json()["total"] == 0
     assert "hr" not in {r["name"] for r in client.get("/api/summaries/status", headers=bob).json()["collections"]}
     assert all(r["collection"] != "hr" for r in client.get("/api/summaries?limit=1000", headers=bob).json()["rows"])
+
+
+def test_first_start_chooses_defaults_for_the_computer(client, monkeypatch):
+    from knowledge_search import system
+
+    monkeypatch.setattr(system, "memory_gb", lambda: 6.0)
+    monkeypatch.setattr(system, "gpus", lambda: [])
+    with db.pool().connection() as c:
+        system.apply_once(c)
+        assert not runtime.load(c).enrich_enabled  # under 8 GB: summaries off by default
+        system.apply_once(c)  # only once
+        assert c.execute("SELECT value FROM app_settings WHERE key = 'system'").fetchone()["value"]["memory_gb"] == 6.0
+        c.execute("DELETE FROM app_settings WHERE key IN ('system', 'enrich_enabled')")
+    monkeypatch.setattr(system, "memory_gb", lambda: 32.0)
+    monkeypatch.setattr(system, "gpus", lambda: ["NVIDIA GPU"])
+    monkeypatch.setenv("KS_LLM_DEVICE", "cpu")  # set by the administrator: left alone
+    with db.pool().connection() as c:
+        system.apply_once(c)
+        assert runtime.load(c).llm_device == "cpu" and runtime.load(c).enrich_enabled
+        c.execute("DELETE FROM app_settings WHERE key = 'system'")

@@ -24,7 +24,7 @@ def main(argv: list[str] | None = None) -> None:
 
     logs.install(get_settings().data_dir)
     ap = argparse.ArgumentParser(prog="ferret")
-    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub = ap.add_subparsers(dest="cmd")  # none: start the app and open it in the browser
     sub.add_parser("migrate", help="apply database migrations")
     p = sub.add_parser("create-user")
     p.add_argument("username")
@@ -65,6 +65,8 @@ def main(argv: list[str] | None = None) -> None:
                        "document summaries; nothing is sent anywhere")
     p.add_argument("--model", default=None, help="gemma-4-e2b (default, ~3.1 GB), gemma-4-e4b (~5 GB, servers), qwen3.5-2b (~1.3 GB) or qwen3.5-0.8b (~0.5 GB, faster, less accurate)")
     a = ap.parse_args(argv)
+    if a.cmd is None:
+        a = ap.parse_args(["serve", "--open"])
     s = get_settings()
 
     if a.cmd == "migrate":

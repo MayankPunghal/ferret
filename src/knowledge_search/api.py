@@ -66,6 +66,11 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
         if applied:
             log.warning("database upgraded: %s", ", ".join(applied))
         db.open_pool(url)
+        if settings.system_check:
+            from . import system
+
+            with db.pool().connection() as conn:
+                system.apply_once(conn)
         state.settings = settings
         state.blobs = BlobStore(settings.data_dir)
         state.stop = threading.Event()

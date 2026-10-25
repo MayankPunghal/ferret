@@ -1033,8 +1033,10 @@ function fillSettings(v) {
   $("#s-enrich-on").checked = v.enrich_enabled; $("#s-hours").value = v.enrich_hours || "";
   $("#s-llm").value = summaryModel(v); llmNote(); $("#s-sumlen").value = v.summary_length;
   $("#s-llm-dev").value = v.llm_device; $("#s-llm-dev").disabled = !settings.llm.gpu || settings.llm.external;
-  $("#s-llm-dev-note").textContent = settings.llm.gpu_error || (!settings.llm.gpu ? "No GPU build of the model server for this system: it runs on the CPU."
-    : `Running on the ${settings.llm.device.toUpperCase()}. On an Intel Iris Xe laptop the GPU wrote summaries 10–20% faster, just as good, and left the processor free for indexing and search. If the GPU fails, the CPU takes over.`);
+  const sys = settings.system;
+  $("#s-llm-dev-note").textContent = (sys ? `This computer: ${sys.memory_gb} GB memory, graphics: ${sys.gpus.join(", ") || "none found"}. ` : "")
+    + (settings.llm.gpu_error || (!settings.llm.gpu ? "No GPU build of the model server for this system: it runs on the CPU."
+    : `Running on the ${settings.llm.device.toUpperCase()}. On an Intel Iris Xe laptop the GPU wrote summaries 10–20% faster, just as good, and left the processor free for indexing and search. If the GPU fails, the CPU takes over.`));
   $("#s-g-high").value = v.gate_dense_high; $("#s-g-min").value = v.gate_dense_min; $("#s-g-cov").value = v.gate_lex_coverage;
   $("#s-g-all").value = v.gate_all_terms_min;
   $("#s-g-rr").value = v.gate_rerank_min; $("#s-g-mode").value = v.gate_mode; $("#s-g-lex").value = v.gate_lexical;

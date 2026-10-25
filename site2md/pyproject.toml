@@ -1,5 +1,5 @@
 [project]
-name = "site2md"
+name = "ferret-crawler"
 version = "1.1.0"
 description = "Save a website or intranet as Markdown files, one per page (for search indexes and LLM tools)"
 readme = "README.md"
@@ -13,6 +13,12 @@ browser = ["playwright>=1.48"]
 ferret-crawler = "site2md:main"
 site2md = "site2md:main"
 
+[project.urls]
+Homepage = "https://github.com/MayankPunghal/ferret"
+
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "site2md"

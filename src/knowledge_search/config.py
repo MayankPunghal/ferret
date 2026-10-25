@@ -8,6 +8,10 @@ no outbound AI calls. Model weights are fetched from Hugging Face only when not 
 from functools import lru_cache
 from pathlib import Path
 
+# A clone of the repository keeps its data next to the code (./data); an installed package
+# (`uv tool install ferret-search`) keeps it in the user's home folder.
+DATA = Path("./data") if Path("pyproject.toml").is_file() or Path("data").is_dir() else Path.home() / "Ferret"
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,8 +24,8 @@ class Settings(BaseSettings):
     # Admin → Database → SQL runs read-only queries as a separate, non-superuser role. With the embedded
     # database the app creates it (ks_reader); with an external server, set a read-only role's URL here.
     readonly_database_url: str = ""
-    data_dir: Path = Path("./data")
-    model_cache: Path = Path("./data/models")
+    data_dir: Path = DATA
+    model_cache: Path = DATA / "models"
     embed_model: str = "BAAI/bge-base-en-v1.5"  # best measured accuracy/latency trade-off (docs/evaluation.md)
     embed_threads: int = 0  # 0 = onnxruntime default
     # Where vector similarity is computed: "memory" (numpy in the app process), "database" (pgvector in
@@ -46,6 +50,7 @@ class Settings(BaseSettings):
     enrich_enabled: bool = True  # summaries/topics/titles by the local language model, when one is available
     enrich_hours: str = ""  # "22-6": the local model only works between these hours (local time); "" = any time
     summary_length: str = "short"  # short | medium | long (enrich.LENGTHS)
+    system_check: bool = True  # first start: check memory and GPU and choose defaults for them (system.py)
     llm_device: str = "cpu"  # cpu | gpu: llama.cpp's Vulkan build (enrich.gpu_exe), falls back to the CPU
 
     # Local language model for document summaries (enrich.py), OpenAI-compatible. Empty llm_url = the model

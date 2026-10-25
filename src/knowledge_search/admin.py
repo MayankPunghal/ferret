@@ -130,6 +130,7 @@ def _settings_view(conn) -> dict:
                 "default": enrich.DEFAULT_LLM, "gpu": enrich.gpu_supported(),
                 "device": "gpu" if getattr(getattr(enricher, "server", None), "gpu_exe", None) else "cpu",
                 "gpu_error": getattr(enricher, "gpu_error", "")},
+        "system": (conn.execute("SELECT value FROM app_settings WHERE key = 'system'").fetchone() or {}).get("value"),
         "recommended": {"embed_model": s.embed_model, "rerank_model": s.rerank_model},
         "model_status": {**runtime.model_states(), **{f"download: {k}": v for k, v in _loading.items()}},
         "index": {"signature": rt.signature(), **cov},

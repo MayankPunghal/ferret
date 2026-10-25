@@ -14,6 +14,19 @@ One codebase, two supported profiles. GPU is optional and not yet implemented.
 Covered in [Getting started](getting-started.md). The app listens on `127.0.0.1` only. To let colleagues
 reach it, prefer the server profile.
 
+## One Docker container (a few people)
+
+```bash
+docker run -d --name ferret -p 8000:8000 -v ferret-data:/data -v ferret-models:/models ghcr.io/mayankpunghal/ferret-search
+```
+
+Open <http://127.0.0.1:8000> and create the administrator. The container runs its own PostgreSQL in
+`/data` (the same embedded database as a laptop install) and indexes in the same process. The search models
+(bge-base and the jina reranker, the app's defaults) are in the image; the optional summary model
+(~3.2 GB) downloads into `/models` on first start unless `-e KS_ENRICH_ENABLED=false` or `-e KS_OFFLINE=1`.
+Memory: about 1.5 GB for search, plus about 4 GB with summaries on (estimates). Back up the `ferret-data`
+volume. Without a GPU passed through, summaries run on the CPU.
+
 ## Dedicated server with Docker Compose
 
 ```bash
@@ -28,8 +41,9 @@ with `KS_OFFLINE=1`. Then open `https://<host>/` **from the server itself** to c
 `docker compose exec app /app/.venv/bin/ferret create-user admin --admin --password -`.
 
 Verification status: the server topology (separate web and worker processes, PostgreSQL container,
-multi-user HTTP, concurrency test) was verified natively; the Docker image build was not (registry rate
-limits in the development environment). Run `docker compose build` before relying on it.
+multi-user HTTP, concurrency test) was verified natively. CI builds the image on every push and checks
+that one container starts, loads the sample documents and answers a search; the Compose stack itself is
+not run in CI.
 
 ## Server without Docker
 

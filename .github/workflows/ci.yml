@@ -28,6 +28,25 @@ jobs:
           icacls "${{ runner.temp }}" /grant "Users:(OI)(CI)F"
       - run: uv run pytest -q --basetemp="${{ runner.temp }}/pytest"
 
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t ferret-search:ci .
+      - name: llama.cpp's Linux build finds its libraries in the image
+        run: |
+          docker run --rm ferret-search:ci sh -c '/app/.venv/bin/python -c "from pathlib import Path; from knowledge_search import enrich; enrich.fetch_build(Path(\"/tmp/l\"))" > /dev/null && ldd $(find /tmp/l -name llama-server) | tee /tmp/ldd.txt; ! grep "not found" /tmp/ldd.txt'
+      - name: One container starts, loads the samples and answers a search
+        run: |
+          docker run -d --name ferret -p 8000:8000 -e KS_ENRICH_ENABLED=false ferret-search:ci
+          for i in $(seq 1 90); do curl -sf http://127.0.0.1:8000/healthz > /dev/null && break; sleep 2; done
+          docker exec ferret /app/.venv/bin/ferret demo
+          token=$(curl -sf -X POST http://127.0.0.1:8000/api/auth/login -H 'Content-Type: application/json'             -d '{"username":"alice","password":"demo-password-alice"}' | python3 -c 'import json,sys;print(json.load(sys.stdin)["token"])')
+          curl -sf -X POST http://127.0.0.1:8000/api/search -H "Authorization: Bearer $token" -H 'Content-Type: application/json'             -d '{"query":"ERR-PAY-4012"}' | python3 -c 'import json,sys;r=json.load(sys.stdin);print(r["outcome"]);assert r["outcome"]=="evidence_found"'
+          docker images ferret-search:ci --format '{{.Size}}'
+      - if: failure()
+        run: docker logs ferret | tail -100
+
   ui:
     runs-on: ubuntu-latest
     env:

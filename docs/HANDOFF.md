@@ -633,6 +633,24 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   `--list-devices` shows the Iris Xe, the server started with `-ngl 99` and answered. Tests: length rewrite,
   the three line sources, GPU-to-CPU fallback.
 
+- **Parallel embedding (TODO 3) closed:** measured twice with no worthwhile gain (4 cores in the cloud
+  session; 6.5 vs 6.9 passages/s with 4 sessions on the laptop, evaluation.md §10). Two in-process workers
+  (built) already keep small files from waiting behind a large one. Re-open only with a 16–32-core server.
+- **Hardware defaults (owner ask, 2026-10-25): built.** `system.py` checks once, on the first start: total
+  memory (or the container's limit) and graphics cards (Windows: `Win32_VideoController`; Linux: the vendor
+  under `/sys/class/drm` when `/dev/dri` exists). Under 8 GB, summaries default to off; with 15 GB or more
+  and a GPU llama.cpp's Vulkan build can use, the summary model defaults to the GPU. Settings already saved
+  or set by a `KS_` variable are left alone; Settings shows what was found. The thresholds are estimates
+  from model sizes, not measured on 8 GB machines. Laptop: 15.6 GB, Iris Xe, chose GPU.
+- **PyPI and Docker (plan-release step 2 partly, steps 3 and plan-docker 1–3, 6, 7): built.** Distributions
+  renamed `ferret-search` and `ferret-crawler` (import names unchanged; `site2md` is taken on PyPI). An
+  installed package keeps data in `~/Ferret` (a clone keeps `./data`); `ferret` alone starts and opens the
+  browser. Checked: both wheels install in a clean venv outside the repository and the app starts. Docker:
+  bge-base (was bge-small), `libgomp1`, `/models` writable, no `KS_OFFLINE` by default, one-container
+  mode documented; CI builds the image, checks `ldd llama-server`, starts one container and searches.
+  `release.yml` publishes both on a `v*` tag; PyPI needs the owner's one-time trusted-publisher setup.
+- **Held for a later phase (owner):** `.exe` installer, macOS app, invites, Ask, images.
+
 ## 5. Decisions made this session (details: docs/architecture.md)
 
 Embedded PostgreSQL + vendored Windows DLL; in-memory vector search for laptops; runtime-editable

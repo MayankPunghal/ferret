@@ -8,8 +8,8 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "knowledge-search",
-    "site2md",
+    "ferret-crawler",
+    "ferret-search",
 ]
 
 [[package]]
@@ -433,6 +433,79 @@ wheels = [
 ]
 
 [[package]]
+name = "ferret-crawler"
+version = "1.1.0"
+source = { editable = "site2md" }
+
+[package.optional-dependencies]
+browser = [
+    { name = "playwright" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "playwright", marker = "extra == 'browser'", specifier = ">=1.48" }]
+provides-extras = ["browser"]
+
+[[package]]
+name = "ferret-search"
+version = "1.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "argon2-cffi" },
+    { name = "fastapi" },
+    { name = "fastembed" },
+    { name = "ferret-crawler" },
+    { name = "httpx" },
+    { name = "markdown-it-py" },
+    { name = "pgvector" },
+    { name = "pixeltable-pgserver" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "psycopg-pool" },
+    { name = "pydantic-settings" },
+    { name = "pypdfium2" },
+    { name = "python-multipart" },
+    { name = "pyyaml" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "mcp" },
+    { name = "pytest" },
+]
+eval = [
+    { name = "pyarrow" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "argon2-cffi", specifier = "==25.1.0" },
+    { name = "fastapi", specifier = "==0.159.1" },
+    { name = "fastembed", specifier = "==0.9.0" },
+    { name = "ferret-crawler", editable = "site2md" },
+    { name = "httpx", specifier = "==0.28.1" },
+    { name = "markdown-it-py", specifier = "==4.2.0" },
+    { name = "pgvector", specifier = "==0.5.1" },
+    { name = "pixeltable-pgserver", specifier = "==0.6.0" },
+    { name = "psycopg", extras = ["binary"], specifier = "==3.3.6" },
+    { name = "psycopg-pool", specifier = "==3.3.3" },
+    { name = "pydantic-settings", specifier = "==2.16.1" },
+    { name = "pypdfium2", specifier = "==5.14.0" },
+    { name = "python-multipart", specifier = "==0.0.32" },
+    { name = "pyyaml", specifier = "==6.0.3" },
+    { name = "uvicorn", extras = ["standard"], specifier = "==0.54.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = "==0.28.1" },
+    { name = "mcp", specifier = "==2.3.0" },
+    { name = "pytest", specifier = "==9.1.1" },
+]
+eval = [{ name = "pyarrow", specifier = "==22.0.0" }]
+
+[[package]]
 name = "filelock"
 version = "4.2.4"
 source = { registry = "https://pypi.org/simple" }
@@ -751,65 +824,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/19/74/a633ee74eb36c44aa
 wheels = [
     { url = "https://files.pythonhosted.org/packages/41/45/1a4ed80516f02155c51f51e8cedb3c1902296743db0bbc66608a0db2814f/jsonschema_specifications-2025.9.1-py3-none-any.whl", hash = "sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe", size = 18437, upload-time = "2025-09-08T01:34:57.871Z" },
 ]
-
-[[package]]
-name = "knowledge-search"
-version = "1.0.0"
-source = { editable = "." }
-dependencies = [
-    { name = "argon2-cffi" },
-    { name = "fastapi" },
-    { name = "fastembed" },
-    { name = "httpx" },
-    { name = "markdown-it-py" },
-    { name = "pgvector" },
-    { name = "pixeltable-pgserver" },
-    { name = "psycopg", extra = ["binary"] },
-    { name = "psycopg-pool" },
-    { name = "pydantic-settings" },
-    { name = "pypdfium2" },
-    { name = "python-multipart" },
-    { name = "pyyaml" },
-    { name = "site2md" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx" },
-    { name = "mcp" },
-    { name = "pytest" },
-]
-eval = [
-    { name = "pyarrow" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "argon2-cffi", specifier = "==25.1.0" },
-    { name = "fastapi", specifier = "==0.159.1" },
-    { name = "fastembed", specifier = "==0.9.0" },
-    { name = "httpx", specifier = "==0.28.1" },
-    { name = "markdown-it-py", specifier = "==4.2.0" },
-    { name = "pgvector", specifier = "==0.5.1" },
-    { name = "pixeltable-pgserver", specifier = "==0.6.0" },
-    { name = "psycopg", extras = ["binary"], specifier = "==3.3.6" },
-    { name = "psycopg-pool", specifier = "==3.3.3" },
-    { name = "pydantic-settings", specifier = "==2.16.1" },
-    { name = "pypdfium2", specifier = "==5.14.0" },
-    { name = "python-multipart", specifier = "==0.0.32" },
-    { name = "pyyaml", specifier = "==6.0.3" },
-    { name = "site2md", editable = "site2md" },
-    { name = "uvicorn", extras = ["standard"], specifier = "==0.54.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = "==0.28.1" },
-    { name = "mcp", specifier = "==2.3.0" },
-    { name = "pytest", specifier = "==9.1.1" },
-]
-eval = [{ name = "pyarrow", specifier = "==22.0.0" }]
 
 [[package]]
 name = "loguru"
@@ -1800,20 +1814,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/3d/9b/1698ebf6b840ddfe8b472198abbed6ace35c6e398faeecd6c47dae742a4e/rpds_py-2026.9.1-cp315-cp315t-win32.whl", hash = "sha256:5c6ee90dee3e85e055ddfd502d611643d9b0fd94c818220bda84ec3dacd9b27b", size = 203795, upload-time = "2026-10-04T16:31:38.53Z" },
     { url = "https://files.pythonhosted.org/packages/8a/e2/91f70d804c61f8eac39a417e82aa1024f655ab9e8bdd7393b196242bc41b/rpds_py-2026.9.1-cp315-cp315t-win_amd64.whl", hash = "sha256:fe5ad0664ec772b02c45859041aa17655709cced7a31005817fbbbd988c25567", size = 223037, upload-time = "2026-10-04T16:31:40.468Z" },
 ]
-
-[[package]]
-name = "site2md"
-version = "1.1.0"
-source = { editable = "site2md" }
-
-[package.optional-dependencies]
-browser = [
-    { name = "playwright" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "playwright", marker = "extra == 'browser'", specifier = ">=1.48" }]
-provides-extras = ["browser"]
 
 [[package]]
 name = "sse-starlette"

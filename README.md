@@ -55,6 +55,18 @@ sample documents to try it on.
 No git? **Code → Download ZIP**, unzip, double-click `setup.bat`. Next time, start Ferret from the desktop
 shortcut, `start.bat` or `./start.sh`.
 
+**With [uv](https://docs.astral.sh/uv/)** (from the first published release): `uv tool install ferret-search`,
+then `ferret` starts it and opens the browser. Data and models go to a `Ferret` folder in your home folder.
+
+**Docker**, one container for a few people (from the first published release):
+
+```bash
+docker run -d -p 8000:8000 -v ferret-data:/data -v ferret-models:/models ghcr.io/mayankpunghal/ferret-search
+```
+
+On first start Ferret checks the computer's memory and graphics card and picks defaults to suit: summaries
+off under 8 GB, and on the GPU with 16 GB and a graphics card it can use. Settings shows what it found.
+
 <details>
 <summary><b>Setup options</b></summary>
 

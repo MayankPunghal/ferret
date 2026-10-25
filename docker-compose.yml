@@ -1,16 +1,18 @@
+# One container is enough for a few people: see the Dockerfile header (docker run ... ferret-search).
 # Laptop:  docker compose up -d db                      (then run the app natively with uv)
 #          or  docker compose up -d --build            (db + app + worker, http://127.0.0.1:8000)
 # Server:  set KS_DB_PASSWORD in .env, then
 #          docker compose --profile tls up -d --build  (adds Caddy TLS reverse proxy; see deploy/Caddyfile)
 x-app: &app
   build: .
-  image: knowledge-search:local
+  image: ghcr.io/mayankpunghal/ferret-search:latest
   restart: unless-stopped
   environment:
     KS_DATABASE_URL: postgresql://ks:${KS_DB_PASSWORD:-devpass}@db:5432/ks
     KS_COOKIE_SECURE: ${KS_COOKIE_SECURE:-false}
   volumes:
     - ks-data:/data
+    - ks-models:/models  # writable: Settings downloads, and the summary model (worker)
   depends_on:
     db:
       condition: service_healthy
@@ -41,7 +43,7 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
 
-  worker:
+  worker:  # indexing and the summaries; with summaries on, give it ~4 GB more memory (Gemma 4 E2B, estimate)
     <<: *app
     command: ["/app/.venv/bin/ferret", "worker"]
     healthcheck:
@@ -62,4 +64,5 @@ services:
 volumes:
   ks-pg:
   ks-data:
+  ks-models:
   caddy-data:

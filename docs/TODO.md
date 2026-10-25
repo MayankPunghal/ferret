@@ -18,15 +18,19 @@ Status words: **bug** · **plan ready** (written, not built) · **not built** ·
 | # | Item | Status | Source / where |
 |---|---|---|---|
 | 2 | Vision: run **Gemma 4 E2B** on the same 20 pictures as GLM-4.6V-Flash (GLM's results are in evaluation.md §9), and GLM on the scanned page. Re-run locally: `uv run --group eval --with playwright --with pillow python eval/image_set.py`, start `llama-server -m <model>.gguf --mmproj <mmproj>.gguf -c 16384 --temp 0 --jinja --port 8082`, then `uv run --group eval python eval/image_ocr.py --name gemma-4-e2b` (GLM: `--name glm-4.6v-flash-scan --no-thinking --only scan-postmortem`). Then decide the images plan (item 10) | **not measured** | 23 Oct 11:51, 24 Oct 03:27, 11:16 |
-| 3 | Optional: the parallel-embedding benchmark on a 16–32-core server (`eval/bench_parallel.py --file` with a large document); on 4 cores it gave no gain | **not measured** | 24 Oct 14:52 |
 | 26 | Tables, step 5 of [plan-tables.md](plan-tables.md): are table rows found better when indexed as "column: value" lines (shown as a table)? Needs about 20 labelled questions on table pages (AWS quotas pages, Kubernetes reference tables, a Word file with merged cells) and `eval/tricks.py`; keep only if clearly better | **not measured** | 24 Oct; tables built 2026-10-25 |
 
 ## 3. Plans ready, not built (owner asked for the plan first)
 
 | # | Item | Source / plan |
 |---|---|---|
-| 5 | Installer for Ferret and Ferret Crawler (setup wizard, PyPI listing, like the owner's *holler* app) | 24 Oct 10:20, 10:27, 11:27 · [plan-installer.md](plan-installer.md), [plan-release.md](plan-release.md) |
-| 6 | Docker image and compose file brought up to date with the current app | 24 Oct 10:20, 10:27 · [plan-docker.md](plan-docker.md) |
+| 5 | Release: the first publish. Built 2026-10-25: packages `ferret-search` and `ferret-crawler`, `release.yml` (Docker image to GHCR and PyPI on a `v*` tag), the image fixed (bge-base, writable models, libgomp1, one-container mode) and built and searched in CI. **Owner, once:** on pypi.org add a pending trusted publisher for both projects (see the header of `release.yml`), then tag `v1.0.0`; after the first image push, make the GHCR package public. Not built: the browser setup wizard beyond the existing first-run page (hardware defaults cover model choice), the backup check in CI (plan-docker 9) | 24 Oct 10:20 · [plan-release.md](plan-release.md), [plan-docker.md](plan-docker.md) |
+
+### Later phase (owner, 2026-10-25: hold until after the first release)
+
+| # | Item | Source / plan |
+|---|---|---|
+| 5b | Windows `.exe` installer (PyInstaller + Inno Setup, tray icon) and the macOS app | [plan-installer.md](plan-installer.md), plan-release steps 4–5 |
 | 7 | Invite links and password reset (Google sign-in and e-mail/SMTP were discussed, not chosen) | 24 Oct 10:05–10:27 · [plan-invites.md](plan-invites.md) |
 | 10 | Images: the crawler saves images, a local vision model writes their text, indexed through the same path as other files (crawler, folder sync and MCP all included) | 23 Oct 11:51, 12:21 (owner: hold), 24 Oct 11:55 · [plan-images-and-models.md](plan-images-and-models.md); waits for item 2 |
 | 16 | **Ask**: a chat window like Claude Code / OpenCode / the DeepSeek harness. Saved conversations, follow-ups, step cards, pictures, Think first; a local model (Gemma 4 E2B or E4B) answers from what search finds, with checked citations; search's evidence check decides whether to answer; optional MCP `ask` tool. Six phases | 23 Oct 07:37, 24 Oct (owner: separate tab, then a full chat window) · [plan-answers.md](plan-answers.md) |
