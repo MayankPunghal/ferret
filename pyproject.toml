@@ -1,6 +1,6 @@
 [project]
 name = "ferret-search"
-version = "1.0.1"
+version = "1.0.2"
 description = "Offline, permission-aware knowledge search for technical teams"
 readme = "README.md"
 authors = [

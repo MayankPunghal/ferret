@@ -318,6 +318,7 @@
             </div>
             <div class="setting-panel">
               <label class="check"><input type="checkbox" name="enrich_enabled" id="s-enrich-on"> Summarise and label each document in the background</label>
+              <label class="check"><input type="checkbox" name="indexing_paused" id="s-paused"> Pause indexing and summaries (search keeps working; also in the Windows tray menu)</label>
               <label>Model <select name="enrich_model" id="s-llm"></select></label>
               <p class="muted small" id="s-llm-note"></p>
               <label>Summary length <select name="summary_length" id="s-sumlen">
@@ -365,6 +366,21 @@
             <span id="settings-msg" class="muted" role="status"></span>
           </div>
         </form>
+        <section class="setting" id="updates">
+          <div class="setting-label">
+            <h2>Updates</h2>
+            <p>New versions are published on GitHub. The Windows app installs them from here and restarts by itself;
+              your documents and settings stay.</p>
+          </div>
+          <div class="setting-panel">
+            <p id="upd-line" class="figures"></p>
+            <div class="actions">
+              <button type="button" id="upd-check" class="button">Check for updates</button>
+              <button type="button" id="upd-install" class="primary" hidden>Install update</button>
+            </div>
+            <p id="upd-how" class="muted small"></p>
+          </div>
+        </section>
         <section class="setting">
           <div class="setting-label">
             <h2>Index</h2>

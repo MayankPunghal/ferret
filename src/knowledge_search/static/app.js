@@ -39,6 +39,7 @@ async function boot() {
   }
   only("#app-view");
   openTab("search");  // always start on Search; never show a previous user's tab or results
+  if (location.hash === "#updates" && me.is_admin) { openTab("settings"); $("#updates").scrollIntoView(); }
   closeDrawer(); $("#outcome").hidden = true; $("#weak").hidden = true; $("#q").value = "";
   for (const id of ["#results", "#weak-results", "#upload-list", "#docs", "#status", "#d-body"]) $(id).replaceChildren();
   $("#timing").textContent = ""; $("#search-title").textContent = "Search";
@@ -125,6 +126,26 @@ $("#setup-form").addEventListener("submit", async (e) => {
 
 $("#logout").addEventListener("click", async () => { await api("/api/auth/logout", { method: "POST" }).catch(() => {}); showLogin(); });
 
+// Settings → Updates (updates.py): this version, the newest on GitHub, install from here in the Windows app.
+async function loadUpdates(check) {
+  const u = await api("/api/admin/updates" + (check ? "?check=true" : "")).catch((e) => ({ error: e.message }));
+  $("#upd-line").textContent = u.installing ? `Updating to ${u.latest}: ${u.installing}…`
+    : u.error ? `Ferret ${u.current || ""}. ${u.error}`
+    : !u.latest ? `Ferret ${u.current}. Not checked yet.`
+    : u.newer ? `Ferret ${u.current}. Version ${u.latest} is available.` : `Ferret ${u.current} is the latest version.`;
+  $("#upd-install").hidden = !(u.newer && u.can_install) || !!u.installing;
+  $("#upd-install").textContent = `Install update ${u.latest || ""}`;
+  $("#upd-how").textContent = u.windows_app ? "Ferret also checks once a day and shows a notice in the tray."
+    : "This install updates with: uv tool upgrade ferret-search, docker pull ghcr.io/mayankpunghal/ferret-search, or git pull and setup again.";
+  if (u.installing) setTimeout(() => loadUpdates(false).catch(() => { $("#upd-line").textContent = "Restarting… reload this page in a minute."; }), 2000);
+}
+$("#upd-check").addEventListener("click", () => loadUpdates(true));
+$("#upd-install").addEventListener("click", async () => {
+  $("#upd-install").hidden = true;
+  await api("/api/admin/updates/install", { method: "POST" }).catch((e) => { $("#upd-line").textContent = "Not installed: " + e.message; });
+  loadUpdates(false);
+});
+
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
   for (const t of ["search", "documents", "summaries", "status", "assistants", "settings", "admin", "folders", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
@@ -134,7 +155,7 @@ function openTab(name) {
   if (name === "summaries") { loadSummaries(); pollTimer = setInterval(loadSummaries, 5000); }
   if (name === "status") loadStatus();
   if (name === "assistants") loadAssistants();
-  if (name === "settings") { loadSettings(); pollTimer = setInterval(loadModels, 3000); }
+  if (name === "settings") { loadSettings(); loadUpdates(false); pollTimer = setInterval(loadModels, 3000); }
   if (name === "admin") loadAdmin();
   if (name === "logs") showLogView(logView);
   if (name === "database") loadDatabase();
@@ -1030,7 +1051,7 @@ function fillSettings(v) {
   $("#s-ctx").value = v.context_chars; $("#s-ctx-src").value = v.context_source;
   $("#s-rerank-on").checked = v.rerank_enabled; $("#s-rerank").value = v.rerank_model; $("#s-rerank-n").value = v.rerank_candidates;
   $("#s-graph-on").checked = v.graph_expansion;
-  $("#s-enrich-on").checked = v.enrich_enabled; $("#s-hours").value = v.enrich_hours || "";
+  $("#s-enrich-on").checked = v.enrich_enabled; $("#s-paused").checked = v.indexing_paused; $("#s-hours").value = v.enrich_hours || "";
   $("#s-llm").value = summaryModel(v); llmNote(); $("#s-sumlen").value = v.summary_length;
   $("#s-llm-dev").value = v.llm_device; $("#s-llm-dev").disabled = !settings.llm.gpu || settings.llm.external;
   const sys = settings.system;
@@ -1114,7 +1135,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
     embed_model: $("#s-model").value, chunk_size: +$("#s-chunk").value,
     chunk_overlap: $("#s-overlap-on").checked ? +$("#s-overlap").value : 0, context_chars: +$("#s-ctx").value, context_source: $("#s-ctx-src").value,
     rerank_enabled: $("#s-rerank-on").checked, rerank_model: $("#s-rerank").value, rerank_candidates: +$("#s-rerank-n").value,
-    graph_expansion: $("#s-graph-on").checked, enrich_enabled: $("#s-enrich-on").checked, enrich_hours: $("#s-hours").value.trim(), summary_length: $("#s-sumlen").value, llm_device: $("#s-llm-dev").value,
+    graph_expansion: $("#s-graph-on").checked, enrich_enabled: $("#s-enrich-on").checked, indexing_paused: $("#s-paused").checked, enrich_hours: $("#s-hours").value.trim(), summary_length: $("#s-sumlen").value, llm_device: $("#s-llm-dev").value,
     ...($("#s-llm").disabled || $("#s-llm").value === summaryModel(settings.values) ? {} : { enrich_model: $("#s-llm").value }),
     gate_dense_high: +$("#s-g-high").value, gate_dense_min: +$("#s-g-min").value, gate_lex_coverage: +$("#s-g-cov").value, gate_all_terms_min: +$("#s-g-all").value,
     gate_rerank_min: +$("#s-g-rr").value, gate_mode: $("#s-g-mode").value, gate_lexical: $("#s-g-lex").value,

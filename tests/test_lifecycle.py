@@ -179,6 +179,25 @@ def test_documents_are_filtered_sorted_and_paged_past_1000(client, corpus):
             c.execute("DELETE FROM documents WHERE source_key LIKE 'bulk-%%'")
 
 
+def test_paused_indexing_leaves_jobs_queued(client, drain):
+    from knowledge_search import runtime
+
+    sam = token(client, "sam")
+    upload(client, sam, "paused.md", b"# Paused\n\nWaiting for the pause to end.\n")
+    with db.pool().connection() as c:
+        runtime.save(c, {"indexing_paused": True}, None)
+    try:
+        drain()
+        with db.pool().connection() as c:
+            assert c.execute("SELECT count(*) AS n FROM jobs WHERE status = 'queued'").fetchone()["n"] >= 1
+    finally:
+        with db.pool().connection() as c:
+            runtime.save(c, {"indexing_paused": False}, None)
+    drain()
+    with db.pool().connection() as c:
+        assert c.execute("SELECT count(*) AS n FROM jobs WHERE status = 'queued'").fetchone()["n"] == 0
+
+
 def test_an_edit_embeds_only_the_changed_passages(client, drain, monkeypatch):
     """Passages whose embedding text and model are unchanged keep their vectors (plan-large-documents step 3)."""
     from knowledge_search import runtime

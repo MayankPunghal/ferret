@@ -21,6 +21,7 @@ class AppState:
     blobs: BlobStore
     stop: threading.Event
     threads: list[threading.Thread]
+    quit_app = None  # the Windows tray sets it, so an update installed from Settings can stop Ferret
 
 
 state = AppState()

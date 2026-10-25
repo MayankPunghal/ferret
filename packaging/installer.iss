@@ -72,9 +72,18 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
   ValueData: """{#Pythonw}"" -m knowledge_search.tray --background"; Tasks: autostart; Flags: uninsdeletevalue
 
 [Run]
-Filename: "{#Pythonw}"; Parameters: "-m knowledge_search.tray"; WorkingDir: "{app}"; Description: "Start Ferret now"; Flags: postinstall nowait skipifsilent
+; Started through Explorer, as a click on the shortcut would: a program the installer starts itself inherits
+; its "untrusted mount point" protection and cannot read the model cache's links (WinError 448).
+Filename: "{win}\explorer.exe"; Parameters: """{autoprograms}\{#AppName}.lnk"""; Description: "Start Ferret now"; Flags: postinstall nowait skipifsilent
+; an update started from Settings or the tray (/UPDATE=1) runs silently and starts Ferret again
+Filename: "{win}\explorer.exe"; Parameters: """{autoprograms}\{#AppName}.lnk"""; Flags: nowait; Check: IsUpdate
 
 [Code]
+function IsUpdate: Boolean;
+begin
+  Result := ExpandConstant('{param:UPDATE|0}') = '1';
+end;
+
 procedure StopFerret(Dir: String);
 var
   Code: Integer;

@@ -34,9 +34,17 @@ def test_first_run_setup_only_without_admin_and_only_locally(client, corpus, mon
 
 def test_admin_routes_hidden_from_non_admins(client, corpus):
     alice = token(client, "alice")
-    for path in ("/api/admin/settings", "/api/admin/users", "/api/admin/collections", "/api/admin/status"):
+    for path in ("/api/admin/settings", "/api/admin/users", "/api/admin/collections", "/api/admin/status",
+                 "/api/admin/updates"):
         assert client.get(path, headers=alice).status_code == 404
     assert client.put("/api/admin/settings", headers=alice, json={"chunk_size": 500}).status_code == 404
+
+
+def test_updates_status_without_network(client, corpus):
+    root = token(client, "root")
+    u = client.get("/api/admin/updates", headers=root).json()
+    assert u["current"] and not u["windows_app"] and not u["can_install"]
+    assert client.post("/api/admin/updates/install", headers=root).status_code == 400  # not the Windows app
 
 
 def test_settings_validation(client, corpus):

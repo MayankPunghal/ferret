@@ -178,6 +178,25 @@ def do_reindex(body: ReindexBody, p: Admin, conn: Conn):
     return {"queued": n}
 
 
+@router.get("/updates")
+def get_updates(p: Admin, check: bool = False):
+    """Settings → Updates: this version, the newest on GitHub, and whether this install can update itself."""
+    from . import updates
+
+    return updates.check() if check else updates.status()
+
+
+@router.post("/updates/install")
+def install_update(p: Admin):
+    from . import updates
+
+    s = updates.status()
+    if not (s["can_install"] and s["newer"]):
+        raise HTTPException(400, "no newer Windows installer to install from here")
+    updates.install(on_started=state.quit_app)
+    return updates.status()
+
+
 @router.get("/status")
 def admin_status(p: Admin, conn: Conn):
     jobs = conn.execute("SELECT status, count(*) AS n FROM jobs GROUP BY status").fetchall()

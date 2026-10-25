@@ -270,6 +270,9 @@ class Worker:
     def run_once(self) -> bool:
         """Process one job. Returns False when the queue is empty."""
         with db.pool().connection() as conn:
+            if runtime.load(conn).indexing_paused:  # paused from the tray or Settings; queued jobs wait
+                conn.commit()
+                return False
             job = self._claim(conn)
             if not job:
                 return False

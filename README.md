@@ -34,7 +34,9 @@
 
 **Windows 10/11, easiest:** download `Ferret-Setup-<version>.exe` from the
 [latest release](https://github.com/MayankPunghal/ferret/releases/latest) and run it. No admin rights, no Python.
-Ferret opens in your browser and stays in the system tray (Open · Start when I sign in · Quit). The installer
+Ferret opens in your browser and stays in the system tray (Open · Pause indexing · Start when I sign in ·
+Updates · Quit). If port 8000 is taken it uses the next free one. **Settings → Updates** checks GitHub and
+installs a new version in place (it also checks daily). The installer
 is not code-signed yet, so Windows SmartScreen may warn: **More info → Run anyway**.
 
 **Windows 10/11 from the source**: open *Command Prompt* and run

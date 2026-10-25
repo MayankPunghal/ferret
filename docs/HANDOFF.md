@@ -663,8 +663,16 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   second start only opens the browser; port 8000 taken is shown in the tray. Data in `%USERPROFILE%\Ferret`,
   asked about on uninstall. Upgrades and uninstall stop every process started from the install folder.
   `windows-app.yml` builds, installs silently, starts the app, checks `/healthz`, uninstalls, and attaches the
-  installer to the release on a `v*` tag. Not built: update check, Pause indexing, code signing (SmartScreen
-  warns; README says "More info → Run anyway").
+  installer to the release on a `v*` tag. Not built: code signing (SmartScreen warns; README says "More info
+  → Run anyway").
+- **1.0.2 (2026-10-25):** port fallback 8000–8019 (the chosen port is written to `%USERPROFILE%\Ferret\port`);
+  "Pause indexing and summaries" (tray item + Settings checkbox, `indexing_paused` in runtime settings; the
+  worker and the enricher skip their claim while set); updates (`updates.py`): Settings → Updates shows this
+  version and the newest GitHub release, "Install update" (Windows app only) downloads the installer and runs it
+  with `/SILENT /UPDATE=1`; the tray checks daily and its "Updates…" item opens `/#updates`. pip/Docker
+  installs see the upgrade commands instead. Gotcha: a process Inno Setup starts inherits a "redirection
+  guard" that cannot traverse the HF cache's symlinks (WinError 448), so `[Run]` starts Ferret through
+  `explorer.exe` with the Start-menu shortcut.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 

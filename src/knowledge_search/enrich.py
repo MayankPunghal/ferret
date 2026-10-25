@@ -463,6 +463,10 @@ class Enricher:
             if not rt.enrich_enabled or not self.available:
                 self.state = "off" if self.available else (self.state if self.download_failed else "no model")
                 return False
+            if rt.indexing_paused:
+                self.state = "paused (indexing is paused)"
+                self.stop_server()
+                return False
             if not in_hours(rt.enrich_hours, time.localtime().tm_hour):
                 self.state = "waiting for its hours ({}:00 to {}:00)".format(*rt.enrich_hours.split("-"))
                 self.stop_server()
