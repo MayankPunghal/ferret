@@ -90,3 +90,6 @@ jobs:
         with:
           name: ui-shots
           path: ui-shots
+      # the demo server runs under `uv run` and holds uv's cache lock: stop it, or setup-uv's clean-up times out
+      - if: always()
+        run: pkill -f "ferret serve" || true
