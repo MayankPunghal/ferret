@@ -663,3 +663,5 @@ button.icon.danger { color: var(--muted); }
 button.icon.danger:hover:not(:disabled) { color: var(--negative); background: color-mix(in srgb, var(--negative) 12%, transparent); }
 button.icon:disabled { opacity: .35; cursor: not-allowed; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Users & access: tables at a readable width instead of stretching across a wide window */
+#tab-admin { max-width: 980px; }
