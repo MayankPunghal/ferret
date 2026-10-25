@@ -26,6 +26,9 @@
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
     <symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></g></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
     <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></symbol>
@@ -60,7 +63,7 @@
   <div id="app-view" class="shell" hidden>
     <aside id="sidebar" class="sidebar" aria-label="Navigation">
       <div class="brand"><img class="mark" src="/favicon.svg" alt=""> Ferret
-        <span id="conn" class="conn" role="status" title="Connected to Ferret"></span></div>
+        <button type="button" id="nav-toggle" class="icon nav-toggle" aria-controls="sidebar" aria-expanded="true" title="Close sidebar ( [ )" aria-label="Close sidebar"><svg class="i"><use href="#i-sidebar"/></svg></button></div>
       <nav>
         <button class="tab" data-tab="search" aria-current="page"><svg class="i"><use href="#i-search"/></svg>Search</button>
         <button class="tab" data-tab="ask"><svg class="i"><use href="#i-summaries"/></svg>Ask</button>
@@ -68,25 +71,26 @@
         <button class="tab" data-tab="summaries"><svg class="i"><use href="#i-summaries"/></svg>Summaries</button>
         <button class="tab" data-tab="status"><svg class="i"><use href="#i-status"/></svg>Index status</button>
         <button class="tab" data-tab="assistants"><svg class="i"><use href="#i-plug"/></svg>AI assistants</button>
-        <button class="tab" data-tab="about"><svg class="i"><use href="#i-info"/></svg>About</button>
         <p class="nav-group admin-only" hidden>Administration</p>
-        <button class="tab admin-only" data-tab="settings" hidden><svg class="i"><use href="#i-settings"/></svg>Settings</button>
         <button class="tab admin-only" data-tab="admin" hidden><svg class="i"><use href="#i-users"/></svg>Users &amp; access</button>
         <button class="tab admin-only" data-tab="folders" hidden><svg class="i"><use href="#i-folder"/></svg>Synced folders</button>
         <button class="tab admin-only" data-tab="crawler" hidden><svg class="i"><use href="#i-spider"/></svg>Crawler</button>
         <button class="tab admin-only" data-tab="database" hidden><svg class="i"><use href="#i-db"/></svg>Database</button>
         <button class="tab admin-only" data-tab="logs" hidden><svg class="i"><use href="#i-logs"/></svg>Logs</button>
       </nav>
-      <button type="button" id="nav-toggle" class="tab nav-toggle" aria-controls="sidebar" aria-expanded="true" title="Collapse the sidebar ( [ )"><svg class="i"><use href="#i-sidebar"/></svg><span>Collapse</span></button>
       <div class="account">
-        <span class="avatar" id="avatar" aria-hidden="true"></span>
-        <span class="who"><span id="who"></span><span id="role" class="muted"></span></span>
-        <button id="logout" class="icon" title="Sign out" aria-label="Sign out"><svg class="i"><use href="#i-signout"/></svg></button>
+        <div id="account-menu" class="account-menu" role="menu" hidden>
+          <button class="tab admin-only" data-tab="settings" role="menuitem" hidden><svg class="i"><use href="#i-settings"/></svg>Settings</button>
+          <button class="tab" data-tab="about" role="menuitem"><svg class="i"><use href="#i-info"/></svg>About</button>
+          <button id="logout" class="tab" role="menuitem"><svg class="i"><use href="#i-signout"/></svg>Sign out</button>
+        </div>
+        <button type="button" id="account-button" class="account-button" aria-haspopup="menu" aria-expanded="false" aria-controls="account-menu">
+          <span class="avatar" id="avatar" aria-hidden="true"></span>
+          <span class="who"><span id="who"></span><span id="role" class="muted"></span></span>
+        </button>
       </div>
     </aside>
 
-    <p id="conn-banner" class="notice conn-banner" role="alert" hidden>Not connected to Ferret. Start it from the Start menu
-      or the tray icon; this page reconnects by itself.</p>
     <header class="topbar">
       <button id="menu-button" class="icon menu-button" aria-label="Menu" aria-controls="sidebar" aria-expanded="false"><svg class="i"><use href="#i-menu"/></svg></button>
       <form id="search-form" class="searchbar" role="search">
@@ -95,6 +99,10 @@
         <kbd title="Press / to search from anywhere">/</kbd>
         <button type="submit" class="primary">Search</button>
       </form>
+      <div class="top-actions">
+        <span id="conn" class="conn" role="status" title="Connected to Ferret"><span class="conn-dot"></span><span class="conn-label">Disconnected</span></span>
+        <button type="button" id="theme-toggle" class="icon" title="Switch theme" aria-label="Switch theme"><svg class="i"><use href="#i-moon"/></svg></button>
+      </div>
     </header>
 
     <main class="sheet">
@@ -109,13 +117,7 @@
         <div id="search-model-note" class="notice" hidden role="status"></div>
         <div id="search-hint" class="hint" hidden>
           <p id="hint-scope" class="muted"></p>
-          <dl class="ways">
-            <div><dt>Exact terms</dt><dd>An error code, a config key, an API path, a file or service name:
-              <code>ERR-PAY-4012</code>, <code>/api/v2/invoices</code>.</dd></div>
-            <div><dt>Questions in your own words</dt><dd>Matched by meaning: <em>how do I roll back a release?</em></dd></div>
-            <div><dt>Name a page</dt><dd>Its links are followed: <em>who owns the services the Orders Service depends on</em>.</dd></div>
-          </dl>
-          <p class="muted">Every result cites its passage; with no support, the search says so. Press <kbd>/</kbd> to search from anywhere.</p>
+          <p class="muted small">Try an error code (<code>ERR-PAY-4012</code>), a question in your own words, or a page name. Every result cites its passage. Press <kbd>/</kbd> to search from anywhere.</p>
         </div>
         <div id="outcome" class="outcome" hidden role="status"></div>
         <ol id="results" class="results"></ol>
@@ -580,7 +582,7 @@ ORDER BY passages DESC</textarea>
             <input name="description" placeholder="Description (optional)" aria-label="Description">
             <button type="submit" class="primary">Create collection</button>
           </form>
-          <table class="data"><thead><tr><th>Collection</th><th class="num">Documents</th><th>Access</th><th>Give a group access</th></tr></thead>
+          <table class="data"><thead><tr><th>Collection</th><th class="num">Documents</th><th>Access</th><th>Give a group access</th><th><span class="sr-only">Delete</span></th></tr></thead>
             <tbody id="col-rows"></tbody></table>
         </section>
         <section id="adm-users" hidden>

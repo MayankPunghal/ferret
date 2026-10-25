@@ -155,6 +155,8 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
         )
         if request.url.path.startswith("/api/"):
             resp.headers.setdefault("Cache-Control", "no-store")
+        else:  # the UI files: the browser checks for a newer copy (a quick 304) so an update shows without a restart
+            resp.headers.setdefault("Cache-Control", "no-cache")
         return resp
 
     @app.middleware("http")

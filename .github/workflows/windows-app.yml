@@ -21,10 +21,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.sha }}
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - name: Build the app folder
         shell: pwsh
         run: packaging\build_windows.ps1
@@ -53,7 +53,7 @@ jobs:
           Start-Sleep -Seconds 5
           if (Test-Path "$app\python\pythonw.exe") { throw "uninstall left the app behind" }
           Get-ChildItem dist\*.exe | ForEach-Object { "{0}  {1:N0} MB" -f $_.Name, ($_.Length / 1MB) }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: Ferret-Setup-${{ env.VERSION }}
           path: dist/Ferret-Setup-*.exe

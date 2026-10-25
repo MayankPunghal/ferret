@@ -40,7 +40,19 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--version", default="", help="new ferret-search version to write first")
     ap.add_argument("--crawler", default="", help="new ferret-crawler version to write first")
+    ap.add_argument("--next", action="store_true",
+                    help="Run workflow: with no --version, the next patch version when the current one is released; "
+                         "with no --crawler, the next crawler patch version when the crawler changed")
     a = ap.parse_args()
+    tags = git("tag", "-l", "v*", "--sort=-v:refname").split()
+    if a.next and tags:
+        bump = lambda v: ".".join(map(str, (*parts(v)[:2], parts(v)[2] + 1)))  # noqa: E731
+        if not a.version and f"v{version_of(APP)}" in tags:
+            a.version = bump(tags[0])
+        old = tomllib.loads(git("show", f"{tags[0]}:site2md/pyproject.toml"))["project"]["version"]
+        if not a.crawler and old == version_of(CRAWLER) and git(
+                "diff", "--name-only", tags[0], "HEAD", "--", "site2md/src", "site2md/pyproject.toml"):
+            a.crawler = bump(old)
     if a.version:
         set_version(APP, a.version)
     if a.crawler:

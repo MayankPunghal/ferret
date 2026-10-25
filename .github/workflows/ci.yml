@@ -17,10 +17,10 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.sha }}
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       # windows-latest runs jobs as an administrator, so the embedded PostgreSQL's initdb drops to a restricted
       # token that cannot reach the runner's D:/a folders ("could not create directory ...: File exists"). The
       # same database starts fine from the user profile (the installer job), so the venv and test data go there.
@@ -30,7 +30,7 @@ jobs:
           "UV_PROJECT_ENVIRONMENT=$env:USERPROFILE\ks-venv" >> $env:GITHUB_ENV
           "TEST_TMP=$env:USERPROFILE\pytest" >> $env:GITHUB_ENV
       - run: uv sync
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: data/models
           key: test-models-v1
@@ -41,7 +41,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.sha }}
       - run: docker build -t ferret-search:ci .
@@ -65,12 +65,12 @@ jobs:
       KS_DATA_DIR: ./data/ui-check
       KS_ENRICH_ENABLED: "false"  # no 3 GB summary model download in CI
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.sha }}
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: data/models
           key: default-models-v1
@@ -86,7 +86,7 @@ jobs:
       - if: failure()
         run: tail -100 serve.log
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ui-shots
           path: ui-shots

@@ -1,6 +1,6 @@
 [project]
 name = "ferret-search"
-version = "1.0.3"
+version = "1.0.7"
 description = "Offline, permission-aware knowledge search for technical teams"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
@@ -23,7 +23,8 @@ dependencies = [
     "pypdfium2==5.14.0",
     "python-multipart==0.0.32",
     "pyyaml==6.0.3",
-    "ferret-crawler==1.1.0",  # site2md/, the crawler (import name site2md; "site2md" is taken on PyPI)
+    "ferret-crawler==1.1.1",  # site2md/, the crawler (import name site2md; "site2md" is taken on PyPI)
+    "playwright==1.64.1",  # the crawler drives the installed Chrome or Edge for sites that need a sign-in
     "uvicorn[standard]==0.54.0",
 ]
 

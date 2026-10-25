@@ -27,7 +27,7 @@
   -webkit-font-smoothing: antialiased;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     color-scheme: dark;
     --ground: #0f1011; --surface: #17181a; --raised: #1e1f22; --active: #2a2c2f;
     --border: #2a2c2f; --rule: #222326; --control: #3d3f43;
@@ -536,7 +536,8 @@ td.actions-cell { width: 1%; text-align: right; }
 .db-grid td.num, .db-grid th.num { text-align: right; }
 
 /* Wide screens: the sidebar folds to a rail of icons */
-.nav-toggle { margin-top: 8px; }
+.nav-toggle { margin-left: auto; color: var(--muted); }
+.nav-toggle:hover { color: inherit; }
 @media (min-width: 1001px) {
   .shell.nav-collapsed { grid-template-columns: 60px minmax(0, 1fr); }
   .nav-collapsed .sidebar { padding: 13px 8px 10px; }
@@ -545,7 +546,8 @@ td.actions-cell { width: 1%; text-align: right; }
   .nav-collapsed .nav-group { font-size: 0; padding: 0; margin: 12px 8px; border-top: 1px solid var(--border); }
   .nav-collapsed .account { flex-direction: column; gap: 6px; padding: 8px 0 2px; }
   .nav-collapsed .who { display: none; }
-  .nav-collapsed .nav-toggle svg { transform: scaleX(-1); }
+  .nav-collapsed .sidebar .brand { flex-direction: column; gap: 10px; height: auto; }  /* logo stays, button below */
+  .nav-collapsed .nav-toggle { margin: 0; }
 }
 @media (max-width: 1000px) { .nav-toggle { display: none !important; } }
 
@@ -578,11 +580,6 @@ td.actions-cell { width: 1%; text-align: right; }
   background: var(--text); color: var(--surface); font: 400 12.5px/1.45 var(--sans); text-align: left; white-space: normal;
   box-shadow: 0 6px 20px rgba(0, 0, 0, .18); pointer-events: none; }
 #upd-bar { width: 100%; height: 8px; accent-color: var(--accent, currentColor); }
-.conn { width: 8px; height: 8px; border-radius: 50%; background: var(--positive, #3fb950); margin-left: auto; }
-.conn.down { background: var(--negative); animation: conn-pulse 1.2s ease-in-out infinite; }
-@keyframes conn-pulse { 50% { opacity: .35; } }
-@media (prefers-reduced-motion: reduce) { .conn.down { animation: none; } }
-.conn-banner { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 50; max-width: min(640px, 92vw); margin: 0; text-align: center; box-shadow: 0 4px 16px rgb(0 0 0 / .25); }
 dl.about { display: grid; grid-template-columns: max-content 1fr; gap: 10px 24px; margin: 0; }
 dl.about dt { color: var(--muted); }
 dl.about dd { margin: 0; }
