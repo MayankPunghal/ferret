@@ -58,7 +58,7 @@ class Settings(BaseSettings):
 
     # Background ingestion workers inside the API process. 0 = run `ferret worker`
     # as a separate process instead (recommended on a server to protect query latency).
-    inprocess_workers: int = 1
+    inprocess_workers: int = 2  # two: small documents keep moving while a large one embeds
     worker_poll_seconds: float = 1.0
 
     # Re-index documents built with an older model/chunking automatically at startup (e.g. after an upgrade

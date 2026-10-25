@@ -175,3 +175,39 @@ def test_documents_are_filtered_sorted_and_paged_past_1000(client, corpus):
     finally:
         with db.pool().connection() as c:
             c.execute("DELETE FROM documents WHERE source_key LIKE 'bulk-%%'")
+
+
+def test_an_edit_embeds_only_the_changed_passages(client, drain, monkeypatch):
+    """Passages whose embedding text and model are unchanged keep their vectors (plan-large-documents step 3)."""
+    from knowledge_search import runtime
+
+    sam = token(client, "sam")
+    parts = lambda changed: "# Parts\n\n" + "\n\n".join(  # noqa: E731
+        f"## Part {i}\n\n" + f"Notes on the {'edited ' if i == changed else ''}widget zone {i}, part {i}. " * 25 for i in range(4))
+    doc = upload(client, sam, "parts.md", parts(-1).encode()).json()["document_id"]
+    drain()
+    calls = []
+    with db.pool().connection() as c:
+        e = runtime.embedder(runtime.load(c).embed_model)  # the one the worker uses
+    real = e.embed_documents
+    monkeypatch.setattr(e, "embed_documents", lambda texts: calls.append(len(texts)) or real(texts))
+    upload(client, sam, "parts.md", parts(2).encode())
+    drain()
+    with db.pool().connection() as c:
+        rows = c.execute("SELECT heading_path, text, embedding FROM chunks WHERE document_id = %s", (doc,)).fetchall()
+    changed = [r for r in rows if r["heading_path"].endswith("Part 2")]
+    assert changed and sum(calls) == len(changed) < len(rows)
+    # the kept vectors are the ones embedding everything again gives
+    from knowledge_search.ingest import requeue
+
+    with db.pool().connection() as c:
+        c.execute("UPDATE chunks SET embed_hash = NULL WHERE document_id = %s", (doc,))
+        requeue(c, doc)
+    calls.clear()
+    drain()
+    assert sum(calls) == len(rows)
+    with db.pool().connection() as c:
+        again = {r["text"]: r["embedding"] for r in c.execute("SELECT text, embedding FROM chunks WHERE document_id = %s", (doc,))}
+    assert all(abs(again[r["text"]].to_numpy() - r["embedding"].to_numpy()).max() < 1e-4 for r in rows)
+    assert search(client, sam, "edited widget zone 2")["results"][0]["document_id"] == doc
+    client.delete(f"/api/documents/{doc}", headers=sam)

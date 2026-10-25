@@ -3,8 +3,12 @@
 Owner request: "What can we do for super large docs with a high count of passages? Can we parallelize
 more?" Seen on a `db-tables.md` of 449 passages that sat at "embedding 192/449" while other documents waited.
 
-**Status: plan.** Step 1 measured on an idle 4-core CPU (2026-10-24): **no worthwhile gain there**; steps 2–3
-are the useful ones on a laptop. Everything else below is unmeasured.
+**Status: steps 2–3 built 2026-10-25** (HANDOFF §4p). Step 1 measured on an idle 4-core CPU (2026-10-24): no
+worthwhile gain there; on the owner's 12-core laptop see docs/evaluation.md §10. Steps 4–5 not built.
+
+As built: `inprocess_workers` defaults to 2 (both workers share the one cached model session; ONNX Runtime
+allows concurrent runs); passages keep their vector when the hash of their embedding text and the model
+match (`chunks.embed_hash`, migration 0010; only within the same document). Measured: 12th Gen Intel Core i5-12500H laptop (12 cores, 16 threads; Windows 11), bge-base, a generated 400-passage Markdown file, two-worker default: a 1-passage file uploaded right after it was indexed after **1.2 s** (one worker: **71.8 s**, behind the large one); the large file took 72.3 s (one worker: 71.8 s). Uploading the 400-passage file again with one section edited: **1.0 s** (first upload 58.4 s), because 399 passages kept their vectors.
 
 ## Where the time goes today
 

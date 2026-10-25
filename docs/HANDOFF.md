@@ -608,6 +608,12 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   shape, header rules, layout tables, Word and PowerPoint merges, a 200-row table in passages, the reading
   view); the walkthrough uploads an AWS-shaped page and checks the passage shows a header row and the merged
   cell twice. **Step 5 (index rows as "column: value") not measured** (TODO 26).
+- **Large documents (plan-large-documents steps 2–3, TODO 8): built.** Two in-process indexing workers by
+  default (`KS_INPROCESS_WORKERS=2`), sharing the model session; a re-index embeds only passages whose
+  embedding text or model changed (`chunks.embed_hash`, migration 0010), so an edit, a folder or website
+  update, or a reindex that leaves passage text alone is nearly free. Test: one edited section re-embeds one
+  of four passages and the kept vectors equal a full re-embed within 1e-4. Measured on the owner's laptop:
+  12th Gen Intel Core i5-12500H laptop (12 cores, 16 threads; Windows 11), bge-base, a generated 400-passage Markdown file, two-worker default: a 1-passage file uploaded right after it was indexed after **1.2 s** (one worker: **71.8 s**, behind the large one); the large file took 72.3 s (one worker: 71.8 s). Uploading the 400-passage file again with one section edited: **1.0 s** (first upload 58.4 s), because 399 passages kept their vectors. A changed document summary (context line) still re-embeds every passage, as it should.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 

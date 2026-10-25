@@ -292,16 +292,27 @@ class Worker:
                 conn.commit()
                 summary = doc_summary(parsed, rt.context_chars, written or "")
                 texts = [embedding_text(parsed.title, c, summary) for c in chunks]
+                hashes = [hashlib.sha256(x.encode()).hexdigest() for x in texts]
+                # passages whose embedding text and model are unchanged keep their vector (same text, same model)
+                known = {r["embed_hash"]: r["embedding"] for r in conn.execute(
+                    "SELECT embed_hash, embedding FROM chunks WHERE document_id = %s AND embedding_model = %s "
+                    "AND embed_hash = ANY(%s)", (job["document_id"], embedder.spec.version_key, hashes))}
+                conn.commit()
+                todo = [i for i, h in enumerate(hashes) if h not in known]
                 step = max(embedder.batch_size * 2, 8)
-                order = sorted(range(len(texts)), key=lambda i: len(texts[i]))  # similar lengths batched together
+                order = sorted(todo, key=lambda i: len(texts[i]))  # similar lengths batched together
                 parts = []
-                for i in range(0, len(texts), step):
-                    self._progress(conn, job, "embedding", i, len(texts))
+                for i in range(0, len(order), step):
+                    self._progress(conn, job, "embedding", i, len(order))
                     parts.append(embedder.embed_documents([texts[j] for j in order[i : i + step]]))
                 vectors = np.empty((len(texts), embedder.spec.dim), dtype=np.float32)
-                if texts:
+                for i, h in enumerate(hashes):
+                    if h in known:
+                        vectors[i] = known[h].to_numpy()
+                if order:
                     vectors[order] = np.vstack(parts)
-                t.step(f"embedding {len(texts)} passages ({embedder.spec.name})")
+                t.step(f"embedding {len(order)} passages ({embedder.spec.name})"
+                       + (f"; {len(texts) - len(order)} unchanged kept their vectors" if len(order) < len(texts) else ""))
                 self._progress(conn, job, "saving", len(texts), len(texts))
             except ParseError as e:  # deterministic: do not retry
                 self._fail(conn, job, e.code, e.detail, retry=False)
@@ -317,7 +328,7 @@ class Worker:
                 log.exception("unexpected ingestion failure job=%s", job["id"])
                 self._fail(conn, job, "internal_error", type(e).__name__, retry=True)
                 return True
-            self._commit(conn, job, parsed, chunks, vectors, embedder.spec.version_key, rt.signature())
+            self._commit(conn, job, parsed, chunks, vectors, hashes, embedder.spec.version_key, rt.signature())
             t.step("saving")
             trace.record("index", f"Index {job['filename']}", ms=t.ms, steps=t.steps,
                          detail=f"{len(chunks)} passages from {len(parsed.sections)} sections",
@@ -333,7 +344,7 @@ class Worker:
         )
         conn.commit()
 
-    def _commit(self, conn, job, parsed, chunks, vectors, model: str, signature: str) -> None:
+    def _commit(self, conn, job, parsed, chunks, vectors, hashes, model: str, signature: str) -> None:
         with conn.transaction():
             doc = conn.execute(
                 "SELECT latest_version_id FROM documents WHERE id = %s FOR UPDATE", (job["document_id"],)
@@ -347,14 +358,14 @@ class Worker:
             with conn.cursor() as cur:
                 cur.executemany(
                     "INSERT INTO chunks(document_id, version_id, collection_id, ordinal, doc_title, heading_path, "
-                    "page, anchor, text, idents, embedding, embedding_model) "
-                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    "page, anchor, text, idents, embedding, embedding_model, embed_hash) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                     [
                         (
                             job["document_id"], job["version_id"], job["collection_id"], c.ordinal, parsed.title,
-                            c.heading_path, c.page, c.anchor, c.text, c.idents, v, model,
+                            c.heading_path, c.page, c.anchor, c.text, c.idents, v, model, h,
                         )
-                        for c, v in zip(chunks, vectors, strict=True)
+                        for c, v, h in zip(chunks, vectors, hashes, strict=True)
                     ],
                 )
                 ids = {r["ordinal"]: r["id"] for r in conn.execute(
