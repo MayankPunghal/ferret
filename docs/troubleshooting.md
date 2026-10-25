@@ -3,7 +3,7 @@
 | Symptom | Cause / fix |
 |---|---|
 | `setup.bat` window closes or says *uv could not be installed* | No internet or a proxy blocks `astral.sh`. Set `HTTPS_PROXY` and retry, or install uv manually from <https://docs.astral.sh/uv/>. |
-| Setup fails at *Downloading the offline AI models* (e.g. `WinError 10054` / `10038`) | The connection dropped. Downloads are retried 5× with backoff and finished files are kept — run setup again. Behind a proxy/firewall allow `huggingface.co` and `*.hf.co`, or copy `data/models` from a machine where setup worked and set `KS_OFFLINE=1`. |
+| Setup fails at *Downloading the offline AI models* (e.g. `WinError 10054` / `10038`) | The connection dropped. Downloads are retried 5× with backoff and finished files are kept. Start Ferret anyway: it downloads the missing models in the background, and if that fails too, press **Download** in Settings → Embedding model when the connection is back. Behind a proxy/firewall allow `huggingface.co` and `*.hf.co`, or copy `data/models` from a machine where setup worked and set `KS_OFFLINE=1`. |
 | Browser does not open | Open <http://127.0.0.1:8000> manually. |
 | *Port 8000 already in use* | Another app uses it: `uv run ferret serve --port 8010 --open`. |
 | Welcome page says setup is only allowed from this machine | First-run admin creation is restricted to the computer running the app. Open the page there. |
@@ -12,7 +12,7 @@
 | Document **failed** — `invalid_encoding` | Text file is not UTF-8; re-save it as UTF-8. |
 | Search says **indexing incomplete** | Some documents in your scope are pending, failed or outdated (settings changed). Admin: Settings → Reindex. |
 | Search says **no adequate evidence** but one of the closest matches looks right | The evidence check is conservative by design (it is tuned to avoid false answers). Admins can try the stronger `bge-reranker-base` or adjust thresholds in Settings; see docs/evaluation.md for the trade-off. |
-| Search says **retrieval degraded** | A model could not be loaded (e.g. just switched and still downloading). Check Settings → model status. |
+| Search says **retrieval degraded** | A model could not be loaded (e.g. first start or just switched, still downloading). The Search tab shows a note while the search model downloads; check Settings → model status. |
 | Embedded database will not start after a crash | Stop all app windows, then delete `data/pg/postmaster.pid` if it exists and start again. |
 | Console shows `ConnectionResetError: [WinError 10054]` in `_call_connection_lost` (Windows) | Harmless: the browser closed an idle connection. Filtered since v0.2; nothing to fix. |
 | Index status says **no local language model installed** or **the summary model could not be downloaded** | Summaries are on, but the model is not there and could not be downloaded (offline, `KS_OFFLINE=true`, or a proxy). The app retries at every start; allow `github.com` and `huggingface.co`, or run `uv run ferret download-llm` once. Search works without it. |

@@ -50,8 +50,24 @@ async function searchHint() {
   const box = $("#search-hint");
   box.hidden = false;
   const st = await api("/api/status").catch(() => null);
+  searchModelNote(st?.search_model);
   const c = st?.coverage;
   $("#hint-scope").textContent = c ? `${c.indexed.toLocaleString()} document${c.indexed === 1 ? "" : "s"} indexed in ${st.collections.length} collection${st.collections.length === 1 ? "" : "s"} you can read` + (c.pending ? ` · ${c.pending} still being indexed` : "") + (c.failed ? ` · ${c.failed} failed` : "") : "";
+}
+
+// First start: the search model downloads in the background; until it is ready, search matches words only.
+let modelTimer = null;
+function searchModelNote(state) {
+  const box = $("#search-model-note");
+  clearTimeout(modelTimer);
+  box.hidden = !state || state === "ready";
+  if (box.hidden) return;
+  box.textContent = state.startsWith("error")
+    ? "The search model could not be downloaded, so documents cannot be indexed yet." + (me?.is_admin ? " Check the internet connection, then press Download in Settings → Embedding model; waiting documents are indexed after it." : " Ask an administrator.")
+    : state === "downloading"
+      ? "Downloading the search model (first start only, a few hundred MB). Documents you add are indexed as soon as it is ready."
+      : "Loading the search model…";
+  if (!state.startsWith("error")) modelTimer = setTimeout(async () => searchModelNote((await api("/api/status").catch(() => null))?.search_model), 5000);
 }
 
 // Re-read the current user's collections/permissions without changing the visible tab.

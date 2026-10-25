@@ -17,7 +17,7 @@ The setup window shows each step:
 |---|---|---|
 | uv | Installs [uv](https://docs.astral.sh/uv/), a Python package manager, into your user profile | No |
 | Dependencies | uv downloads Python 3.13, the app's libraries and an embedded PostgreSQL + pgvector (~600 MB) | No |
-| Models | Downloads the offline embedding model and reranker (~300 MB) into `data/models`; network drops are retried, and re-running setup reuses finished files | No |
+| Models | Downloads the offline embedding model and reranker (~300 MB) into `data/models`; network drops are retried, and re-running setup reuses finished files; if this step fails, Ferret downloads the models itself on first start (no command needed) | No |
 | Summary model (optional) | Downloads llama.cpp's server (github.com) and a language model (Gemma 4 E2B, ~3.1 GB, huggingface.co) into `data/models/llm`; if it fails, setup continues without it | No |
 | Database | Creates the local database in `data/pg` | No |
 | Sample data | Optional fictional documents and demo users | No |

@@ -68,18 +68,31 @@ def create_app(settings: Settings | None = None, embedder: Embedder | None = Non
                                 "document(s) in the background", n)
         state.embedder = runtime.embedder(rt.embed_model)
         _record_index_meta(rt)
-        log.warning("Loading the embedding model %s (the first start may download it; this can take a minute)…",
-                    rt.embed_model)
-        state.embedder.warm()  # load the model before accepting traffic (avoids a slow first query)
-        if memory_vectors(settings):  # and the vectors: on a large archive the first search would wait for them
-            with db.pool().connection() as conn:
-                n = vectors.index.warm(conn, state.embedder.spec.version_key)
-            log.warning("search index loaded: %d passage vectors", n)
-        if rt.rerank_enabled:
+
+        def warm_models():
+            log.warning("Loading the embedding model %s…", rt.embed_model)
             try:
-                runtime.rerank_scores(rt.rerank_model, "warm up", ["warm up"])
-            except runtime.RerankError as e:
-                log.warning("reranker not available yet: %s", e)
+                state.embedder.warm()  # load the model before the first query (avoids a slow first search)
+            except Exception as e:  # noqa: BLE001 - offline or download failed: shown in the app, Download retries
+                log.warning("search model not available yet: %s", e)
+            else:
+                if memory_vectors(settings):  # and the vectors: on a large archive the first search would wait
+                    with db.pool().connection() as conn:
+                        n = vectors.index.warm(conn, state.embedder.spec.version_key)
+                    log.warning("search index loaded: %d passage vectors", n)
+            if rt.rerank_enabled:
+                try:
+                    runtime.rerank_scores(rt.rerank_model, "warm up", ["warm up"])
+                except runtime.RerankError as e:
+                    log.warning("reranker not available yet: %s", e)
+
+        on_disk = embedder is not None or (runtime.downloaded("embed", rt.embed_model) and (
+            not rt.rerank_enabled or runtime.downloaded("rerank", rt.rerank_model)))
+        if on_disk:  # a few seconds: ready before the first request
+            warm_models()
+        else:  # first start: the app opens at once and shows the download; search uses keywords meanwhile
+            log.warning("downloading the search models in the background; the app is usable meanwhile")
+            threading.Thread(target=warm_models, daemon=True, name="warm-models").start()
         # Summaries run where indexing runs: here, or in `ferret worker` (KS_INPROCESS_WORKERS=0).
         state.enricher = enrich.Enricher(settings) if start_workers else None
         if state.enricher and settings.inprocess_workers > 0:
@@ -258,6 +271,14 @@ def _start_session(conn, response: Response, uid: int) -> dict:
         max_age=state.settings.session_hours * 3600, path="/",
     )
     return {"token": token}
+
+
+def _search_model_state(rt) -> str:
+    """ready | downloading | loading | error: ... (shown above the search box until the model is ready)."""
+    st = runtime.embedder(rt.embed_model).state
+    if st == "ready" or st.startswith("error"):
+        return st
+    return "loading" if runtime.downloaded("embed", rt.embed_model) else "downloading"
 
 
 def _routes(app: FastAPI) -> None:
@@ -627,6 +648,7 @@ def _routes(app: FastAPI) -> None:
         index["summaries_by_local_model"] = enrich.describe(getattr(state, "enricher", None), conn, rt.enrich_enabled,
                                                             list(p.readable))
         out = {"coverage": cov, "collections": per, "index": index}
+        out["search_model"] = _search_model_state(rt)
         if p.is_admin:
             out["models"] = runtime.model_states()
         return out

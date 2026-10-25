@@ -10,7 +10,7 @@ goal), `docs/requirements-brief.md` (owner asks up to 2026-10-23), `README.md`, 
 git clone https://github.com/MayankPunghal/ferret && cd ferret
 ./setup.sh --demo --no-start          # Windows: setup.bat -Demo -NoStart
 uv sync                               # adds dev tools
-uv run pytest -q                      # expect 131 passed (embedded PostgreSQL; no Docker)
+uv run pytest -q                      # expect 132 passed (embedded PostgreSQL; no Docker)
 uv run --group eval python eval/run_eval.py --reranker Xenova/ms-marco-MiniLM-L-6-v2
 ./start.sh                            # or start.bat → http://127.0.0.1:8000
 ```
@@ -232,6 +232,14 @@ real corpus. Also found: the evidence gate rejects most correct answers on terse
 - **Where it runs:** where indexing runs: the app (laptop) or `ferret worker` (server profile).
   The app starts llama.cpp's `llama-server` on a free 127.0.0.1 port (half the cores, `-np 1`) and stops it
   on exit, even mid-request. `KS_LLM_URL` points it at another local OpenAI-compatible server instead.
+- **Search models on first start (2026-10-25, owner: "from the UI, no cmd commands"):** if the embedding model
+  or reranker is not on disk, the app opens at once and loads them in a background thread (`api.py`
+  `warm_models`); until then search skips the vector and rerank steps without waiting (reason codes
+  `search_model_downloading` / `reranker_downloading`), `/api/status` gives `search_model` and the Search tab
+  shows a note. Offline it now starts instead of crashing; Settings → Download retries and re-queues documents
+  that failed with `embedding_failed`. The reranker has its own lock, so its download no longer blocks
+  embedder lookups. Checked: first start with an empty model folder answered in 2 s; offline start with no
+  models showed the note (Playwright); test `test_first_start_while_the_search_model_downloads`.
 - **Install:** automatic: with summaries on and no model, the app downloads the default in the background on first start (once per start on failure, never with `KS_OFFLINE`); setup asks (Y downloads now, N writes `KS_ENRICH_ENABLED=false` to `.env`); `ferret download-llm` by hand. llama.cpp release
   **b11836** CPU build (the build used for every measurement here; all 6 platform files checked to exist)
   + `unsloth/gemma-4-E2B-it-GGUF` Q4_K_M (~3.1 GB, Apache-2.0; `--model qwen3.5-0.8b` for Qwen3.5-0.8B, ~0.5 GB).

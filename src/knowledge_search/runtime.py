@@ -185,8 +185,16 @@ class RerankError(Exception):
     pass
 
 
+_rerank_lock = threading.Lock()  # a reranker download can take minutes: it must not hold `_lock` (embedders)
+
+
+def rerank_ready(name: str) -> bool:
+    """Loaded, or on disk (loads in seconds); False while a first download is still under way."""
+    return name in _rerankers or downloaded("rerank", name)
+
+
 def reranker(name: str):
-    with _lock:
+    with _rerank_lock:
         if name not in _rerankers:
             from fastembed.rerank.cross_encoder import TextCrossEncoder
 

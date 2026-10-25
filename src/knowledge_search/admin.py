@@ -8,10 +8,10 @@ from dataclasses import asdict
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from . import auth, enrich, runtime
+from . import auth, db, enrich, runtime
 from .deps import Admin, Conn, state
 from .embedder import MODELS
-from .ingest import reindex
+from .ingest import reindex, retry_document
 from .search import coverage_for
 
 log = logging.getLogger(__name__)
@@ -93,6 +93,12 @@ def download_model(body: DownloadBody, p: Admin):
                 enrich.download(runtime.base(), body.name, select=False)
             else:
                 runtime.download(body.kind, body.name)
+                if runtime.model_states().get(f"embedding: {body.name}", "").startswith("error"):
+                    runtime.embedder(body.name).warm()  # it failed to download at start: load it now
+                    with db.pool().connection() as conn:  # and index what failed for want of it
+                        for r in conn.execute("SELECT id FROM documents WHERE status = 'failed' "
+                                              "AND error_code = 'embedding_failed'").fetchall():
+                            retry_document(conn, r["id"])
             _downloads.pop(key, None)
         except Exception as e:  # noqa: BLE001 - network/disk errors come in many types; shown next to the model
             log.warning("download failed %s: %s", key, e)

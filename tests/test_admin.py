@@ -157,3 +157,40 @@ def test_model_list_and_download_requests(client, corpus, monkeypatch):
         time.sleep(0.05)
     assert calls == [("rerank", "BAAI/bge-reranker-base")]
     assert client.get("/api/admin/settings", headers=h).json()["values"]["rerank_model"] != "BAAI/bge-reranker-base"
+
+
+def test_first_start_while_the_search_model_downloads(client, corpus, drain, monkeypatch):
+    """The app opens before the model is on disk: search answers at once from keywords and says why; a Download
+    after a failed first download loads the model and re-queues documents that failed for want of it."""
+    from knowledge_search import runtime
+    from knowledge_search.deps import state
+
+    emb, h = state.embedder, token(client, "root")
+    monkeypatch.setattr(runtime, "downloaded", lambda kind, name: False)
+    monkeypatch.setattr(emb, "state", "loading (first use downloads the model)")
+    assert client.get("/api/status", headers=token(client, "alice")).json()["search_model"] == "downloading"
+    res = search(client, token(client, "alice"), "ERR-PAY-4012")
+    assert "search_model_downloading" in res["reason_codes"]
+    assert res["results"][0]["title"] == "Payments Service Error Code Reference"  # keywords still work
+
+    monkeypatch.setattr(emb, "state", "error: could not download")
+    with db.pool().connection() as c:
+        doc = c.execute("SELECT id FROM documents WHERE status = 'indexed' LIMIT 1").fetchone()["id"]
+        c.execute("UPDATE documents SET status = 'failed', error_code = 'embedding_failed' WHERE id = %s", (doc,))
+        c.commit()
+    monkeypatch.setattr(runtime, "download", lambda kind, name: None)
+    warmed = []
+    monkeypatch.setattr(emb, "warm", lambda: warmed.append(1))
+    r = client.post("/api/admin/models/download", headers=h, json={"kind": "embed", "name": emb.spec.name})
+    assert r.json() == {"state": "downloading"}
+    for _ in range(100):
+        with db.pool().connection() as c:
+            st = c.execute("SELECT status FROM documents WHERE id = %s", (doc,)).fetchone()["status"]
+        if st == "pending":
+            break
+        time.sleep(0.05)
+    assert warmed and st == "pending"
+    monkeypatch.setattr(emb, "state", "ready")
+    drain()
+    with db.pool().connection() as c:
+        assert c.execute("SELECT status FROM documents WHERE id = %s", (doc,)).fetchone()["status"] == "indexed"

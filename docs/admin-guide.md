@@ -24,6 +24,13 @@ selected). A model chosen without downloading it first downloads in the backgrou
 spinner shows a model downloading or loading. The embedding model, reranker, search index and summary
 model all load when the app starts or when you switch, not on the first search or document.
 
+**No command line is needed for models.** If the search model is not on this computer when Ferret starts
+(setup skipped or interrupted, or `data/models` deleted), the app still opens at once and downloads the
+embedding model and reranker in the background. The Search tab says so until they are ready, and documents
+added meanwhile are indexed afterwards. If the download fails (no internet, a proxy), the Search tab says
+that too: press **Download** next to the embedding model in Settings once the connection is back. Documents
+that failed for want of the model are queued again automatically.
+
 All models run locally (ONNX Runtime on CPU); nothing is sent to external services.
 
 ## Users & access

@@ -235,7 +235,10 @@ def search(
     lexemes = _lexemes(conn, query)
     q_idents = extract_idents(query)
 
-    if "dense" in branches:
+    if "dense" in branches and embedder.state != "ready" and not runtime.downloaded("embed", embedder.spec.name):
+        failed.append("dense")  # first start: the model is still downloading; do not wait for it
+        reasons.append("search_model_downloading")
+    elif "dense" in branches:
         t = time.perf_counter()
         try:
             qvec = embedder.embed_query(query)
@@ -335,7 +338,10 @@ def search(
     fill = [c for c in fill if c in rows_by_id]
 
     rerank: dict[int, float] = {}
-    if rt.rerank_enabled and pool:
+    if rt.rerank_enabled and pool and not runtime.rerank_ready(rt.rerank_model):
+        failed.append("rerank")  # first start: still downloading; do not wait for it
+        reasons.append("reranker_downloading")
+    elif rt.rerank_enabled and pool:
         t = time.perf_counter()
         try:
             around = _neighbours(conn, pool, RERANK_NEIGHBOURS) if RERANK_NEIGHBOURS else {}
