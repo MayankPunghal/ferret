@@ -22,7 +22,7 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
       - uses: astral-sh/setup-uv@v6
       # windows-latest runs jobs as an administrator, so the embedded PostgreSQL's initdb drops to a restricted
-      # token that cannot reach the runner's D: folders ("could not create directory ...: File exists"). The
+      # token that cannot reach the runner's D:/a folders ("could not create directory ...: File exists"). The
       # same database starts fine from the user profile (the installer job), so the venv and test data go there.
       - if: runner.os == 'Windows'
         shell: pwsh
