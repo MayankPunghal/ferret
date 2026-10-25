@@ -21,8 +21,8 @@ with sync_playwright() as p:
     pg = b.new_page(viewport={"width": 1280, "height": 900})
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)))
-    pg.on("console", lambda m: errors.append(m.text) if m.type == "error" and "401" not in m.text
-               and "422" not in m.text else None)
+    pg.on("console", lambda m: errors.append(f"{m.text} ({m.location.get('url')})") if m.type == "error"
+          and "401" not in m.text and "422" not in m.text else None)
 
     def shot(name):
         pg.screenshot(path=f"{OUT}/{name}.png", full_page=True)
@@ -74,27 +74,35 @@ with sync_playwright() as p:
         pg.wait_for_timeout(1000)
     print("after reindex:", pg.inner_text("#reindex-info"))
 
-    # users & access
+    # users & access: a group (Groups), access for it to a new collection (Collections), a user in it (Users)
     pg.click(".tab[data-tab=admin]")
     pg.wait_for_selector("#col-rows tr")
     import random
     col = f"trial-{random.randint(1000, 9999)}"
+    grp = f"trial-users-{col[-4:]}"
+    pg.click("#admin-tabs .subtab[data-sub=groups]")
+    pg.fill("#group-form [name=name]", grp)
+    pg.click("#group-form button")
+    pg.wait_for_selector(f"#group-rows tr:has-text('{grp}')")
+    pg.click("#admin-tabs .subtab[data-sub=collections]")
     pg.fill("#col-form [name=name]", col)
     pg.fill("#col-form [name=description]", "UI check collection")
     pg.click("#col-form button")
     pg.wait_for_selector(f"#col-rows tr:has-text('{col}')")
     row = pg.locator(f"#col-rows tr:has-text('{col}')")
-    row.locator("input[aria-label=Group]").fill("trial-users")
-    row.locator("input[type=checkbox]").check()
-    row.locator("button:has-text('Grant')").click()
-    pg.wait_for_selector("#col-rows tr:has-text('trial-users (read & write)')")
+    row.locator("select").nth(0).select_option(grp)
+    row.locator("select").nth(1).select_option("write")
+    row.locator("button:has-text('Give access')").click()
+    pg.wait_for_selector(f"#col-rows tr:has-text('{grp} (read & write)')")
+    pg.click("#admin-tabs .subtab[data-sub=users]")
     user = f"tester{col[-4:]}"
     pg.fill("#user-form [name=username]", user)
     pg.fill("#user-form [name=password]", "tester-password-1")
-    pg.fill("#user-form [name=groups]", "trial-users, staff")
+    pg.click("#new-user-groups summary")
+    pg.check(f"#new-user-groups input[value='{grp}']")
     pg.click("#user-form button")
-    pg.wait_for_selector(f"#user-rows tr:has-text('{user}')")
-    print(f"collection {col!r} + grant + user {user!r} created")
+    pg.wait_for_selector(f"#user-rows tr:has-text('{user}'):has-text('{grp}')")
+    print(f"group {grp!r}, collection {col!r} + access, user {user!r} in the group created")
     shot("02-users-access")
 
     # documents: multi-file upload into the new collection

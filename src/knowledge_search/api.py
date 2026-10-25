@@ -30,6 +30,7 @@ from .parsing import CHUNKER_VERSION, DOCX, PARSER_VERSION, PPTX, ParseError
 from .search import MESSAGES, RETRIEVAL_FAILURE, coverage_for, search
 
 mimetypes.add_type("text/javascript", ".mjs")  # PDF.js modules; some systems map .mjs to nothing
+mimetypes.add_type("text/javascript", ".js")  # Windows takes .js types from the registry (often application/javascript)
 # The PDF viewer page: our own scripts only (PDF.js with eval off; WebAssembly for JPEG 2000 images), the PDF
 # fetched from this server, fonts PDF.js builds from the file, no framing.
 PDF_VIEWER_CSP = ("default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; "

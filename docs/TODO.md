@@ -12,7 +12,6 @@ Status words: **bug** · **plan ready** (written, not built) · **not built** ·
 | # | Item | Status | Source / where |
 |---|---|---|---|
 | 1 | `GET /api/documents` stops at 1,000 rows (`LIMIT 1000` in `api.py`): past 1,000 documents the Documents tab says "All 1000" and the Summaries tab's bar and list are wrong (and render thousands of rows) | **bug** | Found 2026-10-24 while planning the Summaries counts; fix is step 4 of [plan-summaries-status.md](plan-summaries-status.md) |
-| 25 | The UI walkthrough `scripts/ui_check.py` is out of date: it stops at Users & access (looks for a free-text `Group` box and a **Grant** button; the screen now has Groups and Users sub-tabs, a group picker and **Give access**). Fails the same way before and after the 2026-10-25 change, so the redesign broke it. Update the steps (create a group first, then grant, then the user's group picker) and run it end to end | **bug** | Found 2026-10-25 while checking the first-start model download |
 
 ## 2. Measurements to finish
 

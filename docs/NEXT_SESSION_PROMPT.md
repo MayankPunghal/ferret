@@ -26,7 +26,7 @@ and pushed. Before changing anything:
      (`architecture.md`, `evaluation.md`, `development.md` with the UI walkthrough).
    - Confirm the files and functions each plan names still exist where the plan says. Note any mismatch in
      the plan before building it.
-3. **Check the baseline:** `uv sync && uv run ferret download-model && uv run pytest -q` (expect 132 passed;
+3. **Check the baseline:** `uv sync && uv run ferret download-model --model BAAI/bge-small-en-v1.5 --reranker Xenova/ms-marco-MiniLM-L-6-v2 && uv run pytest -q` (expect 132 passed on Linux, 130 passed + 2 skipped on Windows;
    tests start their own embedded PostgreSQL, no Docker). If anything fails, fix that first and report it.
    (The command-line download is only for the tests; users download every model from the app: Settings →
    Download, and the search models download by themselves on first start. Keep it that way: no feature may

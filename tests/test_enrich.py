@@ -2,6 +2,7 @@
 localhost: what is stored, when a clearer title is used, that only indexed documents are summarised, failures and switches."""
 
 import json
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -13,6 +14,7 @@ from knowledge_search.ingest import requeue
 
 from .conftest import search, token
 
+SERVER = "llama-server.exe" if sys.platform == "win32" else "llama-server"  # what enrich.installed() looks for
 REPLY = {"title": "Payment Retry Runbook", "summary": "How payments are retried.  Covers backoff.",
          "topics": ["payments", "Payments", "retries"]}
 
@@ -169,7 +171,7 @@ def test_parse_reply_tolerates_thinking_and_extra_text():
 def test_a_model_server_that_cannot_start_is_reported_not_retried(client, corpus, drain, fake_llm, tmp_path):
     drain()
     (tmp_path / "llm" / "bin" / "b1").mkdir(parents=True)
-    (tmp_path / "llm" / "bin" / "b1" / "llama-server").write_text("not a program")  # not executable
+    (tmp_path / "llm" / "bin" / "b1" / SERVER).write_text("not a program")  # not executable
     (tmp_path / "llm" / "tiny.gguf").write_bytes(b"GGUF")
     e = enrich.Enricher(state.settings.model_copy(update={"llm_url": "", "model_cache": tmp_path}))
     assert e.available and e.model == "tiny.gguf"
@@ -189,7 +191,7 @@ def test_without_a_model_the_default_one_is_downloaded_in_the_background(client,
             raise OSError("network unreachable")
         d = enrich.llm_dir(settings)
         (d / "bin" / "b1").mkdir(parents=True)
-        (d / "bin" / "b1" / "llama-server").write_text("")
+        (d / "bin" / "b1" / SERVER).write_text("")
         (d / "model.gguf").write_bytes(b"GGUF")
         (d / "selected.txt").write_text("model.gguf")
 
@@ -210,7 +212,7 @@ def test_the_model_chosen_in_settings_is_downloaded_and_used(client, corpus, dra
     drain()
     d = tmp_path / "llm"
     (d / "bin" / "b1").mkdir(parents=True)
-    (d / "bin" / "b1" / "llama-server").write_text("")
+    (d / "bin" / "b1" / SERVER).write_text("")
     gemma, qwen = enrich.LLMS["gemma-4-e2b"][1], enrich.LLMS["qwen3.5-0.8b"][1]
     (d / gemma).write_bytes(b"GGUF")
     (d / "selected.txt").write_text(gemma)

@@ -10,7 +10,8 @@ goal), `docs/requirements-brief.md` (owner asks up to 2026-10-23), `README.md`, 
 git clone https://github.com/MayankPunghal/ferret && cd ferret
 ./setup.sh --demo --no-start          # Windows: setup.bat -Demo -NoStart
 uv sync                               # adds dev tools
-uv run pytest -q                      # expect 132 passed (embedded PostgreSQL; no Docker)
+uv run ferret download-model --model BAAI/bge-small-en-v1.5 --reranker Xenova/ms-marco-MiniLM-L-6-v2   # the tests' models
+uv run pytest -q                      # Linux: 132 passed; Windows: 130 passed, 2 skipped (embedded PostgreSQL; no Docker)
 uv run --group eval python eval/run_eval.py --reranker Xenova/ms-marco-MiniLM-L-6-v2
 ./start.sh                            # or start.bat → http://127.0.0.1:8000
 ```
@@ -568,6 +569,21 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
 - Verified: `scripts/ui_check.py` passes end to end with no console errors; there were screenshot reviews
   at 1440 px, 390 px and in dark; the phone width has no horizontal scroll. 99 tests pass. Screenshots in
   `docs/screenshots/` are regenerated. **Not reviewed by the owner yet.**
+
+## 4p. Local session on the owner's Windows laptop (2026-10-25)
+
+- **Baseline on Windows 11:** the tests had never been run on Windows. 9 of 132 failed: two pgvector-in-SQL
+  parity tests crashed the embedded PostgreSQL (the known Windows pgvector bug; three later tests then failed
+  on the database in recovery), three summary tests wrote a fake `llama-server` without `.exe`, and `.js`
+  files were served as `application/javascript` (Windows takes the type from the registry). Fixed: the two
+  SQL parity tests are skipped on Windows with the embedded database, the fake server gets `.exe`, and
+  `.js` is registered as `text/javascript` in `api.py`. Now **130 passed, 2 skipped** on Windows.
+- The tests need `bge-small` and the MiniLM reranker; plain `ferret download-model` fetches the shipped
+  defaults (bge-base, jina turbo), so the instructions now name the tests' models.
+- **UI walkthrough (TODO 25) fixed:** `scripts/ui_check.py` now creates a group under Groups, gives it access
+  under Collections (group menu, read & write, **Give access**) and ticks it in the new user's group picker.
+  Run end to end on Windows against a fresh demo server (Edge via `CHROMIUM_PATH`, summaries off): every
+  step passed, no horizontal overflow on mobile. Console errors now print the failing URL.
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 

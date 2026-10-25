@@ -31,7 +31,10 @@ uv sync                      # includes dev tools
 uv run pytest -q             # starts its own throwaway embedded PostgreSQL; no Docker needed
 ```
 
-Tests use the real embedding model from `data/models` (run `uv run ferret download-model` once).
+Tests use the real small embedding model and reranker from `data/models`; fetch them once with
+`uv run ferret download-model --model BAAI/bge-small-en-v1.5 --reranker Xenova/ms-marco-MiniLM-L-6-v2`
+(plain `download-model` fetches the shipped defaults, which the tests do not use). On Windows two
+pgvector-in-SQL parity tests are skipped: pgvector's distances crash the embedded PostgreSQL there.
 To run against an external PostgreSQL set `KS_TEST_ADMIN_URL` and `KS_TEST_DATABASE_URL`.
 
 | Test module | Covers |
@@ -50,8 +53,12 @@ uv run --group eval python eval/run_eval.py --reranker Xenova/ms-marco-MiniLM-L-
 uv run --group eval python eval/beir_screen.py --max-docs 2000 --models <m1> <m2> --rerankers <r1>
 uv run --group eval python eval/scale_eval.py --model <m> --reranker <r> --max-docs 2000
 uv run python eval/bench_concurrency.py --user alice --password demo-password-alice --concurrency 1 4 8
-python scripts/ui_check.py docs/screenshots      # Playwright UI walkthrough (needs a running demo server)
+uv run --with playwright python scripts/ui_check.py docs/screenshots [URL]  # UI walkthrough (fresh `ferret serve` + `ferret demo`)
 ```
+
+The walkthrough needs a server on a fresh data directory (`KS_DATA_DIR`) with the demo loaded after it has
+started. Without Playwright's own Chromium, point `CHROMIUM_PATH` at Chrome or Edge (Windows:
+`C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`). Run it after every UI change.
 
 See [Evaluation](evaluation.md) for what each measures and the latest results.
 

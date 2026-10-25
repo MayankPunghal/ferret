@@ -1,6 +1,10 @@
 """In-memory vector search (laptop profile) vs pgvector in SQL, and database-failure handling."""
 
+import os
+import sys
+
 import psycopg
+import pytest
 
 from knowledge_search import db, runtime, vectors
 from knowledge_search.api import state
@@ -10,8 +14,13 @@ from .conftest import search, token
 QUERIES = ["how do I roll back the orders service", "why was checkout unavailable in March 2025",
            "how long are raw events kept", "deadline for submitting expense claims",
            "what does the Orders Service depend on"]  # names a linked wiki page: exercises link expansion
+# pgvector's distance functions crash the embedded PostgreSQL on Windows (HANDOFF §3), so the SQL side of the
+# parity tests runs only on other systems or against an external server.
+sql_vectors = pytest.mark.skipif(sys.platform == "win32" and not os.environ.get("KS_TEST_DATABASE_URL"),
+                                 reason="pgvector distances crash the embedded PostgreSQL on Windows")
 
 
+@sql_vectors
 def test_memory_and_database_vector_search_agree(client, corpus, monkeypatch):
     alice = token(client, "alice")
     assert runtime.base().vector_search == "memory"
@@ -56,6 +65,7 @@ def test_database_failure_is_a_clean_503(client, corpus, monkeypatch):
     assert r.status_code == 503 and "temporarily unavailable" in r.json()["detail"]
 
 
+@sql_vectors
 def test_similar_pages_in_memory_and_in_sql_agree(client, corpus, monkeypatch):
     """Related-in-meaning links: the numpy path (embedded database; pgvector's distances crash it on Windows)
     finds the same pairs and similarities as pgvector in SQL."""
