@@ -128,11 +128,17 @@ $("#logout").addEventListener("click", async () => { await api("/api/auth/logout
 
 // Settings → Updates (updates.py): this version, the newest on GitHub, install from here in the Windows app.
 async function loadUpdates(check) {
+  const btn = $("#upd-check");
+  if (check) { btn.disabled = true; btn.textContent = "Checking…"; $("#upd-line").textContent = "Checking GitHub for a new version…"; }
   const u = await api("/api/admin/updates" + (check ? "?check=true" : "")).catch((e) => ({ error: e.message }));
+  btn.disabled = false; btn.textContent = "Check for updates";
+  const when = u.checked_at ? ` Checked ${new Date(u.checked_at * 1000).toLocaleTimeString()}.` : "";
   $("#upd-line").textContent = u.installing ? `Updating to ${u.latest}: ${u.installing}…`
     : u.error ? `Ferret ${u.current || ""}. ${u.error}`
     : !u.latest ? `Ferret ${u.current}. Not checked yet.`
-    : u.newer ? `Ferret ${u.current}. Version ${u.latest} is available.` : `Ferret ${u.current} is the latest version.`;
+    : u.newer ? `Ferret ${u.current}. Version ${u.latest} is available.${when}`
+    : u.latest === u.current ? `Ferret ${u.current} is the latest version.${when}`
+    : `Ferret ${u.current} is newer than the latest published release (${u.latest}).${when}`;
   $("#upd-install").hidden = !(u.newer && u.can_install) || !!u.installing;
   $("#upd-install").textContent = `Install update ${u.latest || ""}`;
   $("#upd-how").textContent = u.windows_app ? "Ferret also checks once a day and shows a notice in the tray."
