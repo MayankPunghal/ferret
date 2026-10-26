@@ -751,10 +751,20 @@ async function askSend(question, opts = {}) {
     const handle = (event) => {
       if (event.type === "search") {
         search = event;
-        const n = (event.queries || []).length;
-        stageDone(stagePlan, `Planned ${n || 1} search quer${n === 1 ? "y" : "ies"}`);
-        stageSearch = stageRow(`Searched ${askPlural(event.passages || 0, "passage")}`, "done");
-        stages.append(stageSearch);
+        stages.querySelectorAll(".stage.active").forEach((r) => stageDone(r));
+        for (const round of event.rounds || []) {
+          const n = (round.queries || []).length;
+          stages.append(stageRow(
+            `Round ${round.n}: ${askPlural(n, "query").replace("querys", "queries")}, ${askPlural(round.passages || 0, "passage")} so far`, "done"));
+          if (round.enough === false && round.missing)
+            stages.append(stageRow(`Model: not enough — ${round.missing}`, "done"));
+          if (round.novel === false) stages.append(stageRow("Model: the new queries found nothing new — stopping", "done"));
+        }
+        if (!(event.rounds || []).length) {
+          const n = (event.queries || []).length;
+          stages.append(stageRow(`Searched ${askPlural(n || 1, "query").replace("querys", "queries")}, ${askPlural(event.passages || 0, "passage")}`, "done"));
+        }
+        stageSearch = stages.lastElementChild;
         stageRead = stageRow(`Reading ${askPlural(event.passages || 0, "passage")}`);
         stages.append(stageRead);
         box.append(stepCard(event));

@@ -362,6 +362,46 @@ One per line, no numbering, at most 10 words each.
 Question: {question}
 """
 MAX_QUERIES = 3
+ROUNDS = 3  # a budget, not a script: the model decides each round whether it has enough
+DECIDE = """You are looking for the answer to a question in the user's documents.
+
+Question: {question}
+
+Passages found so far (title - where - first words):
+{passages}
+
+Do these passages contain the answer? If they do not, write up to 2 short search queries that would find the
+missing piece: the words a policy, runbook or handbook would use, not question words. Reply with JSON only:
+{{"enough": true or false, "queries": ["query", "query"], "missing": "what is missing"}}"""
+
+
+def _passage_list(results, limit: int = 8) -> str:
+    lines = []
+    for n, r in enumerate(results[:limit], start=1):
+        where = " > ".join(x for x in [r.heading_path or "", f"page {r.page}" if getattr(r, "page", None) else ""] if x)
+        lines.append(f"[{n}] {r.clearer_title or r.title}" + (f" - {where}" if where else "") +
+                     f" - {_one_line(r.text)[:200]}")
+    return "\n".join(lines) or "(none)"
+
+
+def _decide(rt, body: AskBody, question: str, results: list) -> dict:
+    """The model's own verdict on the passages it has, and what to search if they are not enough."""
+    try:
+        url, model = _models.serving(body.model, rt.llm_device)
+    except HTTPException:
+        return {"enough": False, "queries": []}
+    prompt = DECIDE.format(question=question, passages=_passage_list(results))
+    raw = "".join(piece for kind, piece in _stream_model(url, model, prompt, think=False, max_tokens=220)
+                  if kind == "text")
+    try:
+        return json.loads(raw)
+    except ValueError:
+        pass
+    match = re.search(r"\{.*\}", raw or "", re.DOTALL)
+    try:
+        return json.loads(match.group(0)) if match else {"enough": False, "queries": []}
+    except ValueError:
+        return {"enough": False, "queries": []}
 
 
 def _search_queries(rt, body: AskBody, history: list[Turn]) -> list[str]:
@@ -456,6 +496,7 @@ class Plan:
         self.history, self.near, self.unconfirmed, self.gate = history, near, unconfirmed, gate
         self.query = query  # what the search ran with (the planned queries, joined)
         self.queries: list[str] = []  # the queries themselves, shown in the step
+        self.rounds: list[dict] = []  # what was searched and what the model decided each round
         self.note = ""  # why these passages (e.g. carried over from the previous answer)
         self.question_id = None  # the turn this question added, dropped again if no answer is written
 
@@ -481,28 +522,47 @@ def _prepare(conn, p, body: AskBody) -> Plan:
     else:
         history = body.history
     asked = body.question.strip()
-    first = search(conn, p, asked, rt, body.collection_ids, 10)  # the user's own words: no model call when they work
-    found = first
-    queries = [asked]
     by_id: dict[int, object] = {}
     score: dict[int, float] = {}
+    rounds: list[dict] = []
+    found = None
 
-    def add(res) -> None:
-        for rank, r in enumerate(res.results, start=1):  # reciprocal rank fusion across the queries
-            score[r.chunk_id] = score.get(r.chunk_id, 0.0) + 1.0 / (60 + rank)
-            if r.chunk_id not in by_id or (r.supported and not by_id[r.chunk_id].supported):
-                by_id[r.chunk_id] = r
+    def run(queries: list[str]) -> None:
+        """Search these queries and fold what they found into the pool (reciprocal rank fusion)."""
+        nonlocal found
+        for query in queries:
+            res = search(conn, p, query, rt, body.collection_ids, 10)
+            if found is None:
+                found = res
+            elif not any(r.supported for r in found.results) and any(r.supported for r in res.results):
+                found = res
+            for rank, r in enumerate(res.results, start=1):
+                score[r.chunk_id] = score.get(r.chunk_id, 0.0) + 1.0 / (60 + rank)
+                if r.chunk_id not in by_id or (r.supported and not by_id[r.chunk_id].supported):
+                    by_id[r.chunk_id] = r
 
-    add(first)
-    # the model's variants are always searched, alongside the user's own words: their wording can pass the
-    # evidence check against the wrong section (a laptop question "confirmed" by acceptable-use text), and a
-    # keyword-shaped query is what reaches the section that answers it (owner's finding, 2026-10-26)
-    for query in [q for q in _search_queries(rt, body, history) if q.lower() != asked.lower()][:MAX_QUERIES - 1]:
-        res = search(conn, p, query, rt, body.collection_ids, 10)
-        queries.append(query)
-        add(res)
-        if not any(r.supported for r in first.results) and any(r.supported for r in res.results):
-            found = res
+    # round 1: the user's own words and the model's keyword-shaped variants, always
+    queries = [asked] + [q for q in _search_queries(rt, body, history) if q.lower() != asked.lower()][:MAX_QUERIES - 1]
+    run(queries)
+    rounds.append({"n": 1, "queries": queries, "passages": len(by_id)})
+    # further rounds: the model reads what was found and decides whether it needs more, and what to search
+    for n in range(2, ROUNDS + 1):
+        if not by_id:
+            break
+        verdict = _decide(rt, body, asked, list(by_id.values()))
+        rounds[-1]["enough"] = bool(verdict.get("enough"))
+        rounds[-1]["missing"] = str(verdict.get("missing") or "")[:200]
+        if verdict.get("enough") and any(r.supported for r in by_id.values()):
+            break
+        more = [str(q).strip()[:120] for q in (verdict.get("queries") or []) if str(q).strip()][:2]
+        if not more:
+            break
+        before = set(by_id)
+        run(more)
+        rounds.append({"n": n, "queries": more, "passages": len(by_id)})
+        if set(by_id) == before:  # it found nothing new: stop rather than loop
+            rounds[-1]["novel"] = False
+            break
     if not any(r.supported for r in by_id.values()):  # nothing confirmed anywhere: a keyword-only pass
         try:
             lex = search(conn, p, asked, rt, body.collection_ids, 10, branches=("lexical",))
@@ -545,9 +605,11 @@ def _prepare(conn, p, body: AskBody) -> Plan:
                 "says so when they do not.")
     # the closest matches shown besides the ones used: when the answer already rests on them, list the rest
     near = unsupported[len(used):] if unconfirmed else unsupported
+    all_queries = [q for rnd in rounds for q in rnd["queries"]]
     plan = Plan(rt, found, used, cites, history, [_brief(r) for r in near[:NEAR]], unconfirmed, gate,
-                " · ".join(queries))
-    plan.queries = queries
+                " · ".join(all_queries))
+    plan.queries = list(dict.fromkeys(all_queries))
+    plan.rounds = rounds
     plan.note = note
     plan.question_id = question_id
     return plan
@@ -556,7 +618,7 @@ def _prepare(conn, p, body: AskBody) -> Plan:
 def _step(plan: Plan) -> dict:
     """The search step stored with an answer (the window shows it when the conversation is reopened)."""
     return {"question": plan.found.query, "searched": plan.query, "queries": plan.queries,
-            "outcome": plan.found.outcome,
+            "rounds": plan.rounds, "outcome": plan.found.outcome,
             "message": plan.note or plan.found.message,
             "passages": len(plan.used), "citations": plan.cites, "near": plan.near, "gate": plan.gate,
             "unconfirmed": plan.unconfirmed}
@@ -590,7 +652,7 @@ def ask(body: AskBody, p: User, conn: Conn) -> dict:
         raise HTTPException(422, f"unknown local model {body.model}")
     plan = _prepare(conn, p, body)
     base = {"question": body.question, "searched": plan.query, "queries": plan.queries,
-            "outcome": plan.found.outcome,
+            "rounds": plan.rounds, "outcome": plan.found.outcome,
             "message": plan.note or plan.found.message, "citations": plan.cites,
             "near": plan.near, "gate": plan.gate, "unconfirmed": plan.unconfirmed,
             "conversation_id": str(body.conversation_id) if body.conversation_id else None}
@@ -625,7 +687,8 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
         model = ""
         saved = False
         try:
-            yield _sse({"type": "search", "question": question, "searched": plan.query, "queries": plan.queries,
+            yield _sse({"type": "search", "question": question, "searched": plan.query,
+                        "queries": plan.queries, "rounds": plan.rounds,
                         "outcome": plan.found.outcome,
                         "message": plan.note or plan.found.message, "citations": plan.cites, "passages": len(plan.used),
                         "near": plan.near, "gate": plan.gate, "unconfirmed": plan.unconfirmed})

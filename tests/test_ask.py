@@ -33,6 +33,11 @@ def fake_model(*chunks, thinking="", seen=None, plan="a keyword variant of the q
                 seen.setdefault("plans", []).append(prompt)
             yield "text", plan
             return
+        if prompt.startswith("You are looking for the answer"):
+            if seen is not None:
+                seen.setdefault("decisions", []).append(prompt)
+            yield "text", '{"enough": true, "queries": [], "missing": ""}'
+            return
         if seen is not None:
             seen.update(url=url, model=model, prompt=prompt, think=think, answered=True)
         if thinking:
@@ -188,6 +193,8 @@ def _rewriting_model(rewritten: str, answer: str, seen: list):
         seen.append(prompt)
         if prompt.startswith("Write 3 short search queries"):
             yield "text", rewritten
+        elif prompt.startswith("You are looking for the answer"):
+            yield "text", '{"enough": true, "queries": [], "missing": ""}'
         else:
             yield "text", answer
     return gen
@@ -323,3 +330,41 @@ def test_a_follow_up_without_a_pronoun_is_still_rewritten(client, corpus, monkey
                 events.append(json.loads(line[6:]))
     assert "number of leave days per type" in events[0]["queries"]
     assert events[0]["queries"][0] == "zebra quantum lasagna policy"
+
+
+def test_the_model_decides_when_to_search_again(client, corpus, monkeypatch):
+    """The rounds are not a script: after reading what was found, the model says whether it has enough and,
+    if not, what to search next."""
+    calls = {"decisions": 0}
+    searched = []
+
+    def gen(url, model, prompt, think, max_tokens=900):
+        if prompt.startswith("Write 3 short search queries"):
+            yield "text", "no such thing anywhere"
+            return
+        if prompt.startswith("You are looking for the answer"):
+            calls["decisions"] += 1
+            if calls["decisions"] == 1:  # nothing useful yet: ask for another round
+                yield "text", json.dumps({"enough": False, "queries": ["ERR-PAY-4012"], "missing": "the error code"})
+            else:
+                yield "text", json.dumps({"enough": True, "queries": [], "missing": ""})
+            return
+        searched.append(prompt)
+        yield "text", "Retry once with the same idempotency key [1]."
+
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    monkeypatch.setattr(ask, "_stream_model", gen)
+    events = []
+    with client.stream("POST", "/api/ask/stream", headers=token(client, "alice"),
+                       json={"question": "zebra quantum lasagna policy"}) as r:
+        for line in r.iter_lines():
+            if line.startswith("data: "):
+                events.append(json.loads(line[6:]))
+    search = events[0]
+    assert calls["decisions"] == 2, "the model was asked after each round"
+    assert [len(r["queries"]) for r in search["rounds"]] and search["rounds"][0]["enough"] is False
+    assert search["rounds"][0]["missing"] == "the error code"
+    assert any(q == "ERR-PAY-4012" for r in search["rounds"] for q in r["queries"]), search["rounds"]
+    assert search["rounds"][-1]["passages"] > search["rounds"][0]["passages"], "the second round added passages"
+    assert any("ERR-PAY-4012" in (c.get("title") or "") + (c.get("heading_path") or "") for c in search["citations"])
+    assert "".join(e.get("text", "") for e in events if e["type"] == "text")
