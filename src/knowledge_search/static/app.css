@@ -679,9 +679,11 @@ button.icon:disabled { opacity: .35; cursor: not-allowed; }
 .ask-convs li:hover { background: var(--raised); }
 .ask-convs li.on { background: var(--active); }
 .ask-conv { flex: 1; min-width: 0; text-align: left; border: 0; background: none; color: inherit; font: inherit;
-  padding: 7px 8px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
-.ask-conv .t { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ask-conv .m { font-size: 11px; color: var(--muted); }
+  padding: 7px 8px; display: block; cursor: pointer; }
+.ask-conv:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ask-conv .t { display: block; font-size: 13px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.ask-conv .m { display: block; font-size: 11px; line-height: 1.3; color: var(--muted); }
 .ask-del { border: 0; background: none; color: var(--muted); font-size: 15px; line-height: 1; padding: 0 8px;
   cursor: pointer; opacity: 0; border-radius: var(--radius-control); }
 .ask-convs li:hover .ask-del, .ask-del:focus-visible { opacity: 1; }
@@ -734,3 +736,16 @@ button.icon:disabled { opacity: .35; cursor: not-allowed; }
   .ask-msg.user { max-width: 92%; }
   .ask-del { opacity: 1; }
 }
+
+/* Ask: the search step, always shown — what was asked, how it scored, and what the model received */
+.ask-step-body { padding: 8px 0 2px; display: flex; flex-direction: column; gap: 6px; }
+.ask-passage { border-top: 1px solid var(--rule); padding: 5px 0; }
+.ask-passage > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; }
+.ask-passage > summary::-webkit-details-marker { display: none; }
+.ask-passage .n { font-family: var(--mono); font-size: 12px; color: var(--muted); min-width: 2.2em; }
+.ask-passage .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 38ch; }
+.ask-passage .badge { flex: none; }
+.ask-passage .muted.small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ask-preview { margin: 6px 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.chip.unconfirmed { border-style: dashed; }
+.ask-step-body > .button { align-self: flex-start; margin-top: 4px; }

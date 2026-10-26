@@ -151,3 +151,42 @@ def test_the_model_list_and_the_mcp_tool(client, corpus):
 
     tool = next(t for t in mcp.TOOLS if t["name"] == "ask")
     assert tool["inputSchema"]["required"] == ["question"] and tool["annotations"]["readOnlyHint"] is True
+
+def test_a_refusal_shows_the_closest_matches_and_can_still_answer_from_them(client, corpus, monkeypatch):
+    """Owner, 2026-10-26: "Who is Kabir Singh?" got no answer and the window showed nothing. A refusal must
+    carry what the search found (the closest matches, with their scores and the gate), and when the user asks,
+    the model may answer from them — labelled unconfirmed."""
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    seen = {}
+    monkeypatch.setattr(ask, "_stream_model", fake_model("The closest page says he is the COO ", "[1].", seen=seen))
+    h = token(client, "alice")
+    body = client.post("/api/ask", headers=h, json={"question": "zebra quantum lasagna policy"}).json()
+    assert body["answer"] is None and body["outcome"] == "no_adequate_evidence"
+    assert body["gate"]["mode"] and body["gate"]["dense_min"] is not None and "near" in body
+    assert body["near"], "the refusal lists what the search found"
+    assert not seen, "no model call while nothing passed the gate"
+
+    again = client.post("/api/ask", headers=h,
+                        json={"question": "zebra quantum lasagna policy", "allow_unsupported": True}).json()
+    assert again["unconfirmed"] is True and again["answered"] is True
+    assert again["answer"] == "The closest page says he is the COO [1]."
+    assert again["citations"] and again["citations"][0]["confirmed"] is False
+    assert "closest match, not confirmed" in seen["prompt"]
+    assert "According to the closest matching passages" in seen["prompt"]
+
+
+def test_the_stream_carries_the_search_step_and_the_closest_matches(client, corpus, monkeypatch):
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    monkeypatch.setattr(ask, "_stream_model", fake_model("not asked"))
+    h = token(client, "alice")
+    events = []
+    with client.stream("POST", "/api/ask/stream", headers=h,
+                       json={"question": "zebra quantum lasagna policy"}) as r:
+        for line in r.iter_lines():
+            if line.startswith("data: "):
+                events.append(json.loads(line[6:]))
+    search = events[0]
+    assert search["type"] == "search" and search["outcome"] == "no_adequate_evidence"
+    assert search["citations"] == [] and search["near"] and search["gate"]["mode"]
+    assert events[-1]["type"] == "done" and events[-1]["answered"] is False
+

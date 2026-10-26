@@ -12,6 +12,8 @@ each prompt, streamed answers, Markdown, a step card per answer, "Think first" w
 collapsed card, Stop, Copy/Retry, conversation search/rename/delete, the model picker and an MCP `ask` tool.
 The search's evidence gate still decides whether there is evidence: only its passages reach the model, and the
 model's `NOT_IN_DOCUMENTS` is shown as "No answer from your documents".
+A refusal is not a dead end: the search step (gate in force, passages with their scores) is always shown,
+and the window offers to answer from the closest matches, labelled unconfirmed (owner, 2026-10-26).
 **Not built:** pictures — per-message image upload, OCR and a description by a vision model. It needs the
 model's mmproj (not in the current download), 20–56 s per image on CPU, and the measured arrows/relations are
 unreliable (TODO item 2 and item 10), so it deserves its own measured pass. Editing an earlier message is also

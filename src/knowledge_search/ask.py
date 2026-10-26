@@ -48,11 +48,16 @@ PROMPT = """You answer questions about the user's own documents, using ONLY the 
 Cite every passage you use as [1] or [2]. If the passages do not answer the question, reply with exactly
 NOT_IN_DOCUMENTS and nothing else: a guess is worse than no answer. Keep commands, error codes, names, numbers
 and versions exactly as written. Be concise: a few sentences or a short list. Markdown is allowed.
-{history}
+{closest}{history}
 Question: {question}
 
 Passages:
 {passages}
+"""
+
+CLOSEST = """None of the passages passed the evidence check: they are the closest matches the search found, not
+confirmed evidence. Begin with "According to the closest matching passages" and say plainly where they fall
+short of the question.
 """
 
 
@@ -67,6 +72,9 @@ class AskBody(BaseModel):
     history: list[Turn] = Field(default_factory=list, max_length=20)
     model: str = ""  # an enrich.LLMS name; "" = the model the summaries use
     think: bool = False
+    # answer from the closest matches when no passage passed the evidence check (the user asked for it; the
+    # answer says so and the window labels it "unconfirmed")
+    allow_unsupported: bool = False
     collection_ids: list[int] | None = None
 
 
@@ -91,14 +99,16 @@ def _history_text(history: list[Turn]) -> str:
             "passages):\n" + "\n".join(lines) + "\n")
 
 
-def build_prompt(question: str, results: list, history: list[Turn] | None = None) -> str:
+def build_prompt(question: str, results: list, history: list[Turn] | None = None, unconfirmed: bool = False) -> str:
     """The prompt for one question. Separate, so a test can read it without a model."""
     passages = "\n\n".join(
         f"[{n}] {r.clearer_title or r.title}"
-        f"{' > ' + r.heading_path if r.heading_path else ''}{f' (page {r.page})' if r.page else ''}\n"
+        f"{' > ' + r.heading_path if r.heading_path else ''}{f' (page {r.page})' if r.page else ''}"
+        f"{' (closest match, not confirmed)' if unconfirmed else ''}\n"
         f"{r.text[:CHARS_PER_PASSAGE]}"
         for n, r in enumerate(results, start=1))
-    return PROMPT.format(history=_history_text(history or []), question=question.strip(), passages=passages)
+    return PROMPT.format(closest=CLOSEST if unconfirmed else "", history=_history_text(history or []),
+                         question=question.strip(), passages=passages)
 
 
 # --- the model -------------------------------------------------------------------------------------------------
@@ -259,12 +269,12 @@ def _turns(conn, cid: uuid.UUID) -> list[Turn]:
 
 
 def _save_message(conn, cid: uuid.UUID, role: str, text: str, *, citations=None, thinking=None, outcome=None,
-                  model=None, seconds=None) -> int:
+                  model=None, seconds=None, search=None) -> int:
     row = conn.execute(
-        "INSERT INTO ask_messages (conversation_id, role, text, citations, thinking, outcome, model, seconds) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+        "INSERT INTO ask_messages (conversation_id, role, text, citations, thinking, outcome, model, seconds, search) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
         (cid, role, text, json.dumps(citations) if citations is not None else None, thinking or None, outcome,
-         model, seconds)).fetchone()
+         model, seconds, json.dumps(search) if search is not None else None)).fetchone()
     if role == "user":  # the first question names the conversation, until it is renamed
         conn.execute("UPDATE ask_conversations SET title = CASE WHEN title = '' THEN %s ELSE title END, "
                      "updated_at = now() WHERE id = %s", (text[:80], cid))
@@ -298,13 +308,13 @@ def new_conversation(p: User, conn: Conn) -> dict:
 @router.get("/ask/conversations/{cid}")
 def conversation(cid: uuid.UUID, p: User, conn: Conn) -> dict:
     row = _owned(conn, p.user_id, cid)
-    rows = conn.execute("SELECT id, role, text, citations, thinking, outcome, model, seconds, created_at "
+    rows = conn.execute("SELECT id, role, text, citations, thinking, outcome, model, seconds, search, created_at "
                         "FROM ask_messages WHERE conversation_id = %s ORDER BY id", (cid,)).fetchall()
     return {"id": str(row["id"]), "title": row["title"],
             "messages": [{"id": r["id"], "role": r["role"], "text": r["text"] or "",
                           "citations": r["citations"] or [], "thinking": r["thinking"] or "",
                           "outcome": r["outcome"], "model": r["model"], "seconds": r["seconds"],
-                          "created_at": r["created_at"].isoformat()} for r in rows]}
+                          "search": r["search"], "created_at": r["created_at"].isoformat()} for r in rows]}
 
 
 @router.patch("/ask/conversations/{cid}")
@@ -327,8 +337,40 @@ def delete(cid: uuid.UUID, p: User, conn: Conn) -> dict:
 # --- asking ---------------------------------------------------------------------------------------------------
 
 
-def _prepare(conn, p, body: AskBody):
-    """Search, then keep only the passages that count as evidence (and the prompt history)."""
+NEAR = 3  # closest matches shown when nothing passed the evidence check
+
+
+def _one_line(text: str) -> str:
+    return " ".join((text or "").split())
+
+
+def _cite(n: int, r, confirmed: bool) -> dict:
+    return {"n": n, "chunk_id": r.chunk_id, "document_id": r.document_id, "collection": r.collection,
+            "title": r.clearer_title or r.title, "heading_path": r.heading_path, "page": r.page,
+            "source_url": r.source_url, "passage_url": r.passage_url, "confirmed": confirmed,
+            "preview": _one_line(r.text)[:240],
+            "cosine": r.signals.get("cosine_similarity"), "rerank": r.signals.get("rerank_score")}
+
+
+def _brief(r) -> dict:
+    """A passage as the window shows it in the search step: where it is and how it scored."""
+    return {"chunk_id": r.chunk_id, "title": r.clearer_title or r.title, "heading_path": r.heading_path,
+            "page": r.page, "collection": r.collection, "source_url": r.source_url,
+            "cosine": r.signals.get("cosine_similarity"), "rerank": r.signals.get("rerank_score"),
+            "why": r.match_basis, "preview": _one_line(r.text)[:240]}
+
+
+class Plan:
+    """What one question sends: the passages, the citations shown with the answer, and the closest matches
+    (always listed, so the window can show what the search actually found)."""
+
+    def __init__(self, rt, found, used, cites, history, near, unconfirmed, gate) -> None:
+        self.rt, self.found, self.used, self.cites = rt, found, used, cites
+        self.history, self.near, self.unconfirmed, self.gate = history, near, unconfirmed, gate
+
+
+def _prepare(conn, p, body: AskBody) -> Plan:
+    """Search, then keep the passages that count as evidence (and, when asked, the closest matches)."""
     rt = runtime.load(conn)
     found = search(conn, p, body.question, rt, body.collection_ids, 10)
     if body.conversation_id:
@@ -338,20 +380,31 @@ def _prepare(conn, p, body: AskBody):
     else:
         history = body.history
     conn.commit()
-    passages = [r for r in found.results if r.supported][:PASSAGES]
-    cites = [{"n": n, "chunk_id": r.chunk_id, "document_id": r.document_id, "collection": r.collection,
-              "title": r.clearer_title or r.title, "heading_path": r.heading_path, "page": r.page,
-              "source_url": r.source_url, "passage_url": r.passage_url}
-             for n, r in enumerate(passages, start=1)]
-    return rt, found, passages, cites, history
+    confirmed = [r for r in found.results if r.supported]
+    unsupported = [r for r in found.results if not r.supported]
+    used, unconfirmed = confirmed[:PASSAGES], False
+    if not used and body.allow_unsupported and unsupported:  # the user chose to see what the closest say
+        used, unconfirmed = unsupported[:PASSAGES - 2], True
+    cites = [_cite(n, r, not unconfirmed) for n, r in enumerate(used, start=1)]
+    gate = {"mode": rt.gate_mode, "dense_min": rt.gate_dense_min, "rerank_min": rt.gate_rerank_min}
+    # the closest matches shown besides the ones used: when the answer already rests on them, list the rest
+    near = unsupported[len(used):] if unconfirmed else unsupported
+    return Plan(rt, found, used, cites, history, [_brief(r) for r in near[:NEAR]], unconfirmed, gate)
 
 
-def _answer(rt, body: AskBody, passages, history) -> Answer:
+def _step(plan: Plan) -> dict:
+    """The search step stored with an answer (the window shows it when the conversation is reopened)."""
+    return {"question": plan.found.query, "outcome": plan.found.outcome, "message": plan.found.message,
+            "passages": len(plan.used), "citations": plan.cites, "near": plan.near, "gate": plan.gate,
+            "unconfirmed": plan.unconfirmed}
+
+
+def _answer(rt, body: AskBody, plan: Plan) -> Answer:
     """Run the model and return the finished Answer (used by /api/ask and the MCP tool)."""
     out = Answer()
     url, model = _models.serving(body.model, rt.llm_device)
     out.model = Path(model).stem if model else ""
-    prompt = build_prompt(body.question, passages, history)
+    prompt = build_prompt(body.question, plan.used, plan.history, plan.unconfirmed)
     with _gen:
         list(out.pieces(_stream_model(url, model, prompt, body.think)))
     return out
@@ -371,18 +424,20 @@ def ask_models(p: User, conn: Conn) -> dict:
 def ask(body: AskBody, p: User, conn: Conn) -> dict:
     if body.model and body.model not in enrich.LLMS:
         raise HTTPException(422, f"unknown local model {body.model}")
-    rt, found, passages, cites, history = _prepare(conn, p, body)
-    base = {"outcome": found.outcome, "message": found.message, "citations": cites,
+    plan = _prepare(conn, p, body)
+    base = {"outcome": plan.found.outcome, "message": plan.found.message, "citations": plan.cites,
+            "near": plan.near, "gate": plan.gate, "unconfirmed": plan.unconfirmed,
             "conversation_id": str(body.conversation_id) if body.conversation_id else None}
-    if not passages:  # no model call: there is nothing to answer from
+    if not plan.used:  # no model call: there is nothing to answer from
         return {"answer": None, "answered": False, "model": "", "seconds": 0, **base}
     try:
-        out = _answer(rt, body, passages, history)
+        out = _answer(plan.rt, body, plan)
     except enrich.LLMError as exc:
         raise HTTPException(503, f"the local language model failed: {exc}") from exc
     if body.conversation_id:
-        _save_message(conn, body.conversation_id, "assistant", out.text, citations=cites,
-                      thinking=out.thinking, outcome=found.outcome, model=out.model, seconds=out.seconds)
+        _save_message(conn, body.conversation_id, "assistant", out.text, citations=plan.cites,
+                      thinking=out.thinking, outcome=plan.found.outcome, model=out.model, seconds=out.seconds,
+                      search=_step(plan))
     return {"answer": out.text or None, "answered": not out.abstained and bool(out.text),
             "thinking": out.thinking or None, "model": out.model, "seconds": out.seconds, **base}
 
@@ -396,7 +451,7 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
     """The same answer as `/api/ask`, written out as it is produced (server-sent events)."""
     if body.model and body.model not in enrich.LLMS:
         raise HTTPException(422, f"unknown local model {body.model}")
-    rt, found, passages, cites, history = _prepare(conn, p, body)
+    plan = _prepare(conn, p, body)
     question = body.question.strip()
 
     def events() -> Iterator[str]:
@@ -404,23 +459,24 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
         model = ""
         saved = False
         try:
-            yield _sse({"type": "search", "question": question, "outcome": found.outcome,
-                        "message": found.message, "citations": cites, "passages": len(passages)})
-            if not passages:  # no model call: there is nothing to answer from
-                yield _sse({"type": "done", "answered": False, "model": "", "seconds": 0,
+            yield _sse({"type": "search", "question": question, "outcome": plan.found.outcome,
+                        "message": plan.found.message, "citations": plan.cites, "passages": len(plan.used),
+                        "near": plan.near, "gate": plan.gate, "unconfirmed": plan.unconfirmed})
+            if not plan.used:  # no model call: there is nothing to answer from
+                yield _sse({"type": "done", "answered": False, "model": "", "seconds": 0, "abstained": True,
                             "conversation_id": str(body.conversation_id) if body.conversation_id else None})
                 return
-            url, model = _models.serving(body.model, rt.llm_device)
+            url, model = _models.serving(body.model, plan.rt.llm_device)
             out.model = Path(model).stem if model else ""
-            prompt = build_prompt(question, passages, history)
+            prompt = build_prompt(question, plan.used, plan.history, plan.unconfirmed)
             with _gen:
                 for kind, piece in out.pieces(_stream_model(url, model, prompt, body.think)):
                     yield _sse({"type": kind, "text": piece})
             if body.conversation_id:  # saved before "done", so a reload shows the answer
                 with db.pool().connection() as c:
-                    _save_message(c, body.conversation_id, "assistant", out.text, citations=cites,
-                                  thinking=out.thinking, outcome=found.outcome, model=out.model,
-                                  seconds=out.seconds)
+                    _save_message(c, body.conversation_id, "assistant", out.text, citations=plan.cites,
+                                  thinking=out.thinking, outcome=plan.found.outcome, model=out.model,
+                                  seconds=out.seconds, search=_step(plan))
                 saved = True
             yield _sse({"type": "done", "answered": not out.abstained and bool(out.text), "model": out.model,
                         "seconds": out.seconds, "abstained": out.abstained,
@@ -432,9 +488,9 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
             if body.conversation_id and not saved and (out.text or out.thinking):
                 try:
                     with db.pool().connection() as c:
-                        _save_message(c, body.conversation_id, "assistant", out.text, citations=cites,
-                                      thinking=out.thinking, outcome=found.outcome, model=out.model,
-                                      seconds=out.seconds)
+                        _save_message(c, body.conversation_id, "assistant", out.text, citations=plan.cites,
+                                      thinking=out.thinking, outcome=plan.found.outcome, model=out.model,
+                                      seconds=out.seconds, search=_step(plan))
                 except Exception:  # noqa: BLE001 - a failed save must not break the stream
                     log.exception("Ask: could not save the answer")
 

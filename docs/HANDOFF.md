@@ -723,7 +723,16 @@ Nothing from that branch was merged.
   model picker, "Think first", collection scope, Ask/Stop. Phone width stacks the list above the chat.
 - **MCP:** a new read-only `ask` tool (question, collections, think) calls the app's own `/api/ask`, so
   permissions and the gate apply; it returns the answer, its citations and the outcome.
-- **Verified:** `tests/test_ask.py` (9: no evidence → no model call; citations and the prompt the model got;
+- **Never a black box** (owner, 2026-10-26: "Who is Kabir Singh?" answered nothing and showed nothing):
+  the search step is always shown and is **open when nothing was confirmed** — the question, the outcome, the
+  gate in force (mode, cosine floor, reranker floor), the passages sent to the model (title, where, cosine,
+  reranker, a preview, Open passage) and, when nothing passed, the 3 closest matches with their scores. A
+  refusal offers **"Answer from the closest matches (unconfirmed)"**: the model may answer from them, the answer
+  and its source chips are marked unconfirmed, and the badge survives a reload (the step is stored with the
+  answer, migration 0012 `search jsonb`). The owner's own instance still runs the old thresholds
+  (cosine 0.72 and reranker 0.0, with bge-reranker-base whose logits sit at −3.6…−8), which is why almost
+  nothing passed there; the measured values for that reranker are in §4q and docs/plan-answers.md.
+- **Verified:** `tests/test_ask.py` (11: no evidence → no model call; citations and the prompt the model got;
   the sentinel is a refusal; thinking is kept; history caps; a saved conversation's turns reach the next
   question; another user's conversation is 404; the SSE event sequence and the saved answer; model list + MCP
   tool). Full suite **157 passed, 2 skipped**. **The prompt against the real Gemma 4 E2B** (installed copy,
@@ -731,8 +740,9 @@ Nothing from that branch was merged.
   unanswerable question → `answered: false`. **The window in Chromium** against a live instance and a streaming
   fake model: streamed answer with [1], step card and sources; a thinking card; "No answer from your
   documents."; the conversation listed after a reload with its turns, renamed and deleted; no JS errors; no
-  phone overflow. The whole `scripts/ui_check.py` walkthrough (now with the Ask assertions) passes end to end
-  with no console errors. **Not measured:** answer quality on the labelled sets, E4B/Qwen3.5-4B for answers, latency
+  phone overflow; and a refusal that shows the gate, three closest matches with scores and the one-click
+  unconfirmed answer. The whole `scripts/ui_check.py` walkthrough (now with the Ask assertions) passes end to
+  end with no console errors. **Not measured:** answer quality on the labelled sets, E4B/Qwen3.5-4B for answers, latency
   on a laptop (E2B: ~15 s per answer in earlier runs).
 - **Not built:** **pictures** (per-message image upload, OCR/description by a vision model: needs the model's
   mmproj, 20–56 s per image on CPU, and the measured arrows/relations are unreliable — TODO item 2 / item 10),

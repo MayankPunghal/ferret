@@ -460,15 +460,15 @@ $("#search-form").addEventListener("submit", async (e) => {
 
 // ---------------------------------------------------------------- Ask: a saved conversation with the model
 // Each question runs the search first; only passages that passed the evidence gate reach the local model, and
-// its answer must cite them. No supported passage means no answer (and no model call). Answers stream in and
-// the conversation is saved on the server, so it survives a reload and follow-ups carry their earlier turns.
+// its answer must cite them. The search step is always shown: what was asked, what the gate said, and the
+// passages (or the closest matches) with their scores — the window is never a black box. When nothing passed,
+// the user can still ask the model to answer from the closest matches, and that answer is labelled unconfirmed.
 let askModels = null, askConv = null, askAbort = null, askBusy = false;
 const askPlural = (n, one) => `${n.toLocaleString()} ${one}${n === 1 ? "" : "s"}`;
 
 const askWhen = (iso) => {
   const d = new Date(iso);
-  const today = new Date();
-  return d.toDateString() === today.toDateString()
+  return d.toDateString() === new Date().toDateString()
     ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 };
@@ -509,10 +509,11 @@ async function loadConvs(q = "") {
 
 function convRow(c) {
   const li = el("li", { className: c.id === askConv ? "on" : "" });
-  const open = el("button", { type: "button", className: "ask-conv", title: c.title || "Untitled" },
+  const open = el("div", { className: "ask-conv", title: c.title || "Untitled", role: "button", tabIndex: 0 },
     el("span", { className: "t", textContent: c.title || "Untitled" }),
     el("span", { className: "m", textContent: `${askPlural(c.turns, "turn")} · ${askWhen(c.updated_at)}` }));
   open.addEventListener("click", () => openChat(c.id));
+  open.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openChat(c.id); } });
   const del = el("button", { type: "button", className: "ask-del", title: "Delete this conversation", "aria-label": `Delete ${c.title || "this conversation"}` }, "×");
   del.addEventListener("click", async (e) => {
     e.stopPropagation();
@@ -553,21 +554,50 @@ async function openChat(id) {
   $("#ask-q").focus();
 }
 
-// One answered question: the passages it stands on (collapsible), the reasoning (if it was asked to think),
-// the answer itself, its sources and what it cost.
-function stepCard(question, citations, outcome) {
-  const box = el("div", { className: "ask-cites" });
-  for (const c of citations) {
-    const b = el("button", { type: "button", className: "chip", textContent: `${c.n} · ${c.title}`,
-      title: [c.heading_path, c.page ? `page ${c.page}` : "", c.collection].filter(Boolean).join(" · ") });
-    b.addEventListener("click", () => openPassage(c.chunk_id));
-    box.append(b);
+// --- the search step: always shown, so the answer is never a black box -------------------------------------
+const whereOf = (c) => [c.heading_path, c.page ? `page ${c.page}` : "", c.collection].filter(Boolean).join(" · ");
+const scoresOf = (c) => [c.cosine != null ? `cosine ${c.cosine}` : "", c.rerank != null ? `reranker ${c.rerank}` : ""]
+  .filter(Boolean).join(" · ");
+
+function passageRow(c, confirmed, n) {
+  const row = el("details", { className: "ask-passage" });
+  row.append(el("summary", {},
+    el("span", { className: "n", textContent: n ? `[${n}]` : "–" }),
+    el("span", { className: "t", textContent: c.title }),
+    el("span", { className: `badge ${confirmed ? "ok" : "warn"}`, textContent: confirmed ? "confirmed" : "closest match" }),
+    el("span", { className: "muted small", textContent: [whereOf(c), scoresOf(c)].filter(Boolean).join(" · ") })));
+  row.append(el("p", { className: "ask-preview", textContent: c.preview || "—" }));
+  const open = el("button", { type: "button", className: "link small", textContent: "Open passage" });
+  open.addEventListener("click", () => openPassage(c.chunk_id));
+  row.append(open);
+  return row;
+}
+
+function stepCard(s) {
+  const q = s.question || "";
+  const cites = s.citations || [];
+  const near = s.near || [];
+  const confirmed = cites.filter((c) => c.confirmed !== false).length;
+  const count = s.unconfirmed
+    ? `${cites.length} closest ${cites.length === 1 ? "match" : "matches"} used, unconfirmed`
+    : confirmed ? `${askPlural(confirmed, "passage")} confirmed` : "no confirmed evidence";
+  const box = el("div", { className: "ask-step-body" });
+  box.append(el("p", { className: "muted small", textContent: s.message || "" }));
+  if (s.gate && (!confirmed || near.length)) {
+    box.append(el("p", { className: "muted small", textContent:
+      `Evidence check: ${(s.gate.mode || "").replaceAll("_", " ")}, cosine ≥ ${s.gate.dense_min} and reranker ≥ ${s.gate.rerank_min}.` }));
   }
-  const d = el("details", { className: "ask-step" },
-    el("summary", {}, el("span", { className: "dot " + (outcome || "") }),
-      `Searched “${question.length > 70 ? question.slice(0, 70) + "…" : question}” · ${askPlural(citations.length, "passage")}`),
+  cites.forEach((c, i) => box.append(passageRow(c, c.confirmed !== false, i + 1)));
+  if (near.length) {
+    box.append(el("p", { className: "muted small", textContent: confirmed ? "Also found, not confirmed:" : "Closest matches, not confirmed:" }));
+    near.forEach((c) => box.append(passageRow(c, false, null)));
+  }
+  const step = el("details", { className: "ask-step" },
+    el("summary", {}, el("span", { className: "dot " + (s.outcome || "") }),
+      `Searched “${q.length > 60 ? q.slice(0, 60) + "…" : q}” · ${count}${near.length ? ` · ${near.length} closest ${near.length === 1 ? "match" : "matches"}` : ""}`),
     box);
-  return d;
+  step.open = !confirmed;  // nothing confirmed: open so the closest matches and the gate are in plain sight
+  return step;
 }
 
 function thinkingCard(text) {
@@ -580,18 +610,19 @@ function sourcesRow(citations) {
   if (!citations.length) return "";
   const row = el("div", { className: "ask-sources" }, el("span", { className: "rel-label", textContent: "Sources" }));
   for (const c of citations) {
-    const b = el("button", { type: "button", className: "chip", textContent: `${c.n} · ${c.title}`,
-      title: c.heading_path || c.collection || "" });
+    const b = el("button", { type: "button", className: `chip${c.confirmed === false ? " unconfirmed" : ""}`,
+      textContent: `${c.n} · ${c.title}`, title: [whereOf(c), c.confirmed === false ? "closest match, not confirmed" : ""].filter(Boolean).join(" · ") });
     b.addEventListener("click", () => openPassage(c.chunk_id));
     row.append(b);
   }
   return row;
 }
 
-function metaRow({ outcome, model, seconds, question, label }) {
+function metaRow({ outcome, model, seconds, question, label, unconfirmed }) {
   const meta = el("div", { className: "ask-meta" },
     el("span", { className: "dot " + (label ? "" : outcome || "") }),
     el("span", { textContent: label || (outcome || "").replaceAll("_", " ") }),
+    unconfirmed ? el("span", { className: "badge warn", textContent: "unconfirmed evidence" }) : "",
     model ? ` · ${model}` : "", seconds ? ` · ${seconds} s` : "");
   const copy = el("button", { type: "button", className: "link small", textContent: "Copy" });
   const retry = el("button", { type: "button", className: "link small", textContent: "Retry" });
@@ -601,7 +632,7 @@ function metaRow({ outcome, model, seconds, question, label }) {
 
 function answerNode(m) {
   const box = el("div", { className: "ask-msg assistant" });
-  const step = m.citations?.length ? stepCard(m.question || "", m.citations, m.outcome) : null;
+  const step = m.search ? stepCard(m.search) : m.citations?.length ? stepCard({ question: m.question || "", citations: m.citations, outcome: m.outcome }) : null;
   if (step) box.append(step);
   const think = m.thinking ? thinkingCard(m.thinking) : null;
   if (think) box.append(think);
@@ -609,8 +640,9 @@ function answerNode(m) {
   if (m.text) body.append(...prose(m.text, "text/markdown"));
   else body.append(el("p", { className: "muted", textContent: "No answer from your documents." }));
   box.append(body);
+  const unconfirmed = (m.citations || []).some((c) => c.confirmed === false) || m.search?.unconfirmed;
   if (m.citations?.length) box.append(sourcesRow(m.citations));
-  const meta = metaRow({ ...m, question: m.question, label: m.text ? "" : "not answered" });
+  const meta = metaRow({ ...m, question: m.question, label: m.text ? "" : "not answered", unconfirmed });
   meta.querySelectorAll("button").forEach((b) => {
     if (b.textContent === "Copy") b.addEventListener("click", () => {
       navigator.clipboard?.writeText(m.text || "").then(() => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1500); });
@@ -621,10 +653,19 @@ function answerNode(m) {
   return box;
 }
 
-function askBody(question) {
+// Nothing passed the evidence check: offer the closest matches, clearly labelled, instead of a dead end.
+function offerClosest(box, question, search) {
+  const b = el("button", { type: "button", className: "button", textContent: "Answer from the closest matches (unconfirmed)" });
+  b.addEventListener("click", () => askSend(question, { allowUnsupported: true, box }));
+  box.append(el("p", { className: "muted small", textContent:
+    "The search found nothing that passed the evidence check. You can still ask the model what the closest matches say — the answer will be marked unconfirmed." }));
+  box.append(b);
+}
+
+function askBody(question, allowUnsupported) {
   const scope = $("#ask-scope").value;
   return { question, conversation_id: askConv, model: $("#ask-model").value, think: $("#ask-think").checked,
-    collection_ids: scope ? [+scope] : null };
+    allow_unsupported: !!allowUnsupported, collection_ids: scope ? [+scope] : null };
 }
 
 async function ensureConv() {
@@ -634,18 +675,19 @@ async function ensureConv() {
   return askConv;
 }
 
-async function askSend(question) {
+async function askSend(question, opts = {}) {
   if (askBusy) return;
   askBusy = true;
   $("#ask-send").disabled = true;
   $("#ask-stop").hidden = false;
   const log = $("#ask-log");
   log.querySelector(".ask-msg.muted")?.remove();  // the greeting goes when the first question does
-  log.append(el("div", { className: "ask-msg user" }, el("p", { textContent: question })));
-  const box = el("div", { className: "ask-msg assistant" });
+  if (!opts.box) log.append(el("div", { className: "ask-msg user" }, el("p", { textContent: question })));
+  const box = opts.box || el("div", { className: "ask-msg assistant" });
+  box.replaceChildren();
   const status = el("p", { className: "muted" }, el("span", { className: "spinner", ariaHidden: "true" }), " searching the documents…");
   box.append(status);
-  log.append(box);
+  if (!opts.box) log.append(box);
   log.scrollTop = log.scrollHeight;
   try {
     await ensureConv();
@@ -653,21 +695,20 @@ async function askSend(question) {
     const ctrl = new AbortController();
     askAbort = ctrl;
     const r = await fetch("/api/ask/stream", { method: "POST", signal: ctrl.signal,
-      headers: { "content-type": "application/json", "x-ks-csrf": "1" }, body: JSON.stringify(askBody(question)) });
+      headers: { "content-type": "application/json", "x-ks-csrf": "1" },
+      body: JSON.stringify(askBody(question, opts.allowUnsupported)) });
     if (!r.ok || !r.body) {
       const e = await r.json().catch(() => ({}));
       throw new Error(e.detail || `HTTP ${r.status}`);
     }
-    let step = null, think = null, body = null, text = "", final = null, citations = [], outcome = "";
+    let think = null, body = null, text = "", search = null, final = null;
     const reader = r.body.getReader(), dec = new TextDecoder();
     let buf = "";
     const handle = (event) => {
       if (event.type === "search") {
-        citations = event.citations || [];
-        outcome = event.outcome || "";
+        search = event;
         status.remove();
-        step = stepCard(event.question || question, citations, outcome);
-        box.append(step);
+        box.append(stepCard(event));
         body = el("div", { className: "ask-answer" });
         box.append(body);
       } else if (event.type === "thinking") {
@@ -700,10 +741,11 @@ async function askSend(question) {
         }
       }
     }
-    // finished: re-render the answer as Markdown, with its sources and what it cost
-    const node = answerNode({ text, citations, thinking: think ? think.querySelector("pre").textContent : "",
-      outcome, question, model: final?.model || "", seconds: final?.seconds || 0 });
+    const thinking = think ? think.querySelector("pre").textContent : "";
+    const node = answerNode({ text, citations: search?.citations || [], thinking, outcome: search?.outcome || "",
+      question, model: final?.model || "", seconds: final?.seconds || 0, search });
     box.replaceWith(node);
+    if (!text && search?.near?.length) offerClosest(node, question, search);
     log.scrollTop = log.scrollHeight;
     const conv = await api(`/api/ask/conversations/${askConv}`).catch(() => null);
     if (conv) setAskTitle(conv.title);
@@ -712,7 +754,8 @@ async function askSend(question) {
     if (err.name === "AbortError") {
       box.append(el("p", { className: "muted small", textContent: "Stopped." }));
     } else {
-      box.replaceChildren(el("p", { className: "ask-error", textContent: err.message }));
+      status.remove();
+      box.append(el("p", { className: "ask-error", textContent: err.message }));
     }
   } finally {
     askAbort = null;
