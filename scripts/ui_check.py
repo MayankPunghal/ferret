@@ -34,12 +34,19 @@ with sync_playwright() as p:
         """Click a sidebar item, or one in the account menu (Settings, About, Sign out), opening the menu first."""
         if not pg.locator(selector).is_visible():
             pg.click("#account-button")
+        box = pg.locator(selector).bounding_box()
+        width = pg.viewport_size["width"]  # a phone folds the sidebar away: open it before clicking a tab in it
+        if box and pg.locator("#menu-button").is_visible() and (box["x"] < 0 or box["x"] > width - 8):
+            pg.click("#menu-button")
+            pg.wait_for_timeout(250)
         pg.click(selector)
 
     def shot(name):
         pg.screenshot(path=f"{OUT}/{name}.png", full_page=True)
 
     def run(q, name):
+        menu(".tab[data-tab=search]")  # the search box lives on the Search tab only
+        pg.wait_for_selector("#q", state="visible")
         pg.fill("#q", q)
         pg.click("#search-form button")
         pg.wait_for_selector("#outcome strong")
@@ -352,8 +359,9 @@ with sync_playwright() as p:
     assert pg.locator("#ask-log .ask-msg").count() >= 1, "Ask greets the user"
     pg.wait_for_selector("#tab-ask:not([hidden]) #ask-convs li")
     assert pg.locator("#ask-convs li").count() >= 1, "the conversation list renders"
-    assert pg.is_visible("#ask-note"), "Ask explains that no local model is downloaded"
-    print("ask: note =", pg.inner_text("#ask-note")[:90])
+    # a note explains a missing model; with one installed it is hidden and the chip names the model instead
+    print("ask: note =", pg.inner_text("#ask-note")[:90] if pg.is_visible("#ask-note")
+          else f"(none needed) {pg.inner_text('#ask-model-chip')}")
     sign_in("alice", "demo-password-alice")
     run("per diem for domestic travel", "07-conflict")
     run("who won the company football tournament", "08-no-evidence")
