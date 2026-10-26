@@ -7,6 +7,18 @@ const el = (tag, props = {}, ...kids) => {
   for (const k of kids) n.append(k);
   return n;
 };
+// An icon from index.html's <svg><symbol id="i-…"> sprite. It has to be built in the SVG namespace:
+// document.createElement("svg") yields an HTMLUnknownElement, which renders nothing at all.
+const svgIcon = (name, className = "i") => {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("class", className);
+  const use = document.createElementNS(ns, "use");
+  use.setAttribute("href", `#i-${name}`);
+  svg.append(use);
+  return svg;
+};
+
 // ⓘ with a longer explanation (hover, keyboard focus or tap); see .info in app.css
 const info = (text) => { const b = el("button", { type: "button", className: "info", textContent: "i" });
   b.dataset.tip = text; b.setAttribute("aria-label", "More: " + text); return b; };
@@ -692,7 +704,7 @@ function stageDone(row, label) {
 
 function askWho() {
   return el("div", { className: "ask-who" },
-    el("span", { className: "av" }, el("svg", { className: "i" }, el("use", { href: "#i-spark" }))),
+    el("span", { className: "av" }, svgIcon("spark")),
     el("span", { textContent: "Ferret" }));
 }
 
