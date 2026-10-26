@@ -479,6 +479,7 @@ $("#search-form").addEventListener("submit", async (e) => {
 // the user can still ask the model to answer from the closest matches, and that answer is labelled unconfirmed.
 let askModels = null, askConv = null;
 const askRunning = new Map();  // conversation id -> AbortController: a chat keeps answering while you look elsewhere
+const askLive = new Map();  // conversation id -> the answer bubble being written, so leaving does not lose it
 const askPlural = (n, one) => `${n.toLocaleString()} ${one}${n === 1 ? "" : "s"}`;
 
 const askWhen = (iso) => {
@@ -586,6 +587,8 @@ async function openChat(id) {
   const log = $("#ask-log");
   log.replaceChildren();
   if (!d.messages.length) log.append(greeting());
+  const writing = askLive.get(id);  // still answering: the saved turns do not contain that answer yet
+  if (writing) log.append(writing);
   let question = "", seen = "";
   for (const m of d.messages) {
     if (m.role === "user") {
@@ -787,6 +790,7 @@ async function askSend(question, opts = {}) {
   let convId = null;
   try {
     convId = await ensureConv();
+    askLive.set(convId, box);  // reopening this conversation shows the answer being written
     if (askRunning.has(convId)) { if (!opts.box) box.remove(); return; }
     const ctrl = new AbortController();
     askRunning.set(convId, ctrl);
@@ -893,7 +897,7 @@ async function askSend(question, opts = {}) {
       box.append(el("p", { className: "ask-error", textContent: err.message }));
     }
   } finally {
-    if (convId) askRunning.delete(convId);
+    if (convId) { askRunning.delete(convId); askLive.delete(convId); }
     updateAskSend();
     loadConvs($("#ask-find").value);
     if (askConv === convId) $("#ask-q").focus();
