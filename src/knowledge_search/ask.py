@@ -416,6 +416,19 @@ missing piece: the words a policy, runbook or handbook would use, not question w
 {{"enough": true or false, "queries": ["query", "query"], "missing": "what is missing"}}"""
 
 
+NOISE_QUERIES = {"what is missing", "missing", "queries", "query", "json", "enough", "answer", "none"}
+
+
+def _clean_query(raw: str, asked: str) -> str | None:
+    """A usable search query out of one line the model wrote, or None if it is punctuation or prompt noise."""
+    query = " ".join(raw.split()).strip(' -–—•*"“”.,:;?!')
+    if len(query) < 3 or len(query.split()) > 12:
+        return None
+    if query.lower() in NOISE_QUERIES or query.lower() == asked.lower():
+        return None
+    return query
+
+
 def _passage_list(results, limit: int = 8) -> str:
     lines = []
     for n, r in enumerate(results[:limit], start=1):
@@ -495,13 +508,13 @@ def _search_queries(rt, body: AskBody, history: list[Turn]) -> list[str]:
                 pieces.append(piece)
     except enrich.LLMError:
         return [asked]
+    asked = _clean_query(asked, "") or asked
     out = [asked]
     for line in "".join(pieces).splitlines():
-        query = " ".join(line.split()).strip(' -–—•*"“”.,:')
-        if not query or len(query.split()) > 14 or len(query) < 3:
+        query = _clean_query(line, asked)
+        if not query or query.lower() in {q.lower() for q in out}:
             continue
-        if query.lower() not in {q.lower() for q in out}:
-            out.append(query)
+        out.append(query)
         if len(out) >= MAX_QUERIES:
             break
     return out[:MAX_QUERIES]
@@ -649,7 +662,7 @@ def _prepare(conn, p, body: AskBody, emit=None) -> Plan:
             emit({"type": "round", **rounds[-1]})
         if verdict.get("enough") and any(r.supported for r in by_id.values()):
             break
-        more = [str(q).strip()[:120] for q in (verdict.get("queries") or []) if str(q).strip()][:2]
+        more = [c for c in (_clean_query(str(q)[:120], asked) for q in (verdict.get("queries") or [])) if c][:2]
         if not more:
             break
         before = set(by_id)

@@ -679,8 +679,7 @@ function sourcesRow(citations) {
   return row;
 }
 
-function metaRow({ outcome, model, seconds, question, label, unconfirmed }) {
-  const took = m.took || {};
+function metaRow({ outcome, model, seconds, question, label, unconfirmed, took = {} }) {
   const split = [took.plan ? `${took.plan} s planning` : "", took.search ? `${took.search} s searching` : "",
     took.decide ? `${took.decide} s deciding` : ""].filter(Boolean).join(" · ");
   const meta = el("div", { className: "ask-meta" },
