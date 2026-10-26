@@ -349,10 +349,15 @@ def delete(cid: uuid.UUID, p: User, conn: Conn) -> dict:
 NEAR = 3  # closest matches shown when nothing passed the evidence check
 ANAPHORA = re.compile(r"\b(he|him|his|she|her|hers|they|them|their|it|its|this|that|those|these|there|same|also|"
                       r"we|us|our|ours|you|your|yours|each|every|both|former|latter)\b", re.IGNORECASE)
-REWRITE = """Write up to 3 short search queries that together find the answer in the user's own documents: one in
-the words the user used, one as keywords only (the distinctive names, codes and the thing asked about), and one
-in the words a policy, runbook or handbook would use. Use the conversation to know what the question refers to.
-Keep names, codes and numbers exactly. One per line, no numbering, at most 12 words each.
+REWRITE = """Write 3 short search queries that together would find the answer in the user's own documents.
+Use the shape documents actually use, not the shape of the question: subject + thing + action, no question words,
+no "policy about", no punctuation. Examples of the shape (not of the subject):
+  laptop request approval manager
+  asset return exit clearance form
+  bereavement leave days immediate family
+  induction checklist first week equipment
+Use the conversation to know what the question refers to. Keep names, codes and numbers exactly.
+One per line, no numbering, at most 10 words each.
 {history}
 Question: {question}
 """
@@ -489,23 +494,23 @@ def _prepare(conn, p, body: AskBody) -> Plan:
                 by_id[r.chunk_id] = r
 
     add(first)
-    if not any(r.supported for r in first.results):
-        # the question in the user's words found no evidence: the model writes the variants that might, from
-        # the conversation ("what is the policy about issuing laptop?" -> the acceptable-use policy's wording)
-        for query in [q for q in _search_queries(rt, body, history) if q.lower() != asked.lower()][:MAX_QUERIES - 1]:
-            res = search(conn, p, query, rt, body.collection_ids, 10)
-            queries.append(query)
-            add(res)
-            if any(r.supported for r in res.results):
-                found = res
-        if not any(r.supported for r in by_id.values()):  # still nothing: a keyword-only pass
-            try:
-                lex = search(conn, p, asked, rt, body.collection_ids, 10, branches=("lexical",))
-            except Exception:  # noqa: BLE001 - the hybrid results stand on their own
-                lex = None
-            for r in (lex.results if lex else []):
-                if r.supported:
-                    by_id.setdefault(r.chunk_id, r)
+    # the model's variants are always searched, alongside the user's own words: their wording can pass the
+    # evidence check against the wrong section (a laptop question "confirmed" by acceptable-use text), and a
+    # keyword-shaped query is what reaches the section that answers it (owner's finding, 2026-10-26)
+    for query in [q for q in _search_queries(rt, body, history) if q.lower() != asked.lower()][:MAX_QUERIES - 1]:
+        res = search(conn, p, query, rt, body.collection_ids, 10)
+        queries.append(query)
+        add(res)
+        if not any(r.supported for r in first.results) and any(r.supported for r in res.results):
+            found = res
+    if not any(r.supported for r in by_id.values()):  # nothing confirmed anywhere: a keyword-only pass
+        try:
+            lex = search(conn, p, asked, rt, body.collection_ids, 10, branches=("lexical",))
+        except Exception:  # noqa: BLE001 - the hybrid results stand on their own
+            lex = None
+        for r in (lex.results if lex else []):
+            if r.supported:
+                by_id.setdefault(r.chunk_id, r)
     ordered = sorted(by_id.values(), key=lambda r: -score.get(r.chunk_id, 0.0))
     # one passage per section: six chunks of "Privilege Leave" crowd out the handbook's bereavement page
     seen_sections, merged = set(), []

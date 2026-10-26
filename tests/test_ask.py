@@ -28,7 +28,7 @@ class FakeEnricher:
 def fake_model(*chunks, thinking="", seen=None, plan="a keyword variant of the question"):
     """What the model server streams: the planned queries for the planner prompt, else the answer."""
     def gen(url, model, prompt, think, max_tokens=900):
-        if prompt.startswith("Write up to 3 short search queries"):
+        if prompt.startswith("Write 3 short search queries"):
             if seen is not None:
                 seen.setdefault("plans", []).append(prompt)
             yield "text", plan
@@ -186,7 +186,7 @@ def _rewriting_model(rewritten: str, answer: str, seen: list):
     """The model is called twice when the first search is empty: to write the queries, then to answer."""
     def gen(url, model, prompt, think, max_tokens=900):
         seen.append(prompt)
-        if prompt.startswith("Write up to 3 short search queries"):
+        if prompt.startswith("Write 3 short search queries"):
             yield "text", rewritten
         else:
             yield "text", answer
@@ -209,7 +209,7 @@ def test_a_follow_up_searches_with_a_rewritten_query(client, corpus, monkeypatch
     search = events[0]
     assert "who reports to Kabir Singh" in search["queries"]
     assert search["question"] == "zebra quantum lasagna policy"
-    assert any(p.startswith("Write up to 3 short search queries") for p in seen)
+    assert any(p.startswith("Write 3 short search queries") for p in seen)
     assert "Who is Kabir Singh?" in "".join(seen)
 
 
