@@ -166,7 +166,9 @@ def main() -> None:
             return
         port_file.write_text(str(port))
         icon.title = "Ferret (indexing paused)" if paused() else f"Ferret: {url(port)}"
-        if not background:
+        # after an update the open tab reloads itself; but when the port changed (the old one was still in use) that
+        # tab points at the wrong address, so a window at the new one is the only way back
+        if not background or (known and known != port):
             open_window(url(port))
         while not settings.offline and thread.is_alive():
             check()

@@ -2049,7 +2049,7 @@ boot();
 // A different version in /healthz means the app was updated while this page was open: reload so the new UI shows
 // (an update installed from the tray, or a restart, used to leave the old page in place until it was reopened).
 (function watchConnection() {
-  let down = false;
+  let down = false, since = 0;
   const check = async () => {
     let ok = false, version = "";
     try {
@@ -2058,6 +2058,12 @@ boot();
       if (ok) version = (await r.json().catch(() => ({}))).version || "";
     } catch { /* unreachable */ }
     if (ok && version && me && me.version && version !== me.version) { location.reload(); return; }
+    if (!ok) { if (!since) since = Date.now(); }
+    else if (since) {  // the app was restarted (an update, a crash, a manual start): reload onto a clean page
+      const outage = Date.now() - since;
+      since = 0;
+      if (outage > 6000) { location.reload(); return; }
+    }
     if (ok === !down) return;
     down = !ok;
     const dot = $("#conn");

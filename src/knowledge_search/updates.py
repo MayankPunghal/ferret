@@ -68,17 +68,22 @@ function Running {
   try { return (Invoke-WebRequest "http://127.0.0.1:$p/healthz" -TimeoutSec 2 -UseBasicParsing).StatusCode -eq 200 }
   catch { return $false }
 }
-try { Wait-Process -Id $WaitPid -Timeout 120 -ErrorAction SilentlyContinue } catch { }
+$log = Join-Path $Data 'logs\update-restart.log'
+New-Item -ItemType Directory -Force -Path (Split-Path $log) | Out-Null
+function Say($m) { "$(Get-Date -Format o) $m" | Out-File -FilePath $log -Append -Encoding utf8 }
+Say "waiting for Ferret (pid $WaitPid) and the installer (pid $InstallerPid)"
+try { Wait-Process -Id $WaitPid -Timeout 180 -ErrorAction SilentlyContinue } catch { }
 try { Wait-Process -Id $InstallerPid -Timeout 1800 -ErrorAction SilentlyContinue } catch { }
-Start-Sleep -Seconds 2
-if (Running) { exit 0 }
-$stop = Join-Path $App 'stop.ps1'
-if (Test-Path $stop) { & $stop -App $App | Out-Null }
-Start-Sleep -Seconds 1
+Say "both exited; giving the installer's own restart a minute to answer"
+# the installer's [Run] entry starts Ferret through Explorer; it may take a few seconds. Never stop what it
+# started: stopping here killed a healthy new instance once (owner's report, 2026-10-26).
+$deadline = (Get-Date).AddSeconds(60)
+while ((Get-Date) -lt $deadline) { if (Running) { Say 'started by the installer: nothing to do'; exit 0 }; Start-Sleep -Seconds 3 }
+Say 'nothing answers: starting Ferret'
 Start-Process -FilePath $Pythonw -ArgumentList '-m', 'knowledge_search.tray', '--background' -WorkingDirectory $App -WindowStyle Hidden
 $deadline = (Get-Date).AddSeconds(150)
-while ((Get-Date) -lt $deadline) { if (Running) { exit 0 }; Start-Sleep -Seconds 3 }
-# it did not come up: one more try, then leave the logs to say why
+while ((Get-Date) -lt $deadline) { if (Running) { Say 'started by the helper'; exit 0 }; Start-Sleep -Seconds 3 }
+Say 'still nothing answers: starting Ferret once more'
 Start-Process -FilePath $Pythonw -ArgumentList '-m', 'knowledge_search.tray', '--background' -WorkingDirectory $App -WindowStyle Hidden
 """
 
