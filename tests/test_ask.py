@@ -417,3 +417,29 @@ def test_a_name_that_matches_nothing_leaves_the_ranking_alone():
 
     rows = [result("A"), result("B")]
     assert _prefer_names("Who is Nekoval Traskavic?", rows) == rows
+
+
+def test_an_answer_is_written_while_it_streams_and_finished_once(client, corpus, monkeypatch):
+    """A reload in the middle of an answer used to lose it: now the row is written as the text arrives and is
+    finished (streaming = false) when the model stops."""
+    def gen(url, model, prompt, think, max_tokens=900):
+        if prompt.startswith("Write 3 short search queries"):
+            yield "text", "error code"
+            return
+        if prompt.startswith("You are looking for the answer"):
+            yield "text", '{"enough": true, "queries": []}'
+            return
+        for piece in ["Page the ", "on-call engineer ", "[1]."]:
+            yield "text", piece
+
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    monkeypatch.setattr(ask, "_stream_model", gen)
+    h = token(client, "alice")
+    cid = client.post("/api/ask/conversations", headers=h).json()["id"]
+    client.post("/api/ask", headers=h, json={"question": "ERR-PAY-4012", "conversation_id": cid})
+    messages = client.get(f"/api/ask/conversations/{cid}", headers=h).json()["messages"]
+    answers = [m for m in messages if m["role"] == "assistant"]
+    assert len(answers) == 1, answers  # written as it streamed, finished in place: never two rows
+    assert answers[0]["text"] == "Page the on-call engineer [1]."
+    assert answers[0]["streaming"] is False
+    assert answers[0]["citations"]

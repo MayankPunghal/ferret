@@ -748,6 +748,10 @@ function answerNode(m) {
     if (b.textContent === "Retry" && m.question) b.addEventListener("click", () => askSend(m.question, { box, newTurn: false }));
   });
   box.append(meta);
+  if (m.streaming) {  // the process ended mid-answer: keep what it wrote and say so
+    box.append(el("p", { className: "ask-error", textContent:
+      "This answer was interrupted — the app closed or the page reloaded while it was being written. What it had written is kept above; ask again to finish it." }));
+  }
   return box;
 }
 

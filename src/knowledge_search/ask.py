@@ -273,18 +273,30 @@ def _turns(conn, cid: uuid.UUID) -> list[Turn]:
     return [Turn(role=r["role"], text=r["text"] or "") for r in reversed(rows)]
 
 
+def _update_message(conn, mid: int, text: str, *, thinking=None, citations=None, outcome=None, model=None,
+                    seconds=None, search=None, streaming: bool = False) -> None:
+    """Rewrite an answer that is being written (or finish it), so a reload shows what was there."""
+    conn.execute("UPDATE ask_messages SET text = %s, thinking = coalesce(%s, thinking), "
+                 "citations = coalesce(%s, citations), outcome = coalesce(%s, outcome), "
+                 "model = coalesce(%s, model), seconds = coalesce(%s, seconds), "
+                 "search = coalesce(%s, search), streaming = %s WHERE id = %s",
+                 (text, thinking or None, json.dumps(citations) if citations is not None else None, outcome,
+                  model, seconds, json.dumps(search) if search is not None else None, streaming, mid))
+    conn.commit()
+
+
 def _save_message(conn, cid: uuid.UUID, role: str, text: str, *, citations=None, thinking=None, outcome=None,
-                  model=None, seconds=None, search=None) -> int:
+                  model=None, seconds=None, search=None, streaming: bool = False) -> int:
     if role == "user":  # the same question twice in a row is one turn (a double submit, or an aborted send)
         last = conn.execute("SELECT id, role, text FROM ask_messages WHERE conversation_id = %s "
                             "ORDER BY id DESC LIMIT 1", (cid,)).fetchone()
         if last and last["role"] == "user" and (last["text"] or "").strip() == text.strip():
             return last["id"]
     row = conn.execute(
-        "INSERT INTO ask_messages (conversation_id, role, text, citations, thinking, outcome, model, seconds, search) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+        "INSERT INTO ask_messages (conversation_id, role, text, citations, thinking, outcome, model, seconds, "
+        "search, streaming) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
         (cid, role, text, json.dumps(citations) if citations is not None else None, thinking or None, outcome,
-         model, seconds, json.dumps(search) if search is not None else None)).fetchone()
+         model, seconds, json.dumps(search) if search is not None else None, streaming)).fetchone()
     if role == "user":  # the first question names the conversation, until it is renamed
         conn.execute("UPDATE ask_conversations SET title = CASE WHEN title = '' THEN %s ELSE title END, "
                      "updated_at = now() WHERE id = %s", (text[:80], cid))
@@ -318,13 +330,14 @@ def new_conversation(p: User, conn: Conn) -> dict:
 @router.get("/ask/conversations/{cid}")
 def conversation(cid: uuid.UUID, p: User, conn: Conn) -> dict:
     row = _owned(conn, p.user_id, cid)
-    rows = conn.execute("SELECT id, role, text, citations, thinking, outcome, model, seconds, search, created_at "
-                        "FROM ask_messages WHERE conversation_id = %s ORDER BY id", (cid,)).fetchall()
+    rows = conn.execute("SELECT id, role, text, citations, thinking, outcome, model, seconds, search, streaming, "
+                        "created_at FROM ask_messages WHERE conversation_id = %s ORDER BY id", (cid,)).fetchall()
     return {"id": str(row["id"]), "title": row["title"],
             "messages": [{"id": r["id"], "role": r["role"], "text": r["text"] or "",
                           "citations": r["citations"] or [], "thinking": r["thinking"] or "",
                           "outcome": r["outcome"], "model": r["model"], "seconds": r["seconds"],
-                          "search": r["search"], "created_at": r["created_at"].isoformat()} for r in rows]}
+                          "search": r["search"], "streaming": r["streaming"],
+                        "created_at": r["created_at"].isoformat()} for r in rows]}
 
 
 @router.get("/ask/conversations/{cid}/export")
@@ -814,13 +827,31 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
             url, model = _models.serving(body.model, plan.rt.llm_device)
             out.model = Path(model).stem if model else ""
             prompt = build_prompt(question, plan.used, plan.history, plan.unconfirmed)
+            partial = 0  # the row being written, once there is something to show
+            wrote_at = 0.0
             for kind, piece in out.pieces(_stream_model(url, model, prompt, body.think)):
                 yield _sse({"type": kind, "text": piece})
-            if body.conversation_id and (out.text or out.thinking):  # saved before "done", so a reload shows it
+                # every couple of seconds, put what exists so far in the database: a reload, a closed window or
+                # the app restarting then loses nothing but the seconds since the last write
+                if body.conversation_id and (out.text or out.thinking) and time.monotonic() - wrote_at >= 2.0:
+                    wrote_at = time.monotonic()
+                    with db.pool().connection() as c:
+                        if partial:
+                            _update_message(c, partial, out.text, thinking=out.thinking, streaming=True)
+                        else:
+                            partial = _save_message(c, body.conversation_id, "assistant", out.text,
+                                                    thinking=out.thinking, outcome=plan.found.outcome,
+                                                    model=out.model, search=_step(plan), streaming=True)
+            if body.conversation_id and (out.text or out.thinking):  # finished: it is no longer streaming
                 with db.pool().connection() as c:
-                    _save_message(c, body.conversation_id, "assistant", out.text, citations=plan.cites,
-                                  thinking=out.thinking, outcome=plan.found.outcome, model=out.model,
-                                  seconds=out.seconds, search=_step(plan))
+                    if partial:
+                        _update_message(c, partial, out.text, thinking=out.thinking, citations=plan.cites,
+                                        outcome=plan.found.outcome, model=out.model, seconds=out.seconds,
+                                        search=_step(plan))
+                    else:
+                        _save_message(c, body.conversation_id, "assistant", out.text, citations=plan.cites,
+                                      thinking=out.thinking, outcome=plan.found.outcome, model=out.model,
+                                      seconds=out.seconds, search=_step(plan))
                 saved = True
             yield _sse({"type": "done", "answered": not out.abstained and bool(out.text), "model": out.model,
                         "seconds": out.seconds, "abstained": out.abstained,
@@ -839,9 +870,13 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
             elif body.conversation_id and not saved and (out.text or out.thinking):
                 try:
                     with db.pool().connection() as c:
-                        _save_message(c, body.conversation_id, "assistant", out.text, citations=plan.cites,
-                                      thinking=out.thinking, outcome=plan.found.outcome, model=out.model,
-                                      seconds=out.seconds, search=_step(plan))
+                        if partial:  # stopped mid-answer: its text stays, marked as interrupted
+                            _update_message(c, partial, out.text, thinking=out.thinking, outcome=plan.found.outcome,
+                                            model=out.model)
+                        else:
+                            _save_message(c, body.conversation_id, "assistant", out.text, citations=plan.cites,
+                                          thinking=out.thinking, outcome=plan.found.outcome, model=out.model,
+                                          seconds=out.seconds, search=_step(plan))
                 except Exception:  # noqa: BLE001 - a failed save must not break the stream
                     log.exception("Ask: could not save the answer")
 
