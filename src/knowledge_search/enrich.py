@@ -575,6 +575,13 @@ LLMS = {  # name: (Hugging Face repo, file, note); the notes are what the blind 
                      "~0.5 GB, Apache-2.0; about 3x faster, more mistakes (3 wrong claims in 9 pages)"),
     "qwen3.5-4b": ("unsloth/Qwen3.5-4B-GGUF", "Qwen3.5-4B-Q4_K_M.gguf",
                    "~2.7 GB, Apache-2.0; the largest offered, for answers in Ask; not measured for summaries or answers yet"),
+    # checked 2026-10-26: both GGUF files exist; the notes say plainly that they are unmeasured here
+    "lfm2.5-1.2b": ("unsloth/LFM2.5-1.2B-Instruct-GGUF", "LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
+                    "~0.8 GB, LFM Open License; Liquid AI's 1.2B, about a quarter of E2B's size. Not measured on "
+                    "this machine yet: try one question before trusting it with summaries"),
+    "granite-4.0-1b": ("unsloth/granite-4.0-1b-GGUF", "granite-4.0-1b-Q4_K_M.gguf",
+                       "~0.7 GB, Apache-2.0; IBM Granite 4.0, 128k context, small enough to answer quickly on a "
+                       "laptop. Not measured here yet"),
 }
 DEFAULT_LLM = "gemma-4-e2b"  # blind review: no wrong claims in 9 pages; Qwen3.5-0.8B made 3 (eval/results/blind-review.json)
 
