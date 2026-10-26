@@ -731,6 +731,13 @@ Nothing from that branch was merged.
   model picker, "Think first", collection scope, Ask/Stop. Phone width stacks the list above the chat.
 - **MCP:** a new read-only `ask` tool (question, collections, think) calls the app's own `/api/ask`, so
   permissions and the gate apply; it returns the answer, its citations and the outcome.
+- **Owner round 4 (2026-10-26, chat context):** "the question appears twice and there is no contextual awareness".
+  (1) A follow-up now **always** rewrites its search query from the conversation (before, a question without a
+  known pronoun was searched verbatim: "how many of each do we get"); 12+ words that plainly stand alone skip it.
+  (2) When a follow-up's own search finds nothing, **the passages the last answer already cited are used again**
+  (re-read by chunk id, permissions checked), and the step says so. (3) An aborted or empty answer no longer
+  leaves the question alone in the conversation (that was the duplicate: user, user, answer), and an empty answer
+  is not stored. Tests: 17 in tests/test_ask.py, full suite 165 passed, 2 skipped. Version 1.1.3.
 - **Owner round 3 (2026-10-26: "change the reranker and the values to get the best result"):** applied to the
   owner's install through the admin API and re-measured there: **gate mode similarity, similarity 0.58 – 0.70,
   keyword coverage 0.20, reranker off**. Three real questions then returned the right page first (Leadership ›

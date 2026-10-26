@@ -271,6 +271,11 @@ def _turns(conn, cid: uuid.UUID) -> list[Turn]:
 
 def _save_message(conn, cid: uuid.UUID, role: str, text: str, *, citations=None, thinking=None, outcome=None,
                   model=None, seconds=None, search=None) -> int:
+    if role == "user":  # the same question twice in a row is one turn (a double submit, or an aborted send)
+        last = conn.execute("SELECT id, role, text FROM ask_messages WHERE conversation_id = %s "
+                            "ORDER BY id DESC LIMIT 1", (cid,)).fetchone()
+        if last and last["role"] == "user" and (last["text"] or "").strip() == text.strip():
+            return last["id"]
     row = conn.execute(
         "INSERT INTO ask_messages (conversation_id, role, text, citations, thinking, outcome, model, seconds, search) "
         "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
@@ -339,8 +344,8 @@ def delete(cid: uuid.UUID, p: User, conn: Conn) -> dict:
 
 
 NEAR = 3  # closest matches shown when nothing passed the evidence check
-ANAPHORA = re.compile(r"\b(he|him|his|she|her|hers|they|them|their|it|its|this|that|those|these|there|same|also)\b",
-                      re.IGNORECASE)
+ANAPHORA = re.compile(r"\b(he|him|his|she|her|hers|they|them|their|it|its|this|that|those|these|there|same|also|"
+                      r"we|us|our|ours|you|your|yours|each|every|both|former|latter)\b", re.IGNORECASE)
 REWRITE = """Rewrite the user's latest question as ONE standalone search query, using the conversation, so that a
 search engine finds the pages it is about. Keep names, codes and numbers exactly. Reply with the query only, at
 most 20 words, no quotes.
@@ -355,7 +360,9 @@ def _search_query(rt, body: AskBody, history: list[Turn]) -> str:
     they are (no extra model call)."""
     if not history:
         return body.question
-    if len(body.question.split()) > 6 and not ANAPHORA.search(body.question):
+    # a follow-up almost always leans on the conversation ("how many of each do we get"), so the query is
+    # rewritten unless it is plainly a new, self-contained question
+    if len(body.question.split()) > 12 and not ANAPHORA.search(body.question):
         return body.question
     try:
         url, model = _models.serving(body.model, rt.llm_device)
@@ -373,12 +380,43 @@ def _search_query(rt, body: AskBody, history: list[Turn]) -> str:
     return query[:300] or body.question
 
 
+class _Cited:
+    """A passage the conversation already cited, fetched again for a follow-up (permits checked)."""
+
+    def __init__(self, row, confirmed: bool) -> None:
+        self.chunk_id, self.document_id = row["chunk_id"], str(row["document_id"])
+        self.collection = row["collection"]
+        self.title, self.clearer_title, self.heading_path = row["doc_title"], None, row["heading_path"]
+        self.page, self.text = row["page"], row["text"] or ""
+        anchor = f"#{row['anchor']}" if row.get("anchor") else ""
+        self.source_url = f"/api/documents/{row['document_id']}/view" + (f"#page={self.page}" if self.page else anchor)
+        self.passage_url = f"/api/chunks/{self.chunk_id}"
+        self.signals = {"carried_over": True}
+        self.confirmed = confirmed
+
+
+def _carried(conn, p, cid: uuid.UUID) -> list:
+    """The passages the last answer in this conversation cited, still readable by this user."""
+    row = conn.execute("SELECT citations FROM ask_messages WHERE conversation_id = %s AND role = 'assistant' "
+                       "ORDER BY id DESC LIMIT 1", (cid,)).fetchone()
+    cites = (row or {}).get("citations") or []
+    ids = [c.get("chunk_id") for c in cites if c.get("chunk_id")]
+    if not ids:
+        return []
+    rows = conn.execute(
+        "SELECT c.id AS chunk_id, c.document_id, c.doc_title, c.heading_path, c.page, c.anchor, c.text, "
+        "col.name AS collection FROM chunks c JOIN collections col ON col.id = c.collection_id "
+        "WHERE c.id = ANY(%s) AND c.collection_id = ANY(%s)", (ids, sorted(p.readable))).fetchall()
+    flags = {c["chunk_id"]: c.get("confirmed", True) for c in cites if c.get("chunk_id")}
+    return [_Cited(r, flags.get(r["chunk_id"], True)) for r in rows]
+
+
 def _one_line(text: str) -> str:
     return " ".join((text or "").split())
 
 
 def _cite(n: int, r, confirmed: bool) -> dict:
-    return {"n": n, "chunk_id": r.chunk_id, "document_id": r.document_id, "collection": r.collection,
+    return {"n": n, "chunk_id": r.chunk_id, "document_id": str(r.document_id), "collection": r.collection,
             "title": r.clearer_title or r.title, "heading_path": r.heading_path, "page": r.page,
             "source_url": r.source_url, "passage_url": r.passage_url, "confirmed": confirmed,
             "preview": _one_line(r.text)[:240],
@@ -401,15 +439,22 @@ class Plan:
         self.rt, self.found, self.used, self.cites = rt, found, used, cites
         self.history, self.near, self.unconfirmed, self.gate = history, near, unconfirmed, gate
         self.query = query  # what the search ran with (the rewritten query for a follow-up)
+        self.note = ""  # why these passages (e.g. carried over from the previous answer)
+        self.question_id = None  # the turn this question added, dropped again if no answer is written
 
 
 def _prepare(conn, p, body: AskBody) -> Plan:
     """Search, then keep the passages that count as evidence (and, when asked, the closest matches)."""
     rt = runtime.load(conn)
+    question_id = None
     if body.conversation_id:
         _owned(conn, p.user_id, body.conversation_id)
         if body.new_turn:
-            _save_message(conn, body.conversation_id, "user", body.question.strip())
+            before = conn.execute("SELECT coalesce(max(id), 0) AS m FROM ask_messages WHERE conversation_id = %s",
+                                  (body.conversation_id,)).fetchone()["m"]
+            saved = _save_message(conn, body.conversation_id, "user", body.question.strip())
+            if saved > before:  # a new row, not the same question again
+                question_id = saved
             history = _turns(conn, body.conversation_id)[:-1]  # the question was just saved
         else:  # a Retry: the question is already the last turn
             history = _turns(conn, body.conversation_id)
@@ -421,21 +466,33 @@ def _prepare(conn, p, body: AskBody) -> Plan:
     conn.commit()
     confirmed = [r for r in found.results if r.supported]
     unsupported = [r for r in found.results if not r.supported]
+    carried: list = []
+    if not confirmed and body.conversation_id:  # "how many of each do we get": keep the passages already cited
+        carried = [r for r in _carried(conn, p, body.conversation_id)][:PASSAGES]
+        if carried:
+            confirmed, unsupported = carried, []
     used, unconfirmed = confirmed[:PASSAGES], False
     allow = body.allow_unsupported or getattr(rt, "ask_allow_unsupported", False)
     if not used and allow and unsupported:  # answer from the closest matches, marked unconfirmed
         used, unconfirmed = unsupported[:PASSAGES - 2], True
-    cites = [_cite(n, r, not unconfirmed) for n, r in enumerate(used, start=1)]
+    if carried:  # answering from what the conversation already cited, not from a new search
+        unconfirmed = not all(getattr(r, "confirmed", True) for r in used)
+    cites = [_cite(n, r, (not unconfirmed) and getattr(r, "confirmed", True)) for n, r in enumerate(used, start=1)]
     gate = {"mode": rt.gate_mode, "dense_min": rt.gate_dense_min, "rerank_min": rt.gate_rerank_min}
+    note = ("No new passage passed the evidence check this time: answering from the passages this conversation "
+            "already cited.") if carried else ""
     # the closest matches shown besides the ones used: when the answer already rests on them, list the rest
     near = unsupported[len(used):] if unconfirmed else unsupported
-    return Plan(rt, found, used, cites, history, [_brief(r) for r in near[:NEAR]], unconfirmed, gate, query)
+    plan = Plan(rt, found, used, cites, history, [_brief(r) for r in near[:NEAR]], unconfirmed, gate, query)
+    plan.note = note
+    plan.question_id = question_id
+    return plan
 
 
 def _step(plan: Plan) -> dict:
     """The search step stored with an answer (the window shows it when the conversation is reopened)."""
     return {"question": plan.found.query, "searched": plan.query, "outcome": plan.found.outcome,
-            "message": plan.found.message,
+            "message": plan.note or plan.found.message,
             "passages": len(plan.used), "citations": plan.cites, "near": plan.near, "gate": plan.gate,
             "unconfirmed": plan.unconfirmed}
 
@@ -466,7 +523,7 @@ def ask(body: AskBody, p: User, conn: Conn) -> dict:
         raise HTTPException(422, f"unknown local model {body.model}")
     plan = _prepare(conn, p, body)
     base = {"question": body.question, "searched": plan.query, "outcome": plan.found.outcome,
-            "message": plan.found.message, "citations": plan.cites,
+            "message": plan.note or plan.found.message, "citations": plan.cites,
             "near": plan.near, "gate": plan.gate, "unconfirmed": plan.unconfirmed,
             "conversation_id": str(body.conversation_id) if body.conversation_id else None}
     if not plan.used:  # no model call: there is nothing to answer from
@@ -502,7 +559,7 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
         try:
             yield _sse({"type": "search", "question": question, "searched": plan.query,
                         "outcome": plan.found.outcome,
-                        "message": plan.found.message, "citations": plan.cites, "passages": len(plan.used),
+                        "message": plan.note or plan.found.message, "citations": plan.cites, "passages": len(plan.used),
                         "near": plan.near, "gate": plan.gate, "unconfirmed": plan.unconfirmed})
             if not plan.used:  # no model call: there is nothing to answer from
                 yield _sse({"type": "done", "answered": False, "model": "", "seconds": 0, "abstained": True,
@@ -513,7 +570,7 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
             prompt = build_prompt(question, plan.used, plan.history, plan.unconfirmed)
             for kind, piece in out.pieces(_stream_model(url, model, prompt, body.think)):
                 yield _sse({"type": kind, "text": piece})
-            if body.conversation_id:  # saved before "done", so a reload shows the answer
+            if body.conversation_id and (out.text or out.thinking):  # saved before "done", so a reload shows it
                 with db.pool().connection() as c:
                     _save_message(c, body.conversation_id, "assistant", out.text, citations=plan.cites,
                                   thinking=out.thinking, outcome=plan.found.outcome, model=out.model,
@@ -525,8 +582,15 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
         except enrich.LLMError as exc:
             yield _sse({"type": "error", "message": f"the local language model failed: {exc}"})
         finally:
+            if plan.question_id and not out.text and not out.thinking:  # stopped before anything was written
+                try:
+                    with db.pool().connection() as c:
+                        c.execute("DELETE FROM ask_messages WHERE id = %s AND role = 'user'", (plan.question_id,))
+                        c.commit()
+                except Exception:  # noqa: BLE001 - the message staying is worse than a failed delete, but not fatal
+                    log.exception("Ask: could not drop the unanswered question")
             # the client may have stopped it, or it failed: keep what was written, so the conversation says so
-            if body.conversation_id and not saved and (out.text or out.thinking):
+            elif body.conversation_id and not saved and (out.text or out.thinking):
                 try:
                     with db.pool().connection() as c:
                         _save_message(c, body.conversation_id, "assistant", out.text, citations=plan.cites,

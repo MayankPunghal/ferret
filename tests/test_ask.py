@@ -264,3 +264,55 @@ def test_the_stream_carries_the_search_step_and_the_closest_matches(client, corp
     assert search["citations"] == [] and search["near"] and search["gate"]["mode"]
     assert events[-1]["type"] == "done" and events[-1]["answered"] is False
 
+
+
+def test_a_follow_up_answers_from_the_passages_the_conversation_already_cited(client, corpus, monkeypatch):
+    """Owner, 2026-10-26: "it could have answered from the same search's result the first time and the second
+    time too". When the new search finds nothing, the passages the last answer cited are used again."""
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    seen = {}
+    monkeypatch.setattr(ask, "_stream_model", fake_model("Fifteen days for the first question ", "[1].", seen=seen))
+    allow_closest(client, False)  # no closest matches: only the carry-over can answer
+    h = token(client, "alice")
+    try:
+        cid = client.post("/api/ask/conversations", headers=h).json()["id"]
+        first = client.post("/api/ask", headers=h,
+                            json={"question": "ERR-PAY-4012", "conversation_id": cid}).json()
+        assert first["answered"] and first["citations"]
+        second = client.post("/api/ask", headers=h,
+                             json={"question": "zebra quantum lasagna policy", "conversation_id": cid}).json()
+    finally:
+        allow_closest(client, True)
+    assert second["answered"], "the follow-up answered from what the conversation already cited"
+    assert second["citations"] and second["citations"][0]["chunk_id"] == first["citations"][0]["chunk_id"]
+    assert "already cited" in second["message"]
+    assert "[1] " in seen["prompt"]
+
+
+def test_a_question_that_produced_no_answer_leaves_no_turn_behind(client, corpus, monkeypatch):
+    """A send stopped before the first word used to leave the question alone in the conversation, so the next
+    send showed it twice (owner, 2026-10-26)."""
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    monkeypatch.setattr(ask, "_stream_model", lambda *a, **k: iter(()))  # the model writes nothing
+    h = token(client, "alice")
+    cid = client.post("/api/ask/conversations", headers=h).json()["id"]
+    with client.stream("POST", "/api/ask/stream", headers=h,
+                       json={"question": "ERR-PAY-4012", "conversation_id": cid}) as r:
+        list(r.iter_lines())
+    assert client.get(f"/api/ask/conversations/{cid}", headers=h).json()["messages"] == []
+
+
+def test_a_follow_up_without_a_pronoun_is_still_rewritten(client, corpus, monkeypatch):
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    seen = []
+    monkeypatch.setattr(ask, "_stream_model",
+                        _rewriting_model("number of leave days per type", "Fifteen [1].", seen))
+    history = [{"role": "user", "text": "How many leaves of each type do employees get?"},
+               {"role": "assistant", "text": "Privilege, casual, sick … [1]."}]
+    events = []
+    with client.stream("POST", "/api/ask/stream", headers=token(client, "alice"),
+                       json={"question": "and the exact numbers", "history": history}) as r:
+        for line in r.iter_lines():
+            if line.startswith("data: "):
+                events.append(json.loads(line[6:]))
+    assert events[0]["searched"] == "number of leave days per type"
