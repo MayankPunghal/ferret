@@ -855,3 +855,7 @@ button.icon:disabled { opacity: .35; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) { .stage, .stage.active .ico { animation: none; } }
 /* the assistant's mark is a filled spark, drawn with the icon's stroke rules off */
 .ask-who .av .i { fill: currentColor; stroke: none; }
+
+/* the connection badge is also a way back: click it when it says Disconnected */
+.conn.down { cursor: pointer; }
+.conn.down:hover .conn-label { text-decoration: underline; }

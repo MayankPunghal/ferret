@@ -2114,20 +2114,21 @@ boot();
     } catch { /* unreachable */ }
     if (ok && version && me && me.version && version !== me.version) { location.reload(); return; }
     if (!ok) { if (!since) since = Date.now(); }
-    else if (since) {  // the app was restarted (an update, a crash, a manual start): reload onto a clean page
+    else if (since) {  // the app was restarted (an update, a restart, a crash): reload onto a clean page
       const outage = Date.now() - since;
       since = 0;
-      if (outage > 6000) { location.reload(); return; }
+      if (outage > 3000) { location.reload(); return; }
     }
     if (ok === !down) return;
     down = !ok;
     const dot = $("#conn");
     dot.classList.toggle("down", down);
-    dot.title = down ? "Not connected: Ferret is not running or cannot be reached. Retrying…" : "Connected to Ferret";
+    dot.title = down ? "Not connected: Ferret is not running or cannot be reached. Retrying… (click to reload)"
+      : "Connected to Ferret";
   };
   setInterval(check, 10000);
-  window.addEventListener("online", check);
-  window.addEventListener("focus", check);
+  for (const event of ["online", "focus", "pageshow", "visibilitychange"]) window.addEventListener(event, check);
+  $("#conn").addEventListener("click", () => { if ($("#conn").classList.contains("down")) location.reload(); });
 })();
 $("#setup-form [name=terms]").addEventListener("change", (e) => { $("#setup-submit").disabled = !e.target.checked; });
 
