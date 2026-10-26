@@ -155,8 +155,10 @@ def test_the_answer_streams_its_search_its_text_and_its_end(client, corpus, monk
             if line.startswith("data: "):
                 events.append(json.loads(line[6:]))
     kinds = [e["type"] for e in events]
-    assert kinds[0] == "search" and "text" in kinds and kinds[-1] == "done"
-    search = events[0]
+    # the stream opens with the search's own stages, then the search step, the text and "done"
+    assert kinds[0] in ("stage", "round") and "search" in kinds and "text" in kinds and kinds[-1] == "done"
+    assert kinds.index("search") < kinds.index("text")
+    search = next(e for e in events if e["type"] == "search")
     assert search["citations"] and search["outcome"] == "evidence_found"
     assert "".join(e["text"] for e in events if e["type"] == "text") == "Page the on-call engineer [1]."
     assert events[-1]["answered"] is True and events[-1]["conversation_id"] == cid
@@ -213,7 +215,7 @@ def test_a_follow_up_searches_with_a_rewritten_query(client, corpus, monkeypatch
         for line in r.iter_lines():
             if line.startswith("data: "):
                 events.append(json.loads(line[6:]))
-    search = events[0]
+    search = next(e for e in events if e["type"] == "search")
     assert "who reports to Kabir Singh" in search["queries"]
     assert search["question"] == "zebra quantum lasagna policy"
     assert any(p.startswith("Write 3 short search queries") for p in seen)
@@ -272,7 +274,7 @@ def test_the_stream_carries_the_search_step_and_the_closest_matches(client, corp
                     events.append(json.loads(line[6:]))
     finally:
         allow_closest(client, True)
-    search = events[0]
+    search = next(e for e in events if e["type"] == "search")
     assert search["type"] == "search" and search["outcome"] == "no_adequate_evidence"
     assert search["citations"] == [] and search["near"] and search["gate"]["mode"]
     assert events[-1]["type"] == "done" and events[-1]["answered"] is False
@@ -328,8 +330,9 @@ def test_a_follow_up_without_a_pronoun_is_still_rewritten(client, corpus, monkey
         for line in r.iter_lines():
             if line.startswith("data: "):
                 events.append(json.loads(line[6:]))
-    assert "number of leave days per type" in events[0]["queries"]
-    assert events[0]["queries"][0] == "zebra quantum lasagna policy"
+    search = next(e for e in events if e["type"] == "search")
+    assert "number of leave days per type" in search["queries"]
+    assert search["queries"][0] == "zebra quantum lasagna policy"
 
 
 def test_the_model_decides_when_to_search_again(client, corpus, monkeypatch):
@@ -360,7 +363,7 @@ def test_the_model_decides_when_to_search_again(client, corpus, monkeypatch):
         for line in r.iter_lines():
             if line.startswith("data: "):
                 events.append(json.loads(line[6:]))
-    search = events[0]
+    search = next(e for e in events if e["type"] == "search")
     assert calls["decisions"] == 2, "the model was asked after each round"
     assert [len(r["queries"]) for r in search["rounds"]] and search["rounds"][0]["enough"] is False
     assert search["rounds"][0]["missing"] == "the error code"

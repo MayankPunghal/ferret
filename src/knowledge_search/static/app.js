@@ -763,6 +763,7 @@ async function askSend(question, opts = {}) {
   box.append(stages);
   let stagePlan = stageRow("Planning the search"), stageSearch = null, stageRead = null,
     stageThink = null, stageWrite = null;
+  const roundRows = new Map();
   stages.append(stagePlan);
   if (!opts.box) log.append(box);
   log.scrollTop = log.scrollHeight;
@@ -784,20 +785,33 @@ async function askSend(question, opts = {}) {
     const reader = r.body.getReader(), dec = new TextDecoder();
     let buf = "";
     const handle = (event) => {
-      if (event.type === "search") {
+      if (event.type === "stage") {
+        // the server reports the search's own stages while it runs, so the wait is not a black box
+        if (event.stage === "planning") {
+          stagePlan.querySelector(".lbl").textContent = "Planning the search: writing the queries";
+        } else if (event.stage === "deciding") {
+          // the round row carries the verdict ("model: not enough (…)"): a second row would only repeat it
+          stageDone(stagePlan, "Planned the search queries");
+        }
+        log.scrollTop = log.scrollHeight;
+      } else if (event.type === "round") {
+        const n = (event.queries || []).length;
+        let label = `Round ${event.n}: ${askPlural(n, "query").replace("querys", "queries")}, `
+          + `${askPlural(event.passages || 0, "passage")} so far`;
+        if (event.enough === false && event.missing) label += ` — model: not enough (${event.missing})`;
+        if (event.enough === true) label += " — model: enough";
+        if (event.novel === false) label += " — nothing new, stopping";
+        const row = roundRows.get(event.n);
+        if (row) row.querySelector(".lbl").textContent = label;
+        else { const fresh = stageRow(label, "done"); stages.append(fresh); roundRows.set(event.n, fresh); }
+        log.scrollTop = log.scrollHeight;
+      } else if (event.type === "search") {
         search = event;
         stages.querySelectorAll(".stage.active").forEach((r) => stageDone(r));
-        for (const round of event.rounds || []) {
-          const n = (round.queries || []).length;
-          stages.append(stageRow(
-            `Round ${round.n}: ${askPlural(n, "query").replace("querys", "queries")}, ${askPlural(round.passages || 0, "passage")} so far`, "done"));
-          if (round.enough === false && round.missing)
-            stages.append(stageRow(`Model: not enough — ${round.missing}`, "done"));
-          if (round.novel === false) stages.append(stageRow("Model: the new queries found nothing new — stopping", "done"));
-        }
-        if (!(event.rounds || []).length) {
+        if (!roundRows.size) {  // a server that does not report rounds yet
           const n = (event.queries || []).length;
-          stages.append(stageRow(`Searched ${askPlural(n || 1, "query").replace("querys", "queries")}, ${askPlural(event.passages || 0, "passage")}`, "done"));
+          stages.append(stageRow(`Searched ${askPlural(n || 1, "query").replace("querys", "queries")}, `
+            + `${askPlural(event.passages || 0, "passage")}`, "done"));
         }
         stageSearch = stages.lastElementChild;
         stageRead = stageRow(`Reading ${askPlural(event.passages || 0, "passage")}`);
@@ -812,7 +826,7 @@ async function askSend(question, opts = {}) {
         if (!think) { think = thinkingCard(event.text); box.insertBefore(think, body); }
         else think.querySelector("pre").append(event.text);
       } else if (event.type === "error") {
-        status.remove();
+        stages.querySelectorAll(".stage.active").forEach((r) => stageDone(r));
         box.append(el("p", { className: "ask-error", textContent: event.message }));
       } else if (event.type === "done") {
         final = event;
@@ -857,7 +871,7 @@ async function askSend(question, opts = {}) {
     if (err.name === "AbortError") {
       box.append(el("p", { className: "muted small", textContent: "Stopped." }));
     } else {
-      status.remove();
+      stages.querySelectorAll(".stage.active").forEach((r) => stageDone(r));
       box.append(el("p", { className: "ask-error", textContent: err.message }));
     }
   } finally {

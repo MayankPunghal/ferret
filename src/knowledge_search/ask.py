@@ -529,7 +529,7 @@ class Plan:
         self.question_id = None  # the turn this question added, dropped again if no answer is written
 
 
-def _prepare(conn, p, body: AskBody) -> Plan:
+def _prepare(conn, p, body: AskBody, emit=None) -> Plan:
     """Search, then keep the passages that count as evidence (and, when asked, the closest matches)."""
     rt = runtime.load(conn)
     if not body.model and getattr(rt, "ask_model", ""):
@@ -574,11 +574,15 @@ def _prepare(conn, p, body: AskBody) -> Plan:
 
     # round 1: the user's own words and the model's keyword-shaped variants, always
     started = time.perf_counter()
+    if emit:  # the stream is open: say what the model is doing while it does it
+        emit({"type": "stage", "stage": "planning", "message": "writing the search queries"})
     planned = _search_queries(rt, body, history)
     took["plan"] += time.perf_counter() - started
     queries = [asked] + [q for q in planned if q.lower() != asked.lower()][:MAX_QUERIES - 1]
     run(queries)
     rounds.append({"n": 1, "queries": queries, "passages": len(by_id)})
+    if emit:
+        emit({"type": "round", **rounds[-1]})
     # further rounds: the model reads what was found and decides whether it needs more, and what to search
     strong = any(r.supported and (r.signals.get("cosine_similarity") or 0) >= rt.gate_dense_high
                  for r in by_id.values())
@@ -588,10 +592,15 @@ def _prepare(conn, p, body: AskBody) -> Plan:
                 rounds[0]["enough"] = True
             break
         started = time.perf_counter()
+        if emit:
+            emit({"type": "stage", "stage": "deciding", "passages": len(by_id),
+                  "message": "reading what was found to see whether it is enough"})
         verdict = _decide(rt, body, asked, list(by_id.values()))
         took["decide"] += time.perf_counter() - started
         rounds[-1]["enough"] = bool(verdict.get("enough"))
         rounds[-1]["missing"] = str(verdict.get("missing") or "")[:200]
+        if emit:
+            emit({"type": "round", **rounds[-1]})
         if verdict.get("enough") and any(r.supported for r in by_id.values()):
             break
         more = [str(q).strip()[:120] for q in (verdict.get("queries") or []) if str(q).strip()][:2]
@@ -600,8 +609,12 @@ def _prepare(conn, p, body: AskBody) -> Plan:
         before = set(by_id)
         run(more)
         rounds.append({"n": n, "queries": more, "passages": len(by_id)})
+        if emit:
+            emit({"type": "round", **rounds[-1]})
         if set(by_id) == before:  # it found nothing new: stop rather than loop
             rounds[-1]["novel"] = False
+            if emit:
+                emit({"type": "round", **rounds[-1]})
             break
     if not any(r.supported for r in by_id.values()):  # nothing confirmed anywhere: a keyword-only pass
         try:
@@ -720,10 +733,38 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
     """The same answer as `/api/ask`, written out as it is produced (server-sent events)."""
     if body.model and body.model not in enrich.LLMS:
         raise HTTPException(422, f"unknown local model {body.model}")
-    plan = _prepare(conn, p, body)
     question = body.question.strip()
 
     def events() -> Iterator[str]:
+        # the search and its rounds happen while the stream is open: a body that shows one "planning" spinner and
+        # then everything at once is the black box the owner complained about (2026-10-26)
+        import queue
+        import threading
+
+        steps: "queue.Queue[dict | None]" = queue.Queue()
+        held: dict = {}
+
+        def prepare() -> None:
+            try:
+                with db.pool().connection() as c:
+                    held["plan"] = _prepare(c, p, body, emit=steps.put)
+            except HTTPException as exc:
+                steps.put({"type": "error", "message": str(exc.detail)})
+            except Exception as exc:  # noqa: BLE001 - it must reach the page, not just the log
+                log.exception("Ask: the search failed")
+                steps.put({"type": "error", "message": f"the search failed: {exc}"})
+            finally:
+                steps.put(None)
+
+        threading.Thread(target=prepare, daemon=True).start()
+        while True:
+            step = steps.get()
+            if step is None:
+                break
+            yield _sse(step)
+        plan = held.get("plan")
+        if plan is None:  # the error above was already sent
+            return
         out = Answer()
         model = ""
         saved = False
