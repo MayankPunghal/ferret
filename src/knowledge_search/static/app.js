@@ -646,11 +646,15 @@ function sourcesRow(citations) {
 }
 
 function metaRow({ outcome, model, seconds, question, label, unconfirmed }) {
+  const took = m.took || {};
+  const split = [took.plan ? `${took.plan} s planning` : "", took.search ? `${took.search} s searching` : "",
+    took.decide ? `${took.decide} s deciding` : ""].filter(Boolean).join(" · ");
   const meta = el("div", { className: "ask-meta" },
     el("span", { className: "dot " + (label ? "" : outcome || "") }),
     el("span", { textContent: label || (outcome || "").replaceAll("_", " ") }),
     unconfirmed ? el("span", { className: "badge warn", textContent: "unconfirmed evidence" }) : "",
-    model ? ` · ${model}` : "", seconds ? ` · ${seconds} s` : "");
+    model ? ` · ${model}` : "", seconds ? ` · ${seconds} s writing` : "",
+    split ? el("span", { className: "muted small", title: "Where the time went before the answer started", textContent: ` · ${split}` }) : "");
   const copy = el("button", { type: "button", className: "link small", textContent: "Copy" });
   const retry = el("button", { type: "button", className: "link small", textContent: "Retry" });
   meta.append(copy, retry);
@@ -811,7 +815,8 @@ async function askSend(question, opts = {}) {
     }
     const thinking = think ? think.querySelector("pre").textContent : "";
     const finished = answerNode({ text, citations: search?.citations || [], thinking,
-      outcome: search?.outcome || "", question, model: final?.model || "", seconds: final?.seconds || 0, search });
+      outcome: search?.outcome || "", question, model: final?.model || "", seconds: final?.seconds || 0,
+      search, took: search?.took || {} });
     if (stages.childElementCount) finished.insertBefore(stages, finished.children[1] || null);  // keep the stages
     box.replaceWith(finished);
     if (askConv === convId) log.scrollTop = log.scrollHeight;

@@ -37,8 +37,8 @@ from .search import search
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["ask"])
 
-PASSAGES = 8  # passages handed to the model: enough to answer, short enough for a small model's context
-CHARS_PER_PASSAGE = 1500
+PASSAGES = 6  # passages handed to the model: enough to answer, short enough for a small model's context
+CHARS_PER_PASSAGE = 900
 TURNS = 6  # earlier question/answer pairs kept for follow-ups
 CHARS_PER_TURN = 700
 CHARS_PER_ANSWER = 4000  # an earlier answer as history is cut, so a long one cannot fill the prompt
@@ -176,7 +176,7 @@ class _AnswerModel:
 _models = _AnswerModel()
 
 
-def _stream_model(url: str, model: str, prompt: str, think: bool, max_tokens: int = 900) -> Iterator[tuple[str, str]]:
+def _stream_model(url: str, model: str, prompt: str, think: bool, max_tokens: int = 500) -> Iterator[tuple[str, str]]:
     """("thinking"|"text", piece) from the server's streaming reply, as it is written."""
     body = {"messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens, "temperature": 0,
             "stream": True, "chat_template_kwargs": {"enable_thinking": bool(think)}}
@@ -497,6 +497,7 @@ class Plan:
         self.query = query  # what the search ran with (the planned queries, joined)
         self.queries: list[str] = []  # the queries themselves, shown in the step
         self.rounds: list[dict] = []  # what was searched and what the model decided each round
+        self.took: dict = {}  # seconds spent planning, searching and deciding (the rest is the answer)
         self.note = ""  # why these passages (e.g. carried over from the previous answer)
         self.question_id = None  # the turn this question added, dropped again if no answer is written
 
@@ -526,12 +527,15 @@ def _prepare(conn, p, body: AskBody) -> Plan:
     score: dict[int, float] = {}
     rounds: list[dict] = []
     found = None
+    took = {"plan": 0.0, "search": 0.0, "decide": 0.0}
 
     def run(queries: list[str]) -> None:
         """Search these queries and fold what they found into the pool (reciprocal rank fusion)."""
         nonlocal found
         for query in queries:
+            started = time.perf_counter()
             res = search(conn, p, query, rt, body.collection_ids, 10)
+            took["search"] += time.perf_counter() - started
             if found is None:
                 found = res
             elif not any(r.supported for r in found.results) and any(r.supported for r in res.results):
@@ -542,14 +546,23 @@ def _prepare(conn, p, body: AskBody) -> Plan:
                     by_id[r.chunk_id] = r
 
     # round 1: the user's own words and the model's keyword-shaped variants, always
-    queries = [asked] + [q for q in _search_queries(rt, body, history) if q.lower() != asked.lower()][:MAX_QUERIES - 1]
+    started = time.perf_counter()
+    planned = _search_queries(rt, body, history)
+    took["plan"] += time.perf_counter() - started
+    queries = [asked] + [q for q in planned if q.lower() != asked.lower()][:MAX_QUERIES - 1]
     run(queries)
     rounds.append({"n": 1, "queries": queries, "passages": len(by_id)})
     # further rounds: the model reads what was found and decides whether it needs more, and what to search
+    strong = any(r.supported and (r.signals.get("cosine_similarity") or 0) >= rt.gate_dense_high
+                 for r in by_id.values())
     for n in range(2, ROUNDS + 1):
-        if not by_id:
+        if not by_id or (n == 2 and strong):
+            if n == 2 and strong:
+                rounds[0]["enough"] = True
             break
+        started = time.perf_counter()
         verdict = _decide(rt, body, asked, list(by_id.values()))
+        took["decide"] += time.perf_counter() - started
         rounds[-1]["enough"] = bool(verdict.get("enough"))
         rounds[-1]["missing"] = str(verdict.get("missing") or "")[:200]
         if verdict.get("enough") and any(r.supported for r in by_id.values()):
@@ -610,6 +623,7 @@ def _prepare(conn, p, body: AskBody) -> Plan:
                 " · ".join(all_queries))
     plan.queries = list(dict.fromkeys(all_queries))
     plan.rounds = rounds
+    plan.took = {k: round(v, 1) for k, v in took.items()}
     plan.note = note
     plan.question_id = question_id
     return plan
@@ -618,7 +632,7 @@ def _prepare(conn, p, body: AskBody) -> Plan:
 def _step(plan: Plan) -> dict:
     """The search step stored with an answer (the window shows it when the conversation is reopened)."""
     return {"question": plan.found.query, "searched": plan.query, "queries": plan.queries,
-            "rounds": plan.rounds, "outcome": plan.found.outcome,
+            "rounds": plan.rounds, "took": plan.took, "outcome": plan.found.outcome,
             "message": plan.note or plan.found.message,
             "passages": len(plan.used), "citations": plan.cites, "near": plan.near, "gate": plan.gate,
             "unconfirmed": plan.unconfirmed}
@@ -652,7 +666,7 @@ def ask(body: AskBody, p: User, conn: Conn) -> dict:
         raise HTTPException(422, f"unknown local model {body.model}")
     plan = _prepare(conn, p, body)
     base = {"question": body.question, "searched": plan.query, "queries": plan.queries,
-            "rounds": plan.rounds, "outcome": plan.found.outcome,
+            "rounds": plan.rounds, "took": plan.took, "outcome": plan.found.outcome,
             "message": plan.note or plan.found.message, "citations": plan.cites,
             "near": plan.near, "gate": plan.gate, "unconfirmed": plan.unconfirmed,
             "conversation_id": str(body.conversation_id) if body.conversation_id else None}
@@ -688,7 +702,7 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
         saved = False
         try:
             yield _sse({"type": "search", "question": question, "searched": plan.query,
-                        "queries": plan.queries, "rounds": plan.rounds,
+                        "queries": plan.queries, "rounds": plan.rounds, "took": plan.took,
                         "outcome": plan.found.outcome,
                         "message": plan.note or plan.found.message, "citations": plan.cites, "passages": len(plan.used),
                         "near": plan.near, "gate": plan.gate, "unconfirmed": plan.unconfirmed})
