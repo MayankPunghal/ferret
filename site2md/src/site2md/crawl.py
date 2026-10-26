@@ -77,6 +77,26 @@ IFRAME = re.compile(r"<iframe\b[^>]*?\ssrc=[\"']([^\"']+)", re.IGNORECASE)
 LOGIN = re.compile(r"^(accounts\.google\.com|login\.microsoftonline\.com)|/(login|signin|sign-in|sso)\b", re.IGNORECASE)
 
 
+def _site_family(host: str) -> str:
+    """The last two labels of a host: sites.google.com and accounts.google.com are one family (google.com)."""
+    labels = (host or "").lower().split(".")
+    return ".".join(labels[-2:]) if len(labels) >= 2 else (host or "").lower()
+
+
+def _own_signin(page: str, final: str, start: str) -> bool:
+    """Was this redirect to a sign-in page our own session expiring, or another site asking for its own login?
+
+    Our own: a page of the copy's own site (the same family as its start address) that lands on a sign-in,
+    e.g. a Google Site at sites.google.com going to accounts.google.com. The copy must stop and sign in again.
+    Another site's: a linked page (a company wiki, a tracker) that wants its own login, e.g. an Atlassian page
+    at *.atlassian.net landing on id.atlassian.com. It is skipped and the copy goes on, instead of stopping
+    after three such links (owner report, 2026-10-26).
+    """
+    family = _site_family(urlsplit(final).hostname or "")
+    page_family = _site_family(urlsplit(page).hostname or "")
+    return page_family == _site_family(urlsplit(start).hostname or "") or family == page_family
+
+
 SETTLE = """async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   for (let i = 0; i < 40 && scrollY + innerHeight < document.documentElement.scrollHeight; i++) {
@@ -546,7 +566,13 @@ class Crawler:
         final = normalize(final)
         if final != url and LOGIN.search(urlsplit(final).netloc + urlsplit(final).path):  # redirected to a sign-in
             with self.lock:
-                self.manifest["failed"][url] = "sign-in page: run once with --browser --login"
+                if _own_signin(url, final, self.start):
+                    # our own site signed us out: the copy has to stop and sign in again
+                    self.manifest["failed"][url] = "sign-in page: run once with --browser --login"
+                else:
+                    # another site's page (a wiki, a tracker) that wants its own login says nothing about our
+                    # sign-in: recorded as skipped, so it neither stops the copy nor reads as "sign-in expired"
+                    self.manifest["skipped"][url] = f"that site needs a sign-in: {urlsplit(final).netloc}"
             return []
         if final != url and not self.in_scope(final):
             with self.lock:

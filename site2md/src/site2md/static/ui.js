@@ -41,10 +41,13 @@ function minutes(s) { return s < 90 ? plural(s, "second") : s < 5400 ? plural(Ma
 function clock(s) { const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = String(s % 60).padStart(2, "0"); return h ? `${h}:${String(m).padStart(2, "0")}:${x}` : `${m}:${x}`; }
 
 // ---------------------------------------------------------------- Website copies
+let landed = false;  // the first visit opens the copy that is running; later ones stay where you go
 async function loadHome() {
   stopPolling();
   const d = await api("copies");
-  if (d.run && ACTIVE.includes(d.run.state)) return openCopy(d.run.name);
+  const first = !landed;
+  landed = true;
+  if (first && d.run && ACTIVE.includes(d.run.state)) return openCopy(d.run.name);
   show("home");
   $("#open-copies").textContent = d.folder;
   $("#folder-path").value = d.folder;
@@ -283,7 +286,13 @@ async function loadPages() {
     el("td", {}, ...(RESULT[r.kind] || (() => []))(r)))));
   if (!rows.length) $("#page-rows").replaceChildren(el("tr", {}, el("td", { colSpan: 2, className: "muted", textContent: "Nothing here." })));
   const more = $("#page-more");
-  more.replaceChildren(total > rows.length ? `Showing ${num(rows.length)} of ${num(total)}. ` : "", total > rows.length ? btn("Show more", () => { shown += 200; loadPages(); }, "link") : "");
+  more.replaceChildren(
+    // the same action the Overview offers per folder, for the whole "Links not followed" list
+    kind === "outside" && total && !(detail && detail.live)
+      ? btn(`Copy these ${plural(total, "link")} too`, () => api("also-copy-all", { name: current }).then(() => openCopy(current)).catch((e) => alert(e.message)), "primary")
+      : "",
+    total > rows.length ? `Showing ${num(rows.length)} of ${num(total)}. ` : "",
+    total > rows.length ? btn("Show more", () => { shown += 200; loadPages(); }, "link") : "");
 }
 
 // Log: the crawler's own lines, newest at the bottom

@@ -307,7 +307,7 @@ def _search_model_state(rt) -> str:
 def _routes(app: FastAPI) -> None:
     @app.get("/healthz", include_in_schema=False)
     def healthz():
-        return {"status": "ok"}
+        return {"status": "ok", "version": updates.current()}
 
     @app.get("/readyz")
     def readyz(conn: Conn):

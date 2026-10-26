@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from site2md.crawl import EXPORT, FOLDER_VIEW, Crawler, file_name_for, normalize
+from site2md.crawl import EXPORT, FOLDER_VIEW, Crawler, _own_signin, file_name_for, normalize
 from site2md.html import html_to_markdown
 
 from knowledge_search.parsing import chunk_document, parse_document
@@ -370,3 +370,18 @@ def test_content_links_to_other_sites_bring_in_that_folder_menus_do_not(tmp_path
     assert m["skipped"][f"{d}/guide/v1/what-is.md"].startswith("same page as")
     assert f"{d}/other/" in m["outside"] and f"{d}/blog/" in m["outside"]  # menus/footer, and one step too far
     assert "https://www.youtube.com/watch?v=x" in m["outside"]
+
+
+def test_a_sign_in_redirect_stops_the_copy_only_for_our_own_site():
+    """Owner, 2026-10-26: "the site starts showing signin page again and again". A Google Site linking to a
+    company wiki made three such links count as our sign-in expiring, and the copy stopped. Only a redirect to
+    a sign-in in the start site's own family (accounts.google.com for sites.google.com) is our session."""
+    start = "https://sites.google.com/sourcefuse.com/intranet"
+    page = "https://sites.google.com/sourcefuse.com/intranet/teams"
+    assert _own_signin(page, "https://accounts.google.com/ServiceLogin?continue=x", start)
+    assert not _own_signin("https://sourcefuse.atlassian.net/wiki/spaces/SFTC/pages/1/X",
+                           "https://id.atlassian.com/login?continue=x", start)
+    # the same for a wiki that is itself the copy's start site: its own login still counts
+    wiki = "https://sourcefuse.atlassian.net/wiki/"
+    assert _own_signin(wiki, "https://id.atlassian.com/login?continue=x", wiki)
+

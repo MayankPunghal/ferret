@@ -1662,11 +1662,18 @@ boot();
 
 // The dot next to the name: green while Ferret answers, red with a notice when it cannot be reached (stopped,
 // restarting, the computer asleep). Checked every 10 s; an update's own page (followUpdate) says more.
+// A different version in /healthz means the app was updated while this page was open: reload so the new UI shows
+// (an update installed from the tray, or a restart, used to leave the old page in place until it was reopened).
 (function watchConnection() {
   let down = false;
   const check = async () => {
-    let ok = false;
-    try { ok = (await fetch("/healthz", { cache: "no-store" })).ok; } catch { /* unreachable */ }
+    let ok = false, version = "";
+    try {
+      const r = await fetch("/healthz", { cache: "no-store" });
+      ok = r.ok;
+      if (ok) version = (await r.json().catch(() => ({}))).version || "";
+    } catch { /* unreachable */ }
+    if (ok && version && me && me.version && version !== me.version) { location.reload(); return; }
     if (ok === !down) return;
     down = !ok;
     const dot = $("#conn");

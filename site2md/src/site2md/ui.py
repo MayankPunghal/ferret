@@ -431,6 +431,18 @@ class App:
         links = [u for u in _manifest(folder).get("outside", {}) if u.startswith(prefix)] or [prefix]
         return self._requeue(name, links, {"prefixes": list(dict.fromkeys([*o.get("prefixes", []), prefix]))})
 
+    def also_copy_all(self, name: str) -> dict:
+        """Bring every link the copy left out into it (the groups the page lists under "Links not followed"),
+        and continue the copy."""
+        folder = self.folder(name)
+        m = _manifest(folder)
+        links = list(m.get("outside", {}))
+        if not links:
+            raise ValueError("this copy left no links out")
+        o = _options(folder).get("options", {})
+        prefixes = [g["prefix"] for g in outside_groups(m, limit=10_000)]
+        return self._requeue(name, links, {"prefixes": list(dict.fromkeys([*o.get("prefixes", []), *prefixes]))})
+
     # -- what a copy holds, running or not
     def _snapshot(self, name: str) -> tuple[dict, list[str], Run | None, Path]:
         folder = self.folder(name)
@@ -540,6 +552,8 @@ class App:
                     return 200, self.try_again(str(body["name"]), str(body["reason"]))
                 if path == "also-copy":
                     return 200, self.also_copy(str(body["name"]), str(body["prefix"]))
+                if path == "also-copy-all":
+                    return 200, self.also_copy_all(str(body["name"]))
                 if path == "open":
                     open_folder(self.folder(str(body["name"])) if body.get("name") else self.copies)
                     return 200, {"ok": True}
