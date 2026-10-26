@@ -91,6 +91,7 @@ Re-running setup is safe: finished downloads are reused. Full walkthrough: [Gett
 
 - 🔎 **One box, two kinds of search** — Exact terms (`ERR-PAY-4012`, `/api/v2/invoices`, a file name) and plain questions ("how do I roll back a release?"), together.
 - 📎 **Evidence, not guesses** — Every result is a real passage with a link to the file and page. If nothing in *your* documents supports an answer, Ferret says so.
+- 💬 **Ask** — A chat with the same small local model as the summaries: it runs the search first, answers in words from the passages that passed the evidence check, and cites each one. No evidence, no answer — it says so instead of guessing.
 - 🔒 **Stays on your machine** — Database, models and search all run locally. No account, no GPU, no API keys.
 - 🕸️ **Follows your links** — Wiki links, Markdown links and `depends_on` front matter: see what a page links to, what refers to it, and what breaks if it changes.
 - 🕷️ **Ferret Crawler** — Copies a website or intranet, even one behind a sign-in, into a collection.

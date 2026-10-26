@@ -14,6 +14,7 @@
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
     <symbol id="i-docs" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
     <symbol id="i-summaries" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H8l-4 3v-6.5A8 8 0 0 1 12 4h1a8 8 0 0 1 8 8z"/><path d="M8.5 11.5h7M8.5 15h4"/></symbol>
     <symbol id="i-status" viewBox="0 0 24 24"><path d="M21 12h-4l-3 8-4-16-3 8H3"/></symbol>
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 5h-7M9 5H4M20 12h-9M7 12H4M20 19h-5M11 19H4M13 3v4M7 10v4M15 17v4"/></symbol>
     <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5 5 0 0 1 3 4.6V20"/></symbol>
@@ -66,6 +67,7 @@
         <button type="button" id="nav-toggle" class="icon nav-toggle" aria-controls="sidebar" aria-expanded="true" title="Close sidebar ( [ )" aria-label="Close sidebar"><svg class="i"><use href="#i-sidebar"/></svg></button></div>
       <nav>
         <button class="tab" data-tab="search" aria-current="page"><svg class="i"><use href="#i-search"/></svg>Search</button>
+        <button class="tab" data-tab="ask"><svg class="i"><use href="#i-chat"/></svg>Ask</button>
         <button class="tab" data-tab="documents"><svg class="i"><use href="#i-docs"/></svg>Documents</button>
         <button class="tab" data-tab="summaries"><svg class="i"><use href="#i-summaries"/></svg>Summaries</button>
         <button class="tab" data-tab="status"><svg class="i"><use href="#i-status"/></svg>Index status</button>
@@ -125,6 +127,24 @@
           <ol id="weak-results" class="results"></ol>
         </details>
         <p id="timing" class="muted small"></p>
+      </section>
+
+      <section id="tab-ask" hidden>
+        <div class="title-row">
+          <h1>Ask</h1>
+          <label class="ask-model"><span class="muted small">Model</span>
+            <select id="ask-model" aria-label="Local model that writes the answers"></select></label>
+          <button type="button" id="ask-clear" class="link">New conversation</button>
+        </div>
+        <div id="ask-note" class="notice" hidden role="status"></div>
+        <div id="ask-log" class="ask-log" role="log" aria-live="polite" aria-label="Conversation"></div>
+        <form id="ask-form" class="ask-form">
+          <textarea id="ask-q" rows="2" maxlength="1000" required aria-label="Question"
+                    placeholder="Ask a question about your documents — an error code, a how-to, who owns what…"></textarea>
+          <button type="submit" class="primary" id="ask-send">Ask</button>
+        </form>
+        <p class="muted small">Answered only from passages that passed the evidence search, and each answer cites
+          them. When the documents do not answer it, Ask says so instead of guessing. Nothing leaves this computer.</p>
       </section>
 
       <section id="tab-documents" hidden>

@@ -190,8 +190,9 @@ function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
   // the search bar sits in the page on the Search tab and in the top bar elsewhere
   if (name === "search") $("#tab-search .title-row").after($("#search-form")); else $("#menu-button").after($("#search-form"));
-  for (const t of ["search", "documents", "summaries", "status", "assistants", "about", "settings", "admin", "folders", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
+  for (const t of ["search", "ask", "documents", "summaries", "status", "assistants", "about", "settings", "admin", "folders", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
+  if (name === "ask") loadAsk();
   if (name === "folders") loadFolders();
   if (name === "documents") { loadDocs(); pollTimer = setInterval(loadDocs, 3000); }
   if (name === "summaries") { loadSummaries(); pollTimer = setInterval(loadSummaries, 5000); }
@@ -456,6 +457,120 @@ $("#search-form").addEventListener("submit", async (e) => {
   if (res.timings_ms) Object.assign($("#timing"), { textContent: `${Math.round(res.timings_ms.total)} ms`,
     title: res.index.embedding_model + (res.index.reranker ? " · reranker " + res.index.reranker : "") });
 });
+
+// ---------------------------------------------------------------- Ask: the same search, answered in words
+// Each question runs the search first; only passages that passed the evidence gate reach the local model, and
+// its answer must cite them. No supported passage means no answer (and no model call). The last turns travel
+// with the question so follow-ups read naturally; they are never evidence.
+let askModels = null, askHistory = [];
+async function loadAsk() {
+  if (!askModels) askModels = await api("/api/ask/models").catch((e) => ({ error: e.message, models: [] }));
+  const sel = $("#ask-model");
+  let saved = "";
+  try { saved = localStorage.getItem("ks-ask-model") || ""; } catch { /* not kept */ }
+  const ready = (askModels.models || []).filter((m) => m.installed);
+  sel.replaceChildren(el("option", { value: "", textContent: "Same model as the summaries" }),
+    ...ready.map((m) => el("option", { value: m.name, textContent: `${m.name} · ${(m.note || "").split(",")[0]}` })));
+  sel.value = ready.some((m) => m.name === saved) ? saved : "";
+  const note = $("#ask-note");
+  note.hidden = false;
+  if (askModels.error) note.textContent = "Could not read the model list: " + askModels.error;
+  else if (!ready.length) note.textContent = "No local model is downloaded yet. Download one in Settings → Models (Gemma 4 E2B is the default); Ask uses the same models as the document summaries.";
+  else if (askModels.external) note.textContent = "Answers are written by the local model server set in KS_LLM_URL.";
+  else note.hidden = true;
+  if (!$("#ask-log").childElementCount) askGreeting();
+}
+function askGreeting() {
+  $("#ask-log").append(el("div", { className: "ask-msg assistant muted" },
+    el("p", { textContent: "Ask about anything in the documents you can read. I search first, then answer from the passages I found and cite them — and I say so when they do not answer it." })));
+}
+function askBubble(role, text) {
+  const b = el("div", { className: `ask-msg ${role}` });
+  if (text) b.append(el("p", { textContent: text }));
+  return b;
+}
+// The [n] markers a model writes become buttons that open that passage.
+function answerText(res) {
+  const byN = new Map(res.citations.map((c) => [String(c.n), c]));
+  const p = el("p", { className: "ask-answer" });
+  (res.answer || "").split(/(\[\d+(?:\s*,\s*\d+)*\])/).forEach((part) => {
+    const m = part.match(/^\[([\d,\s]+)\]$/);
+    if (!m) { p.append(part); return; }
+    const nums = m[1].split(",").map((n) => n.trim()).filter(Boolean);
+    nums.forEach((n, i) => {
+      const c = byN.get(n);
+      if (c) {
+        const b = el("button", { type: "button", className: "cite", textContent: `[${n}]`,
+          title: `${c.title}${c.heading_path ? " > " + c.heading_path : ""}` });
+        b.addEventListener("click", () => openPassage(c.chunk_id));
+        p.append(b);
+        p.append(i < nums.length - 1 ? ", " : "");
+      } else p.append(`[${n}]`);
+    });
+  });
+  return p;
+}
+function answerSources(res) {
+  if (!res.citations.length) return "";
+  const row = el("div", { className: "ask-sources" }, el("span", { className: "rel-label", textContent: "Passages" }));
+  for (const c of res.citations) {
+    const b = el("button", { type: "button", className: "chip", textContent: `${c.n} · ${c.title}`, title: c.heading_path || c.collection });
+    b.addEventListener("click", () => openPassage(c.chunk_id));
+    row.append(b);
+  }
+  return row;
+}
+async function askQuestion(q) {
+  const log = $("#ask-log");
+  log.append(askBubble("user", q));
+  const box = askBubble("assistant");
+  box.append(el("span", { className: "spinner", ariaHidden: "true" }), el("span", { className: "muted", textContent: " searching the documents…" }));
+  log.append(box);
+  box.scrollIntoView({ block: "end" });
+  const ids = $$("#scope input:checked").map((c) => +c.value);
+  const all = ids.length === me.collections.length;
+  let res;
+  try {
+    res = await api("/api/ask", { method: "POST", json: { question: q, history: askHistory,
+      model: $("#ask-model").value, collection_ids: all ? null : ids } });
+  } catch (e) {
+    box.replaceChildren(el("p", { className: "ask-error", textContent: e.message }));
+    return;
+  }
+  const meta = el("div", { className: "ask-meta" },
+    el("span", { className: "ask-dot " + res.outcome }), el("span", { textContent: res.outcome.replaceAll("_", " ") }),
+    res.model ? ` · ${res.model}` : "", res.seconds ? ` · ${res.seconds} s` : "");
+  if (!res.answered) {
+    box.replaceChildren(
+      el("p", {}, el("strong", { textContent: "No answer from your documents. " }),
+        res.answer || res.message || "No supporting passage was found."),
+      meta);
+    return;
+  }
+  box.replaceChildren(answerText(res), answerSources(res), meta);
+  askHistory = [...askHistory, { role: "user", text: q }, { role: "assistant", text: res.answer }].slice(-8);
+}
+$("#ask-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = $("#ask-q").value.trim();
+  if (!q || $("#ask-send").disabled) return;
+  $("#ask-q").value = "";
+  $("#ask-send").disabled = true;
+  askQuestion(q).finally(() => { $("#ask-send").disabled = false; $("#ask-q").focus(); });
+});
+$("#ask-q").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#ask-form").requestSubmit(); }
+});
+$("#ask-model").addEventListener("change", (e) => {
+  try { localStorage.setItem("ks-ask-model", e.target.value); } catch { /* not kept */ }
+});
+$("#ask-clear").addEventListener("click", () => {
+  askHistory = [];
+  $("#ask-log").replaceChildren();
+  askGreeting();
+  $("#ask-q").focus();
+});
+
 
 // A passage on one line: list items (slides, org charts) separated by " · " instead of running together.
 const oneLine = (t) => t.replace(/^\s*[-*+]\s+/, "").replace(/\s*\n\s*[-*+]\s+/g, " · ").replace(/\s*\n\s*/g, " ");

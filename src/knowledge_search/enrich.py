@@ -573,6 +573,8 @@ LLMS = {  # name: (Hugging Face repo, file, note); the notes are what the blind 
                    "~1.3 GB, Apache-2.0; as accurate in the blind review, about as fast; document types worse (7 vs 8 of 14 pages)"),
     "qwen3.5-0.8b": ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q4_K_M.gguf",
                      "~0.5 GB, Apache-2.0; about 3x faster, more mistakes (3 wrong claims in 9 pages)"),
+    "qwen3.5-4b": ("unsloth/Qwen3.5-4B-GGUF", "Qwen3.5-4B-Q4_K_M.gguf",
+                   "~2.7 GB, Apache-2.0; the largest offered, for answers in Ask; not measured for summaries or answers yet"),
 }
 DEFAULT_LLM = "gemma-4-e2b"  # blind review: no wrong claims in 9 pages; Qwen3.5-0.8B made 3 (eval/results/blind-review.json)
 

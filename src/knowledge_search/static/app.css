@@ -665,3 +665,33 @@ button.icon:disabled { opacity: .35; cursor: not-allowed; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* Users & access: tables at a readable width instead of stretching across a wide window */
 #tab-admin { max-width: 980px; }
+
+/* Ask: a chat whose answers come from the passages the search found (ask.py) */
+#tab-ask { max-width: 900px; }
+.ask-model { display: flex; align-items: center; gap: 8px; }
+.ask-model select { min-width: 13rem; }
+.ask-log { display: flex; flex-direction: column; gap: 14px; margin: 16px 0 18px; }
+.ask-msg { border-radius: var(--radius-card); padding: 12px 14px; font-size: 14px; line-height: 1.55; }
+.ask-msg p { margin: 0; }
+.ask-msg.user { align-self: flex-end; max-width: 78%; background: var(--raised); border: 1px solid var(--border); }
+.ask-msg.assistant { background: var(--surface); border: 1px solid var(--border); white-space: pre-wrap; }
+.ask-msg.assistant.muted { color: var(--muted); border-style: dashed; background: none; }
+.ask-msg.assistant > .spinner { margin-right: 8px; }
+.ask-msg .cite { border: 0; background: none; padding: 0 1px; font: inherit; color: var(--accent); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px; vertical-align: baseline; }
+.ask-msg .cite:hover { background: var(--active); border-radius: 3px; }
+.ask-sources { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; }
+.ask-meta { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.ask-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.ask-dot.evidence_found { background: var(--positive); }
+.ask-dot.conflicting_evidence, .ask-dot.index_coverage_incomplete, .ask-dot.retrieval_degraded { background: var(--warning); }
+.ask-dot.retrieval_failure { background: var(--negative); }
+.ask-form { display: flex; gap: 10px; align-items: flex-end; }
+.ask-form textarea { flex: 1; resize: vertical; min-height: 52px; font: inherit; padding: 10px 12px;
+  border: 1px solid var(--control); border-radius: var(--radius-control); background: var(--surface); color: var(--text); }
+.ask-form textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ask-error { color: var(--negative); }
+@media (max-width: 640px) {
+  .ask-msg.user { max-width: 92%; }
+  .ask-form { flex-direction: column; align-items: stretch; }
+}

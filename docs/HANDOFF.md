@@ -34,7 +34,8 @@ Code map: `src/knowledge_search/` — `api.py` (routes), `admin.py` (admin route
 registry + per-model thresholds), `runtime.py` (settings, model cache, reranker), `vectors.py`
 (in-memory vector search), `auth.py`, `db.py` (embedded PG, migrations, Windows DLL fix), `cli.py`,
 `static/` (UI), `graph.py` (link graph), `enrich.py` (background summaries by the local model),
-`migrations/0001-0006`. Tests in `tests/`, evaluation in `eval/`.
+`ask.py` (the Ask tab: search, then an answer from the local model with citations), `migrations/0001-0006`.
+Tests in `tests/`, evaluation in `eval/`.
 
 ## 3. Verification status (what was actually run)
 
@@ -680,6 +681,43 @@ and impeccable's operate-mode and craft-floor rules; both repos were read as gui
   wrong `ferret-crawler==` pin, or a changed crawler with an unchanged version; then the whole CI must pass on
   that commit; only then the tag `v<version>`, the GitHub release, Docker (GHCR), both PyPI packages and the
   Windows installer. Pushing a tag by hand no longer releases anything.
+
+## 4q. Ask: a chat answered by the local model from search's passages (owner request 2026-10-26)
+
+Owner: "Add a chat window that runs a small local model for llm based replies after using rag search … allow
+for a few strong local models to be downloadable maybe the same ones we have listed for the summarization —
+we already started some work in a separate branch but lets take reference from that and add in MAIN only."
+The WIP branch was `feature/ask` (a single-shot Q&A, no history, no model choice); this build takes its
+shape (search first, citations, no evidence means no model call) and adds the window, models and history.
+Nothing from that branch was merged.
+
+- **`ask.py`** (new): `POST /api/ask` `{question, history[], model, collection_ids?}` and `GET /api/ask/models`.
+  Search runs with the caller's permissions and the runtime gate; **only `supported` passages** (max 6, 1,500
+  chars each) are numbered and sent, so the search — not the model — decides whether there is evidence
+  (plan-answers.md, measured: letting the model veto cost 28 points answered). No supported passage means
+  **no model call at all** and the search's own message. The model answers as JSON; `answered: false` becomes
+  "No answer from your documents", and a reply that ignores the JSON request is shown as its text.
+- **The chat:** last 4 question/answer pairs (4000 chars each accepted, 700 sent) travel with the question so
+  follow-ups read naturally, marked in the prompt as *not evidence*. One answer at a time (`-np 1`).
+- **Models:** the same `enrich.LLMS` list as the summaries, chosen per browser (localStorage); "" = whatever
+  the summaries run, so nothing extra is loaded. A different model starts `ask.py`'s own llama-server (one at
+  a time, stopped when another is chosen). `enrich.LLMS` gains **`qwen3.5-4b`** (`unsloth/Qwen3.5-4B-GGUF`,
+  `Qwen3.5-4B-Q4_K_M.gguf`, 2.74 GB, file name checked on Hugging Face) as the strong option; its answer
+  quality is **not measured** yet. Downloading is unchanged (Settings → Models, or `ferret download-llm`).
+- **UI:** Ask tab (`#tab-ask`) — transcript, multi-line box (Enter sends, Shift+Enter new line), model picker
+  with sizes, "New conversation", and `[n]` in an answer is a button that opens that passage; a sources row
+  under each answer; a meta line with the outcome, the model and the seconds.
+- **Verified:** `tests/test_ask.py` (5: no evidence → no model call; answer + citations + the prompt the model
+  got; a non-JSON reply still answers; history is cut to its caps; the model list). Full suite 153 passed,
+  2 skipped. **The prompt against the real Gemma 4 E2B** (installed copy, CPU): the ERR-PAY-4012 question came
+  back "…page the payments on-call engineer and check the processor status page [1]" with `answered: true`,
+  and "How many days of parental leave do I get?" (not in those passages) came back
+  `{"answered": false}` — so the abstain instruction works. **Not measured:** answer quality on the labelled
+  sets, E4B/Qwen3.5-4B for answers, latency on a laptop (E2B on this desktop: ~15 s per answer in earlier
+  runs), and the UI was not clicked through in a browser.
+- **Not built (plan-answers.md step 3):** saved conversations, streaming, Markdown rendering, pictures,
+  thinking mode, step cards, Stop, and an MCP `ask` tool.
+
 
 ## 5. Decisions made this session (details: docs/architecture.md)
 
