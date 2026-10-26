@@ -242,7 +242,7 @@ def test_a_refusal_shows_the_closest_matches_and_can_still_answer_from_them(clie
     assert again["answer"] == "The closest page says he is the COO [1]."
     assert again["citations"] and again["citations"][0]["confirmed"] is False
     assert "closest match, not confirmed" in seen["prompt"]
-    assert "According to the closest matching passages" in seen["prompt"]
+    assert "did not pass the evidence check" in seen["prompt"]
 
 
 def test_the_stream_carries_the_search_step_and_the_closest_matches(client, corpus, monkeypatch):

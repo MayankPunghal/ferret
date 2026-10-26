@@ -157,9 +157,10 @@
                 <button type="button" id="ask-stop" class="button danger" hidden>Stop</button>
               </div>
             </form>
-            <p class="muted small">Answered only from passages that passed the evidence search, and each answer
-              cites them. When the documents do not answer it, Ask says so instead of guessing. Nothing leaves this
-              computer.</p>
+            <p class="muted small">Every answer starts with a search whose step you can open: what was asked, the
+              query the model planned from the conversation, the passages it read with their scores, and its
+              reasoning. Answers cite what they use; when nothing really answers, Ask says so instead of guessing.
+              Nothing leaves this computer.</p>
           </div>
         </div>
       </section>
@@ -386,11 +387,12 @@
                 decides what happens when nothing passes it.</p>
             </div>
             <div class="setting-panel">
-              <label class="check"><input type="checkbox" id="s-ask-closest"> Answer from the closest matches when
-                no passage passes the evidence check</label>
-              <p class="muted small">Answering anyway is marked “unconfirmed evidence”, its sources are dashed, and
-                the search step shows what was found and how it scored. Off: Ask says the documents do not answer
-                it and calls no model.</p>
+              <label class="check"><input type="checkbox" id="s-ask-closest"> Let the model answer from the closest
+                matches too, and decide itself whether they answer</label>
+              <p class="muted small">The search still marks what passed the evidence check; the model also sees the
+                closest matches, marked as unconfirmed, and answers only if they really answer — otherwise it says
+                the documents do not. Anything it draws from those is marked “unconfirmed evidence”, with dashed
+                sources. Off: only passages that passed the check reach the model.</p>
             </div>
           </section>
           <section class="setting">

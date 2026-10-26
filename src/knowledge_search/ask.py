@@ -42,6 +42,8 @@ CHARS_PER_PASSAGE = 1500
 TURNS = 6  # earlier question/answer pairs kept for follow-ups
 CHARS_PER_TURN = 700
 CHARS_PER_ANSWER = 4000  # an earlier answer as history is cut, so a long one cannot fill the prompt
+PLAN_TURNS = 12  # the query planner sees more of the conversation than the answerer does
+PLAN_CHARS = 1200
 NOT_IN_DOCUMENTS = "NOT_IN_DOCUMENTS"
 
 PROMPT = """You answer questions about the user's own documents, using ONLY the numbered passages below.
@@ -55,9 +57,9 @@ Passages:
 {passages}
 """
 
-CLOSEST = """None of the passages passed the evidence check: they are the closest matches the search found, not
-confirmed evidence. Begin with "According to the closest matching passages" and say plainly where they fall
-short of the question.
+CLOSEST = """Passages marked "closest match, not confirmed" did not pass the evidence check. Read them, and use
+them only if they really answer the question; say which of them you used. If the best of them is only loosely
+related, reply with exactly NOT_IN_DOCUMENTS instead of guessing.
 """
 
 
@@ -86,15 +88,15 @@ class Rename(BaseModel):
 # --- prompt ---------------------------------------------------------------------------------------------------
 
 
-def _history_text(history: list[Turn]) -> str:
+def _history_text(history: list[Turn], limit: int | None = None, chars: int | None = None) -> str:
     """The last turns, as context for what the question refers to (never as evidence)."""
-    turns = [t for t in history if t.text.strip()][-TURNS * 2:]
+    turns = [t for t in history if t.text.strip()][-(limit or TURNS * 2):]
     if not turns:
         return ""
     lines = []
     for t in turns:
         text = t.text.strip()
-        text = text[:CHARS_PER_TURN] if t.role == "user" else text[:CHARS_PER_ANSWER]
+        text = text[: (chars or CHARS_PER_TURN) if t.role == "user" else (chars or CHARS_PER_ANSWER)]
         lines.append(f"{'User' if t.role == 'user' else 'You'}: {text}")
     return ("\nThe conversation so far, for what the question refers to (it is not evidence; cite only the "
             "passages):\n" + "\n".join(lines) + "\n")
@@ -105,10 +107,11 @@ def build_prompt(question: str, results: list, history: list[Turn] | None = None
     passages = "\n\n".join(
         f"[{n}] {r.clearer_title or r.title}"
         f"{' > ' + r.heading_path if r.heading_path else ''}{f' (page {r.page})' if r.page else ''}"
-        f"{' (closest match, not confirmed)' if unconfirmed else ''}\n"
+        f"{' (closest match, not confirmed)' if getattr(r, 'closest', False) else ''}\n"
         f"{r.text[:CHARS_PER_PASSAGE]}"
         for n, r in enumerate(results, start=1))
-    return PROMPT.format(closest=CLOSEST if unconfirmed else "", history=_history_text(history or []),
+    any_closest = unconfirmed or any(getattr(r, "closest", False) for r in results)
+    return PROMPT.format(closest=CLOSEST if any_closest else "", history=_history_text(history or []),
                          question=question.strip(), passages=passages)
 
 
@@ -368,10 +371,12 @@ def _search_query(rt, body: AskBody, history: list[Turn]) -> str:
         url, model = _models.serving(body.model, rt.llm_device)
     except HTTPException:  # no model on this computer: search what was asked
         return body.question
-    prompt = REWRITE.format(history=_history_text(history), question=body.question.strip())
+    prompt = REWRITE.format(history=_history_text(history, limit=PLAN_TURNS, chars=PLAN_CHARS),
+                            question=body.question.strip())
     pieces: list[str] = []
     try:
-        for kind, piece in _stream_model(url, model, prompt, think=False, max_tokens=60):
+        # thinking is worth it here: a wrong query makes everything after it wrong
+        for kind, piece in _stream_model(url, model, prompt, think=True, max_tokens=400):
             if kind == "text":
                 pieces.append(piece)
     except enrich.LLMError:
@@ -469,18 +474,22 @@ def _prepare(conn, p, body: AskBody) -> Plan:
     carried: list = []
     if not confirmed and body.conversation_id:  # "how many of each do we get": keep the passages already cited
         carried = [r for r in _carried(conn, p, body.conversation_id)][:PASSAGES]
-        if carried:
-            confirmed, unsupported = carried, []
-    used, unconfirmed = confirmed[:PASSAGES], False
     allow = body.allow_unsupported or getattr(rt, "ask_allow_unsupported", False)
-    if not used and allow and unsupported:  # answer from the closest matches, marked unconfirmed
-        used, unconfirmed = unsupported[:PASSAGES - 2], True
-    if carried:  # answering from what the conversation already cited, not from a new search
-        unconfirmed = not all(getattr(r, "confirmed", True) for r in used)
+    used = (confirmed + carried)[:PASSAGES]
+    if allow:  # the model decides what is close enough: confirmed passages, then the closest matches
+        for r in unsupported:
+            r.closest = True
+        used = (used + unsupported)[:PASSAGES]
+    unconfirmed = any(getattr(r, "closest", False) for r in used)
     cites = [_cite(n, r, (not unconfirmed) and getattr(r, "confirmed", True)) for n, r in enumerate(used, start=1)]
     gate = {"mode": rt.gate_mode, "dense_min": rt.gate_dense_min, "rerank_min": rt.gate_rerank_min}
-    note = ("No new passage passed the evidence check this time: answering from the passages this conversation "
-            "already cited.") if carried else ""
+    note = ""
+    if carried and not confirmed:
+        note = ("No new passage passed the evidence check this time: answering from the passages this conversation "
+                "already cited.")
+    elif unconfirmed:
+        note = ("Some of these passages did not pass the evidence check: the model decides whether they answer, and "
+                "says so when they do not.")
     # the closest matches shown besides the ones used: when the answer already rests on them, list the rest
     near = unsupported[len(used):] if unconfirmed else unsupported
     plan = Plan(rt, found, used, cites, history, [_brief(r) for r in near[:NEAR]], unconfirmed, gate, query)

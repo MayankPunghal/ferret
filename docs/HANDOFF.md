@@ -731,6 +731,15 @@ Nothing from that branch was merged.
   model picker, "Think first", collection scope, Ask/Stop. Phone width stacks the list above the chat.
 - **MCP:** a new read-only `ask` tool (question, collections, think) calls the app's own `/api/ask`, so
   permissions and the gate apply; it returns the answer, its citations and the outcome.
+- **Owner round 5 (2026-10-26: "think first to plan the query, then search, then think to answer; and let the model
+  decide whether a match is too far away"):** the query planner now runs with **thinking on** and sees up to 12
+  turns (1,200 chars each) instead of 6; the answer keeps the user's "Think first" choice. When
+  `ask_allow_unsupported` is on, the model is given the **confirmed passages and the closest matches together**,
+  each closest one marked `(closest match, not confirmed)`, with instructions to use them only if they really
+  answer and to reply `NOT_IN_DOCUMENTS` otherwise — so the deterministic gate no longer decides alone, the
+  model excuses a near match on content. Anything drawn from a closest match still shows as unconfirmed
+  evidence with dashed sources. Settings copy and the Ask footer say so. 17 tests, full suite 165 passed,
+  2 skipped. Version 1.1.4.
 - **Owner round 4 (2026-10-26, chat context):** "the question appears twice and there is no contextual awareness".
   (1) A follow-up now **always** rewrites its search query from the conversation (before, a question without a
   known pronoun was searched verbatim: "how many of each do we get"); 12+ words that plainly stand alone skip it.
