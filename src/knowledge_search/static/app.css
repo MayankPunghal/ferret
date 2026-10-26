@@ -780,7 +780,7 @@ button.icon:disabled { opacity: .35; cursor: not-allowed; }
 .conv-more-btn { list-style: none; cursor: pointer; color: var(--muted); padding: 0 6px; line-height: 1;
   border-radius: 6px; font-size: 15px; }
 .conv-more-btn::-webkit-details-marker { display: none; }
-.conv-menu { position: absolute; right: 0; top: 100%; z-index: 20; background: var(--surface);
+.conv-menu { position: fixed; right: auto; top: auto; z-index: 60; background: var(--surface);
   border: 1px solid var(--border); border-radius: 8px; padding: 4px; min-width: 126px; display: flex;
   flex-direction: column; box-shadow: 0 8px 24px rgba(0, 0, 0, .28); }
 .menu-item { text-align: left; border: 0; background: none; color: inherit; font: inherit; font-size: 13px;
@@ -814,3 +814,8 @@ button.icon:disabled { opacity: .35; cursor: not-allowed; }
   .ask-msg, .send, .jump { animation: none !important; transition: none !important; }
   .ask-answer.streaming > .stream::after { animation: none; }
 }
+
+/* Conversations: the list scrolls on its own, so its menu is fixed to the ⋯ button and cannot be clipped */
+.ask-convs { scrollbar-gutter: stable; padding-right: 2px; }
+.ask-convs li { overflow: visible; }
+.conv-more-btn { padding: 2px 6px; }

@@ -802,6 +802,9 @@ function askAtBottom() {
   return log.scrollHeight - log.scrollTop - log.clientHeight < 40;
 }
 $("#ask-log").addEventListener("scroll", () => { $("#ask-jump").hidden = askAtBottom(); });
+const closeConvMenus = () => $$("#ask-convs details.conv-more[open]").forEach((d) => { d.open = false; });
+document.addEventListener("click", (e) => { if (!e.target.closest(".conv-more")) closeConvMenus(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeConvMenus(); });
 $("#ask-jump").addEventListener("click", () => {
   const log = $("#ask-log");
   log.scrollTo({ top: log.scrollHeight, behavior: "smooth" });

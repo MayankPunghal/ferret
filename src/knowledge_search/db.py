@@ -58,7 +58,20 @@ def start_embedded(pgdata: Path, database: str = "ks", cleanup_mode: str = "stop
     _ensure_windows_runtime()
     _discard_failed_init(pgdata)
     pgdata.mkdir(parents=True, exist_ok=True)
-    _embedded = get_server(pgdata.resolve(), cleanup_mode=cleanup_mode)
+    # pg_ctl waits 10 s for the server; a large data folder on a cold disk can take longer, and then the app
+    # died at startup ("Disconnected" after an update, 2026-10-26) while the database itself came up a moment
+    # later. Ask again: a running server is attached to instead of started twice.
+    import subprocess
+    import time
+
+    for attempt in range(3):
+        try:
+            _embedded = get_server(pgdata.resolve(), cleanup_mode=cleanup_mode)
+            break
+        except subprocess.TimeoutExpired:
+            if attempt == 2:
+                raise
+            time.sleep(3)
     admin = _embedded.get_uri()
     with psycopg.connect(admin, autocommit=True) as c:
         if not c.execute("SELECT 1 FROM pg_database WHERE datname = %s", (database,)).fetchone():
