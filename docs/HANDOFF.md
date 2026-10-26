@@ -731,6 +731,14 @@ Nothing from that branch was merged.
   model picker, "Think first", collection scope, Ask/Stop. Phone width stacks the list above the chat.
 - **MCP:** a new read-only `ask` tool (question, collections, think) calls the app's own `/api/ask`, so
   permissions and the gate apply; it returns the answer, its citations and the outcome.
+- **Owner round 3 (2026-10-26: "change the reranker and the values to get the best result"):** applied to the
+  owner's install through the admin API and re-measured there: **gate mode similarity, similarity 0.58 – 0.70,
+  keyword coverage 0.20, reranker off**. Three real questions then returned the right page first (Leadership ›
+  Kabir Chandhoke; Org Chart slide 10; SF Leave Policy) and the unanswerable one stayed refused, at 0.4 – 1 s
+  per search. With `bge-reranker-base` on, a conference page outranked the biography. The shipped values per
+  model, and why the reranker floor is a different scale, are now in **docs/admin-guide.md** ("Evidence
+  thresholds: what is best for each model") and Settings shows the shipped values for the model in use with a
+  button that fills them in.
 - **Owner round 2 (2026-10-26, from screenshots):** (1) the closest-matches button became **Settings → Ask →
   "Answer from the closest matches when no passage passes the evidence check"** (`ask_allow_unsupported`,
   default **on**): a question is answered without a second click, marked unconfirmed; the API still accepts

@@ -1436,6 +1436,15 @@ function fillSettings(v) {
     + (settings.llm.gpu_error || (!settings.llm.gpu ? "No GPU build of the model server for this system: it runs on the CPU."
     : `Running on the ${settings.llm.device.toUpperCase()}. On an Intel Iris Xe laptop the GPU wrote summaries 10–20% faster, just as good, and left the processor free for indexing and search. If the GPU fails, the CPU takes over.`));
   $("#s-ask-closest").checked = v.ask_allow_unsupported;
+  const d = settings.defaults;
+  $("#s-g-defaults").textContent =
+    `Shipped values for ${v.embed_model}: similarity ${d.gate_dense_min} to ${d.gate_dense_high}, keyword coverage `
+    + `${d.gate_lex_coverage}, every word matched ${d.gate_all_terms_min}, gate ${(d.gate_mode || "").replaceAll("_", " ")}. `
+    + (v.rerank_enabled
+      ? `The reranker (${v.rerank_model}) is scored on its own scale, so its floor cannot be copied from another one: `
+        + `about -1.2 suits the jina-turbo model and about -1.0 the bge one, and with either the similarity gate often `
+        + `separates true matches from near ones better.`
+      : "The reranker is off, so the gate is cosine similarity plus keywords and results come back in 0.4 to 1 s.");
   $("#s-g-high").value = v.gate_dense_high; $("#s-g-min").value = v.gate_dense_min; $("#s-g-cov").value = v.gate_lex_coverage;
   $("#s-g-all").value = v.gate_all_terms_min;
   $("#s-g-rr").value = v.gate_rerank_min; $("#s-g-mode").value = v.gate_mode; $("#s-g-lex").value = v.gate_lexical;
@@ -1525,6 +1534,13 @@ $("#settings-form").addEventListener("submit", async (e) => {
   catch (err) { $("#settings-msg").textContent = "Not saved: " + err.message; }
 });
 $("#s-reset").addEventListener("click", () => fillSettings(settings.defaults));
+$("#s-g-use-defaults").addEventListener("click", () => {  // the shipped thresholds for the chosen model
+  const d = settings.defaults;
+  $("#s-g-high").value = d.gate_dense_high; $("#s-g-min").value = d.gate_dense_min;
+  $("#s-g-cov").value = d.gate_lex_coverage; $("#s-g-all").value = d.gate_all_terms_min;
+  $("#s-g-mode").value = d.gate_mode; $("#s-g-lex").value = d.gate_lexical;
+  $("#settings-msg").textContent = "Shipped values filled in; Save to apply them.";
+});
 for (const [id, all] of [["#reindex-outdated", false], ["#reindex-all", true]])
   $(id).addEventListener("click", async () => {
     const r = await api("/api/admin/reindex", { method: "POST", json: { all } });

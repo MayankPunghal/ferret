@@ -15,6 +15,38 @@ Administrators see two extra tabs: **Settings** and **Users & access**.
 | **Candidates to rerank** | How many top results the reranker reads. | More = better recall, slower. Models: jina-turbo (default since 2026-10-24: fast, equal or better than MiniLM on every corpus where both ran), MiniLM (fast; the default before), bge-reranker-base (~3× slower, not better on Kubernetes), bge-reranker-v2-m3 (multilingual, slowest). On Kubernetes no reranker scored as well as jina-turbo at half its time; it is kept for ordering on harder corpora (SciFact: +1.4 nDCG@10 for MiniLM). |
 | **Evidence thresholds** (advanced) | When a passage counts as evidence. | Higher = fewer false answers, more "no adequate evidence". Tuned values come from the evaluation; re-tune after changing the model. |
 
+### Evidence thresholds: what is best for each model
+
+The gate decides whether a passage counts as evidence. Its **cosine values belong to the embedding model** (it
+defines what "similar" means) and the **reranker floor belongs to the reranker** (its scores are logits or
+probabilities, not percentages of anything). Settings shows the shipped values for the model in use, next to a
+button that fills them in.
+
+| Embedding model | Similarity, min – strong | Keyword coverage | Every word matched | Tuned on |
+|---|---|---|---|---|
+| `BAAI/bge-small-en-v1.5` | 0.76 – 0.88 | 0.34 | 0.60 | fixtures |
+| `BAAI/bge-base-en-v1.5` (default) | 0.72 – 0.78 | 0.20 | 0.60 | fixtures + Kubernetes |
+| `Qwen/Qwen3-Embedding-0.6B-Q` | 0.64 – 0.78 | 0.20 | 0.45 | Kubernetes |
+| every other model | 0.76 – 0.88 (the global default) | 0.34 | 0.60 | not tuned: measure on your own documents |
+
+When the reranker is on, its floor is on its own scale:
+
+| Reranker | Its score at a true match | Suggested floor |
+|---|---|---|
+| `Xenova/ms-marco-MiniLM-L-6-v2` | ~0.0 to 5 | 0.0 (the shipped default) |
+| `jinaai/jina-reranker-v1-turbo-en` | −0.7 to −1.0 | −1.2 |
+| `BAAI/bge-reranker-base` | −0.6 to −5 | −1.0, and it is noisy: near-miss pages can outscore the right one |
+
+**Measured on a mixed business corpus** (slides, policies, wiki pages; 1,100 documents; 2026-10-26): with
+**gate mode `similarity`, similarity 0.58 – 0.70, keyword coverage 0.20 and the reranker off**, three real
+questions ("who is X", "who reports to X", "how much leave of each type") each came back with the right page
+first and the junk question ("who won the football tournament") stayed refused, at 0.4 – 1 s per search. The
+same questions with `bge-reranker-base` gating put a conference page above the right biography, and the
+Kubernetes evaluation agrees (first result right: 96.4% without the reranker, 94.6% with it). Turning the
+reranker off is therefore a good default for document sets like this; keep it on, with its own floor, when your
+evaluation says it helps.
+
+
 Changing the model, chunking or the line about the whole document marks already-indexed documents as **outdated**: the Settings page shows how
 many, and search reports *indexing incomplete* until they are reindexed. Click **Reindex outdated
 documents** (or **Reindex everything**); progress is visible on the Documents and Index status tabs.
