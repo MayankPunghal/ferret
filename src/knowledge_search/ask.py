@@ -37,7 +37,7 @@ from .search import search
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["ask"])
 
-PASSAGES = 6  # passages handed to the model: enough to answer, short enough for a small model's context
+PASSAGES = 8  # passages handed to the model: enough to answer, short enough for a small model's context
 CHARS_PER_PASSAGE = 1500
 TURNS = 6  # earlier question/answer pairs kept for follow-ups
 CHARS_PER_TURN = 700
@@ -433,7 +433,8 @@ def _brief(r) -> dict:
     return {"chunk_id": r.chunk_id, "title": r.clearer_title or r.title, "heading_path": r.heading_path,
             "page": r.page, "collection": r.collection, "source_url": r.source_url,
             "cosine": r.signals.get("cosine_similarity"), "rerank": r.signals.get("rerank_score"),
-            "why": r.match_basis, "preview": _one_line(r.text)[:240]}
+            "why": r.match_basis, "branches": r.signals.get("branches") or [],
+            "terms": r.signals.get("query_term_coverage"), "preview": _one_line(r.text)[:240]}
 
 
 class Plan:
@@ -470,6 +471,17 @@ def _prepare(conn, p, body: AskBody) -> Plan:
         history = body.history
     query = _search_query(rt, body, history)
     found = search(conn, p, query, rt, body.collection_ids, 10)
+    # a keyword-only pass alongside it: the hybrid ranking down-weights rare words, so "bereavement" can sit
+    # below treatises on "leave" while its own section never reaches the model
+    try:
+        lexical = search(conn, p, query, rt, body.collection_ids, 10, branches=("lexical",))
+    except Exception:  # noqa: BLE001 - the hybrid result stands on its own
+        lexical = None
+    if lexical is not None:
+        seen = {r.chunk_id for r in found.results}
+        extra = [r for r in lexical.results if r.supported and r.chunk_id not in seen]
+        if extra:
+            found.results = found.results + extra[:PASSAGES]
     conn.commit()
     confirmed = [r for r in found.results if r.supported]
     unsupported = [r for r in found.results if not r.supported]

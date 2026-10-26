@@ -582,6 +582,9 @@ function passageRow(c, confirmed, n) {
     el("span", { className: "n", textContent: n ? `[${n}]` : "–" }),
     el("span", { className: "t", textContent: c.title }),
     el("span", { className: `badge ${confirmed ? "ok" : "warn"}`, textContent: confirmed ? "confirmed" : "closest match" }),
+    ...(c.branches || []).filter((b) => ["dense", "lexical", "linked", "exact"].includes(b)).map((b) =>
+      el("span", { className: `badge branch ${b}`, textContent: b === "dense" ? "meaning" : b, title: b === "dense"
+        ? "found by the embedding (meaning), not by a keyword" : `found by the ${b} search` })),
     el("span", { className: "muted small", textContent: [whereOf(c), scoresOf(c)].filter(Boolean).join(" · ") })));
   row.append(el("p", { className: "ask-preview", textContent: c.preview || "—" }));
   const open = el("button", { type: "button", className: "link small", textContent: "Open passage" });
@@ -733,8 +736,12 @@ async function askSend(question, opts = {}) {
         status.remove();
         box.append(stepCard(event));
         body = el("div", { className: "ask-answer streaming" });
+        body.append(el("p", { className: "ask-wait" },
+          el("span", { className: "dots", ariaHidden: "true" }), " reading the passages…"));
         box.append(body);
+        log.scrollTop = log.scrollHeight;
       } else if (event.type === "thinking") {
+        body?.querySelector(".ask-wait")?.remove();
         if (!think) { think = thinkingCard(event.text); box.insertBefore(think, body); }
         else think.querySelector("pre").append(event.text);
       } else if (event.type === "error") {
@@ -757,6 +764,7 @@ async function askSend(question, opts = {}) {
           const event = JSON.parse(line.slice(6));
           if (event.type === "text") {
             text += event.text;
+            body?.querySelector(".ask-wait")?.remove();
             if (body && !body.querySelector(".stream")) body.append(el("p", { className: "stream" }));
             body?.querySelector(".stream")?.append(event.text);
             if (askConv === convId) log.scrollTop = log.scrollHeight;
