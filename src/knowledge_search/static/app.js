@@ -657,6 +657,16 @@ function metaRow({ outcome, model, seconds, question, label, unconfirmed }) {
   return meta;
 }
 
+function stageRow(label, kind = "active") {
+  return el("div", { className: `stage ${kind}` },
+    el("span", { className: "ico", ariaHidden: "true" }), el("span", { className: "lbl", textContent: label }));
+}
+function stageDone(row, label) {
+  if (!row) return;
+  row.className = "stage done";
+  if (label) row.querySelector(".lbl").textContent = label;
+}
+
 function askWho() {
   return el("div", { className: "ask-who" },
     el("span", { className: "av" }, el("svg", { className: "i" }, el("use", { href: "#i-spark" }))),
@@ -714,8 +724,11 @@ async function askSend(question, opts = {}) {
   const box = opts.box || el("div", { className: "ask-msg assistant" });
   box.replaceChildren();
   box.append(askWho());
-  const status = el("p", { className: "muted" }, el("span", { className: "spinner", ariaHidden: "true" }), " searching the documents…");
-  box.append(status);
+  const stages = el("div", { className: "ask-stages" });
+  box.append(stages);
+  let stagePlan = stageRow("Planning the search"), stageSearch = null, stageRead = null,
+    stageThink = null, stageWrite = null;
+  stages.append(stagePlan);
   if (!opts.box) log.append(box);
   log.scrollTop = log.scrollHeight;
   let convId = null;
@@ -738,15 +751,19 @@ async function askSend(question, opts = {}) {
     const handle = (event) => {
       if (event.type === "search") {
         search = event;
-        status.remove();
+        const n = (event.queries || []).length;
+        stageDone(stagePlan, `Planned ${n || 1} search quer${n === 1 ? "y" : "ies"}`);
+        stageSearch = stageRow(`Searched ${askPlural(event.passages || 0, "passage")}`, "done");
+        stages.append(stageSearch);
+        stageRead = stageRow(`Reading ${askPlural(event.passages || 0, "passage")}`);
+        stages.append(stageRead);
         box.append(stepCard(event));
         body = el("div", { className: "ask-answer streaming" });
-        body.append(el("p", { className: "ask-wait" },
-          el("span", { className: "dots", ariaHidden: "true" }), " reading the passages…"));
         box.append(body);
         log.scrollTop = log.scrollHeight;
       } else if (event.type === "thinking") {
-        body?.querySelector(".ask-wait")?.remove();
+        stageDone(stageRead, "Read the passages");
+        if (!stageThink) { stageThink = stageRow("Thinking it through"); stages.append(stageThink); }
         if (!think) { think = thinkingCard(event.text); box.insertBefore(think, body); }
         else think.querySelector("pre").append(event.text);
       } else if (event.type === "error") {
@@ -754,6 +771,9 @@ async function askSend(question, opts = {}) {
         box.append(el("p", { className: "ask-error", textContent: event.message }));
       } else if (event.type === "done") {
         final = event;
+        stageDone(stageRead, "Read the passages");
+        stageDone(stageThink, "Thought it through");
+        stageDone(stageWrite, "Wrote the answer");
       }
     };
     for (;;) {
@@ -769,7 +789,9 @@ async function askSend(question, opts = {}) {
           const event = JSON.parse(line.slice(6));
           if (event.type === "text") {
             text += event.text;
-            body?.querySelector(".ask-wait")?.remove();
+            stageDone(stageRead, "Read the passages");
+            stageDone(stageThink, "Thought it through");
+            if (!stageWrite) { stageWrite = stageRow("Writing the answer"); stages.append(stageWrite); }
             if (body && !body.querySelector(".stream")) body.append(el("p", { className: "stream" }));
             body?.querySelector(".stream")?.append(event.text);
             if (askConv === convId) log.scrollTop = log.scrollHeight;
@@ -778,8 +800,10 @@ async function askSend(question, opts = {}) {
       }
     }
     const thinking = think ? think.querySelector("pre").textContent : "";
-    box.replaceWith(answerNode({ text, citations: search?.citations || [], thinking,
-      outcome: search?.outcome || "", question, model: final?.model || "", seconds: final?.seconds || 0, search }));
+    const finished = answerNode({ text, citations: search?.citations || [], thinking,
+      outcome: search?.outcome || "", question, model: final?.model || "", seconds: final?.seconds || 0, search });
+    if (stages.childElementCount) finished.insertBefore(stages, finished.children[1] || null);  // keep the stages
+    box.replaceWith(finished);
     if (askConv === convId) log.scrollTop = log.scrollHeight;
     const conv = await api(`/api/ask/conversations/${convId}`).catch(() => null);
     if (conv && askConv === convId) setAskTitle(conv.title);
