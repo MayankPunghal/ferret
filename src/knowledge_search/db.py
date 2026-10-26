@@ -50,38 +50,41 @@ def _discard_failed_init(pgdata: Path) -> None:
         pgdata.rename(pgdata.with_name(f"{pgdata.name}.failed-init-{int(time.time())}"))
 
 
-def _wait_for_postgres(pgdata: Path, timeout: float = 60.0) -> bool:
-    """True once the server whose postmaster.pid is in this folder answers on its port.
+def _postmaster_info(pgdata: Path):
+    """The running server's postmaster.pid, or None. Works with a socket (Linux) and a port (Windows)."""
+    from pixeltable_pgserver.utils import PostmasterInfo
 
-    pixeltable starts the server with `pg_ctl -w` under a 10 s subprocess timeout. On a cold disk `pg_ctl`
-    itself can need longer than that, and pixeltable then re-raises and the app exits — while the server
-    comes up a moment later (reproduced twice on the owner's machine, 2026-10-26; it is exactly what
-    "the update did not restart Ferret" looked like). The server is fine: wait for it instead of dying.
+    try:
+        return PostmasterInfo.read_from_pgdata(pgdata)
+    except (OSError, ValueError, AssertionError):
+        return None
+
+
+def _wait_for_postgres(pgdata: Path, timeout: float = 45.0) -> bool:
+    """True once the server in this folder reports itself ready.
+
+    pixeltable starts postgres with `pg_ctl -w` under a 10 s subprocess timeout and re-raises on timeout, so
+    a cold disk killed the app at startup while the database came up a moment later (reproduced twice on the
+    owner's machine, 2026-10-26 — it is exactly what "the update did not restart Ferret" looked like).
+    Readiness is read from postmaster.pid, not from a port: on Linux the server listens on a socket only.
     """
     import time
 
-    import psycopg
-
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        try:
-            port = int((pgdata / "postmaster.pid").read_text().splitlines()[3])
-        except (OSError, IndexError, ValueError):  # not written yet, or not a pid file we understand
-            time.sleep(1.0)
-            continue
-        try:
-            with psycopg.connect(f"postgresql://postgres@127.0.0.1:{port}/postgres", connect_timeout=2) as c:
-                c.execute("SELECT 1")
+        info = _postmaster_info(pgdata)
+        if info is not None and info.is_running() and info.status == "ready":
             return True
-        except Exception:  # noqa: BLE001 - not listening yet
-            time.sleep(1.0)
+        time.sleep(1.0)
     return False
 
 
 def _admin_url(pgdata: Path) -> str:
-    """The admin URL of the server in this data folder, read from its pid file."""
-    port = int((pgdata / "postmaster.pid").read_text().splitlines()[3])
-    return f"postgresql://postgres@127.0.0.1:{port}/postgres"
+    """The admin URL of the server in this data folder, built the way pixeltable would (socket or port)."""
+    info = _postmaster_info(pgdata)
+    if info is None:
+        raise RuntimeError(f"no postmaster.pid in {pgdata}: the database did not start")
+    return info.get_uri()
 
 
 def _stop_pg_ctl(pgdata: Path) -> None:
@@ -92,7 +95,7 @@ def _stop_pg_ctl(pgdata: Path) -> None:
 
     for ctl in (Path(pixeltable_pgserver.__file__).parent).glob("pginstall*/bin/pg_ctl*"):
         subprocess.run([str(ctl), "stop", "-m", "fast", "-D", str(pgdata)], capture_output=True, check=False,
-                       creationflags=0x08000000)
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         return
 
 
@@ -115,7 +118,7 @@ def start_embedded(pgdata: Path, database: str = "ks", cleanup_mode: str = "stop
             break
         except subprocess.SubprocessError as error:  # pg_ctl timed out; the server may still be coming up
             last = error
-            if not _wait_for_postgres(pgdata, timeout=60 if attempt == 0 else 30):
+            if not _wait_for_postgres(pgdata, timeout=45 if attempt == 0 else 20):
                 time.sleep(2)
     else:
         assert last is not None
