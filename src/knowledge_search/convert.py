@@ -201,9 +201,46 @@ def smartart_lines(dm) -> list[str]:
     return lines
 
 
+def _parents(root) -> dict:
+    """child -> parent, for the ElementTree walk that replaces lxml's getparent()."""
+    return {child: parent for parent in root.iter() for child in parent}
+
+
+def _group_map(el, parents) -> tuple[float, float, float, float]:
+    """Local coordinates (a shape inside groups) -> slide coordinates: (scale_x, scale_y, offset_x, offset_y)."""
+    chain = []
+    node = parents.get(el)
+    while node is not None:
+        if node.tag == f"{P}grpSp":
+            gx = node.find(f"{P}grpSpPr/{A}xfrm")
+            if gx is not None:
+                chain.append(gx)
+        node = parents.get(node)
+    sx = sy = 1.0
+    ox = oy = 0.0
+    for gx in reversed(chain):  # outermost first
+        off, ext = gx.find(f"{A}off"), gx.find(f"{A}ext")
+        coff, cext = gx.find(f"{A}chOff"), gx.find(f"{A}chExt")
+        if off is None or ext is None or coff is None or cext is None:
+            continue
+        gw, gh = float(ext.get("cx") or 1), float(ext.get("cy") or 1)
+        cw, ch = float(cext.get("cx") or 1), float(cext.get("cy") or 1)
+        kx, ky = gw / cw, gh / ch
+        ox += sx * (float(off.get("x", 0)) - float(coff.get("x", 0)) * kx)
+        oy += sy * (float(off.get("y", 0)) - float(coff.get("y", 0)) * ky)
+        sx, sy = sx * kx, sy * ky
+    return sx, sy, ox, oy
+
+
+def _in_slide(el, x: float, y: float, parents) -> tuple[float, float]:
+    sx, sy, ox, oy = _group_map(el, parents)
+    return x * sx + ox, y * sy + oy
+
+
 def _shapes_with_geometry(slide) -> dict:
     """id -> (y, x, w, h, text) for every text shape that has a position on the slide."""
     shapes = {}
+    parents = _parents(slide)
     for sp in slide.iter(f"{P}sp"):
         nv = sp.find(f"{P}nvSpPr/{P}cNvPr")
         xfrm = sp.find(f"{P}spPr/{A}xfrm")
@@ -214,8 +251,10 @@ def _shapes_with_geometry(slide) -> dict:
             continue
         text = ", ".join(paragraphs(sp)).strip()
         if text:
-            shapes[nv.get("id")] = (int(off.get("y", 0)), int(off.get("x", 0)),
-                                    int(ext.get("cx", 0)), int(ext.get("cy", 0)), text)
+            x0, y0 = _in_slide(sp, float(off.get("x", 0)), float(off.get("y", 0)), parents)
+            x1, y1 = _in_slide(sp, float(off.get("x", 0)) + float(ext.get("cx", 0)),
+                               float(off.get("y", 0)) + float(ext.get("cy", 0)), parents)
+            shapes[nv.get("id")] = (int(y0), int(x0), int(x1 - x0), int(y1 - y0), text)
     return shapes
 
 
@@ -223,7 +262,7 @@ CONNECTOR_GEOMS = ("line", "straightConnector1", "bentConnector2", "bentConnecto
                    "bentConnector5", "curvedConnector2", "curvedConnector3", "curvedConnector4")
 
 
-def _line_endpoints(el) -> tuple | None:
+def _line_endpoints(el, parents=None) -> tuple | None:
     """The two ends of a line or connector, in slide coordinates (flipV/flipH taken into account)."""
     xfrm = el.find(f"{P}spPr/{A}xfrm") if el.tag == f"{P}sp" else el.find(f"{P}spPr/{A}xfrm")
     if xfrm is None:
@@ -234,9 +273,10 @@ def _line_endpoints(el) -> tuple | None:
     if off is None or ext is None:
         return None
     x, y, w, h = int(off.get("x", 0)), int(off.get("y", 0)), int(ext.get("cx", 0)), int(ext.get("cy", 0))
-    if xfrm.get("flipV") == "1":
-        return (x, y + h), (x + w, y)
-    return (x, y), (x + w, y + h)
+    ends = ((x, y + h), (x + w, y)) if xfrm.get("flipV") == "1" else ((x, y), (x + w, y + h))
+    if parents is not None:  # inside a group: map to slide coordinates, where the boxes live
+        return tuple(_in_slide(el, px, py, parents) for px, py in ends)
+    return ends
 
 
 def _snap(shapes: dict, point: tuple, tol: int) -> str | None:
@@ -282,21 +322,24 @@ def _line_tree(slide, shapes: dict) -> tuple[list[str], set]:
     segs = [ends for el in list(slide.iter(f"{P}cxnSp")) + list(slide.iter(f"{P}sp"))
             if (el.tag != f"{P}sp" or (el.find(f"{P}spPr/{A}prstGeom") is not None
                                        and el.find(f"{P}spPr/{A}prstGeom").get("prst") in CONNECTOR_GEOMS))
-            and (ends := _line_endpoints(el))]
+            and (ends := _line_endpoints(el, _parents(slide)))]
     if not segs:
         return [], set()
     height = max(h for _, _, _, h, _ in shapes.values()) or 1
     tol = max(height * 0.4, 91440)  # a bit more than a third of a box height, at least a tenth of an inch
 
     def box_distance(sid, seg) -> float:
-        _, x, _, h, _ = shapes[sid]
-        w = shapes[sid][2]
-        cx, cy = x + w / 2, shapes[sid][0] + h / 2
-        # near an edge (the line starts or ends on the box) or touching the box at all
-        corners = [(x, shapes[sid][0]), (x + w, shapes[sid][0]), (x, shapes[sid][0] + h), (x + w, shapes[sid][0] + h)]
-        d = min(_seg_point_distance(seg, c) for c in corners)
-        d = min(d, _seg_point_distance(seg, (cx, cy)))
-        return 0.0 if d <= tol else d
+        y, x, w, h, _ = shapes[sid]
+        # a connector usually meets the middle of an edge, not a corner: measure the segment against the whole
+        # rectangle (its four edges and its inside), or a wide box never touches its own connector
+        edges = [((x, y), (x + w, y)), ((x + w, y), (x + w, y + h)),
+                 ((x + w, y + h), (x, y + h)), ((x, y + h), (x, y))]
+        if any(_seg_point_distance(edge, p) <= tol for edge in edges for p in seg):
+            return 0.0
+        if any(x - tol <= px <= x + w + tol and y - tol <= py <= y + h + tol for px, py in seg):
+            return 0.0
+        corners = [(x, y), (x + w, y), (x, y + h), (x + w, y + h)]
+        return min(_seg_point_distance(seg, c) for c in corners)
 
     seg_shapes = [[sid for sid in shapes if box_distance(sid, seg) <= tol] for seg in segs]
     joined = [[j for j in range(len(segs)) if j != i and _segments_cross(segs[i], segs[j], tol)]

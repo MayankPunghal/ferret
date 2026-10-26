@@ -403,3 +403,43 @@ def test_pdfs_open_in_the_built_in_viewer(client, corpus):
         r = client.get(path)
         assert r.status_code == 200 and r.headers["content-type"].startswith("text/javascript"), path
     assert client.get(f"/api/documents/{pdf}/source", headers=root).headers["content-type"] == "application/pdf"
+
+
+def test_an_organisation_chart_inside_a_group_keeps_its_hierarchy():
+    """PowerPoint puts a hand-drawn chart in a group, whose shapes use the group's own coordinates (off/ext vs
+    chOff/chExt). Without mapping those to the slide, no box touched any line and the hierarchy was lost."""
+    from xml.etree import ElementTree as etree
+
+    from knowledge_search.convert import _chart_tree
+
+    ns = ('xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+          'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"')
+
+    def box(pid, x, y, w, text):
+        return (f'<p:sp {ns}><p:nvSpPr><p:cNvPr id="{pid}" name="b{pid}"/><p:cNvSpPr/></p:nvSpPr>'
+                f'<p:spPr><a:xfrm><a:off x="{x}" y="{y}"/><a:ext cx="{w}" cy="548640"/></a:xfrm>'
+                f'<a:prstGeom prst="rect"/></p:spPr>'
+                f'<p:txBody><a:p><a:r><a:t>{text}</a:t></a:r></a:p></p:txBody></p:sp>')
+
+    def line(pid, x, y, h):
+        return (f'<p:sp {ns}><p:nvSpPr><p:cNvPr id="{pid}" name="l{pid}"/><p:cNvSpPr/></p:nvSpPr>'
+                f'<p:spPr><a:xfrm><a:off x="{x}" y="{y}"/><a:ext cx="0" cy="{h}"/></a:xfrm>'
+                f'<a:prstGeom prst="line"/></p:spPr></p:sp>')
+
+    slide = etree.fromstring(
+        f'<p:sld {ns}><p:cSld><p:spTree>'
+        f'<p:grpSp><p:nvGrpSpPr><p:cNvPr id="1" name="chart"/><p:cNvGrpSpPr/></p:nvGrpSpPr>'
+        # real slide geometry (EMU): an inch is 914400, boxes are about half an inch tall
+        f'<p:grpSpPr><a:xfrm><a:off x="914400" y="457200"/><a:ext cx="7315200" cy="7315200"/>'
+        f'<a:chOff x="0" y="0"/><a:chExt cx="3657600" cy="3657600"/></a:xfrm></p:grpSpPr>'
+        + box(2, 457200, 457200, 2286000, "Kabir Chandokhe")
+        + box(3, 228600, 3200400, 1828800, "Amit Rao")
+        + box(4, 1828800, 3200400, 1828800, "Neha Singh")
+        + line(9, 1143000, 1005840, 2194560)
+        + line(10, 2286000, 1005840, 2194560)
+        + '</p:grpSp></p:spTree></p:cSld></p:sld>')
+    tree, used = _chart_tree(slide)
+    text = "\n".join(tree)
+    assert "Kabir Chandokhe" in text and "Amit Rao" in text and "Neha Singh" in text, text
+    assert any(ln.startswith("  - ") for ln in tree), text  # the children are indented under the parent
+    assert tree[0] == "- Kabir Chandokhe", text
