@@ -791,3 +791,26 @@ button.icon:disabled { opacity: .35; cursor: not-allowed; }
   .composer-row { flex-wrap: wrap; }
   .scope-mini select { max-width: 9rem; }
 }
+
+/* Ask: the small motions and marks of a chat window — entrance, a writing caret, the assistant's mark */
+.ask-who { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; font-size: 12px; color: var(--muted); }
+.ask-who .av { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center;
+  justify-content: center; background: var(--raised); color: var(--accent); flex: none; }
+.ask-who .av .i { width: 12px; height: 12px; }
+.ask-msg { animation: ask-rise .18s ease-out; }
+@keyframes ask-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.ask-answer.streaming > .stream::after { content: ""; display: inline-block; width: .45em; height: 1em;
+  margin-left: 2px; background: currentColor; opacity: .55; vertical-align: -2px; animation: ask-caret 1s steps(2) infinite; }
+@keyframes ask-caret { 50% { opacity: 0; } }
+.send:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+.send:active:not(:disabled) { transform: translateY(0) scale(.96); }
+.jump { position: absolute; left: 50%; transform: translateX(-50%); bottom: 96px; z-index: 5; height: 28px;
+  padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
+.jump:hover { color: var(--text); }
+.ask-main { position: relative; }
+.ask-step[open] > summary { color: var(--text); }
+@media (prefers-reduced-motion: reduce) {
+  .ask-msg, .send, .jump { animation: none !important; transition: none !important; }
+  .ask-answer.streaming > .stream::after { animation: none; }
+}

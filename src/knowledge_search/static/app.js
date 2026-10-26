@@ -649,8 +649,15 @@ function metaRow({ outcome, model, seconds, question, label, unconfirmed }) {
   return meta;
 }
 
+function askWho() {
+  return el("div", { className: "ask-who" },
+    el("span", { className: "av" }, el("svg", { className: "i" }, el("use", { href: "#i-spark" }))),
+    el("span", { textContent: "Ferret" }));
+}
+
 function answerNode(m) {
   const box = el("div", { className: "ask-msg assistant" });
+  box.append(askWho());
   const step = m.search ? stepCard(m.search) : m.citations?.length ? stepCard({ question: m.question || "", citations: m.citations, outcome: m.outcome }) : null;
   if (step) box.append(step);
   const think = m.thinking ? thinkingCard(m.thinking) : null;
@@ -698,6 +705,7 @@ async function askSend(question, opts = {}) {
   if (!opts.box) log.append(el("div", { className: "ask-msg user" }, el("p", { textContent: question })));
   const box = opts.box || el("div", { className: "ask-msg assistant" });
   box.replaceChildren();
+  box.append(askWho());
   const status = el("p", { className: "muted" }, el("span", { className: "spinner", ariaHidden: "true" }), " searching the documents…");
   box.append(status);
   if (!opts.box) log.append(box);
@@ -724,7 +732,7 @@ async function askSend(question, opts = {}) {
         search = event;
         status.remove();
         box.append(stepCard(event));
-        body = el("div", { className: "ask-answer" });
+        body = el("div", { className: "ask-answer streaming" });
         box.append(body);
       } else if (event.type === "thinking") {
         if (!think) { think = thinkingCard(event.text); box.insertBefore(think, body); }
@@ -789,6 +797,15 @@ $("#ask-q").addEventListener("keydown", (e) => {
 });
 $("#ask-stop").addEventListener("click", () => { askRunning.get(askConv)?.abort(); });
 $("#ask-new").addEventListener("click", () => newChat());
+function askAtBottom() {
+  const log = $("#ask-log");
+  return log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+}
+$("#ask-log").addEventListener("scroll", () => { $("#ask-jump").hidden = askAtBottom(); });
+$("#ask-jump").addEventListener("click", () => {
+  const log = $("#ask-log");
+  log.scrollTo({ top: log.scrollHeight, behavior: "smooth" });
+});
 $("#ask-think").addEventListener("click", () => {
   const on = $("#ask-think").getAttribute("aria-pressed") !== "true";
   $("#ask-think").setAttribute("aria-pressed", String(on));
