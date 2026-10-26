@@ -48,3 +48,18 @@ def test_the_database_wait_gives_up_instead_of_hanging(tmp_path):
     started = time.monotonic()
     assert db._wait_for_postgres(tmp_path / "nothing-here", timeout=2) is False
     assert time.monotonic() - started < 10
+
+
+def test_the_database_url_keeps_its_driver_and_socket_parameters():
+    """A socket URL carries its directory in the query (`…/postgres?host=/tmp/pg`); splitting on the last
+    slash turned that into `…/postgres?host=/tmp/ks` and the Linux jobs could not connect."""
+    from urllib.parse import urlsplit
+
+    from knowledge_search import db
+
+    assert db._with_database("postgresql://postgres:@127.0.0.1:5432/postgres", "ks") == \
+        "postgresql://postgres:@127.0.0.1:5432/ks"
+    socket_url = db._with_database("postgresql://postgres:@/postgres?host=/tmp/pg", "ks")
+    parts = urlsplit(socket_url)
+    assert parts.path == "/ks", socket_url
+    assert parts.query == "host=/tmp/pg", socket_url

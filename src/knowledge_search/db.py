@@ -7,6 +7,7 @@ profile). Servers point ``KS_DATABASE_URL`` at an external PostgreSQL with pgvec
 
 from importlib import resources
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from pgvector.psycopg import register_vector
 from psycopg import Connection
@@ -134,7 +135,17 @@ def start_embedded(pgdata: Path, database: str = "ks", cleanup_mode: str = "stop
     with psycopg.connect(admin, autocommit=True) as c:
         if not c.execute("SELECT 1 FROM pg_database WHERE datname = %s", (database,)).fetchone():
             c.execute(f'CREATE DATABASE "{database}"')
-    return admin, admin.rsplit("/", 1)[0] + f"/{database}"
+    return admin, _with_database(admin, database)
+
+
+def _with_database(admin: str, database: str) -> str:
+    """The same server's URL for another database.
+
+    A socket URL carries its directory in the query (`…/postgres?host=/tmp/pg`) and a TCP URL in the netloc;
+    splitting on the last slash destroyed the former (the Linux jobs failed with a socket path ending in the
+    database name, 2026-10-26). Only the path changes."""
+    parts = urlsplit(admin)
+    return urlunsplit(parts._replace(path=f"/{database}"))
 
 
 def resolve_url(settings) -> str:
