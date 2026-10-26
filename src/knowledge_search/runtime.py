@@ -52,6 +52,8 @@ class Runtime:
     enrich_model: str  # enrich.LLMS name chosen in Settings; "" = the one setup installed
     summary_length: str  # short | medium | long (enrich.LENGTHS)
     ask_allow_unsupported: bool  # Ask answers from the closest matches when nothing passed the evidence gate
+    ask_model: str  # enrich.LLMS name for Ask's answers; "" = the summaries' model
+    ask_think: bool  # Ask starts with thinking on
     llm_device: str  # cpu | gpu (enrich.Enricher._device)
     indexing_paused: bool  # no new indexing or summaries (ingest.Worker.run_once, enrich.Enricher.run_once)
 
@@ -96,7 +98,7 @@ def defaults(model: str | None = None) -> Runtime:
         gate_mode=s.gate_mode, gate_lexical=s.gate_lexical, gate_all_terms_min=full, fusion_lexical_weight=s.fusion_lexical_weight,
         graph_expansion=s.graph_expansion, enrich_enabled=s.enrich_enabled, enrich_hours=s.enrich_hours,
         enrich_model="", summary_length=s.summary_length, llm_device=s.llm_device,
-        ask_allow_unsupported=s.ask_allow_unsupported,
+        ask_allow_unsupported=s.ask_allow_unsupported, ask_model=s.ask_model, ask_think=s.ask_think,
         indexing_paused=s.indexing_paused,
     )
 
@@ -135,11 +137,11 @@ def validate(changes: dict) -> dict:
             raise ValueError("summary_length must be short, medium or long")
         if k == "gate_lexical" and v not in ("coverage", "idf"):
             raise ValueError("gate_lexical must be coverage or idf")
-        if k == "enrich_model":
+        if k in ("enrich_model", "ask_model"):
             from .enrich import LLMS  # enrich imports this module
 
             if v and v not in LLMS:
-                raise ValueError(f"unsupported summary model {v}")
+                raise ValueError(f"unsupported model {v}")
         if k == "enrich_hours":
             v = "".join(str(v).split()).replace("–", "-")
             m = re.fullmatch(r"(\d{1,2})(?::00)?-(\d{1,2})(?::00)?", v)

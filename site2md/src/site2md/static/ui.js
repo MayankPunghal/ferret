@@ -42,8 +42,10 @@ function clock(s) { const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60,
 
 // ---------------------------------------------------------------- Website copies
 let landed = false;  // the first visit opens the copy that is running; later ones stay where you go
+let homeTimer = null;
 async function loadHome() {
   stopPolling();
+  clearTimeout(homeTimer);
   const d = await api("copies");
   const first = !landed;
   landed = true;
@@ -53,6 +55,8 @@ async function loadHome() {
   $("#folder-path").value = d.folder;
   $("#empty").hidden = d.copies.length > 0;
   $("#copies").replaceChildren(...d.copies.map(copyRow));
+  clearTimeout(homeTimer);  // a copy is running: keep the row's state and counts live
+  if (d.run && ACTIVE.includes(d.run.state)) homeTimer = setTimeout(loadHome, 3000);
 }
 function copyRow(c) {
   const cls = c.state === "done" && !c.failed ? "ok" : c.state === "done" ? "" : "warn";

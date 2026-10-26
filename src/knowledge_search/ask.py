@@ -451,6 +451,8 @@ class Plan:
 def _prepare(conn, p, body: AskBody) -> Plan:
     """Search, then keep the passages that count as evidence (and, when asked, the closest matches)."""
     rt = runtime.load(conn)
+    if not body.model and getattr(rt, "ask_model", ""):
+        body.model = rt.ask_model  # chosen in Settings -> Ask
     question_id = None
     if body.conversation_id:
         _owned(conn, p.user_id, body.conversation_id)
@@ -521,6 +523,8 @@ def ask_models(p: User, conn: Conn) -> dict:
     """The models Ask can use, and whether each is downloaded (the same list as the document summaries)."""
     s, e = runtime.base(), getattr(state, "enricher", None)
     return {"default": enrich.DEFAULT_LLM, "external": bool(s.llm_url),
+            "chosen": rt.ask_model if (rt := runtime.load(conn)) else "",
+            "think": bool(rt.ask_think), "allow_unsupported": bool(rt.ask_allow_unsupported),
             "current": getattr(e, "model", "") or "",
             "models": [{"name": k, "file": v[1], "note": v[2], "installed": bool(enrich.installed(s, v[1]))}
                        for k, v in enrich.LLMS.items()]}

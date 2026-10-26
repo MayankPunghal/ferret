@@ -188,8 +188,10 @@ $("#upd-install").addEventListener("click", async () => {
 
 function openTab(name) {
   $$(".tab").forEach((t) => (t.dataset.tab === name ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current")));
-  // the search bar sits in the page on the Search tab and in the top bar elsewhere
-  if (name === "search") $("#tab-search .title-row").after($("#search-form")); else $("#menu-button").after($("#search-form"));
+  // the search box belongs to the Search tab; other tabs get the whole width
+  const searchForm = $("#search-form");
+  if (name === "search") { $("#tab-search .title-row").after(searchForm); searchForm.hidden = false; }
+  else searchForm.hidden = true;
   for (const t of ["search", "ask", "documents", "summaries", "status", "assistants", "about", "settings", "admin", "folders", "crawler", "database", "logs"]) $("#tab-" + t).hidden = t !== name;
   clearInterval(pollTimer);
   if (name === "ask") loadAsk();
@@ -481,15 +483,15 @@ function greeting() {
     el("p", { textContent: "Ask about anything in the documents you can read. I search first, then answer from the passages I found and cite them — and I say so when they do not answer it." }));
 }
 
+let askThinkInit = false;
 async function loadAsk() {
   if (!askModels) askModels = await api("/api/ask/models").catch((e) => ({ error: e.message, models: [] }));
   const ready = (askModels.models || []).filter((m) => m.installed);
-  const sel = $("#ask-model");
-  let saved = "";
-  try { saved = localStorage.getItem("ks-ask-model") || ""; } catch { /* not kept */ }
-  sel.replaceChildren(el("option", { value: "", textContent: "Same model as the summaries" }),
-    ...ready.map((m) => el("option", { value: m.name, textContent: `${m.name} · ${(m.note || "").split(",")[0]}` })));
-  sel.value = ready.some((m) => m.name === saved) ? saved : "";
+  $("#ask-model-chip").textContent = askModels.error ? "" : `Model: ${askModels.chosen || (askModels.current || "").replace(/-Q\d.*\.gguf$/i, "") || askModels.default}`;
+  if (!askThinkInit) {  // the Settings default, until the user flips the switch
+    $("#ask-think").setAttribute("aria-pressed", String(!!askModels.think));
+    askThinkInit = true;
+  }
   $("#ask-scope").replaceChildren(el("option", { value: "", textContent: "All collections" }),
     ...me.collections.map((c) => el("option", { value: c.id, textContent: c.name })));
   const note = $("#ask-note");
@@ -508,6 +510,21 @@ async function loadConvs(q = "") {
   if (!d.conversations?.length) $("#ask-convs").append(el("li", { className: "muted small ask-none", textContent: q.trim() ? "No conversation matches." : "No conversations yet." }));
 }
 
+async function renameChat(c) {
+  const title = prompt("Name this conversation", c.title || "");
+  if (title === null || !title.trim()) return;
+  await api(`/api/ask/conversations/${c.id}`, { method: "PATCH", json: { title: title.trim() } }).catch((e) => alert(e.message));
+  if (askConv === c.id) setAskTitle(title.trim());
+  loadConvs($("#ask-find").value);
+}
+
+async function deleteChat(c) {
+  if (!confirm(`Delete “${c.title || "Untitled"}”? Its messages are removed from this computer.`)) return;
+  await api(`/api/ask/conversations/${c.id}`, { method: "DELETE" }).catch((e) => alert(e.message));
+  if (askConv === c.id) { askConv = null; newChat(); }
+  loadConvs($("#ask-find").value);
+}
+
 function convRow(c) {
   const li = el("li", { className: c.id === askConv ? "on" : "" });
   const open = el("div", { className: "ask-conv", title: c.title || "Untitled", role: "button", tabIndex: 0 },
@@ -515,15 +532,14 @@ function convRow(c) {
     el("span", { className: "m", textContent: `${askPlural(c.turns, "turn")} · ${askWhen(c.updated_at)}` }));
   open.addEventListener("click", () => openChat(c.id));
   open.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openChat(c.id); } });
-  const del = el("button", { type: "button", className: "ask-del", title: "Delete this conversation", "aria-label": `Delete ${c.title || "this conversation"}` }, "×");
-  del.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    if (!confirm(`Delete “${c.title || "Untitled"}”? Its messages are removed from this computer.`)) return;
-    await api(`/api/ask/conversations/${c.id}`, { method: "DELETE" }).catch((x) => alert(x.message));
-    if (askConv === c.id) { askConv = null; newChat(); }
-    loadConvs($("#ask-find").value);
-  });
-  li.append(open, del);
+  const rename = el("button", { type: "button", className: "menu-item", textContent: "Rename" });
+  rename.addEventListener("click", (e) => { e.stopPropagation(); more.open = false; renameChat(c); });
+  const del = el("button", { type: "button", className: "menu-item danger", textContent: "Delete" });
+  del.addEventListener("click", (e) => { e.stopPropagation(); more.open = false; deleteChat(c); });
+  const more = el("details", { className: "conv-more" },
+    el("summary", { className: "conv-more-btn", title: "More", "aria-label": `Options for ${c.title || "this conversation"}` }, "⋯"),
+    el("div", { className: "conv-menu" }, rename, del));
+  li.append(open, more);
   return li;
 }
 
@@ -658,7 +674,7 @@ function answerNode(m) {
 
 function askBody(question, opts = {}) {
   const scope = $("#ask-scope").value;
-  return { question, conversation_id: askConv, model: $("#ask-model").value, think: $("#ask-think").checked,
+  return { question, conversation_id: askConv, think: $("#ask-think").getAttribute("aria-pressed") === "true",
     new_turn: opts.newTurn !== false, collection_ids: scope ? [+scope] : null };
 }
 
@@ -773,16 +789,9 @@ $("#ask-q").addEventListener("keydown", (e) => {
 });
 $("#ask-stop").addEventListener("click", () => { askRunning.get(askConv)?.abort(); });
 $("#ask-new").addEventListener("click", () => newChat());
-$("#ask-rename").addEventListener("click", async () => {
-  if (!askConv) return;
-  const title = prompt("Name this conversation", $("#ask-title").textContent === "New conversation" ? "" : $("#ask-title").textContent);
-  if (!title || !title.trim()) return;
-  await api(`/api/ask/conversations/${askConv}`, { method: "PATCH", json: { title: title.trim() } }).catch((e) => alert(e.message));
-  setAskTitle(title.trim());
-  loadConvs($("#ask-find").value);
-});
-$("#ask-model").addEventListener("change", (e) => {
-  try { localStorage.setItem("ks-ask-model", e.target.value); } catch { /* not kept */ }
+$("#ask-think").addEventListener("click", () => {
+  const on = $("#ask-think").getAttribute("aria-pressed") !== "true";
+  $("#ask-think").setAttribute("aria-pressed", String(on));
 });
 let askFindTimer = null;
 $("#ask-find").addEventListener("input", () => {
@@ -1436,6 +1445,7 @@ function fillSettings(v) {
     + (settings.llm.gpu_error || (!settings.llm.gpu ? "No GPU build of the model server for this system: it runs on the CPU."
     : `Running on the ${settings.llm.device.toUpperCase()}. On an Intel Iris Xe laptop the GPU wrote summaries 10–20% faster, just as good, and left the processor free for indexing and search. If the GPU fails, the CPU takes over.`));
   $("#s-ask-closest").checked = v.ask_allow_unsupported;
+  $("#s-ask-model").value = v.ask_model || ""; $("#s-ask-think").checked = !!v.ask_think;
   const d = settings.defaults;
   $("#s-g-defaults").textContent =
     `Shipped values for ${v.embed_model}: similarity ${d.gate_dense_min} to ${d.gate_dense_high}, keyword coverage `
@@ -1468,6 +1478,9 @@ function showSettings(s) {
   $("#s-llm").replaceChildren(...s.options.llms.map((m) => el("option", { value: m.name,
     textContent: `${llmLabel(m)} — ${m.note.split(";")[0]}${m.name === s.llm.default ? " · recommended" : ""}` })));
   $("#s-llm").disabled = s.llm.external;
+  $("#s-ask-model").replaceChildren(el("option", { value: "", textContent: "Same model as the summaries" }),
+    ...s.options.llms.map((m) => el("option", { value: m.name,
+      textContent: `${llmLabel(m)} — ${m.note.split(";")[0]}${m.installed ? "" : " (not downloaded)"}` })));
   fillSettings(s.values);
   const st = Object.entries(s.model_status).map(([k, v]) => `${k}: ${v}`).join(" · ");
   const ready = Object.values(s.model_status).every((v) => v === "ready");
@@ -1523,6 +1536,7 @@ $("#settings-form").addEventListener("submit", async (e) => {
     chunk_overlap: $("#s-overlap-on").checked ? +$("#s-overlap").value : 0, context_chars: +$("#s-ctx").value, context_source: $("#s-ctx-src").value,
     rerank_enabled: $("#s-rerank-on").checked, rerank_model: $("#s-rerank").value, rerank_candidates: +$("#s-rerank-n").value,
     graph_expansion: $("#s-graph-on").checked, ask_allow_unsupported: $("#s-ask-closest").checked,
+    ask_model: $("#s-ask-model").value, ask_think: $("#s-ask-think").checked,
     enrich_enabled: $("#s-enrich-on").checked, indexing_paused: $("#s-paused").checked, enrich_hours: $("#s-hours").value.trim(), summary_length: $("#s-sumlen").value, llm_device: $("#s-llm-dev").value,
     ...($("#s-llm").disabled || $("#s-llm").value === summaryModel(settings.values) ? {} : { enrich_model: $("#s-llm").value }),
     gate_dense_high: +$("#s-g-high").value, gate_dense_min: +$("#s-g-min").value, gate_lex_coverage: +$("#s-g-cov").value, gate_all_terms_min: +$("#s-g-all").value,

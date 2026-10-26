@@ -31,6 +31,9 @@
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-square" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
     <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></symbol>
     <symbol id="i-signout" viewBox="0 0 24 24"><path d="M10 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4M15 16l4-4-4-4M19 12H9"/></symbol>
@@ -137,30 +140,30 @@
             <ul id="ask-convs" class="ask-convs"></ul>
           </aside>
           <div class="ask-main">
-            <div class="title-row">
+            <div class="ask-head">
               <h1 id="ask-title">New conversation</h1>
-              <div class="ask-tools">
-                <label class="ask-model"><span class="muted small">Model</span>
-                  <select id="ask-model" aria-label="Local model that writes the answers"></select></label>
-                <button type="button" id="ask-rename" class="link" title="Rename this conversation">Rename</button>
-              </div>
+              <span id="ask-model-chip" class="chip model" title="The model is chosen in Settings → Ask"></span>
             </div>
             <div id="ask-note" class="notice" hidden role="status"></div>
             <div id="ask-log" class="ask-log" role="log" aria-live="polite" aria-label="Conversation"><div class="ask-msg assistant muted"><p>Ask about anything in the documents you can read. I search first, then answer from the passages I found and cite them — and I say so when they do not answer it.</p></div></div>
-            <form id="ask-form" class="ask-form">
-              <textarea id="ask-q" rows="2" maxlength="1000" required aria-label="Question"
-                        placeholder="Ask a question about your documents — an error code, a how-to, who owns what…"></textarea>
-              <div class="ask-send">
-                <label class="check tiny" title="Let the model reason before answering: slower, for hard questions"><input type="checkbox" id="ask-think"> Think first</label>
-                <select id="ask-scope" aria-label="Collections to search"></select>
-                <button type="submit" class="primary" id="ask-send">Ask</button>
-                <button type="button" id="ask-stop" class="button danger" hidden>Stop</button>
+            <form id="ask-form" class="composer">
+              <textarea id="ask-q" rows="1" maxlength="1000" required aria-label="Question"
+                        placeholder="Ask about your documents"></textarea>
+              <div class="composer-row">
+                <button type="button" id="ask-think" class="pill" aria-pressed="false"
+                        title="Let the model reason before answering: slower, for hard questions">
+                  <svg class="i"><use href="#i-spark"/></svg> Think</button>
+                <label class="scope-mini"><span class="sr-only">Collections to search</span>
+                  <select id="ask-scope"></select></label>
+                <span class="composer-spacer"></span>
+                <button type="submit" class="send" id="ask-send" title="Ask (Enter)" aria-label="Ask">
+                  <svg class="i"><use href="#i-arrow-up"/></svg></button>
+                <button type="button" class="send stop" id="ask-stop" hidden title="Stop" aria-label="Stop">
+                  <svg class="i"><use href="#i-square"/></svg></button>
               </div>
             </form>
-            <p class="muted small">Every answer starts with a search whose step you can open: what was asked, the
-              query the model planned from the conversation, the passages it read with their scores, and its
-              reasoning. Answers cite what they use; when nothing really answers, Ask says so instead of guessing.
-              Nothing leaves this computer.</p>
+            <p class="composer-hint">Enter sends, Shift+Enter adds a line. Every answer shows its search, the
+              passages it read and its reasoning; nothing leaves this computer.</p>
           </div>
         </div>
       </section>
@@ -387,6 +390,10 @@
                 decides what happens when nothing passes it.</p>
             </div>
             <div class="setting-panel">
+              <div class="grid2">
+                <label>Model for answers <select id="s-ask-model"></select></label>
+                <label class="check"><input type="checkbox" id="s-ask-think"> Start with thinking on</label>
+              </div>
               <label class="check"><input type="checkbox" id="s-ask-closest"> Let the model answer from the closest
                 matches too, and decide itself whether they answer</label>
               <p class="muted small">The search still marks what passed the evidence check; the model also sees the

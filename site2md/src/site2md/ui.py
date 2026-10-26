@@ -506,6 +506,21 @@ class App:
         rows = [copy_view(d) for d in sorted(self.copies.iterdir(), key=lambda d: d.name.lower())
                 if d.is_dir() and not d.name.endswith((".new", "-html", ".new-html")) and not d.name.startswith((".", "_"))
                 and ((d / "manifest.json").exists() or (d / ".site2md.json").exists())]
+        run = self.run  # the copy that is running right now: its saved state is the last one that finished
+        if run is not None and run.state in ACTIVE:
+            for r in rows:
+                if r["name"] != run.name:
+                    continue
+                r.update(state=run.state, status=run.state)
+                c = run.crawler
+                if c is not None:
+                    try:
+                        with c.lock:
+                            r["pages"] = len(c.manifest.get("pages", {}))
+                            r["failed"] = len(c.manifest.get("failed", {}))
+                            r["left"] = len(c.manifest.get("queue", []))
+                    except Exception:  # noqa: BLE001 - a stale count is better than a broken list
+                        pass
         return sorted(rows, key=lambda r: -(r["updated"] or 0))
 
     def delete(self, name: str) -> None:

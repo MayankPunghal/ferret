@@ -731,6 +731,17 @@ Nothing from that branch was merged.
   model picker, "Think first", collection scope, Ask/Stop. Phone width stacks the list above the chat.
 - **MCP:** a new read-only `ask` tool (question, collections, think) calls the app's own `/api/ask`, so
   permissions and the gate apply; it returns the answer, its citations and the outcome.
+- **Owner round 6 (2026-10-26, chat UI and the crawler list):** the chat window now looks like an assistant's:
+  one **composer** (rounded box, textarea, a **Think** pill that toggles, a collection chip, a round send button
+  that becomes Stop), the **model is a Settings choice** (`ask_model`, shown only as a chip in the window, with
+  `ask_think` as the starting state of the pill), **rename and delete sit behind ⋯ on each conversation row**
+  (the header Rename and the hover × are gone), and the **search box is on the Search tab only**. The crawler's
+  Website copies list now shows **copying/paused with live counts** for the copy that is running (it used to
+  show the last finished state) and refreshes every 3 s while a copy runs (`site2md/ui.py copies_view` overlays
+  the live run; `ui.js loadHome` polls). **Not built in this round:** MCP-style tools for the local model
+  (search/read/links in a loop), a reasoning-effort control, and more downloadable models — each needs its own
+  pass: tool calling needs llama-server's `tools` schema plus a model that follows it (Gemma 4 E2B is
+  untested at that), and effort is a per-model template flag, not a slider we can fake. Version 1.1.5.
 - **Owner round 5 (2026-10-26: "think first to plan the query, then search, then think to answer; and let the model
   decide whether a match is too far away"):** the query planner now runs with **thinking on** and sees up to 12
   turns (1,200 chars each) instead of 6; the answer keeps the user's "Think first" choice. When
