@@ -538,9 +538,21 @@ function convRow(c) {
   rename.addEventListener("click", (e) => { e.stopPropagation(); more.open = false; renameChat(c); });
   const del = el("button", { type: "button", className: "menu-item danger", textContent: "Delete" });
   del.addEventListener("click", (e) => { e.stopPropagation(); more.open = false; deleteChat(c); });
+  const menu = el("div", { className: "conv-menu" }, rename, exportLink, del);
   const more = el("details", { className: "conv-more" },
     el("summary", { className: "conv-more-btn", title: "More", "aria-label": `Options for ${c.title || "this conversation"}` }, "⋯"),
-    el("div", { className: "conv-menu" }, rename, exportLink, del));
+    menu);
+  // while open the menu lives in <body>: nothing in the sidebar (its scroll box, its stacking context) can clip
+  // it or paint the composer over it, which is what a z-index inside the aside could not fix
+  const width = 184;
+  more.addEventListener("toggle", () => {
+    if (!more.open) { menu.remove(); more.append(menu); return; }
+    document.body.append(menu);
+    const box = more.querySelector("summary").getBoundingClientRect();
+    menu.style.width = `${width}px`;
+    menu.style.left = `${Math.max(8, Math.min(box.right - width, window.innerWidth - width - 8))}px`;
+    menu.style.top = `${Math.min(box.bottom + 6, window.innerHeight - 132)}px`;
+  });
   li.append(open, more);
   return li;
 }

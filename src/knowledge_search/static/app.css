@@ -780,7 +780,7 @@ button.icon:disabled { opacity: .35; cursor: not-allowed; }
 .conv-more-btn { list-style: none; cursor: pointer; color: var(--muted); padding: 0 6px; line-height: 1;
   border-radius: 6px; font-size: 15px; }
 .conv-more-btn::-webkit-details-marker { display: none; }
-.conv-menu { position: fixed; right: auto; top: auto; z-index: 60; background: var(--surface);
+.conv-menu { position: fixed; right: auto; top: auto; z-index: 1000; background: var(--surface);
   border: 1px solid var(--border); border-radius: 8px; padding: 4px; min-width: 126px; display: flex;
   flex-direction: column; box-shadow: 0 8px 24px rgba(0, 0, 0, .28); }
 .menu-item { text-align: left; border: 0; background: none; color: inherit; font: inherit; font-size: 13px;
@@ -862,3 +862,6 @@ button.icon:disabled { opacity: .35; cursor: not-allowed; }
 
 /* the conversation menu holds a link too (Export), so it must look like the buttons beside it */
 a.menu-item { text-decoration: none; display: block; }
+
+/* the row menu lives in <body> while open: its labels never wrap, and it keeps its own stacking order */
+.conv-menu .menu-item { white-space: nowrap; display: block; width: 100%; box-sizing: border-box; text-align: left; }
