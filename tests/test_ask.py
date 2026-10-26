@@ -385,3 +385,35 @@ def test_a_conversation_can_be_exported_as_markdown(client, corpus, monkeypatch)
     body = r.text
     assert body.startswith("# ") and "## You" in body and "## Ferret" in body
     assert "Retry once" in body and "[1]" in body and "http://127.0.0.1:8000/api/documents/" in body
+
+
+def test_a_question_that_names_someone_is_answered_by_passages_that_name_them():
+    """Careers and about-us pages matched the words around a name and never mentioned the person."""
+    from types import SimpleNamespace
+
+    from knowledge_search.ask import _prefer_names
+
+    def result(title, text, supported=True):
+        return SimpleNamespace(title=title, clearer_title=None, heading_path="", text=text,
+                               supported=supported, match_basis=["semantic"], closest=False)
+
+    org = result("SourceFuse Organizational Structure and Team Roles", "Kabir Chandokhe leads Delivery.")
+    careers = result("Careers - SourceFuse", "Join us, we are hiring across teams.")
+    about = result("About Us - SourceFuse", "The values that shape us.")
+    ordered = _prefer_names("Who all report to Kabir Chandokhe?", [careers, org, about])
+    assert ordered[0] is org and ordered[0].supported is True
+    assert all(not r.supported and r.closest for r in ordered[1:])
+    assert all("name_not_mentioned" in r.match_basis for r in ordered[1:])
+
+
+def test_a_name_that_matches_nothing_leaves_the_ranking_alone():
+    from types import SimpleNamespace
+
+    from knowledge_search.ask import _prefer_names
+
+    def result(title):
+        return SimpleNamespace(title=title, clearer_title=None, heading_path="", text="some text",
+                               supported=True, match_basis=["semantic"], closest=False)
+
+    rows = [result("A"), result("B")]
+    assert _prefer_names("Who is Nekoval Traskavic?", rows) == rows

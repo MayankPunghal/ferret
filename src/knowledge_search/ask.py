@@ -383,7 +383,8 @@ no "policy about", no punctuation. Examples of the shape (not of the subject):
   asset return exit clearance form
   bereavement leave days immediate family
   induction checklist first week equipment
-Use the conversation to know what the question refers to. Keep names, codes and numbers exactly.
+Use the conversation to know what the question refers to. Keep names, codes and numbers exactly, and never
+swap who does what: "who reports to X" and "who X reports to" are opposite questions.
 One per line, no numbering, at most 10 words each.
 {history}
 Question: {question}
@@ -429,6 +430,38 @@ def _decide(rt, body: AskBody, question: str, results: list) -> dict:
         return json.loads(match.group(0)) if match else {"enough": False, "queries": []}
     except ValueError:
         return {"enough": False, "queries": []}
+
+
+def _question_names(question: str) -> list[str]:
+    """The distinctive names in a question ("Who reports to Kabir Chandokhe" -> Kabir, Chandokhe)."""
+    words = re.findall(r"[A-Z][\w'’-]{2,}", question)
+    skip = {"who", "what", "when", "where", "why", "how", "which", "does", "did", "is", "are", "the", "all"}
+    return list(dict.fromkeys(w for w in words if w.lower() not in skip))[:4]
+
+
+def _prefer_names(question: str, results: list) -> list:
+    """Passages that name who the question is about come first; the rest are not confirmation.
+
+    "Who all report to Kabir Chandokhe" was answered with careers and about-us pages that matched the words
+    around the name and never mentioned him (owner's report, 2026-10-26). If the name is found in nothing,
+    the question probably spells it differently: leave the ranking alone instead of refusing everything."""
+    names = _question_names(question)
+    if not names:
+        return results
+
+    def mentions(r) -> bool:
+        hay = " ".join([r.clearer_title or r.title or "", r.heading_path or "", r.text or ""]).lower()
+        return any(n.lower() in hay for n in names)
+
+    hits, rest = [r for r in results if mentions(r)], [r for r in results if not mentions(r)]
+    if not hits:
+        return results
+    for r in rest:
+        r.supported = False
+        r.closest = True
+        if "name_not_mentioned" not in r.match_basis:
+            r.match_basis.append("name_not_mentioned")
+    return hits + rest
 
 
 def _search_queries(rt, body: AskBody, history: list[Turn]) -> list[str]:
@@ -633,7 +666,7 @@ def _prepare(conn, p, body: AskBody, emit=None) -> Plan:
             continue
         seen_sections.add(section)
         merged.append(r)
-    found.results = merged
+    found.results = _prefer_names(asked, merged)
     conn.commit()
     confirmed = [r for r in found.results if r.supported]
     unsupported = [r for r in found.results if not r.supported]
