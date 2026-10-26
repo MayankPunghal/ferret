@@ -25,11 +25,16 @@ class FakeEnricher:
         return True
 
 
-def fake_model(*chunks, thinking="", seen=None):
-    """What the model server streams: text pieces (and its reasoning, before them)."""
+def fake_model(*chunks, thinking="", seen=None, plan="a keyword variant of the question"):
+    """What the model server streams: the planned queries for the planner prompt, else the answer."""
     def gen(url, model, prompt, think, max_tokens=900):
+        if prompt.startswith("Write up to 3 short search queries"):
+            if seen is not None:
+                seen.setdefault("plans", []).append(prompt)
+            yield "text", plan
+            return
         if seen is not None:
-            seen.update(url=url, model=model, prompt=prompt, think=think)
+            seen.update(url=url, model=model, prompt=prompt, think=think, answered=True)
         if thinking:
             yield "thinking", thinking
         for chunk in chunks:
@@ -53,7 +58,7 @@ def test_no_evidence_means_no_answer_and_no_model_call(client, corpus, monkeypat
         assert r.status_code == 200
         body = r.json()
         assert body["answer"] is None and body["answered"] is False and body["citations"] == []
-        assert not seen  # nothing to answer from: the model is never asked
+        assert not seen.get("answered")  # nothing to answer from: the answer is never asked for
         assert body["outcome"] == "no_adequate_evidence" and body["message"]
         assert body["near"], "the refusal still lists what the search found"
     finally:
@@ -178,10 +183,10 @@ def test_the_setting_answers_from_the_closest_matches(client, corpus, monkeypatc
 
 
 def _rewriting_model(rewritten: str, answer: str, seen: list):
-    """The model is called twice for a follow-up: first to write the search query, then to answer."""
+    """The model is called twice when the first search is empty: to write the queries, then to answer."""
     def gen(url, model, prompt, think, max_tokens=900):
         seen.append(prompt)
-        if prompt.startswith("Rewrite the user's latest question"):
+        if prompt.startswith("Write up to 3 short search queries"):
             yield "text", rewritten
         else:
             yield "text", answer
@@ -197,14 +202,15 @@ def test_a_follow_up_searches_with_a_rewritten_query(client, corpus, monkeypatch
                {"role": "assistant", "text": "He is the COO [1]."}]
     events = []
     with client.stream("POST", "/api/ask/stream", headers=token(client, "alice"),
-                       json={"question": "who all report to him?", "history": history}) as r:
+                       json={"question": "zebra quantum lasagna policy", "history": history}) as r:
         for line in r.iter_lines():
             if line.startswith("data: "):
                 events.append(json.loads(line[6:]))
     search = events[0]
-    assert search["searched"] == "who reports to Kabir Singh"
-    assert search["question"] == "who all report to him?"
-    assert any("Who is Kabir Singh?" in p for p in seen if p.startswith("Rewrite"))
+    assert "who reports to Kabir Singh" in search["queries"]
+    assert search["question"] == "zebra quantum lasagna policy"
+    assert any(p.startswith("Write up to 3 short search queries") for p in seen)
+    assert "Who is Kabir Singh?" in "".join(seen)
 
 
 def test_a_retry_does_not_add_the_question_twice(client, corpus, monkeypatch):
@@ -232,7 +238,7 @@ def test_a_refusal_shows_the_closest_matches_and_can_still_answer_from_them(clie
         assert body["answer"] is None and body["outcome"] == "no_adequate_evidence"
         assert body["gate"]["mode"] and body["gate"]["dense_min"] is not None and "near" in body
         assert body["near"], "the refusal lists what the search found"
-        assert not seen, "no model call while nothing passed the gate"
+        assert not seen.get("answered"), "the answer is not asked for while nothing passed the gate"
     finally:
         allow_closest(client, True)
 
@@ -311,8 +317,9 @@ def test_a_follow_up_without_a_pronoun_is_still_rewritten(client, corpus, monkey
                {"role": "assistant", "text": "Privilege, casual, sick … [1]."}]
     events = []
     with client.stream("POST", "/api/ask/stream", headers=token(client, "alice"),
-                       json={"question": "and the exact numbers", "history": history}) as r:
+                       json={"question": "zebra quantum lasagna policy", "history": history}) as r:
         for line in r.iter_lines():
             if line.startswith("data: "):
                 events.append(json.loads(line[6:]))
-    assert events[0]["searched"] == "number of leave days per type"
+    assert "number of leave days per type" in events[0]["queries"]
+    assert events[0]["queries"][0] == "zebra quantum lasagna policy"

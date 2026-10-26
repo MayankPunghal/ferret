@@ -349,40 +349,44 @@ def delete(cid: uuid.UUID, p: User, conn: Conn) -> dict:
 NEAR = 3  # closest matches shown when nothing passed the evidence check
 ANAPHORA = re.compile(r"\b(he|him|his|she|her|hers|they|them|their|it|its|this|that|those|these|there|same|also|"
                       r"we|us|our|ours|you|your|yours|each|every|both|former|latter)\b", re.IGNORECASE)
-REWRITE = """Rewrite the user's latest question as ONE standalone search query, using the conversation, so that a
-search engine finds the pages it is about. Keep names, codes and numbers exactly. Reply with the query only, at
-most 20 words, no quotes.
+REWRITE = """Write up to 3 short search queries that together find the answer in the user's own documents: one in
+the words the user used, one as keywords only (the distinctive names, codes and the thing asked about), and one
+in the words a policy, runbook or handbook would use. Use the conversation to know what the question refers to.
+Keep names, codes and numbers exactly. One per line, no numbering, at most 12 words each.
 {history}
 Question: {question}
-Query:"""
+"""
+MAX_QUERIES = 3
 
 
-def _search_query(rt, body: AskBody, history: list[Turn]) -> str:
-    """A follow-up ("who reports to him?") searches badly on its own: the local model rewrites it into a
-    standalone query from the conversation. First questions, and ones that already stand alone, are used as
-    they are (no extra model call)."""
-    if not history:
-        return body.question
-    # a follow-up almost always leans on the conversation ("how many of each do we get"), so the query is
-    # rewritten unless it is plainly a new, self-contained question
-    if len(body.question.split()) > 12 and not ANAPHORA.search(body.question):
-        return body.question
+def _search_queries(rt, body: AskBody, history: list[Turn]) -> list[str]:
+    """The queries to search: the user's own words first, then what the local model writes from the conversation.
+
+    One query is not enough for a small model's phrasing ("what is the policy about issuing laptop?"): the
+    keyword and policy-worded variants reach sections the first one misses (owner, 2026-10-26)."""
+    asked = body.question.strip()
     try:
         url, model = _models.serving(body.model, rt.llm_device)
-    except HTTPException:  # no model on this computer: search what was asked
-        return body.question
-    prompt = REWRITE.format(history=_history_text(history, limit=PLAN_TURNS, chars=PLAN_CHARS),
-                            question=body.question.strip())
+    except HTTPException:  # no model on this computer: search what was asked, plus its keywords
+        return [asked]
+    prompt = REWRITE.format(history=_history_text(history, limit=PLAN_TURNS, chars=PLAN_CHARS), question=asked)
     pieces: list[str] = []
     try:
-        # thinking is worth it here: a wrong query makes everything after it wrong
-        for kind, piece in _stream_model(url, model, prompt, think=True, max_tokens=400):
+        for kind, piece in _stream_model(url, model, prompt, think=False, max_tokens=160):
             if kind == "text":
                 pieces.append(piece)
     except enrich.LLMError:
-        return body.question
-    query = " ".join("".join(pieces).split()).strip(' ."“”')
-    return query[:300] or body.question
+        return [asked]
+    out = [asked]
+    for line in "".join(pieces).splitlines():
+        query = " ".join(line.split()).strip(' -–—•*"“”.,:')
+        if not query or len(query.split()) > 14 or len(query) < 3:
+            continue
+        if query.lower() not in {q.lower() for q in out}:
+            out.append(query)
+        if len(out) >= MAX_QUERIES:
+            break
+    return out[:MAX_QUERIES]
 
 
 class _Cited:
@@ -397,6 +401,7 @@ class _Cited:
         self.source_url = f"/api/documents/{row['document_id']}/view" + (f"#page={self.page}" if self.page else anchor)
         self.passage_url = f"/api/chunks/{self.chunk_id}"
         self.signals = {"carried_over": True}
+        self.match_basis: list[str] = ["carried_over"]
         self.confirmed = confirmed
 
 
@@ -444,7 +449,8 @@ class Plan:
     def __init__(self, rt, found, used, cites, history, near, unconfirmed, gate, query="") -> None:
         self.rt, self.found, self.used, self.cites = rt, found, used, cites
         self.history, self.near, self.unconfirmed, self.gate = history, near, unconfirmed, gate
-        self.query = query  # what the search ran with (the rewritten query for a follow-up)
+        self.query = query  # what the search ran with (the planned queries, joined)
+        self.queries: list[str] = []  # the queries themselves, shown in the step
         self.note = ""  # why these passages (e.g. carried over from the previous answer)
         self.question_id = None  # the turn this question added, dropped again if no answer is written
 
@@ -469,19 +475,47 @@ def _prepare(conn, p, body: AskBody) -> Plan:
             history = history[:-1] if history and history[-1].role == "user" else history
     else:
         history = body.history
-    query = _search_query(rt, body, history)
-    found = search(conn, p, query, rt, body.collection_ids, 10)
-    # a keyword-only pass alongside it: the hybrid ranking down-weights rare words, so "bereavement" can sit
-    # below treatises on "leave" while its own section never reaches the model
-    try:
-        lexical = search(conn, p, query, rt, body.collection_ids, 10, branches=("lexical",))
-    except Exception:  # noqa: BLE001 - the hybrid result stands on its own
-        lexical = None
-    if lexical is not None:
-        seen = {r.chunk_id for r in found.results}
-        extra = [r for r in lexical.results if r.supported and r.chunk_id not in seen]
-        if extra:
-            found.results = found.results + extra[:PASSAGES]
+    asked = body.question.strip()
+    first = search(conn, p, asked, rt, body.collection_ids, 10)  # the user's own words: no model call when they work
+    found = first
+    queries = [asked]
+    by_id: dict[int, object] = {}
+    score: dict[int, float] = {}
+
+    def add(res) -> None:
+        for rank, r in enumerate(res.results, start=1):  # reciprocal rank fusion across the queries
+            score[r.chunk_id] = score.get(r.chunk_id, 0.0) + 1.0 / (60 + rank)
+            if r.chunk_id not in by_id or (r.supported and not by_id[r.chunk_id].supported):
+                by_id[r.chunk_id] = r
+
+    add(first)
+    if not any(r.supported for r in first.results):
+        # the question in the user's words found no evidence: the model writes the variants that might, from
+        # the conversation ("what is the policy about issuing laptop?" -> the acceptable-use policy's wording)
+        for query in [q for q in _search_queries(rt, body, history) if q.lower() != asked.lower()][:MAX_QUERIES - 1]:
+            res = search(conn, p, query, rt, body.collection_ids, 10)
+            queries.append(query)
+            add(res)
+            if any(r.supported for r in res.results):
+                found = res
+        if not any(r.supported for r in by_id.values()):  # still nothing: a keyword-only pass
+            try:
+                lex = search(conn, p, asked, rt, body.collection_ids, 10, branches=("lexical",))
+            except Exception:  # noqa: BLE001 - the hybrid results stand on their own
+                lex = None
+            for r in (lex.results if lex else []):
+                if r.supported:
+                    by_id.setdefault(r.chunk_id, r)
+    ordered = sorted(by_id.values(), key=lambda r: -score.get(r.chunk_id, 0.0))
+    # one passage per section: six chunks of "Privilege Leave" crowd out the handbook's bereavement page
+    seen_sections, merged = set(), []
+    for r in ordered:
+        section = (str(r.document_id), r.heading_path or "")
+        if section in seen_sections:
+            continue
+        seen_sections.add(section)
+        merged.append(r)
+    found.results = merged
     conn.commit()
     confirmed = [r for r in found.results if r.supported]
     unsupported = [r for r in found.results if not r.supported]
@@ -506,7 +540,9 @@ def _prepare(conn, p, body: AskBody) -> Plan:
                 "says so when they do not.")
     # the closest matches shown besides the ones used: when the answer already rests on them, list the rest
     near = unsupported[len(used):] if unconfirmed else unsupported
-    plan = Plan(rt, found, used, cites, history, [_brief(r) for r in near[:NEAR]], unconfirmed, gate, query)
+    plan = Plan(rt, found, used, cites, history, [_brief(r) for r in near[:NEAR]], unconfirmed, gate,
+                " · ".join(queries))
+    plan.queries = queries
     plan.note = note
     plan.question_id = question_id
     return plan
@@ -514,7 +550,8 @@ def _prepare(conn, p, body: AskBody) -> Plan:
 
 def _step(plan: Plan) -> dict:
     """The search step stored with an answer (the window shows it when the conversation is reopened)."""
-    return {"question": plan.found.query, "searched": plan.query, "outcome": plan.found.outcome,
+    return {"question": plan.found.query, "searched": plan.query, "queries": plan.queries,
+            "outcome": plan.found.outcome,
             "message": plan.note or plan.found.message,
             "passages": len(plan.used), "citations": plan.cites, "near": plan.near, "gate": plan.gate,
             "unconfirmed": plan.unconfirmed}
@@ -547,7 +584,8 @@ def ask(body: AskBody, p: User, conn: Conn) -> dict:
     if body.model and body.model not in enrich.LLMS:
         raise HTTPException(422, f"unknown local model {body.model}")
     plan = _prepare(conn, p, body)
-    base = {"question": body.question, "searched": plan.query, "outcome": plan.found.outcome,
+    base = {"question": body.question, "searched": plan.query, "queries": plan.queries,
+            "outcome": plan.found.outcome,
             "message": plan.note or plan.found.message, "citations": plan.cites,
             "near": plan.near, "gate": plan.gate, "unconfirmed": plan.unconfirmed,
             "conversation_id": str(body.conversation_id) if body.conversation_id else None}
@@ -582,7 +620,7 @@ def ask_stream(body: AskBody, p: User, conn: Conn):
         model = ""
         saved = False
         try:
-            yield _sse({"type": "search", "question": question, "searched": plan.query,
+            yield _sse({"type": "search", "question": question, "searched": plan.query, "queries": plan.queries,
                         "outcome": plan.found.outcome,
                         "message": plan.note or plan.found.message, "citations": plan.cites, "passages": len(plan.used),
                         "near": plan.near, "gate": plan.gate, "unconfirmed": plan.unconfirmed})

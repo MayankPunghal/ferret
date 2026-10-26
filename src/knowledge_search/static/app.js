@@ -602,6 +602,11 @@ function stepCard(s) {
     ? `${cites.length} closest ${cites.length === 1 ? "match" : "matches"} used, unconfirmed`
     : confirmed ? `${askPlural(confirmed, "passage")} confirmed` : "no confirmed evidence";
   const box = el("div", { className: "ask-step-body" });
+  if ((s.queries || []).length > 1) {
+    const row = el("div", { className: "ask-queries" }, el("span", { className: "rel-label", textContent: "Queries" }));
+    for (const q of s.queries) row.append(el("span", { className: "badge query", textContent: q, title: q }));
+    box.append(row);
+  }
   box.append(el("p", { className: "muted small", textContent: s.message || "" }));
   if (s.gate && (!confirmed || near.length)) {
     box.append(el("p", { className: "muted small", textContent:
