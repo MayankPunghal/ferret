@@ -859,3 +859,6 @@ button.icon:disabled { opacity: .35; cursor: not-allowed; }
 /* the connection badge is also a way back: click it when it says Disconnected */
 .conn.down { cursor: pointer; }
 .conn.down:hover .conn-label { text-decoration: underline; }
+
+/* the conversation menu holds a link too (Export), so it must look like the buttons beside it */
+a.menu-item { text-decoration: none; display: block; }

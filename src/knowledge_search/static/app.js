@@ -533,12 +533,14 @@ function convRow(c) {
   open.addEventListener("click", () => openChat(c.id));
   open.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openChat(c.id); } });
   const rename = el("button", { type: "button", className: "menu-item", textContent: "Rename" });
+  const exportLink = el("a", { className: "menu-item", href: `/api/ask/conversations/${c.id}/export`,
+    textContent: "Export as Markdown", download: "" });
   rename.addEventListener("click", (e) => { e.stopPropagation(); more.open = false; renameChat(c); });
   const del = el("button", { type: "button", className: "menu-item danger", textContent: "Delete" });
   del.addEventListener("click", (e) => { e.stopPropagation(); more.open = false; deleteChat(c); });
   const more = el("details", { className: "conv-more" },
     el("summary", { className: "conv-more-btn", title: "More", "aria-label": `Options for ${c.title || "this conversation"}` }, "⋯"),
-    el("div", { className: "conv-menu" }, rename, del));
+    el("div", { className: "conv-menu" }, rename, exportLink, del));
   li.append(open, more);
   return li;
 }
@@ -560,10 +562,15 @@ async function openChat(id) {
   const log = $("#ask-log");
   log.replaceChildren();
   if (!d.messages.length) log.append(greeting());
-  let question = "";
+  let question = "", seen = "";
   for (const m of d.messages) {
-    if (m.role === "user") { question = m.text; log.append(el("div", { className: "ask-msg user" }, el("p", { textContent: m.text }))); }
-    else log.append(answerNode({ ...m, question }));
+    if (m.role === "user") {
+      question = m.text;
+      const key = (m.text || "").trim();
+      if (key === seen) continue;  // older builds saved the same question twice; show it once
+      seen = key;
+      log.append(el("div", { className: "ask-msg user" }, el("p", { textContent: m.text })));
+    } else log.append(answerNode({ ...m, question }));
   }
   log.scrollTop = log.scrollHeight;
   loadConvs($("#ask-find").value);

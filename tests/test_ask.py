@@ -368,3 +368,17 @@ def test_the_model_decides_when_to_search_again(client, corpus, monkeypatch):
     assert search["rounds"][-1]["passages"] > search["rounds"][0]["passages"], "the second round added passages"
     assert any("ERR-PAY-4012" in (c.get("title") or "") + (c.get("heading_path") or "") for c in search["citations"])
     assert "".join(e.get("text", "") for e in events if e["type"] == "text")
+
+
+def test_a_conversation_can_be_exported_as_markdown(client, corpus, monkeypatch):
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    monkeypatch.setattr(ask, "_stream_model", fake_model("Retry once ", "[1]."))
+    h = token(client, "alice")
+    cid = client.post("/api/ask/conversations", headers=h).json()["id"]
+    client.post("/api/ask", headers=h, json={"question": "ERR-PAY-4012", "conversation_id": cid})
+    r = client.get(f"/api/ask/conversations/{cid}/export", headers=h)
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/markdown")
+    assert "attachment;" in r.headers["content-disposition"]
+    body = r.text
+    assert body.startswith("# ") and "## You" in body and "## Ferret" in body
+    assert "Retry once" in body and "[1]" in body and "http://127.0.0.1:8000/api/documents/" in body

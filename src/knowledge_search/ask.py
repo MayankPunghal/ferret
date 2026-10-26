@@ -22,11 +22,12 @@ import threading
 import re
 import time
 import uuid
+from datetime import datetime
 from collections.abc import Iterator
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -324,6 +325,32 @@ def conversation(cid: uuid.UUID, p: User, conn: Conn) -> dict:
                           "citations": r["citations"] or [], "thinking": r["thinking"] or "",
                           "outcome": r["outcome"], "model": r["model"], "seconds": r["seconds"],
                           "search": r["search"], "created_at": r["created_at"].isoformat()} for r in rows]}
+
+
+@router.get("/ask/conversations/{cid}/export")
+def export(cid: uuid.UUID, p: User, conn: Conn) -> Response:
+    """The conversation as Markdown, so a transcript can be kept or handed on like any other file."""
+    row = _owned(conn, p.user_id, cid)
+    rows = conn.execute("SELECT role, text, citations, thinking, outcome, model, seconds, created_at "
+                        "FROM ask_messages WHERE conversation_id = %s ORDER BY id", (cid,)).fetchall()
+    out = [f"# {row['title'] or 'Untitled'}", "", f"Exported from Ferret, {datetime.now().strftime('%Y-%m-%d %H:%M')}", ""]
+    for r in rows:
+        when = r["created_at"].strftime("%Y-%m-%d %H:%M")
+        out.append(f"## {'You' if r['role'] == 'user' else 'Ferret'} · {when}")
+        out.append("")
+        out.append((r["text"] or "").strip() or "_(no answer)_")
+        out.append("")
+        for c in (r["citations"] or []):
+            where = " > ".join(x for x in [c.get("heading_path") or "", f"page {c['page']}" if c.get("page") else ""] if x)
+            out.append(f"- [{c.get('n')}] {c.get('title')}" + (f" — {where}" if where else "")
+                       + ("" if c.get("confirmed", True) else " (closest match, not confirmed)")
+                       + f" — http://127.0.0.1:8000{c.get('source_url', '')}")
+        if r["citations"]:
+            out.append("")
+    name = (row["title"] or "conversation").replace('"', "").strip()[:60].replace(" ", "-").lower() or "conversation"
+    body = "\n".join(out).strip() + "\n"
+    return Response(body, media_type="text/markdown",
+                    headers={"Content-Disposition": f'attachment; filename="{name}.md"'})
 
 
 @router.patch("/ask/conversations/{cid}")
