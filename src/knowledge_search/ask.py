@@ -2,9 +2,14 @@
 
 Search runs first with the caller's permissions; only passages that passed the evidence gate are numbered and
 go to the model, and the answer must cite them ([1], [2]). No supported passage means no model call at all: the
-search's own "not found" message is the answer, so the chat cannot invent one. The earlier turns of the
-conversation travel with the question so follow-ups ("and for the evening batch?") can be understood, but the
-answer must still rest on the passages of the current search.
+search's own "not found" message is the answer, so the chat cannot invent one. The model answers plain text
+(Markdown is allowed) and replies `NOT_IN_DOCUMENTS` when the passages do not answer the question, which the
+window shows as "No answer from your documents".
+
+A conversation is saved per user (ask_conversations / ask_messages, migration 0011): its earlier turns travel
+with each question so follow-ups read naturally, marked in the prompt as context that is never evidence.
+Answers stream token by token (`/api/ask/stream`, server-sent events); `/api/ask` returns the whole answer for
+assistants and tests. "Think first" turns on the model's reasoning, streamed into a collapsed card.
 
 The model is the one the app already runs for document summaries (enrich.py) unless another one is chosen, in
 which case ask.py runs its own llama-server for it, one model at a time. Nothing leaves the computer.
@@ -15,12 +20,16 @@ import logging
 import os
 import threading
 import time
+import uuid
+from collections.abc import Iterator
 from pathlib import Path
 
+import httpx
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import enrich, runtime
+from . import db, enrich, runtime
 from .deps import Conn, User, state
 from .search import search
 
@@ -29,42 +38,55 @@ router = APIRouter(prefix="/api", tags=["ask"])
 
 PASSAGES = 6  # passages handed to the model: enough to answer, short enough for a small model's context
 CHARS_PER_PASSAGE = 1500
-TURNS = 4  # earlier question/answer pairs kept for follow-ups
+TURNS = 6  # earlier question/answer pairs kept for follow-ups
 CHARS_PER_TURN = 700
-_gen = threading.Lock()  # one answer at a time: llama-server runs one request, -np 1
+CHARS_PER_ANSWER = 4000  # an earlier answer as history is cut, so a long one cannot fill the prompt
+NOT_IN_DOCUMENTS = "NOT_IN_DOCUMENTS"
+_gen = threading.Lock()  # one answer at a time: llama-server runs one request (-np 1)
 
 PROMPT = """You answer questions about the user's own documents, using ONLY the numbered passages below.
-Cite every passage you use like [1] or [2, 3]. If the passages do not answer the question, say so plainly in
-one sentence and do not guess: an answer that is not in the passages is worse than no answer. Keep commands,
-error codes, names, numbers and versions exactly as written. Be concise: a few sentences, or a short list.
+Cite every passage you use as [1] or [2]. If the passages do not answer the question, reply with exactly
+NOT_IN_DOCUMENTS and nothing else: a guess is worse than no answer. Keep commands, error codes, names, numbers
+and versions exactly as written. Be concise: a few sentences or a short list. Markdown is allowed.
 {history}
 Question: {question}
 
 Passages:
 {passages}
-
-Reply as JSON: {{"answer": "<the answer, with [n] citations, or the sentence saying it is not in the documents>",
-"answered": true or false}}"""
+"""
 
 
 class Turn(BaseModel):
     role: str = Field(pattern="^(user|assistant)$")
-    text: str = Field(max_length=4000)
+    text: str = Field(max_length=8000)
 
 
 class AskBody(BaseModel):
     question: str = Field(min_length=2, max_length=1000)
+    conversation_id: uuid.UUID | None = None
     history: list[Turn] = Field(default_factory=list, max_length=20)
     model: str = ""  # an enrich.LLMS name; "" = the model the summaries use
+    think: bool = False
     collection_ids: list[int] | None = None
 
 
+class Rename(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+
+
+# --- prompt ---------------------------------------------------------------------------------------------------
+
+
 def _history_text(history: list[Turn]) -> str:
-    """The last turns, as context for the phrasing of the question only (never as evidence)."""
+    """The last turns, as context for what the question refers to (never as evidence)."""
     turns = [t for t in history if t.text.strip()][-TURNS * 2:]
     if not turns:
         return ""
-    lines = [f"{'User' if t.role == 'user' else 'You'}: {t.text.strip()[:CHARS_PER_TURN]}" for t in turns]
+    lines = []
+    for t in turns:
+        text = t.text.strip()
+        text = text[:CHARS_PER_TURN] if t.role == "user" else text[:CHARS_PER_ANSWER]
+        lines.append(f"{'User' if t.role == 'user' else 'You'}: {text}")
     return ("\nThe conversation so far, for what the question refers to (it is not evidence; cite only the "
             "passages):\n" + "\n".join(lines) + "\n")
 
@@ -77,6 +99,9 @@ def build_prompt(question: str, results: list, history: list[Turn] | None = None
         f"{r.text[:CHARS_PER_PASSAGE]}"
         for n, r in enumerate(results, start=1))
     return PROMPT.format(history=_history_text(history or []), question=question.strip(), passages=passages)
+
+
+# --- the model -------------------------------------------------------------------------------------------------
 
 
 class _AnswerModel:
@@ -134,7 +159,202 @@ class _AnswerModel:
             return server.url, file
 
 
-_answer = _AnswerModel()
+_models = _AnswerModel()
+
+
+def _stream_model(url: str, model: str, prompt: str, think: bool, max_tokens: int = 900) -> Iterator[tuple[str, str]]:
+    """("thinking"|"text", piece) from the server's streaming reply, as it is written."""
+    body = {"messages": [{"role": "user", "content": prompt}], "max_tokens": max_tokens, "temperature": 0,
+            "stream": True, "chat_template_kwargs": {"enable_thinking": bool(think)}}
+    if model:
+        body["model"] = model
+    try:
+        with httpx.Client(timeout=httpx.Timeout(600.0, connect=15.0)) as client, \
+                client.stream("POST", url.rstrip("/") + "/chat/completions", json=body) as r:
+            if r.status_code >= 400:
+                raise enrich.LLMError(f"the model server answered HTTP {r.status_code}")
+            for line in r.iter_lines():
+                if not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if data == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data)
+                except ValueError:
+                    continue
+                for choice in chunk.get("choices") or []:
+                    delta = choice.get("delta") or {}
+                    thought = delta.get("reasoning_content") or delta.get("reasoning")
+                    if thought:
+                        yield "thinking", thought
+                    if delta.get("content"):
+                        yield "text", delta["content"]
+    except httpx.HTTPError as exc:
+        raise enrich.LLMError(str(exc)) from exc
+
+
+class Answer:
+    """One answer as it is written: its text, its thinking, and whether the model found nothing in the passages."""
+
+    def __init__(self) -> None:
+        self.text = ""
+        self.thinking = ""
+        self.abstained = False
+        self.seconds = 0.0
+        self.model = ""
+
+    def pieces(self, pieces: Iterator[tuple[str, str]]) -> Iterator[tuple[str, str]]:
+        """Relay the model's pieces, holding the first characters back until we know it is not the sentinel."""
+        hold = ""
+        decided = False
+        started = time.perf_counter()
+        for kind, piece in pieces:
+            if kind == "thinking":
+                self.thinking += piece
+                yield kind, piece
+                continue
+            if decided:
+                self.text += piece
+                yield kind, piece
+                continue
+            hold += piece
+            head = hold.lstrip().upper()
+            if head.startswith(NOT_IN_DOCUMENTS):  # decided: the model found nothing to answer from
+                self.abstained, decided, hold = True, True, ""
+                continue
+            if len(head) < len(NOT_IN_DOCUMENTS):  # could still become the sentinel: keep holding
+                continue
+            decided = True
+            self.text = hold
+            yield "text", hold
+            hold = ""
+        if not decided and hold:
+            decided = True
+            if NOT_IN_DOCUMENTS in hold.upper():
+                self.abstained = True
+            else:
+                self.text = hold
+                yield "text", hold
+        if self.abstained or not self.text.strip():
+            self.abstained, self.text = True, ""
+        self.seconds = round(time.perf_counter() - started, 1)
+
+
+# --- conversations --------------------------------------------------------------------------------------------
+
+
+def _owned(conn, user_id: int, cid: uuid.UUID):
+    row = conn.execute("SELECT id, title FROM ask_conversations WHERE id = %s AND user_id = %s",
+                       (cid, user_id)).fetchone()
+    if not row:
+        raise HTTPException(404, "conversation not found")
+    return row
+
+
+def _turns(conn, cid: uuid.UUID) -> list[Turn]:
+    rows = conn.execute("SELECT role, text FROM ask_messages WHERE conversation_id = %s ORDER BY id DESC LIMIT %s",
+                        (cid, TURNS * 2)).fetchall()
+    return [Turn(role=r["role"], text=r["text"] or "") for r in reversed(rows)]
+
+
+def _save_message(conn, cid: uuid.UUID, role: str, text: str, *, citations=None, thinking=None, outcome=None,
+                  model=None, seconds=None) -> int:
+    row = conn.execute(
+        "INSERT INTO ask_messages (conversation_id, role, text, citations, thinking, outcome, model, seconds) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+        (cid, role, text, json.dumps(citations) if citations is not None else None, thinking or None, outcome,
+         model, seconds)).fetchone()
+    if role == "user":  # the first question names the conversation, until it is renamed
+        conn.execute("UPDATE ask_conversations SET title = CASE WHEN title = '' THEN %s ELSE title END, "
+                     "updated_at = now() WHERE id = %s", (text[:80], cid))
+    else:
+        conn.execute("UPDATE ask_conversations SET updated_at = now() WHERE id = %s", (cid,))
+    conn.commit()
+    return row["id"]
+
+
+@router.get("/ask/conversations")
+def conversations(p: User, conn: Conn, q: str = "") -> dict:
+    """The caller's conversations, newest first; `q` searches titles and what was said."""
+    like = f"%{q.strip()}%"
+    rows = conn.execute(
+        "SELECT c.id, c.title, c.updated_at, "
+        " (SELECT count(*) FROM ask_messages m WHERE m.conversation_id = c.id) AS turns "
+        "FROM ask_conversations c WHERE c.user_id = %s AND (%s = '' OR c.title ILIKE %s OR EXISTS ("
+        "  SELECT 1 FROM ask_messages m WHERE m.conversation_id = c.id AND m.text ILIKE %s)) "
+        "ORDER BY c.updated_at DESC LIMIT 200", (p.user_id, q.strip(), like, like)).fetchall()
+    return {"conversations": [{"id": str(r["id"]), "title": r["title"] or "Untitled",
+                               "updated_at": r["updated_at"].isoformat(), "turns": r["turns"]} for r in rows]}
+
+
+@router.post("/ask/conversations")
+def new_conversation(p: User, conn: Conn) -> dict:
+    row = conn.execute("INSERT INTO ask_conversations (user_id) VALUES (%s) RETURNING id", (p.user_id,)).fetchone()
+    conn.commit()
+    return {"id": str(row["id"]), "title": "", "turns": 0}
+
+
+@router.get("/ask/conversations/{cid}")
+def conversation(cid: uuid.UUID, p: User, conn: Conn) -> dict:
+    row = _owned(conn, p.user_id, cid)
+    rows = conn.execute("SELECT id, role, text, citations, thinking, outcome, model, seconds, created_at "
+                        "FROM ask_messages WHERE conversation_id = %s ORDER BY id", (cid,)).fetchall()
+    return {"id": str(row["id"]), "title": row["title"],
+            "messages": [{"id": r["id"], "role": r["role"], "text": r["text"] or "",
+                          "citations": r["citations"] or [], "thinking": r["thinking"] or "",
+                          "outcome": r["outcome"], "model": r["model"], "seconds": r["seconds"],
+                          "created_at": r["created_at"].isoformat()} for r in rows]}
+
+
+@router.patch("/ask/conversations/{cid}")
+def rename(cid: uuid.UUID, body: Rename, p: User, conn: Conn) -> dict:
+    _owned(conn, p.user_id, cid)
+    conn.execute("UPDATE ask_conversations SET title = %s, updated_at = now() WHERE id = %s",
+                 (body.title.strip(), cid))
+    conn.commit()
+    return {"id": str(cid), "title": body.title.strip()}
+
+
+@router.delete("/ask/conversations/{cid}")
+def delete(cid: uuid.UUID, p: User, conn: Conn) -> dict:
+    _owned(conn, p.user_id, cid)
+    conn.execute("DELETE FROM ask_conversations WHERE id = %s", (cid,))
+    conn.commit()
+    return {"ok": True}
+
+
+# --- asking ---------------------------------------------------------------------------------------------------
+
+
+def _prepare(conn, p, body: AskBody):
+    """Search, then keep only the passages that count as evidence (and the prompt history)."""
+    rt = runtime.load(conn)
+    found = search(conn, p, body.question, rt, body.collection_ids, 10)
+    if body.conversation_id:
+        _owned(conn, p.user_id, body.conversation_id)
+        _save_message(conn, body.conversation_id, "user", body.question.strip())
+        history = _turns(conn, body.conversation_id)[:-1]  # the question was just saved
+    else:
+        history = body.history
+    conn.commit()
+    passages = [r for r in found.results if r.supported][:PASSAGES]
+    cites = [{"n": n, "chunk_id": r.chunk_id, "document_id": r.document_id, "collection": r.collection,
+              "title": r.clearer_title or r.title, "heading_path": r.heading_path, "page": r.page,
+              "source_url": r.source_url, "passage_url": r.passage_url}
+             for n, r in enumerate(passages, start=1)]
+    return rt, found, passages, cites, history
+
+
+def _answer(rt, body: AskBody, passages, history) -> Answer:
+    """Run the model and return the finished Answer (used by /api/ask and the MCP tool)."""
+    out = Answer()
+    url, model = _models.serving(body.model, rt.llm_device)
+    out.model = Path(model).stem if model else ""
+    prompt = build_prompt(body.question, passages, history)
+    with _gen:
+        list(out.pieces(_stream_model(url, model, prompt, body.think)))
+    return out
 
 
 @router.get("/ask/models")
@@ -151,31 +371,72 @@ def ask_models(p: User, conn: Conn) -> dict:
 def ask(body: AskBody, p: User, conn: Conn) -> dict:
     if body.model and body.model not in enrich.LLMS:
         raise HTTPException(422, f"unknown local model {body.model}")
-    rt = runtime.load(conn)
-    found = search(conn, p, body.question, rt, body.collection_ids, 10)
-    conn.commit()
-    passages = [r for r in found.results if r.supported][:PASSAGES]
-    cites = [{"n": n, "chunk_id": r.chunk_id, "document_id": r.document_id, "collection": r.collection,
-              "title": r.clearer_title or r.title, "heading_path": r.heading_path, "page": r.page,
-              "source_url": r.source_url, "passage_url": r.passage_url}
-             for n, r in enumerate(passages, start=1)]
-    base = {"outcome": found.outcome, "message": found.message, "citations": cites}
+    rt, found, passages, cites, history = _prepare(conn, p, body)
+    base = {"outcome": found.outcome, "message": found.message, "citations": cites,
+            "conversation_id": str(body.conversation_id) if body.conversation_id else None}
     if not passages:  # no model call: there is nothing to answer from
-        return {"answer": None, "answered": False, **base, "model": ""}
-
-    url, model = _answer.serving(body.model, rt.llm_device)
-    prompt = build_prompt(body.question, passages, body.history)
-    started = time.perf_counter()
-    with _gen:
-        try:
-            raw = enrich.chat(url, model, prompt, max_tokens=700, timeout=300, label="Ask")
-        except enrich.LLMError as exc:
-            raise HTTPException(503, f"the local language model failed: {exc}") from exc
+        return {"answer": None, "answered": False, "model": "", "seconds": 0, **base}
     try:
-        reply = json.loads(raw)
-        answer = str(reply.get("answer") or "").strip()
-        answered = bool(reply.get("answered", True)) and bool(answer)
-    except (ValueError, AttributeError):  # a model that ignores the JSON request: the text still says something
-        answer, answered = raw.strip(), bool(raw.strip())
-    return {"answer": answer or None, "answered": answered, **base,
-            "model": Path(model).stem, "seconds": round(time.perf_counter() - started, 1)}
+        out = _answer(rt, body, passages, history)
+    except enrich.LLMError as exc:
+        raise HTTPException(503, f"the local language model failed: {exc}") from exc
+    if body.conversation_id:
+        _save_message(conn, body.conversation_id, "assistant", out.text, citations=cites,
+                      thinking=out.thinking, outcome=found.outcome, model=out.model, seconds=out.seconds)
+    return {"answer": out.text or None, "answered": not out.abstained and bool(out.text),
+            "thinking": out.thinking or None, "model": out.model, "seconds": out.seconds, **base}
+
+
+def _sse(event: dict) -> str:
+    return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+
+@router.post("/ask/stream")
+def ask_stream(body: AskBody, p: User, conn: Conn):
+    """The same answer as `/api/ask`, written out as it is produced (server-sent events)."""
+    if body.model and body.model not in enrich.LLMS:
+        raise HTTPException(422, f"unknown local model {body.model}")
+    rt, found, passages, cites, history = _prepare(conn, p, body)
+    question = body.question.strip()
+
+    def events() -> Iterator[str]:
+        out = Answer()
+        model = ""
+        saved = False
+        try:
+            yield _sse({"type": "search", "question": question, "outcome": found.outcome,
+                        "message": found.message, "citations": cites, "passages": len(passages)})
+            if not passages:  # no model call: there is nothing to answer from
+                yield _sse({"type": "done", "answered": False, "model": "", "seconds": 0,
+                            "conversation_id": str(body.conversation_id) if body.conversation_id else None})
+                return
+            url, model = _models.serving(body.model, rt.llm_device)
+            out.model = Path(model).stem if model else ""
+            prompt = build_prompt(question, passages, history)
+            with _gen:
+                for kind, piece in out.pieces(_stream_model(url, model, prompt, body.think)):
+                    yield _sse({"type": kind, "text": piece})
+            if body.conversation_id:  # saved before "done", so a reload shows the answer
+                with db.pool().connection() as c:
+                    _save_message(c, body.conversation_id, "assistant", out.text, citations=cites,
+                                  thinking=out.thinking, outcome=found.outcome, model=out.model,
+                                  seconds=out.seconds)
+                saved = True
+            yield _sse({"type": "done", "answered": not out.abstained and bool(out.text), "model": out.model,
+                        "seconds": out.seconds, "abstained": out.abstained,
+                        "conversation_id": str(body.conversation_id) if body.conversation_id else None})
+        except enrich.LLMError as exc:
+            yield _sse({"type": "error", "message": f"the local language model failed: {exc}"})
+        finally:
+            # the client may have stopped it, or it failed: keep what was written, so the conversation says so
+            if body.conversation_id and not saved and (out.text or out.thinking):
+                try:
+                    with db.pool().connection() as c:
+                        _save_message(c, body.conversation_id, "assistant", out.text, citations=cites,
+                                      thinking=out.thinking, outcome=found.outcome, model=out.model,
+                                      seconds=out.seconds)
+                except Exception:  # noqa: BLE001 - a failed save must not break the stream
+                    log.exception("Ask: could not save the answer")
+
+    return StreamingResponse(events(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})

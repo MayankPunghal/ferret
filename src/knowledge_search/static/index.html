@@ -130,21 +130,38 @@
       </section>
 
       <section id="tab-ask" hidden>
-        <div class="title-row">
-          <h1>Ask</h1>
-          <label class="ask-model"><span class="muted small">Model</span>
-            <select id="ask-model" aria-label="Local model that writes the answers"></select></label>
-          <button type="button" id="ask-clear" class="link">New conversation</button>
+        <div class="ask-wrap">
+          <aside class="ask-side" aria-label="Conversations">
+            <button type="button" id="ask-new" class="primary">New conversation</button>
+            <input id="ask-find" type="search" placeholder="Search conversations" aria-label="Search conversations">
+            <ul id="ask-convs" class="ask-convs"></ul>
+          </aside>
+          <div class="ask-main">
+            <div class="title-row">
+              <h1 id="ask-title">New conversation</h1>
+              <div class="ask-tools">
+                <label class="ask-model"><span class="muted small">Model</span>
+                  <select id="ask-model" aria-label="Local model that writes the answers"></select></label>
+                <button type="button" id="ask-rename" class="link" title="Rename this conversation">Rename</button>
+              </div>
+            </div>
+            <div id="ask-note" class="notice" hidden role="status"></div>
+            <div id="ask-log" class="ask-log" role="log" aria-live="polite" aria-label="Conversation"><div class="ask-msg assistant muted"><p>Ask about anything in the documents you can read. I search first, then answer from the passages I found and cite them — and I say so when they do not answer it.</p></div></div>
+            <form id="ask-form" class="ask-form">
+              <textarea id="ask-q" rows="2" maxlength="1000" required aria-label="Question"
+                        placeholder="Ask a question about your documents — an error code, a how-to, who owns what…"></textarea>
+              <div class="ask-send">
+                <label class="check tiny" title="Let the model reason before answering: slower, for hard questions"><input type="checkbox" id="ask-think"> Think first</label>
+                <select id="ask-scope" aria-label="Collections to search"></select>
+                <button type="submit" class="primary" id="ask-send">Ask</button>
+                <button type="button" id="ask-stop" class="button danger" hidden>Stop</button>
+              </div>
+            </form>
+            <p class="muted small">Answered only from passages that passed the evidence search, and each answer
+              cites them. When the documents do not answer it, Ask says so instead of guessing. Nothing leaves this
+              computer.</p>
+          </div>
         </div>
-        <div id="ask-note" class="notice" hidden role="status"></div>
-        <div id="ask-log" class="ask-log" role="log" aria-live="polite" aria-label="Conversation"></div>
-        <form id="ask-form" class="ask-form">
-          <textarea id="ask-q" rows="2" maxlength="1000" required aria-label="Question"
-                    placeholder="Ask a question about your documents — an error code, a how-to, who owns what…"></textarea>
-          <button type="submit" class="primary" id="ask-send">Ask</button>
-        </form>
-        <p class="muted small">Answered only from passages that passed the evidence search, and each answer cites
-          them. When the documents do not answer it, Ask says so instead of guessing. Nothing leaves this computer.</p>
       </section>
 
       <section id="tab-documents" hidden>

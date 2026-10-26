@@ -691,32 +691,53 @@ The WIP branch was `feature/ask` (a single-shot Q&A, no history, no model choice
 shape (search first, citations, no evidence means no model call) and adds the window, models and history.
 Nothing from that branch was merged.
 
-- **`ask.py`** (new): `POST /api/ask` `{question, history[], model, collection_ids?}` and `GET /api/ask/models`.
+- **`ask.py`** (new): `POST /api/ask` (whole answer, for assistants and tests), `POST /api/ask/stream`
+  (server-sent events) and `GET /api/ask/models`, plus the conversation routes below.
   Search runs with the caller's permissions and the runtime gate; **only `supported` passages** (max 6, 1,500
   chars each) are numbered and sent, so the search — not the model — decides whether there is evidence
   (plan-answers.md, measured: letting the model veto cost 28 points answered). No supported passage means
-  **no model call at all** and the search's own message. The model answers as JSON; `answered: false` becomes
-  "No answer from your documents", and a reply that ignores the JSON request is shown as its text.
-- **The chat:** last 4 question/answer pairs (4000 chars each accepted, 700 sent) travel with the question so
-  follow-ups read naturally, marked in the prompt as *not evidence*. One answer at a time (`-np 1`).
+  **no model call at all** and the search's own message. The model writes plain text (Markdown allowed) and
+  replies `NOT_IN_DOCUMENTS` when the passages do not answer, held back from the stream until the sentinel is
+  settled and then shown as "No answer from your documents".
+- **Conversations are saved** (migration `0011_ask_conversations.sql`, `ask_conversations` + `ask_messages`):
+  `GET/POST /api/ask/conversations`, `GET/PATCH/DELETE /api/ask/conversations/{id}`, all filtered by the
+  caller's `user_id` (another user's id answers 404). The first question names the conversation until it is
+  renamed; `?q=` searches titles and what was said. Each question reloads the last 6 turns from the store, so a
+  reload, another device or a follow-up all see the thread; those turns are marked in the prompt as context
+  that is **never evidence**.
+- **Streaming, thinking, stop:** `/api/ask/stream` sends `search` (outcome, citations, passage count), then
+  `text` / `thinking` pieces as llama-server writes them, then `done` (model, seconds, answered) — or `error`.
+  "Think first" passes `chat_template_kwargs.enable_thinking` and streams `reasoning_content` into a collapsed
+  card. Stop aborts the fetch; the server's `finally` keeps what was written, so a stopped answer is not lost.
+  One answer at a time (`-np 1`, one lock); the answer is saved before `done`, so a reload shows it.
 - **Models:** the same `enrich.LLMS` list as the summaries, chosen per browser (localStorage); "" = whatever
   the summaries run, so nothing extra is loaded. A different model starts `ask.py`'s own llama-server (one at
-  a time, stopped when another is chosen). `enrich.LLMS` gains **`qwen3.5-4b`** (`unsloth/Qwen3.5-4B-GGUF`,
-  `Qwen3.5-4B-Q4_K_M.gguf`, 2.74 GB, file name checked on Hugging Face) as the strong option; its answer
-  quality is **not measured** yet. Downloading is unchanged (Settings → Models, or `ferret download-llm`).
-- **UI:** Ask tab (`#tab-ask`) — transcript, multi-line box (Enter sends, Shift+Enter new line), model picker
-  with sizes, "New conversation", and `[n]` in an answer is a button that opens that passage; a sources row
-  under each answer; a meta line with the outcome, the model and the seconds.
-- **Verified:** `tests/test_ask.py` (5: no evidence → no model call; answer + citations + the prompt the model
-  got; a non-JSON reply still answers; history is cut to its caps; the model list). Full suite 153 passed,
-  2 skipped. **The prompt against the real Gemma 4 E2B** (installed copy, CPU): the ERR-PAY-4012 question came
-  back "…page the payments on-call engineer and check the processor status page [1]" with `answered: true`,
-  and "How many days of parental leave do I get?" (not in those passages) came back
-  `{"answered": false}` — so the abstain instruction works. **Not measured:** answer quality on the labelled
-  sets, E4B/Qwen3.5-4B for answers, latency on a laptop (E2B on this desktop: ~15 s per answer in earlier
-  runs), and the UI was not clicked through in a browser.
-- **Not built (plan-answers.md step 3):** saved conversations, streaming, Markdown rendering, pictures,
-  thinking mode, step cards, Stop, and an MCP `ask` tool.
+  a time, stopped when another is chosen); `KS_LLM_URL` is used when set. `enrich.LLMS` gained
+  **`qwen3.5-4b`** (`unsloth/Qwen3.5-4B-GGUF`, `Qwen3.5-4B-Q4_K_M.gguf`, 2.74 GB, file name checked on Hugging
+  Face) as the strong option; its answer quality is **not measured** yet. Downloading is unchanged
+  (Settings → Models, or `ferret download-llm`).
+- **UI:** Ask tab (`#tab-ask`) — conversation list (new, search, open, rename, delete) beside the chat;
+  answers render as Markdown (the passage view's `prose()`); each answer carries a collapsible "Searched '…' ·
+  N passages" card, a "Thinking" card when asked, the answer with `[n]` buttons that open that passage, a
+  sources row, and outcome · model · seconds · Copy · Retry. Composer: Enter sends, Shift+Enter newline,
+  model picker, "Think first", collection scope, Ask/Stop. Phone width stacks the list above the chat.
+- **MCP:** a new read-only `ask` tool (question, collections, think) calls the app's own `/api/ask`, so
+  permissions and the gate apply; it returns the answer, its citations and the outcome.
+- **Verified:** `tests/test_ask.py` (9: no evidence → no model call; citations and the prompt the model got;
+  the sentinel is a refusal; thinking is kept; history caps; a saved conversation's turns reach the next
+  question; another user's conversation is 404; the SSE event sequence and the saved answer; model list + MCP
+  tool). Full suite **157 passed, 2 skipped**. **The prompt against the real Gemma 4 E2B** (installed copy,
+  CPU): ERR-PAY-4012 → "…page the payments on-call engineer and check the processor status page [1]", and an
+  unanswerable question → `answered: false`. **The window in Chromium** against a live instance and a streaming
+  fake model: streamed answer with [1], step card and sources; a thinking card; "No answer from your
+  documents."; the conversation listed after a reload with its turns, renamed and deleted; no JS errors; no
+  phone overflow. The whole `scripts/ui_check.py` walkthrough (now with the Ask assertions) passes end to end
+  with no console errors. **Not measured:** answer quality on the labelled sets, E4B/Qwen3.5-4B for answers, latency
+  on a laptop (E2B: ~15 s per answer in earlier runs).
+- **Not built:** **pictures** (per-message image upload, OCR/description by a vision model: needs the model's
+  mmproj, 20–56 s per image on CPU, and the measured arrows/relations are unreliable — TODO item 2 / item 10),
+  and editing an earlier message (Retry exists). Everything else in plan-answers.md step 3 shipped.
+
 
 
 ## 5. Decisions made this session (details: docs/architecture.md)

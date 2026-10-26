@@ -345,10 +345,13 @@ with sync_playwright() as p:
     assert pg.locator("#sidebar").bounding_box()["width"] > 200
     menu(".tab[data-tab=database]")
     print("database: tables", len(tables), "| password hashes shown as", hashes, "| SQL:", msg, "| DELETE:", pg.inner_text("#db-sql-msg"))
-    # Ask: the chat window renders; on an instance with no local model it says where to get one
+    # Ask: the conversation window renders; on an instance with no local model it says where to get one
     menu(".tab[data-tab=ask]")
     pg.wait_for_selector("#tab-ask:not([hidden]) #ask-form")
+    pg.wait_for_selector("#tab-ask:not([hidden]) #ask-log .ask-msg")
     assert pg.locator("#ask-log .ask-msg").count() >= 1, "Ask greets the user"
+    pg.wait_for_selector("#tab-ask:not([hidden]) #ask-convs li")
+    assert pg.locator("#ask-convs li").count() >= 1, "the conversation list renders"
     assert pg.is_visible("#ask-note"), "Ask explains that no local model is downloaded"
     print("ask: note =", pg.inner_text("#ask-note")[:90])
     sign_in("alice", "demo-password-alice")

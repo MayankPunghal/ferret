@@ -6,14 +6,19 @@ behind the model; an MCP `ask` tool for people without a Claude subscription; (3
 conversation window like Claude Code, OpenCode or the DeepSeek harness, with picture upload, thinking,
 to-and-fro chat, and every conversation saved.** This is the "second brain" step of the end goal (CLAUDE.md).
 
-**Status: steps 1 and 2 built 2026-10-26** (`src/knowledge_search/ask.py`, the Ask tab; see HANDOFF §4q):
-the search's evidence gate decides whether there is evidence, only its passages reach the model, the answer
-cites them as [n], and the model's own "answered: false" is shown as "No answer from your documents". History
-travels with the question for follow-ups. **Step 3 is not built**: saved conversations, streaming, Markdown
-answers, pictures, thinking, step cards, Stop, an MCP `ask` tool. Numbers quoted come from
-`eval/llm_answers.py` (`eval/results/answers-gemma-4-E2B-report.json`), the summary-model comparison and the
-vision check (HANDOFF §4f, §4k), all on a 4-core CPU. The Ask prompt itself was checked against the real
-Gemma 4 E2B (HANDOFF §4q), not measured on a labelled set.
+**Status: steps 1, 2 and the whole of step 3 except pictures are built (2026-10-26)** — `src/knowledge_search/ask.py`,
+the Ask tab, migration 0011 (HANDOFF §4q). Shipped: a saved conversation per user with its earlier turns in
+each prompt, streamed answers, Markdown, a step card per answer, "Think first" with the reasoning in a
+collapsed card, Stop, Copy/Retry, conversation search/rename/delete, the model picker and an MCP `ask` tool.
+The search's evidence gate still decides whether there is evidence: only its passages reach the model, and the
+model's `NOT_IN_DOCUMENTS` is shown as "No answer from your documents".
+**Not built:** pictures — per-message image upload, OCR and a description by a vision model. It needs the
+model's mmproj (not in the current download), 20–56 s per image on CPU, and the measured arrows/relations are
+unreliable (TODO item 2 and item 10), so it deserves its own measured pass. Editing an earlier message is also
+not built (Retry exists). Numbers below come from `eval/llm_answers.py`
+(`eval/results/answers-gemma-4-E2B-report.json`), the summary-model comparison and the vision check
+(HANDOFF §4f, §4k), all on a 4-core CPU; the Ask prompt itself was checked against the real Gemma 4 E2B
+(HANDOFF §4q), not measured on a labelled set.
 
 ## What was already measured
 

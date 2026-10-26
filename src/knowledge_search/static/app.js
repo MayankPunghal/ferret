@@ -458,118 +458,300 @@ $("#search-form").addEventListener("submit", async (e) => {
     title: res.index.embedding_model + (res.index.reranker ? " · reranker " + res.index.reranker : "") });
 });
 
-// ---------------------------------------------------------------- Ask: the same search, answered in words
+// ---------------------------------------------------------------- Ask: a saved conversation with the model
 // Each question runs the search first; only passages that passed the evidence gate reach the local model, and
-// its answer must cite them. No supported passage means no answer (and no model call). The last turns travel
-// with the question so follow-ups read naturally; they are never evidence.
-let askModels = null, askHistory = [];
+// its answer must cite them. No supported passage means no answer (and no model call). Answers stream in and
+// the conversation is saved on the server, so it survives a reload and follow-ups carry their earlier turns.
+let askModels = null, askConv = null, askAbort = null, askBusy = false;
+const askPlural = (n, one) => `${n.toLocaleString()} ${one}${n === 1 ? "" : "s"}`;
+
+const askWhen = (iso) => {
+  const d = new Date(iso);
+  const today = new Date();
+  return d.toDateString() === today.toDateString()
+    ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+};
+
+function setAskTitle(text) { $("#ask-title").textContent = text || "New conversation"; }
+
+function greeting() {
+  return el("div", { className: "ask-msg assistant muted" },
+    el("p", { textContent: "Ask about anything in the documents you can read. I search first, then answer from the passages I found and cite them — and I say so when they do not answer it." }));
+}
+
 async function loadAsk() {
   if (!askModels) askModels = await api("/api/ask/models").catch((e) => ({ error: e.message, models: [] }));
+  const ready = (askModels.models || []).filter((m) => m.installed);
   const sel = $("#ask-model");
   let saved = "";
   try { saved = localStorage.getItem("ks-ask-model") || ""; } catch { /* not kept */ }
-  const ready = (askModels.models || []).filter((m) => m.installed);
   sel.replaceChildren(el("option", { value: "", textContent: "Same model as the summaries" }),
     ...ready.map((m) => el("option", { value: m.name, textContent: `${m.name} · ${(m.note || "").split(",")[0]}` })));
   sel.value = ready.some((m) => m.name === saved) ? saved : "";
+  $("#ask-scope").replaceChildren(el("option", { value: "", textContent: "All collections" }),
+    ...me.collections.map((c) => el("option", { value: c.id, textContent: c.name })));
   const note = $("#ask-note");
   note.hidden = false;
   if (askModels.error) note.textContent = "Could not read the model list: " + askModels.error;
   else if (!ready.length) note.textContent = "No local model is downloaded yet. Download one in Settings → Models (Gemma 4 E2B is the default); Ask uses the same models as the document summaries.";
   else if (askModels.external) note.textContent = "Answers are written by the local model server set in KS_LLM_URL.";
   else note.hidden = true;
-  if (!$("#ask-log").childElementCount) askGreeting();
+  if (!$("#ask-log").childElementCount) newChat();
+  await loadConvs($("#ask-find").value);
 }
-function askGreeting() {
-  $("#ask-log").append(el("div", { className: "ask-msg assistant muted" },
-    el("p", { textContent: "Ask about anything in the documents you can read. I search first, then answer from the passages I found and cite them — and I say so when they do not answer it." })));
+
+async function loadConvs(q = "") {
+  const d = await api(`/api/ask/conversations${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`).catch(() => ({ conversations: [] }));
+  $("#ask-convs").replaceChildren(...(d.conversations || []).map(convRow));
+  if (!d.conversations?.length) $("#ask-convs").append(el("li", { className: "muted small ask-none", textContent: q.trim() ? "No conversation matches." : "No conversations yet." }));
 }
-function askBubble(role, text) {
-  const b = el("div", { className: `ask-msg ${role}` });
-  if (text) b.append(el("p", { textContent: text }));
-  return b;
-}
-// The [n] markers a model writes become buttons that open that passage.
-function answerText(res) {
-  const byN = new Map(res.citations.map((c) => [String(c.n), c]));
-  const p = el("p", { className: "ask-answer" });
-  (res.answer || "").split(/(\[\d+(?:\s*,\s*\d+)*\])/).forEach((part) => {
-    const m = part.match(/^\[([\d,\s]+)\]$/);
-    if (!m) { p.append(part); return; }
-    const nums = m[1].split(",").map((n) => n.trim()).filter(Boolean);
-    nums.forEach((n, i) => {
-      const c = byN.get(n);
-      if (c) {
-        const b = el("button", { type: "button", className: "cite", textContent: `[${n}]`,
-          title: `${c.title}${c.heading_path ? " > " + c.heading_path : ""}` });
-        b.addEventListener("click", () => openPassage(c.chunk_id));
-        p.append(b);
-        p.append(i < nums.length - 1 ? ", " : "");
-      } else p.append(`[${n}]`);
-    });
+
+function convRow(c) {
+  const li = el("li", { className: c.id === askConv ? "on" : "" });
+  const open = el("button", { type: "button", className: "ask-conv", title: c.title || "Untitled" },
+    el("span", { className: "t", textContent: c.title || "Untitled" }),
+    el("span", { className: "m", textContent: `${askPlural(c.turns, "turn")} · ${askWhen(c.updated_at)}` }));
+  open.addEventListener("click", () => openChat(c.id));
+  const del = el("button", { type: "button", className: "ask-del", title: "Delete this conversation", "aria-label": `Delete ${c.title || "this conversation"}` }, "×");
+  del.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    if (!confirm(`Delete “${c.title || "Untitled"}”? Its messages are removed from this computer.`)) return;
+    await api(`/api/ask/conversations/${c.id}`, { method: "DELETE" }).catch((x) => alert(x.message));
+    if (askConv === c.id) { askConv = null; newChat(); }
+    loadConvs($("#ask-find").value);
   });
-  return p;
+  li.append(open, del);
+  return li;
 }
-function answerSources(res) {
-  if (!res.citations.length) return "";
-  const row = el("div", { className: "ask-sources" }, el("span", { className: "rel-label", textContent: "Passages" }));
-  for (const c of res.citations) {
-    const b = el("button", { type: "button", className: "chip", textContent: `${c.n} · ${c.title}`, title: c.heading_path || c.collection });
+
+function newChat() {
+  askAbort?.abort();
+  askConv = null;
+  setAskTitle("New conversation");
+  $("#ask-log").replaceChildren(greeting());
+  loadConvs($("#ask-find").value);
+  $("#ask-q").focus();
+}
+
+async function openChat(id) {
+  if (askAbort) askAbort.abort();
+  askConv = id;
+  const d = await api(`/api/ask/conversations/${id}`).catch((e) => { alert(e.message); return null; });
+  if (!d) return;
+  setAskTitle(d.title);
+  const log = $("#ask-log");
+  log.replaceChildren();
+  if (!d.messages.length) log.append(greeting());
+  let question = "";
+  for (const m of d.messages) {
+    if (m.role === "user") { question = m.text; log.append(el("div", { className: "ask-msg user" }, el("p", { textContent: m.text }))); }
+    else log.append(answerNode({ ...m, question }));
+  }
+  log.scrollTop = log.scrollHeight;
+  loadConvs($("#ask-find").value);
+  $("#ask-q").focus();
+}
+
+// One answered question: the passages it stands on (collapsible), the reasoning (if it was asked to think),
+// the answer itself, its sources and what it cost.
+function stepCard(question, citations, outcome) {
+  const box = el("div", { className: "ask-cites" });
+  for (const c of citations) {
+    const b = el("button", { type: "button", className: "chip", textContent: `${c.n} · ${c.title}`,
+      title: [c.heading_path, c.page ? `page ${c.page}` : "", c.collection].filter(Boolean).join(" · ") });
+    b.addEventListener("click", () => openPassage(c.chunk_id));
+    box.append(b);
+  }
+  const d = el("details", { className: "ask-step" },
+    el("summary", {}, el("span", { className: "dot " + (outcome || "") }),
+      `Searched “${question.length > 70 ? question.slice(0, 70) + "…" : question}” · ${askPlural(citations.length, "passage")}`),
+    box);
+  return d;
+}
+
+function thinkingCard(text) {
+  if (!text.trim()) return null;
+  return el("details", { className: "ask-step thinking" }, el("summary", { textContent: "Thinking" }),
+    el("pre", { className: "ask-think", textContent: text }));
+}
+
+function sourcesRow(citations) {
+  if (!citations.length) return "";
+  const row = el("div", { className: "ask-sources" }, el("span", { className: "rel-label", textContent: "Sources" }));
+  for (const c of citations) {
+    const b = el("button", { type: "button", className: "chip", textContent: `${c.n} · ${c.title}`,
+      title: c.heading_path || c.collection || "" });
     b.addEventListener("click", () => openPassage(c.chunk_id));
     row.append(b);
   }
   return row;
 }
-async function askQuestion(q) {
-  const log = $("#ask-log");
-  log.append(askBubble("user", q));
-  const box = askBubble("assistant");
-  box.append(el("span", { className: "spinner", ariaHidden: "true" }), el("span", { className: "muted", textContent: " searching the documents…" }));
-  log.append(box);
-  box.scrollIntoView({ block: "end" });
-  const ids = $$("#scope input:checked").map((c) => +c.value);
-  const all = ids.length === me.collections.length;
-  let res;
-  try {
-    res = await api("/api/ask", { method: "POST", json: { question: q, history: askHistory,
-      model: $("#ask-model").value, collection_ids: all ? null : ids } });
-  } catch (e) {
-    box.replaceChildren(el("p", { className: "ask-error", textContent: e.message }));
-    return;
-  }
+
+function metaRow({ outcome, model, seconds, question, label }) {
   const meta = el("div", { className: "ask-meta" },
-    el("span", { className: "ask-dot " + res.outcome }), el("span", { textContent: res.outcome.replaceAll("_", " ") }),
-    res.model ? ` · ${res.model}` : "", res.seconds ? ` · ${res.seconds} s` : "");
-  if (!res.answered) {
-    box.replaceChildren(
-      el("p", {}, el("strong", { textContent: "No answer from your documents. " }),
-        res.answer || res.message || "No supporting passage was found."),
-      meta);
-    return;
-  }
-  box.replaceChildren(answerText(res), answerSources(res), meta);
-  askHistory = [...askHistory, { role: "user", text: q }, { role: "assistant", text: res.answer }].slice(-8);
+    el("span", { className: "dot " + (label ? "" : outcome || "") }),
+    el("span", { textContent: label || (outcome || "").replaceAll("_", " ") }),
+    model ? ` · ${model}` : "", seconds ? ` · ${seconds} s` : "");
+  const copy = el("button", { type: "button", className: "link small", textContent: "Copy" });
+  const retry = el("button", { type: "button", className: "link small", textContent: "Retry" });
+  meta.append(copy, retry);
+  return meta;
 }
+
+function answerNode(m) {
+  const box = el("div", { className: "ask-msg assistant" });
+  const step = m.citations?.length ? stepCard(m.question || "", m.citations, m.outcome) : null;
+  if (step) box.append(step);
+  const think = m.thinking ? thinkingCard(m.thinking) : null;
+  if (think) box.append(think);
+  const body = el("div", { className: "ask-answer" });
+  if (m.text) body.append(...prose(m.text, "text/markdown"));
+  else body.append(el("p", { className: "muted", textContent: "No answer from your documents." }));
+  box.append(body);
+  if (m.citations?.length) box.append(sourcesRow(m.citations));
+  const meta = metaRow({ ...m, question: m.question, label: m.text ? "" : "not answered" });
+  meta.querySelectorAll("button").forEach((b) => {
+    if (b.textContent === "Copy") b.addEventListener("click", () => {
+      navigator.clipboard?.writeText(m.text || "").then(() => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1500); });
+    });
+    if (b.textContent === "Retry" && m.question) b.addEventListener("click", () => askSend(m.question));
+  });
+  box.append(meta);
+  return box;
+}
+
+function askBody(question) {
+  const scope = $("#ask-scope").value;
+  return { question, conversation_id: askConv, model: $("#ask-model").value, think: $("#ask-think").checked,
+    collection_ids: scope ? [+scope] : null };
+}
+
+async function ensureConv() {
+  if (askConv) return askConv;
+  const c = await api("/api/ask/conversations", { method: "POST", json: {} });
+  askConv = c.id;
+  return askConv;
+}
+
+async function askSend(question) {
+  if (askBusy) return;
+  askBusy = true;
+  $("#ask-send").disabled = true;
+  $("#ask-stop").hidden = false;
+  const log = $("#ask-log");
+  log.querySelector(".ask-msg.muted")?.remove();  // the greeting goes when the first question does
+  log.append(el("div", { className: "ask-msg user" }, el("p", { textContent: question })));
+  const box = el("div", { className: "ask-msg assistant" });
+  const status = el("p", { className: "muted" }, el("span", { className: "spinner", ariaHidden: "true" }), " searching the documents…");
+  box.append(status);
+  log.append(box);
+  log.scrollTop = log.scrollHeight;
+  try {
+    await ensureConv();
+    await loadConvs($("#ask-find").value);
+    const ctrl = new AbortController();
+    askAbort = ctrl;
+    const r = await fetch("/api/ask/stream", { method: "POST", signal: ctrl.signal,
+      headers: { "content-type": "application/json", "x-ks-csrf": "1" }, body: JSON.stringify(askBody(question)) });
+    if (!r.ok || !r.body) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.detail || `HTTP ${r.status}`);
+    }
+    let step = null, think = null, body = null, text = "", final = null, citations = [], outcome = "";
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = "";
+    const handle = (event) => {
+      if (event.type === "search") {
+        citations = event.citations || [];
+        outcome = event.outcome || "";
+        status.remove();
+        step = stepCard(event.question || question, citations, outcome);
+        box.append(step);
+        body = el("div", { className: "ask-answer" });
+        box.append(body);
+      } else if (event.type === "thinking") {
+        if (!think) { think = thinkingCard(event.text); box.insertBefore(think, body); }
+        else think.querySelector("pre").append(event.text);
+      } else if (event.type === "error") {
+        status.remove();
+        box.append(el("p", { className: "ask-error", textContent: event.message }));
+      } else if (event.type === "done") {
+        final = event;
+      }
+    };
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let cut;
+      while ((cut = buf.indexOf("\n\n")) >= 0) {
+        const chunk = buf.slice(0, cut);
+        buf = buf.slice(cut + 2);
+        for (const line of chunk.split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          const event = JSON.parse(line.slice(6));
+          if (event.type === "text") {
+            text += event.text;
+            if (!body.querySelector(".stream")) body.append(el("p", { className: "stream" }));
+            body.querySelector(".stream").append(event.text);
+            log.scrollTop = log.scrollHeight;
+          } else handle(event);
+        }
+      }
+    }
+    // finished: re-render the answer as Markdown, with its sources and what it cost
+    const node = answerNode({ text, citations, thinking: think ? think.querySelector("pre").textContent : "",
+      outcome, question, model: final?.model || "", seconds: final?.seconds || 0 });
+    box.replaceWith(node);
+    log.scrollTop = log.scrollHeight;
+    const conv = await api(`/api/ask/conversations/${askConv}`).catch(() => null);
+    if (conv) setAskTitle(conv.title);
+    loadConvs($("#ask-find").value);
+  } catch (err) {
+    if (err.name === "AbortError") {
+      box.append(el("p", { className: "muted small", textContent: "Stopped." }));
+    } else {
+      box.replaceChildren(el("p", { className: "ask-error", textContent: err.message }));
+    }
+  } finally {
+    askAbort = null;
+    askBusy = false;
+    $("#ask-send").disabled = false;
+    $("#ask-stop").hidden = true;
+    $("#ask-q").focus();
+  }
+}
+
 $("#ask-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const q = $("#ask-q").value.trim();
-  if (!q || $("#ask-send").disabled) return;
+  if (!q || askBusy) return;
   $("#ask-q").value = "";
-  $("#ask-send").disabled = true;
-  askQuestion(q).finally(() => { $("#ask-send").disabled = false; $("#ask-q").focus(); });
+  askSend(q);
 });
 $("#ask-q").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#ask-form").requestSubmit(); }
 });
+$("#ask-stop").addEventListener("click", () => { askAbort?.abort(); });
+$("#ask-new").addEventListener("click", () => newChat());
+$("#ask-rename").addEventListener("click", async () => {
+  if (!askConv) return;
+  const title = prompt("Name this conversation", $("#ask-title").textContent === "New conversation" ? "" : $("#ask-title").textContent);
+  if (!title || !title.trim()) return;
+  await api(`/api/ask/conversations/${askConv}`, { method: "PATCH", json: { title: title.trim() } }).catch((e) => alert(e.message));
+  setAskTitle(title.trim());
+  loadConvs($("#ask-find").value);
+});
 $("#ask-model").addEventListener("change", (e) => {
   try { localStorage.setItem("ks-ask-model", e.target.value); } catch { /* not kept */ }
 });
-$("#ask-clear").addEventListener("click", () => {
-  askHistory = [];
-  $("#ask-log").replaceChildren();
-  askGreeting();
-  $("#ask-q").focus();
+let askFindTimer = null;
+$("#ask-find").addEventListener("input", () => {
+  clearTimeout(askFindTimer);
+  askFindTimer = setTimeout(() => loadConvs($("#ask-find").value), 250);
 });
+
 
 
 // A passage on one line: list items (slides, org charts) separated by " · " instead of running together.

@@ -1,6 +1,8 @@
 """Ask: an answer only from passages that passed the evidence gate, with citations; no evidence means no model
-call and the search's own refusal; the last turns travel with the question but never as evidence."""
+call and the search's own refusal; the model's NOT_IN_DOCUMENTS becomes "no answer"; conversations are saved per
+user; the answer streams; the earlier turns travel with the question but never as evidence."""
 
+import json
 from types import SimpleNamespace
 
 from knowledge_search import ask, enrich
@@ -23,41 +25,58 @@ class FakeEnricher:
         return True
 
 
+def fake_model(*chunks, thinking="", seen=None):
+    """What the model server streams: text pieces (and its reasoning, before them)."""
+    def gen(url, model, prompt, think, max_tokens=900):
+        if seen is not None:
+            seen.update(url=url, model=model, prompt=prompt, think=think)
+        if thinking:
+            yield "thinking", thinking
+        for chunk in chunks:
+            yield "text", chunk
+    return gen
+
+
 def test_no_evidence_means_no_answer_and_no_model_call(client, corpus, monkeypatch):
     monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
-    called = []
-    monkeypatch.setattr(enrich, "chat", lambda *a, **k: called.append(a) or "{}")
+    seen = {}
+    monkeypatch.setattr(ask, "_stream_model", fake_model("should not be asked", seen=seen))
     r = client.post("/api/ask", headers=token(client, "alice"), json={"question": "zebra quantum lasagna policy"})
     assert r.status_code == 200
     body = r.json()
     assert body["answer"] is None and body["answered"] is False and body["citations"] == []
-    assert not called  # nothing to answer from: the model is never asked
+    assert not seen  # nothing to answer from: the model is never asked
     assert body["outcome"] == "no_adequate_evidence" and body["message"]
 
 
 def test_the_answer_cites_the_passages_the_model_was_given(client, corpus, monkeypatch):
     seen = {}
-
-    def fake_chat(url, model, prompt, **kw):
-        seen.update(url=url, model=model, prompt=prompt)
-        return '{"answer": "Retry after 30 seconds [1].", "answered": true}'
-
     monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
-    monkeypatch.setattr(enrich, "chat", fake_chat)
+    monkeypatch.setattr(ask, "_stream_model", fake_model("Retry after 30 seconds ", "[1].", seen=seen))
     body = client.post("/api/ask", headers=token(client, "alice"), json={"question": "ERR-PAY-4012"}).json()
     assert body["answered"] and body["answer"] == "Retry after 30 seconds [1]."
     assert body["citations"][0]["n"] == 1 and body["citations"][0]["chunk_id"]
     assert len(body["citations"]) <= ask.PASSAGES and body["outcome"] == "evidence_found"
-    assert seen["url"] == "http://fake/v1" and seen["model"] == MODEL
+    assert seen["url"] == "http://fake/v1" and seen["model"] == MODEL and seen["think"] is False
     assert "ERR-PAY-4012" in seen["prompt"] and "[1] " in seen["prompt"]
     assert body["model"] and body["seconds"] >= 0
 
 
-def test_a_model_that_ignores_the_json_request_still_answers(client, corpus, monkeypatch):
+def test_the_model_saying_it_is_not_in_the_documents_is_a_refusal(client, corpus, monkeypatch):
     monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
-    monkeypatch.setattr(enrich, "chat", lambda *a, **k: "It is in the runbook, section 2.")
+    monkeypatch.setattr(ask, "_stream_model", fake_model("NOT", "_IN_DOC", "UMENTS"))
     body = client.post("/api/ask", headers=token(client, "alice"), json={"question": "ERR-PAY-4012"}).json()
-    assert body["answered"] and body["answer"] == "It is in the runbook, section 2."
+    assert body["answered"] is False and body["answer"] is None
+
+
+def test_think_first_asks_for_the_reasoning_and_keeps_it(client, corpus, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    monkeypatch.setattr(ask, "_stream_model", fake_model("Retry once [1].", thinking="The passage says so. ",
+                                                         seen=seen))
+    body = client.post("/api/ask", headers=token(client, "alice"),
+                       json={"question": "ERR-PAY-4012", "think": True}).json()
+    assert body["answered"] and body["thinking"].strip() == "The passage says so." and seen["think"] is True
 
 
 def test_history_travels_with_the_question_but_stays_bounded():
@@ -69,10 +88,66 @@ def test_history_travels_with_the_question_but_stays_bounded():
     assert prompt.count("User: ") == 1 and prompt.count("You: ") == 1
     assert "q" * (ask.CHARS_PER_TURN + 1) not in prompt  # each turn is cut, not pasted whole
     assert "and the evening batch?" in prompt and "[1] Runbook > Restart (page 4)" in prompt
-    assert "not evidence" in prompt and len(prompt) < 12000
+    assert "not evidence" in prompt and len(prompt) < 14000
 
 
-def test_the_model_list_says_which_ones_are_downloaded(client, corpus):
+def test_a_conversation_is_saved_and_its_turns_reach_the_next_question(client, corpus, monkeypatch):
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    seen = {}
+    monkeypatch.setattr(ask, "_stream_model", fake_model("Retry once ", "[1].", seen=seen))
+    h = token(client, "alice")
+    cid = client.post("/api/ask/conversations", headers=h).json()["id"]
+    first = client.post("/api/ask", headers=h, json={"question": "ERR-PAY-4012", "conversation_id": cid}).json()
+    assert first["answered"] and first["conversation_id"] == cid
+    second = client.post("/api/ask", headers=h, json={"question": "and how do I retry it?", "conversation_id": cid})
+    assert second.status_code == 200
+    assert "User: ERR-PAY-4012" in seen["prompt"]  # the earlier question came from the stored conversation
+    body = client.get(f"/api/ask/conversations/{cid}", headers=h).json()
+    assert [m["role"] for m in body["messages"]] == ["user", "assistant", "user", "assistant"]
+    assert body["messages"][1]["citations"] and body["title"].startswith("ERR-PAY-4012")
+    listed = client.get("/api/ask/conversations", headers=h).json()["conversations"]
+    assert any(c["id"] == cid and c["turns"] == 4 for c in listed)
+    assert any(c["id"] == cid for c in client.get("/api/ask/conversations?q=retry", headers=h).json()["conversations"])
+    assert client.patch(f"/api/ask/conversations/{cid}", headers=h, json={"title": "Retries"}).json()["title"] == "Retries"
+    assert client.delete(f"/api/ask/conversations/{cid}", headers=h).status_code == 200
+    assert client.get(f"/api/ask/conversations/{cid}", headers=h).status_code == 404
+
+
+def test_another_users_conversation_is_not_readable(client, corpus):
+    alice, bob = token(client, "alice"), token(client, "bob")
+    cid = client.post("/api/ask/conversations", headers=alice).json()["id"]
+    assert client.get(f"/api/ask/conversations/{cid}", headers=bob).status_code == 404
+    assert client.patch(f"/api/ask/conversations/{cid}", headers=bob, json={"title": "x"}).status_code == 404
+    assert client.delete(f"/api/ask/conversations/{cid}", headers=bob).status_code == 404
+
+
+def test_the_answer_streams_its_search_its_text_and_its_end(client, corpus, monkeypatch):
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    monkeypatch.setattr(ask, "_stream_model", fake_model("Page the on-call ", "engineer [1]."))
+    h = token(client, "alice")
+    cid = client.post("/api/ask/conversations", headers=h).json()["id"]
+    events = []
+    with client.stream("POST", "/api/ask/stream", headers=h,
+                       json={"question": "ERR-PAY-4012", "conversation_id": cid}) as r:
+        assert r.status_code == 200 and r.headers["content-type"].startswith("text/event-stream")
+        for line in r.iter_lines():
+            if line.startswith("data: "):
+                events.append(json.loads(line[6:]))
+    kinds = [e["type"] for e in events]
+    assert kinds[0] == "search" and "text" in kinds and kinds[-1] == "done"
+    search = events[0]
+    assert search["citations"] and search["outcome"] == "evidence_found"
+    assert "".join(e["text"] for e in events if e["type"] == "text") == "Page the on-call engineer [1]."
+    assert events[-1]["answered"] is True and events[-1]["conversation_id"] == cid
+    saved = client.get(f"/api/ask/conversations/{cid}", headers=h).json()["messages"]
+    assert saved[-1]["role"] == "assistant" and saved[-1]["text"] == "Page the on-call engineer [1]."
+
+
+def test_the_model_list_and_the_mcp_tool(client, corpus):
     body = client.get("/api/ask/models", headers=token(client, "alice")).json()
     assert {m["name"] for m in body["models"]} == set(enrich.LLMS)
     assert all("installed" in m and m["file"].endswith(".gguf") for m in body["models"])
+    from knowledge_search import mcp
+
+    tool = next(t for t in mcp.TOOLS if t["name"] == "ask")
+    assert tool["inputSchema"]["required"] == ["question"] and tool["annotations"]["readOnlyHint"] is True

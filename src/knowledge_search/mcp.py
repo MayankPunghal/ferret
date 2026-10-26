@@ -30,6 +30,8 @@ link. If the outcome is no_adequate_evidence, say the documents do not answer it
 conflicting_evidence, show the versions and their dates. Summaries, topics and types are written by a local
 model: use them to choose what to read, never as evidence. Read a passage or the whole document before
 relying on a detail the passage only hints at; follow document_links for "what depends on X" questions.
+When the user wants an answer written out rather than passages, use "ask": it searches first and the local
+model writes the answer from the evidence passages with [n] citations, and abstains when they do not answer.
 Tools that change things (add_document, add_folder, crawl_website, send_crawl, change_settings, reindex, delete_document)
 appear only when the user's token allows changes. Use them when the user asks; ask first before deleting,
 reindex all=true, or changing the embedding model or passage size (every document is indexed again)."""
@@ -55,6 +57,15 @@ TOOLS = [
            "limit": {"type": "integer", "minimum": 1, "maximum": 20, "default": 8}}, ["query"]),
     _tool("read_passage", "One passage with the passages around it, by passage_id from a search result.",
           {"passage_id": {"type": "integer"}}, ["passage_id"]),
+    _tool("ask", "Answer a question in words from the user's own documents: the search runs first and the local "
+          "model writes the answer from the evidence passages only, citing them as [n]. Returns the answer, the "
+          "citations (title, where, open link) and the search outcome; when the documents do not answer it, it "
+          "abstains instead of guessing. Slower than search (the model writes on this computer).",
+          {"question": {"type": "string"},
+           "collections": {"type": "array", "items": {"type": "string"},
+                           "description": "collection names to search; default all the user can read"},
+           "think": {"type": "boolean", "description": "let the model reason first: slower, for hard questions"}},
+          ["question"]),
     _tool("read_document", "A whole document's text in reading order (long documents are cut at max_chars).",
           {"document_id": _ID, "max_chars": {"type": "integer", "minimum": 1000, "maximum": 200000, "default": 30000}},
           ["document_id"]),
@@ -182,6 +193,18 @@ async def _run(name: str, a: dict, c: httpx.AsyncClient, base: str) -> dict | li
                      "linked_from": r["signals"].get("linked_from")}
             results.append(x | {k: v for k, v in extra.items() if v})
         return {k: out[k] for k in ("outcome", "message", "reason_codes") if out.get(k)} | {"results": results}
+    if name == "ask":
+        body = {"question": str(a.get("question", "")), "think": bool(a.get("think"))}
+        if a.get("collections"):
+            cols = {x["name"].lower(): x["id"] for x in (await _call(c, "GET", "/api/me"))["collections"]}
+            body["collection_ids"] = [cols[n.lower()] for n in a["collections"] if n.lower() in cols]
+            if not body["collection_ids"]:
+                raise ToolError(f"no readable collection named {', '.join(a['collections'])}; see list_collections")
+        out = await _call(c, "POST", "/api/ask", body)
+        return {"question": body["question"], "answered": out.get("answered"), "answer": out.get("answer"),
+                "outcome": out.get("outcome"), "message": out.get("message"),
+                "citations": [{"n": x["n"], "title": x["title"], "where": _where(x), "open": link(x.get("source_url"))}
+                              for x in out.get("citations") or []]}
     if name == "read_passage":
         p = await _call(c, "GET", f"/api/chunks/{int(a['passage_id'])}")
         return {"passage_id": p["id"], "document_id": p["document_id"], "title": p.get("clearer_title") or p["doc_title"],
