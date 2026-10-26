@@ -34,11 +34,10 @@ with sync_playwright() as p:
         """Click a sidebar item, or one in the account menu (Settings, About, Sign out), opening the menu first."""
         if not pg.locator(selector).is_visible():
             pg.click("#account-button")
-        box = pg.locator(selector).bounding_box()
-        width = pg.viewport_size["width"]  # a phone folds the sidebar away: open it before clicking a tab in it
-        if box and pg.locator("#menu-button").is_visible() and (box["x"] < 0 or box["x"] > width - 8):
+        # a phone folds the sidebar behind the menu button: open the drawer, click the tab (which closes it again)
+        if pg.locator("#menu-button").is_visible() and "menu-open" not in (pg.get_attribute("#app-view", "class") or ""):
             pg.click("#menu-button")
-            pg.wait_for_timeout(250)
+            pg.wait_for_timeout(200)
         pg.click(selector)
 
     def shot(name):
