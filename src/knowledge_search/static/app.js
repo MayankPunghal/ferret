@@ -693,14 +693,30 @@ function metaRow({ outcome, model, seconds, question, label, unconfirmed }) {
 }
 
 function stageRow(label, kind = "active") {
-  return el("div", { className: `stage ${kind}` },
+  const row = el("div", { className: `stage ${kind}` },
     el("span", { className: "ico", ariaHidden: "true" }), el("span", { className: "lbl", textContent: label }));
+  row.dataset.base = label;
+  return row;
 }
 function stageDone(row, label) {
-  if (!row) return;
+  if (!row || !row.classList.contains("active")) return;
   row.className = "stage done";
   if (label) row.querySelector(".lbl").textContent = label;
 }
+// An active stage counts the seconds it is taking, so "reading the passages" cannot look like a hang: the wait
+// is the local model, and the page has to say so (owner: "minutes and minutes", 2026-10-26).
+setInterval(() => {
+  for (const row of $$("#ask-log .stage.active")) {
+    const waited = Math.round((Date.now() - (row.dataset.since ? Number(row.dataset.since) : Date.now())) / 1000);
+    if (!row.dataset.since) row.dataset.since = String(Date.now());
+    const base = row.dataset.base || "";
+    row.querySelector(".lbl").textContent = waited > 0 ? `${base} · ${waited} s` : base;
+    if (waited >= 20 && !row.dataset.slow) {
+      row.dataset.slow = "1";
+      row.querySelector(".lbl").textContent += " — no token yet: thinking is on, or the model is too big for this GPU";
+    }
+  }
+}, 1000);
 
 function askWho() {
   return el("div", { className: "ask-who" },
@@ -761,8 +777,9 @@ async function askSend(question, opts = {}) {
   box.append(askWho());
   const stages = el("div", { className: "ask-stages" });
   box.append(stages);
-  let stagePlan = stageRow("Planning the search"), stageSearch = null, stageRead = null,
-    stageThink = null, stageWrite = null;
+  let stagePlan = stageRow("Planning the search");
+  stagePlan.dataset.since = String(Date.now());
+  let stageSearch = null, stageRead = null, stageThink = null, stageWrite = null;
   const roundRows = new Map();
   stages.append(stagePlan);
   if (!opts.box) log.append(box);
@@ -814,14 +831,15 @@ async function askSend(question, opts = {}) {
             + `${askPlural(event.passages || 0, "passage")}`, "done"));
         }
         stageSearch = stages.lastElementChild;
-        stageRead = stageRow(`Reading ${askPlural(event.passages || 0, "passage")}`);
+        // the passages are already chosen here: what follows is the local model reading them and writing
+        stageRead = stageRow(`Asking the model about ${askPlural(event.passages || 0, "passage")}`);
         stages.append(stageRead);
         box.append(stepCard(event));
         body = el("div", { className: "ask-answer streaming" });
         box.append(body);
         log.scrollTop = log.scrollHeight;
       } else if (event.type === "thinking") {
-        stageDone(stageRead, "Read the passages");
+        stageDone(stageRead, "The model read the passages");
         if (!stageThink) { stageThink = stageRow("Thinking it through"); stages.append(stageThink); }
         if (!think) { think = thinkingCard(event.text); box.insertBefore(think, body); }
         else think.querySelector("pre").append(event.text);
@@ -830,7 +848,7 @@ async function askSend(question, opts = {}) {
         box.append(el("p", { className: "ask-error", textContent: event.message }));
       } else if (event.type === "done") {
         final = event;
-        stageDone(stageRead, "Read the passages");
+        stageDone(stageRead, "The model read the passages");
         stageDone(stageThink, "Thought it through");
         stageDone(stageWrite, "Wrote the answer");
       }
@@ -848,7 +866,7 @@ async function askSend(question, opts = {}) {
           const event = JSON.parse(line.slice(6));
           if (event.type === "text") {
             text += event.text;
-            stageDone(stageRead, "Read the passages");
+            stageDone(stageRead, "The model read the passages");
             stageDone(stageThink, "Thought it through");
             if (!stageWrite) { stageWrite = stageRow("Writing the answer"); stages.append(stageWrite); }
             if (body && !body.querySelector(".stream")) body.append(el("p", { className: "stream" }));
