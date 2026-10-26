@@ -463,7 +463,8 @@ $("#search-form").addEventListener("submit", async (e) => {
 // its answer must cite them. The search step is always shown: what was asked, what the gate said, and the
 // passages (or the closest matches) with their scores — the window is never a black box. When nothing passed,
 // the user can still ask the model to answer from the closest matches, and that answer is labelled unconfirmed.
-let askModels = null, askConv = null, askAbort = null, askBusy = false;
+let askModels = null, askConv = null;
+const askRunning = new Map();  // conversation id -> AbortController: a chat keeps answering while you look elsewhere
 const askPlural = (n, one) => `${n.toLocaleString()} ${one}${n === 1 ? "" : "s"}`;
 
 const askWhen = (iso) => {
@@ -527,16 +528,15 @@ function convRow(c) {
 }
 
 function newChat() {
-  askAbort?.abort();
   askConv = null;
   setAskTitle("New conversation");
   $("#ask-log").replaceChildren(greeting());
   loadConvs($("#ask-find").value);
+  updateAskSend();
   $("#ask-q").focus();
 }
 
 async function openChat(id) {
-  if (askAbort) askAbort.abort();
   askConv = id;
   const d = await api(`/api/ask/conversations/${id}`).catch((e) => { alert(e.message); return null; });
   if (!d) return;
@@ -551,6 +551,7 @@ async function openChat(id) {
   }
   log.scrollTop = log.scrollHeight;
   loadConvs($("#ask-find").value);
+  updateAskSend();
   $("#ask-q").focus();
 }
 
@@ -592,9 +593,11 @@ function stepCard(s) {
     box.append(el("p", { className: "muted small", textContent: confirmed ? "Also found, not confirmed:" : "Closest matches, not confirmed:" }));
     near.forEach((c) => box.append(passageRow(c, false, null)));
   }
+  const asked = s.searched && s.searched !== q ? ` for “${q.length > 50 ? q.slice(0, 50) + "…" : q}”` : "";
+  const searched = (s.searched || q).length > 60 ? (s.searched || q).slice(0, 60) + "…" : (s.searched || q);
   const step = el("details", { className: "ask-step" },
     el("summary", {}, el("span", { className: "dot " + (s.outcome || "") }),
-      `Searched “${q.length > 60 ? q.slice(0, 60) + "…" : q}” · ${count}${near.length ? ` · ${near.length} closest ${near.length === 1 ? "match" : "matches"}` : ""}`),
+      `Searched “${searched}”${asked} · ${count}${near.length && !s.unconfirmed ? ` · ${near.length} closest ${near.length === 1 ? "match" : "matches"}` : ""}`),
     box);
   step.open = !confirmed;  // nothing confirmed: open so the closest matches and the gate are in plain sight
   return step;
@@ -647,25 +650,16 @@ function answerNode(m) {
     if (b.textContent === "Copy") b.addEventListener("click", () => {
       navigator.clipboard?.writeText(m.text || "").then(() => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1500); });
     });
-    if (b.textContent === "Retry" && m.question) b.addEventListener("click", () => askSend(m.question));
+    if (b.textContent === "Retry" && m.question) b.addEventListener("click", () => askSend(m.question, { box, newTurn: false }));
   });
   box.append(meta);
   return box;
 }
 
-// Nothing passed the evidence check: offer the closest matches, clearly labelled, instead of a dead end.
-function offerClosest(box, question, search) {
-  const b = el("button", { type: "button", className: "button", textContent: "Answer from the closest matches (unconfirmed)" });
-  b.addEventListener("click", () => askSend(question, { allowUnsupported: true, box }));
-  box.append(el("p", { className: "muted small", textContent:
-    "The search found nothing that passed the evidence check. You can still ask the model what the closest matches say — the answer will be marked unconfirmed." }));
-  box.append(b);
-}
-
-function askBody(question, allowUnsupported) {
+function askBody(question, opts = {}) {
   const scope = $("#ask-scope").value;
   return { question, conversation_id: askConv, model: $("#ask-model").value, think: $("#ask-think").checked,
-    allow_unsupported: !!allowUnsupported, collection_ids: scope ? [+scope] : null };
+    new_turn: opts.newTurn !== false, collection_ids: scope ? [+scope] : null };
 }
 
 async function ensureConv() {
@@ -675,11 +669,14 @@ async function ensureConv() {
   return askConv;
 }
 
+function updateAskSend() {
+  const running = askRunning.has(askConv);
+  $("#ask-send").disabled = running;
+  $("#ask-stop").hidden = !running;
+}
+
 async function askSend(question, opts = {}) {
-  if (askBusy) return;
-  askBusy = true;
-  $("#ask-send").disabled = true;
-  $("#ask-stop").hidden = false;
+  if (askConv && askRunning.has(askConv)) return;  // this conversation is already answering
   const log = $("#ask-log");
   log.querySelector(".ask-msg.muted")?.remove();  // the greeting goes when the first question does
   if (!opts.box) log.append(el("div", { className: "ask-msg user" }, el("p", { textContent: question })));
@@ -689,14 +686,16 @@ async function askSend(question, opts = {}) {
   box.append(status);
   if (!opts.box) log.append(box);
   log.scrollTop = log.scrollHeight;
+  let convId = null;
   try {
-    await ensureConv();
-    await loadConvs($("#ask-find").value);
+    convId = await ensureConv();
+    if (askRunning.has(convId)) { if (!opts.box) box.remove(); return; }
     const ctrl = new AbortController();
-    askAbort = ctrl;
+    askRunning.set(convId, ctrl);
+    updateAskSend();
     const r = await fetch("/api/ask/stream", { method: "POST", signal: ctrl.signal,
       headers: { "content-type": "application/json", "x-ks-csrf": "1" },
-      body: JSON.stringify(askBody(question, opts.allowUnsupported)) });
+      body: JSON.stringify({ ...askBody(question, opts), conversation_id: convId }) });
     if (!r.ok || !r.body) {
       const e = await r.json().catch(() => ({}));
       throw new Error(e.detail || `HTTP ${r.status}`);
@@ -734,22 +733,19 @@ async function askSend(question, opts = {}) {
           const event = JSON.parse(line.slice(6));
           if (event.type === "text") {
             text += event.text;
-            if (!body.querySelector(".stream")) body.append(el("p", { className: "stream" }));
-            body.querySelector(".stream").append(event.text);
-            log.scrollTop = log.scrollHeight;
+            if (body && !body.querySelector(".stream")) body.append(el("p", { className: "stream" }));
+            body?.querySelector(".stream")?.append(event.text);
+            if (askConv === convId) log.scrollTop = log.scrollHeight;
           } else handle(event);
         }
       }
     }
     const thinking = think ? think.querySelector("pre").textContent : "";
-    const node = answerNode({ text, citations: search?.citations || [], thinking, outcome: search?.outcome || "",
-      question, model: final?.model || "", seconds: final?.seconds || 0, search });
-    box.replaceWith(node);
-    if (!text && search?.near?.length) offerClosest(node, question, search);
-    log.scrollTop = log.scrollHeight;
-    const conv = await api(`/api/ask/conversations/${askConv}`).catch(() => null);
-    if (conv) setAskTitle(conv.title);
-    loadConvs($("#ask-find").value);
+    box.replaceWith(answerNode({ text, citations: search?.citations || [], thinking,
+      outcome: search?.outcome || "", question, model: final?.model || "", seconds: final?.seconds || 0, search }));
+    if (askConv === convId) log.scrollTop = log.scrollHeight;
+    const conv = await api(`/api/ask/conversations/${convId}`).catch(() => null);
+    if (conv && askConv === convId) setAskTitle(conv.title);
   } catch (err) {
     if (err.name === "AbortError") {
       box.append(el("p", { className: "muted small", textContent: "Stopped." }));
@@ -758,25 +754,24 @@ async function askSend(question, opts = {}) {
       box.append(el("p", { className: "ask-error", textContent: err.message }));
     }
   } finally {
-    askAbort = null;
-    askBusy = false;
-    $("#ask-send").disabled = false;
-    $("#ask-stop").hidden = true;
-    $("#ask-q").focus();
+    if (convId) askRunning.delete(convId);
+    updateAskSend();
+    loadConvs($("#ask-find").value);
+    if (askConv === convId) $("#ask-q").focus();
   }
 }
 
 $("#ask-form").addEventListener("submit", (e) => {
   e.preventDefault();
   const q = $("#ask-q").value.trim();
-  if (!q || askBusy) return;
+  if (!q) return;
   $("#ask-q").value = "";
   askSend(q);
 });
 $("#ask-q").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("#ask-form").requestSubmit(); }
 });
-$("#ask-stop").addEventListener("click", () => { askAbort?.abort(); });
+$("#ask-stop").addEventListener("click", () => { askRunning.get(askConv)?.abort(); });
 $("#ask-new").addEventListener("click", () => newChat());
 $("#ask-rename").addEventListener("click", async () => {
   if (!askConv) return;
@@ -1440,6 +1435,7 @@ function fillSettings(v) {
   $("#s-llm-dev-note").textContent = (sys ? `This computer: ${sys.memory_gb} GB memory, graphics: ${sys.gpus.join(", ") || "none found"}. ` : "")
     + (settings.llm.gpu_error || (!settings.llm.gpu ? "No GPU build of the model server for this system: it runs on the CPU."
     : `Running on the ${settings.llm.device.toUpperCase()}. On an Intel Iris Xe laptop the GPU wrote summaries 10–20% faster, just as good, and left the processor free for indexing and search. If the GPU fails, the CPU takes over.`));
+  $("#s-ask-closest").checked = v.ask_allow_unsupported;
   $("#s-g-high").value = v.gate_dense_high; $("#s-g-min").value = v.gate_dense_min; $("#s-g-cov").value = v.gate_lex_coverage;
   $("#s-g-all").value = v.gate_all_terms_min;
   $("#s-g-rr").value = v.gate_rerank_min; $("#s-g-mode").value = v.gate_mode; $("#s-g-lex").value = v.gate_lexical;
@@ -1517,7 +1513,8 @@ $("#settings-form").addEventListener("submit", async (e) => {
     embed_model: $("#s-model").value, chunk_size: +$("#s-chunk").value,
     chunk_overlap: $("#s-overlap-on").checked ? +$("#s-overlap").value : 0, context_chars: +$("#s-ctx").value, context_source: $("#s-ctx-src").value,
     rerank_enabled: $("#s-rerank-on").checked, rerank_model: $("#s-rerank").value, rerank_candidates: +$("#s-rerank-n").value,
-    graph_expansion: $("#s-graph-on").checked, enrich_enabled: $("#s-enrich-on").checked, indexing_paused: $("#s-paused").checked, enrich_hours: $("#s-hours").value.trim(), summary_length: $("#s-sumlen").value, llm_device: $("#s-llm-dev").value,
+    graph_expansion: $("#s-graph-on").checked, ask_allow_unsupported: $("#s-ask-closest").checked,
+    enrich_enabled: $("#s-enrich-on").checked, indexing_paused: $("#s-paused").checked, enrich_hours: $("#s-hours").value.trim(), summary_length: $("#s-sumlen").value, llm_device: $("#s-llm-dev").value,
     ...($("#s-llm").disabled || $("#s-llm").value === summaryModel(settings.values) ? {} : { enrich_model: $("#s-llm").value }),
     gate_dense_high: +$("#s-g-high").value, gate_dense_min: +$("#s-g-min").value, gate_lex_coverage: +$("#s-g-cov").value, gate_all_terms_min: +$("#s-g-all").value,
     gate_rerank_min: +$("#s-g-rr").value, gate_mode: $("#s-g-mode").value, gate_lexical: $("#s-g-lex").value,

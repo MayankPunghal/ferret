@@ -201,6 +201,156 @@ def smartart_lines(dm) -> list[str]:
     return lines
 
 
+def _shapes_with_geometry(slide) -> dict:
+    """id -> (y, x, w, h, text) for every text shape that has a position on the slide."""
+    shapes = {}
+    for sp in slide.iter(f"{P}sp"):
+        nv = sp.find(f"{P}nvSpPr/{P}cNvPr")
+        xfrm = sp.find(f"{P}spPr/{A}xfrm")
+        if nv is None or xfrm is None:
+            continue
+        off, ext = xfrm.find(f"{A}off"), xfrm.find(f"{A}ext")
+        if off is None or ext is None:
+            continue
+        text = ", ".join(paragraphs(sp)).strip()
+        if text:
+            shapes[nv.get("id")] = (int(off.get("y", 0)), int(off.get("x", 0)),
+                                    int(ext.get("cx", 0)), int(ext.get("cy", 0)), text)
+    return shapes
+
+
+CONNECTOR_GEOMS = ("line", "straightConnector1", "bentConnector2", "bentConnector3", "bentConnector4",
+                   "bentConnector5", "curvedConnector2", "curvedConnector3", "curvedConnector4")
+
+
+def _line_endpoints(el) -> tuple | None:
+    """The two ends of a line or connector, in slide coordinates (flipV/flipH taken into account)."""
+    xfrm = el.find(f"{P}spPr/{A}xfrm") if el.tag == f"{P}sp" else el.find(f"{P}spPr/{A}xfrm")
+    if xfrm is None:
+        xfrm = el.find(f".//{A}xfrm")
+    if xfrm is None:
+        return None
+    off, ext = xfrm.find(f"{A}off"), xfrm.find(f"{A}ext")
+    if off is None or ext is None:
+        return None
+    x, y, w, h = int(off.get("x", 0)), int(off.get("y", 0)), int(ext.get("cx", 0)), int(ext.get("cy", 0))
+    if xfrm.get("flipV") == "1":
+        return (x, y + h), (x + w, y)
+    return (x, y), (x + w, y + h)
+
+
+def _snap(shapes: dict, point: tuple, tol: int) -> str | None:
+    """The text shape an end of a line touches (a box edge, so a tolerance of a few points)."""
+    best = None
+    for sid, (y, x, w, h, _) in shapes.items():
+        nearest_x = min(max(point[0], x), x + w)
+        nearest_y = min(max(point[1], y), y + h)
+        gap = ((nearest_x - point[0]) ** 2 + (nearest_y - point[1]) ** 2) ** 0.5
+        if gap <= tol and (best is None or gap < best[0]):
+            best = (gap, sid)
+    return best[1] if best else None
+
+
+def _seg_point_distance(seg, pt) -> float:
+    (x1, y1), (x2, y2) = seg
+    dx, dy = x2 - x1, y2 - y1
+    if dx == 0 and dy == 0:
+        return (((pt[0] - x1) ** 2 + (pt[1] - y1) ** 2) ** 0.5)
+    t = max(0.0, min(1.0, ((pt[0] - x1) * dx + (pt[1] - y1) * dy) / (dx * dx + dy * dy)))
+    return (((pt[0] - (x1 + t * dx)) ** 2 + (pt[1] - (y1 + t * dy)) ** 2) ** 0.5)
+
+
+def _segments_cross(a, b, tol: float) -> bool:
+    (x1, y1), (x2, y2) = a
+    (x3, y3), (x4, y4) = b
+    if max(x1, x2) + tol < min(x3, x4) or max(x3, x4) + tol < min(x1, x2) \
+            or max(y1, y2) + tol < min(y3, y4) or max(y3, y4) + tol < min(y1, y2):
+        return False
+    for p in (a[0], a[1], b[0], b[1]):
+        if _seg_point_distance(a, p) <= tol or _seg_point_distance(b, p) <= tol:
+            return True
+    return False
+
+
+def _line_tree(slide, shapes: dict) -> tuple[list[str], set]:
+    """A chart drawn with plain lines (PowerPoint writes them as shapes, not glued connectors). The boxes and
+    the lines form one drawing: from a box, follow the lines through their junctions to the next box above — that
+    box is its parent. Only short labels qualify, so a slide with rules and arrows between paragraphs stays a
+    plain list."""
+    if len(shapes) < 3 or any(len(text) > 80 for *_, text in shapes.values()):
+        return [], set()
+    segs = [ends for el in list(slide.iter(f"{P}cxnSp")) + list(slide.iter(f"{P}sp"))
+            if (el.tag != f"{P}sp" or (el.find(f"{P}spPr/{A}prstGeom") is not None
+                                       and el.find(f"{P}spPr/{A}prstGeom").get("prst") in CONNECTOR_GEOMS))
+            and (ends := _line_endpoints(el))]
+    if not segs:
+        return [], set()
+    height = max(h for _, _, _, h, _ in shapes.values()) or 1
+    tol = max(height * 0.4, 91440)  # a bit more than a third of a box height, at least a tenth of an inch
+
+    def box_distance(sid, seg) -> float:
+        _, x, _, h, _ = shapes[sid]
+        w = shapes[sid][2]
+        cx, cy = x + w / 2, shapes[sid][0] + h / 2
+        # near an edge (the line starts or ends on the box) or touching the box at all
+        corners = [(x, shapes[sid][0]), (x + w, shapes[sid][0]), (x, shapes[sid][0] + h), (x + w, shapes[sid][0] + h)]
+        d = min(_seg_point_distance(seg, c) for c in corners)
+        d = min(d, _seg_point_distance(seg, (cx, cy)))
+        return 0.0 if d <= tol else d
+
+    seg_shapes = [[sid for sid in shapes if box_distance(sid, seg) <= tol] for seg in segs]
+    joined = [[j for j in range(len(segs)) if j != i and _segments_cross(segs[i], segs[j], tol)]
+              for i in range(len(segs))]
+
+    def reached(start: int) -> set:
+        seen_segs, stack, found = {start}, [start], set()
+        while stack:
+            i = stack.pop()
+            found.update(seg_shapes[i])
+            for j in joined[i]:
+                if j not in seen_segs:
+                    seen_segs.add(j)
+                    stack.append(j)
+        return found
+
+    parent: dict[str, str] = {}
+    for sid in shapes:
+        mine = {i for i, hit in enumerate(seg_shapes) if sid in hit}
+        if not mine:
+            continue
+        above, below = [], []
+        for i in mine:
+            for other in reached(i):
+                if other == sid:
+                    continue
+                if shapes[other][0] + shapes[other][3] <= shapes[sid][0] + tol:  # sits above
+                    above.append(other)
+                elif shapes[sid][0] + shapes[sid][3] <= shapes[other][0] + tol:  # sits below
+                    below.append(other)
+        if above:  # the nearest box above is the parent
+            parent[sid] = max(above, key=lambda o: shapes[o][0])
+        elif below:  # nothing above: the nearest box below is the child of this one
+            child = min(below, key=lambda o: shapes[o][0])
+            parent.setdefault(child, sid)
+    if len(parent) < 2:
+        return [], set()
+    kids: dict[str, list] = {}
+    for k, v in parent.items():
+        kids.setdefault(v, []).append(k)
+    lines, seen = [], set()
+
+    def walk(node, depth, up):
+        seen.add(node)
+        lines.append("  " * depth + "- " + shapes[node][4] + _under(up))
+        for k in sorted(kids.get(node, []), key=lambda i: shapes[i][:2]):
+            if k not in seen:
+                walk(k, depth + 1, shapes[node][4])
+
+    for root in sorted({v for v in parent.values() if v not in parent}, key=lambda i: shapes[i][:2]):
+        walk(root, 0, "")
+    return lines, seen
+
+
 def _connected_tree(slide) -> tuple[list[str], set]:
     """Shapes joined by connector lines (a hand-drawn organisation chart) as a nested list, the upper shape of
     each connection as the parent; and the ids of the shapes it used."""
@@ -236,6 +386,14 @@ def _connected_tree(slide) -> tuple[list[str], set]:
     return lines, seen
 
 
+def _chart_tree(slide) -> tuple[list[str], set]:
+    """A hierarchy from glued connectors, else from plain lines joined to the boxes they touch."""
+    lines, used = _connected_tree(slide)
+    if lines:
+        return lines, used
+    return _line_tree(slide, _shapes_with_geometry(slide))
+
+
 def pptx_to_markdown(data: bytes) -> tuple[str, str]:
     """(title, markdown): one section per slide ("## Slide 3: Title"), its text as list items, then the
     speaker notes. SmartArt and shapes joined by connectors become nested lists that keep their hierarchy.
@@ -250,7 +408,7 @@ def pptx_to_markdown(data: bytes) -> tuple[str, str]:
         lines: list[str] = []
         for n, part in enumerate(slide_parts(z), 1):
             slide, heading, body = _xml(z, part), "", []
-            tree, in_tree = _connected_tree(slide)
+            tree, in_tree = _chart_tree(slide)
             for sp in slide.iter(f"{P}sp"):
                 ph = sp.find(f"{P}nvSpPr/{P}nvPr/{P}ph")
                 nv = sp.find(f"{P}nvSpPr/{P}cNvPr")

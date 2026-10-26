@@ -381,6 +381,20 @@
           </section>
           <section class="setting">
             <div class="setting-label">
+              <h2>Ask</h2>
+              <p>How the chat answers. The evidence check still decides what counts as evidence; this only
+                decides what happens when nothing passes it.</p>
+            </div>
+            <div class="setting-panel">
+              <label class="check"><input type="checkbox" id="s-ask-closest"> Answer from the closest matches when
+                no passage passes the evidence check</label>
+              <p class="muted small">Answering anyway is marked “unconfirmed evidence”, its sources are dashed, and
+                the search step shows what was found and how it scored. Off: Ask says the documents do not answer
+                it and calls no model.</p>
+            </div>
+          </section>
+          <section class="setting">
+            <div class="setting-label">
               <h2>Evidence thresholds</h2>
               <p>Tuned on labelled questions. Raising them makes search abstain more often (fewer false answers);
                 lowering them answers more often. Re-run the evaluation after changing the model.</p>

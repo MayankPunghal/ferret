@@ -13,7 +13,9 @@ collapsed card, Stop, Copy/Retry, conversation search/rename/delete, the model p
 The search's evidence gate still decides whether there is evidence: only its passages reach the model, and the
 model's `NOT_IN_DOCUMENTS` is shown as "No answer from your documents".
 A refusal is not a dead end: the search step (gate in force, passages with their scores) is always shown,
-and the window offers to answer from the closest matches, labelled unconfirmed (owner, 2026-10-26).
+and Settings → Ask decides whether the model answers from the closest matches anyway, labelled unconfirmed
+(owner, 2026-10-26: one setting, not a button per question). Follow-ups search a query the local model rewrites
+from the conversation ("who all report to him?" → "who reports to Kabir Singh").
 **Not built:** pictures — per-message image upload, OCR and a description by a vision model. It needs the
 model's mmproj (not in the current download), 20–56 s per image on CPU, and the measured arrows/relations are
 unreliable (TODO item 2 and item 10), so it deserves its own measured pass. Editing an earlier message is also

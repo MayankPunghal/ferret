@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     enrich_enabled: bool = True  # summaries/topics/titles by the local language model, when one is available
     enrich_hours: str = ""  # "22-6": the local model only works between these hours (local time); "" = any time
     summary_length: str = "short"  # short | medium | long (enrich.LENGTHS)
+    ask_allow_unsupported: bool = True  # Ask answers from the closest matches when no passage passed the gate
     indexing_paused: bool = False  # tray / Settings: no new indexing or summaries until resumed; search works
     system_check: bool = True  # first start: check memory and GPU and choose defaults for them (system.py)
     llm_device: str = "cpu"  # cpu | gpu: llama.cpp's Vulkan build (enrich.gpu_exe), falls back to the CPU

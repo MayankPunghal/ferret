@@ -51,6 +51,7 @@ class Runtime:
     enrich_hours: str  # "22-6" = only between 22:00 and 06:00 local time; "" = any time
     enrich_model: str  # enrich.LLMS name chosen in Settings; "" = the one setup installed
     summary_length: str  # short | medium | long (enrich.LENGTHS)
+    ask_allow_unsupported: bool  # Ask answers from the closest matches when nothing passed the evidence gate
     llm_device: str  # cpu | gpu (enrich.Enricher._device)
     indexing_paused: bool  # no new indexing or summaries (ingest.Worker.run_once, enrich.Enricher.run_once)
 
@@ -95,6 +96,7 @@ def defaults(model: str | None = None) -> Runtime:
         gate_mode=s.gate_mode, gate_lexical=s.gate_lexical, gate_all_terms_min=full, fusion_lexical_weight=s.fusion_lexical_weight,
         graph_expansion=s.graph_expansion, enrich_enabled=s.enrich_enabled, enrich_hours=s.enrich_hours,
         enrich_model="", summary_length=s.summary_length, llm_device=s.llm_device,
+        ask_allow_unsupported=s.ask_allow_unsupported,
         indexing_paused=s.indexing_paused,
     )
 

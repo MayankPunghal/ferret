@@ -37,16 +37,27 @@ def fake_model(*chunks, thinking="", seen=None):
     return gen
 
 
+def allow_closest(client, on: bool) -> None:
+    """The Settings switch: answer from the closest matches when nothing passed the evidence check."""
+    r = client.put("/api/admin/settings", headers=token(client, "root"), json={"ask_allow_unsupported": on})
+    assert r.status_code == 200, r.text
+
+
 def test_no_evidence_means_no_answer_and_no_model_call(client, corpus, monkeypatch):
     monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
     seen = {}
     monkeypatch.setattr(ask, "_stream_model", fake_model("should not be asked", seen=seen))
-    r = client.post("/api/ask", headers=token(client, "alice"), json={"question": "zebra quantum lasagna policy"})
-    assert r.status_code == 200
-    body = r.json()
-    assert body["answer"] is None and body["answered"] is False and body["citations"] == []
-    assert not seen  # nothing to answer from: the model is never asked
-    assert body["outcome"] == "no_adequate_evidence" and body["message"]
+    allow_closest(client, False)
+    try:
+        r = client.post("/api/ask", headers=token(client, "alice"), json={"question": "zebra quantum lasagna policy"})
+        assert r.status_code == 200
+        body = r.json()
+        assert body["answer"] is None and body["answered"] is False and body["citations"] == []
+        assert not seen  # nothing to answer from: the model is never asked
+        assert body["outcome"] == "no_adequate_evidence" and body["message"]
+        assert body["near"], "the refusal still lists what the search found"
+    finally:
+        allow_closest(client, True)
 
 
 def test_the_answer_cites_the_passages_the_model_was_given(client, corpus, monkeypatch):
@@ -152,6 +163,61 @@ def test_the_model_list_and_the_mcp_tool(client, corpus):
     tool = next(t for t in mcp.TOOLS if t["name"] == "ask")
     assert tool["inputSchema"]["required"] == ["question"] and tool["annotations"]["readOnlyHint"] is True
 
+def test_the_setting_answers_from_the_closest_matches(client, corpus, monkeypatch):
+    """Owner: one setting, not a button per question — Ask answers on its own, marked unconfirmed."""
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    seen = {}
+    monkeypatch.setattr(ask, "_stream_model", fake_model("The closest page says he is the COO ", "[1].", seen=seen))
+    allow_closest(client, True)
+    h = token(client, "alice")
+    body = client.post("/api/ask", headers=h, json={"question": "zebra quantum lasagna policy"}).json()
+    assert body["unconfirmed"] is True and body["answered"] is True
+    assert body["answer"] == "The closest page says he is the COO [1]."
+    assert body["citations"] and body["citations"][0]["confirmed"] is False
+    assert "closest match, not confirmed" in seen["prompt"]
+
+
+def _rewriting_model(rewritten: str, answer: str, seen: list):
+    """The model is called twice for a follow-up: first to write the search query, then to answer."""
+    def gen(url, model, prompt, think, max_tokens=900):
+        seen.append(prompt)
+        if prompt.startswith("Rewrite the user's latest question"):
+            yield "text", rewritten
+        else:
+            yield "text", answer
+    return gen
+
+
+def test_a_follow_up_searches_with_a_rewritten_query(client, corpus, monkeypatch):
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    seen = []
+    monkeypatch.setattr(ask, "_stream_model",
+                        _rewriting_model("who reports to Kabir Singh", "Sumit Bhandari [1].", seen))
+    history = [{"role": "user", "text": "Who is Kabir Singh?"},
+               {"role": "assistant", "text": "He is the COO [1]."}]
+    events = []
+    with client.stream("POST", "/api/ask/stream", headers=token(client, "alice"),
+                       json={"question": "who all report to him?", "history": history}) as r:
+        for line in r.iter_lines():
+            if line.startswith("data: "):
+                events.append(json.loads(line[6:]))
+    search = events[0]
+    assert search["searched"] == "who reports to Kabir Singh"
+    assert search["question"] == "who all report to him?"
+    assert any("Who is Kabir Singh?" in p for p in seen if p.startswith("Rewrite"))
+
+
+def test_a_retry_does_not_add_the_question_twice(client, corpus, monkeypatch):
+    monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
+    monkeypatch.setattr(ask, "_stream_model", fake_model("Retry once ", "[1]."))
+    h = token(client, "alice")
+    cid = client.post("/api/ask/conversations", headers=h).json()["id"]
+    client.post("/api/ask", headers=h, json={"question": "ERR-PAY-4012", "conversation_id": cid})
+    client.post("/api/ask", headers=h, json={"question": "ERR-PAY-4012", "conversation_id": cid, "new_turn": False})
+    messages = client.get(f"/api/ask/conversations/{cid}", headers=h).json()["messages"]
+    assert [m["role"] for m in messages] == ["user", "assistant", "assistant"]
+
+
 def test_a_refusal_shows_the_closest_matches_and_can_still_answer_from_them(client, corpus, monkeypatch):
     """Owner, 2026-10-26: "Who is Kabir Singh?" got no answer and the window showed nothing. A refusal must
     carry what the search found (the closest matches, with their scores and the gate), and when the user asks,
@@ -160,11 +226,15 @@ def test_a_refusal_shows_the_closest_matches_and_can_still_answer_from_them(clie
     seen = {}
     monkeypatch.setattr(ask, "_stream_model", fake_model("The closest page says he is the COO ", "[1].", seen=seen))
     h = token(client, "alice")
-    body = client.post("/api/ask", headers=h, json={"question": "zebra quantum lasagna policy"}).json()
-    assert body["answer"] is None and body["outcome"] == "no_adequate_evidence"
-    assert body["gate"]["mode"] and body["gate"]["dense_min"] is not None and "near" in body
-    assert body["near"], "the refusal lists what the search found"
-    assert not seen, "no model call while nothing passed the gate"
+    allow_closest(client, False)
+    try:
+        body = client.post("/api/ask", headers=h, json={"question": "zebra quantum lasagna policy"}).json()
+        assert body["answer"] is None and body["outcome"] == "no_adequate_evidence"
+        assert body["gate"]["mode"] and body["gate"]["dense_min"] is not None and "near" in body
+        assert body["near"], "the refusal lists what the search found"
+        assert not seen, "no model call while nothing passed the gate"
+    finally:
+        allow_closest(client, True)
 
     again = client.post("/api/ask", headers=h,
                         json={"question": "zebra quantum lasagna policy", "allow_unsupported": True}).json()
@@ -179,12 +249,16 @@ def test_the_stream_carries_the_search_step_and_the_closest_matches(client, corp
     monkeypatch.setattr(state, "enricher", FakeEnricher(), raising=False)
     monkeypatch.setattr(ask, "_stream_model", fake_model("not asked"))
     h = token(client, "alice")
+    allow_closest(client, False)
     events = []
-    with client.stream("POST", "/api/ask/stream", headers=h,
-                       json={"question": "zebra quantum lasagna policy"}) as r:
-        for line in r.iter_lines():
-            if line.startswith("data: "):
-                events.append(json.loads(line[6:]))
+    try:
+        with client.stream("POST", "/api/ask/stream", headers=h,
+                           json={"question": "zebra quantum lasagna policy"}) as r:
+            for line in r.iter_lines():
+                if line.startswith("data: "):
+                    events.append(json.loads(line[6:]))
+    finally:
+        allow_closest(client, True)
     search = events[0]
     assert search["type"] == "search" and search["outcome"] == "no_adequate_evidence"
     assert search["citations"] == [] and search["near"] and search["gate"]["mode"]

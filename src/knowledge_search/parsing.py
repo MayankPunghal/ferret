@@ -15,7 +15,7 @@ from pathlib import Path
 import yaml
 from markdown_it import MarkdownIt
 
-PARSER_VERSION = "parse-v9"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium; v6: PDF titles without "Microsoft Word - ", .docx, generic metadata; v7: PowerPoint SmartArt and connector org charts as nested lists; v8: line breaks inside a PowerPoint/Word paragraph no longer join words; v9: tables as Markdown tables (merged cells repeated, header row) from HTML, Word and PowerPoint
+PARSER_VERSION = "parse-v10"  # v2: CRLF/CR line endings normalised; v3: HTML/DOCX, directory-style links; v4: {#anchor} headings, loose front matter; v5: PDF text via PDFium; v6: PDF titles without "Microsoft Word - ", .docx, generic metadata; v7: PowerPoint SmartArt and connector org charts as nested lists; v8: line breaks inside a PowerPoint/Word paragraph no longer join words; v9: tables as Markdown tables (merged cells repeated, header row) from HTML, Word and PowerPoint; v10: PowerPoint charts drawn with plain lines (not glued connectors), as nested lists
 _PDFIUM = threading.Lock()  # PDFium is not thread-safe; API requests and ingest workers parse concurrently
 CHUNKER_VERSION = "chunk-v3"  # v3: tables never cut mid-row; long tables split with the header repeated; size/overlap are runtime settings, recorded in the index signature
 

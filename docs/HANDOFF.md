@@ -691,6 +691,14 @@ The WIP branch was `feature/ask` (a single-shot Q&A, no history, no model choice
 shape (search first, citations, no evidence means no model call) and adds the window, models and history.
 Nothing from that branch was merged.
 
+- **Flattened diagrams (owner, 2026-10-26: "can we do something about the flattened diagrams … from ppt"):**
+  the organiser deck's chart is drawn with **plain lines**, not PowerPoint's glued connectors, so parse-v7's
+  connector tree never fired and every box became a flat bullet. `convert._line_tree` (parse-v10) now treats the
+  boxes and lines as one drawing: from a box it follows the lines through their junctions to the nearest box
+  above, which is its parent. On the owner's deck slide 10 comes out as "COO Kabir Singh Chandhoke → CTO (himself)
+  → the five VPs; → Country Manager; → VP PMO; → VP Creative", so "who reports to X" is answerable from the text.
+  Guarded: at least three short-labelled boxes and two parent edges, or the slide stays a list. **Not measured**
+  across other decks; parse-v10 re-parses every PowerPoint on the next start.
 - **`ask.py`** (new): `POST /api/ask` (whole answer, for assistants and tests), `POST /api/ask/stream`
   (server-sent events) and `GET /api/ask/models`, plus the conversation routes below.
   Search runs with the caller's permissions and the runtime gate; **only `supported` passages** (max 6, 1,500
@@ -723,6 +731,15 @@ Nothing from that branch was merged.
   model picker, "Think first", collection scope, Ask/Stop. Phone width stacks the list above the chat.
 - **MCP:** a new read-only `ask` tool (question, collections, think) calls the app's own `/api/ask`, so
   permissions and the gate apply; it returns the answer, its citations and the outcome.
+- **Owner round 2 (2026-10-26, from screenshots):** (1) the closest-matches button became **Settings → Ask →
+  "Answer from the closest matches when no passage passes the evidence check"** (`ask_allow_unsupported`,
+  default **on**): a question is answered without a second click, marked unconfirmed; the API still accepts
+  `allow_unsupported` per call. (2) a follow-up now searches a **standalone query written by the local model**
+  from the conversation ("who all report to him?" → "who reports to Kabir Singh"), shown in the step; first
+  questions and questions without pronouns skip that extra call. (3) **Retry** re-asks in place and no longer
+  stores the question twice (`new_turn: false`). (4) chats run **in parallel**: one stream per conversation
+  (`askRunning`), switching conversation or starting another no longer aborts the first, and the server-side
+  global lock is gone (llama-server queues the second request itself).
 - **Never a black box** (owner, 2026-10-26: "Who is Kabir Singh?" answered nothing and showed nothing):
   the search step is always shown and is **open when nothing was confirmed** — the question, the outcome, the
   gate in force (mode, cosine floor, reranker floor), the passages sent to the model (title, where, cosine,
