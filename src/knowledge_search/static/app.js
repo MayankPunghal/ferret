@@ -2216,6 +2216,8 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") accountMen
   const show = () => {
     $("#theme-toggle use").setAttribute("href", dark() ? "#i-sun" : "#i-moon");
     $("#theme-toggle").title = $("#theme-toggle").ariaLabel = dark() ? "Switch to light theme" : "Switch to dark theme";
+    const crawler = $("#crawler-frame").contentDocument;  // the framed crawler page follows too (crawler-embed.css)
+    if (crawler) crawler.documentElement.dataset.theme = dark() ? "dark" : "light";
   };
   try { const t = localStorage.getItem("ks-theme"); if (t) document.documentElement.dataset.theme = t; } catch { /* default */ }
   $("#theme-toggle").addEventListener("click", () => {
@@ -2225,5 +2227,6 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") accountMen
     show();
   });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", show);
+  $("#crawler-frame").addEventListener("load", show);
   show();
 })();

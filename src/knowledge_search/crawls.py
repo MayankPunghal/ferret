@@ -85,7 +85,9 @@ def _done(name: str, folder: Path, copy_state: str) -> None:
 
 @router.get("/crawler/")
 def page(p: Admin):
-    return Response((ui.STATIC / "index.html").read_bytes(), media_type="text/html",
+    html = (ui.STATIC / "index.html").read_bytes().replace(  # Ferret draws the frame: static/crawler-embed.css
+        b"</head>", b'<link rel="stylesheet" href="/crawler-embed.css"></head>', 1)
+    return Response(html, media_type="text/html",
                     headers={"Content-Security-Policy": PAGE_CSP, "Cache-Control": "no-store"})
 
 

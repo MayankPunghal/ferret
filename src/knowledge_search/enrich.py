@@ -344,7 +344,7 @@ def status(conn: Connection, model: str, collections: list[int] | None = None) -
 def describe(enricher, conn: Connection, enabled: bool, collections: list[int]) -> str:
     """One line for the status page."""
     if not enabled:
-        return "off (Settings)"
+        return "Off: turn summaries on in Settings"
     if enricher is None or not enricher.available:
         return enricher.state if enricher and enricher.state.startswith(("downloading", "error")) \
             else "no local language model installed"

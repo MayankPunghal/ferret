@@ -1,0 +1,32 @@
+/* The crawler's page inside Ferret's Crawler tab: Ferret already draws the frame (sidebar, sheet), so the page
+   drops its own brand bar and card and sits flush in Ferret's sheet. Linked only by crawls.page(). */
+html, body { background: transparent; }
+.top { display: none; }
+.sheet { border: 0; border-radius: 0; margin: 0; max-width: none; min-height: 0; padding: 4px 8px 32px; background: transparent; }
+@media (min-width: 1160px) { .sheet { margin: 0; } }
+.where .link { text-align: left; overflow-wrap: anywhere; }
+/* Ferret's theme switch (set by app.js on this page's <html>) wins over the system setting */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ground: #f3f5f7; --surface: #fff; --raised: #f5f6f8; --active: #e6e9ec;
+  --border: #e3e6e9; --rule: #eef0f2; --control: #cdd0d4;
+  --text: #131416; --muted: #5d5f63; --accent: #1b6c80; --primary: #1d1f20; --on-primary: #fff;
+  --positive: #1e7b4f; --negative: #c4242a; --warning: #92400e;
+  --pill-positive-bg: #dcf5e5; --pill-positive-ink: #0b3b1e;
+  --pill-negative-bg: #ffedea; --pill-negative-ink: #831c1e;
+  --pill-warning-bg: #fff7e0; --pill-warning-ink: #7a3a0c; --notice-edge: #f5dfa0;
+  --pill-neutral-bg: #eceef0; --pill-neutral-ink: #353739;
+  --bar-saved: #1b6c80; --bar-gap: #e9a23b; --bar-track: #eceef0;
+}
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #0f1011; --surface: #17181a; --raised: #1e1f22; --active: #2a2c2f;
+    --border: #2a2c2f; --rule: #222326; --control: #3d3f43;
+    --text: #ececed; --muted: #a2a4a8; --accent: #6cc0d4; --primary: #ececed; --on-primary: #131416;
+    --positive: #5bc98f; --negative: #f08080; --warning: #e9b45a;
+    --pill-positive-bg: #143522; --pill-positive-ink: #9be3b9;
+    --pill-negative-bg: #3d1a1a; --pill-negative-ink: #f8b0ac;
+    --pill-warning-bg: #33280f; --pill-warning-ink: #f1cd7c; --notice-edge: #4a3a14;
+    --pill-neutral-bg: #2a2c2f; --pill-neutral-ink: #d3d4d6;
+    --bar-saved: #6cc0d4; --bar-gap: #e9b45a; --bar-track: #2a2c2f;
+}

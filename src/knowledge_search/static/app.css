@@ -157,7 +157,7 @@ label.check { font-weight: 400; }
 .menu-pop > .danger { color: var(--negative); }
 
 /* ---------------------------------------------------------------- crawler (site2md's page, framed) */
-#tab-crawler iframe { display: block; width: 100%; height: calc(100vh - 48px); border: 0; background: var(--surface); }
+#tab-crawler iframe { display: block; width: 100%; height: calc(100vh - 48px); border: 0; background: transparent; }
 
 /* ---------------------------------------------------------------- search */
 #tab-search { max-width: 880px; }
